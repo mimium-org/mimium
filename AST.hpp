@@ -27,10 +27,7 @@ class SingleAST:public BaseAST{
     public:
     SingleAST(const T &val):BaseAST(VariableID),Val(val){}
     ~SingleAST(){}
-    static inline bool classof(SingleAST const* ast){return true;}
-    static inline bool classof(BaseAST const* baseast){
-        return baseast->getValueID()==VariableID;
-    }
+
     T getVal(){return Val;}
 };
 
@@ -38,10 +35,21 @@ class SingleAST:public BaseAST{
 class VariableAST :  public SingleAST<std::string>{
     public:
     VariableAST(const std::string & val):SingleAST<std::string>(val){}
+    static inline bool classof(VariableAST const* ast){return true;}
+    static inline bool classof(BaseAST const* baseast){
+        return baseast->getValueID()==VariableID;
+    }
 };
-class NumberAST : public SingleAST<int>{
+class NumberAST : public BaseAST{
+    int Val;
     public:
-    NumberAST(int & val):SingleAST<int>(val){}
+    NumberAST(int & val):BaseAST(NumberID),Val(val){}
+    static inline bool classof(NumberAST const* ast){return true;}
+    static inline bool classof(BaseAST const* baseast){
+        return baseast->getValueID()==NumberID;
+    }
+    int getVal(){return Val;}
+
 };
 
 class FcallAST: public BaseAST{
