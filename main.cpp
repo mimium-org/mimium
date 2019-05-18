@@ -3,7 +3,7 @@
  * Supports +, -, *, /, ^ and grouping with parenthesis.
  * Correctly handles precedence associativity.
  */
-
+#pragma once
 #include <cctype>
 #include <cmath>
 #include <iostream>
@@ -14,7 +14,7 @@
 
 
 int main() {
-    auto parser = pc::parser(myparser::assign);
+    auto parser = pc::parser(assign);
     std::string line = "h=2+1+4";
 
         auto res = parser.parse(line).success().value();

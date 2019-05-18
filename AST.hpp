@@ -9,7 +9,8 @@ enum AstID{
     VariableID,
     NumberID,
     CallExprID,
-    BinaryExprID
+    BinaryExprID,
+    AssignID
 };
 
 class BaseAST{
@@ -24,18 +25,24 @@ template<typename T>
 class SingleAST:public BaseAST{
     T Val;
     public:
-    SingleAST(const T &val):BaseAST(VariableID),Name(val){}
+    SingleAST(const T &val):BaseAST(VariableID),Val(val){}
     ~SingleAST(){}
     static inline bool classof(SingleAST const* ast){return true;}
     static inline bool classof(BaseAST const* baseast){
         return baseast->getValueID()==VariableID;
     }
-    T getVal(){return val;}
+    T getVal(){return Val;}
 };
 
 
-class VariableAST : private SingleAST<std::string>{};
-class NumberAST : private SingleAST<int>{};
+class VariableAST :  public SingleAST<std::string>{
+    public:
+    VariableAST(const std::string & val):SingleAST<std::string>(val){}
+};
+class NumberAST : public SingleAST<int>{
+    public:
+    NumberAST(int & val):SingleAST<int>(val){}
+};
 
 class FcallAST: public BaseAST{
     std::string Fname;
@@ -55,20 +62,29 @@ class FcallAST: public BaseAST{
 
 class BinaryExprAST: public BaseAST{
     std::string Op;
-    std::shared_ptr<BaseAST> LHS,RHS;
+    BaseAST *LHS, *RHS;
     public:
-    BinaryExprAST(std::string op,std::shared_ptr<BaseAST> lhs,std::shared_ptr<BaseAST> rhs)
+    BinaryExprAST(std::string op,BaseAST *lhs,BaseAST *rhs)
     : BaseAST(BinaryExprID),Op(op),LHS(lhs),RHS(rhs){}
     static inline bool classof(BinaryExprAST const* ast){return true;}
     static inline bool classof(BaseAST const* baseast){
         return baseast->getValueID()==BinaryExprID;
         }
     std::string getOp(){return Op;}
-    std::shared_ptr<BaseAST> getLHS(){return LHS;}
-    std::shared_ptr<BaseAST> getRHS(){return RHS;}
+    BaseAST* getLHS(){return LHS;}
+    BaseAST*  getRHS(){return RHS;}
 
 };
 
 class AssignAST: public BaseAST{
     std::string Name;
+    BaseAST& Assignee;
+    public:
+    AssignAST(std::string name,BaseAST& assignee):BaseAST(AssignID),Name(name),Assignee(assignee){}
+    static inline bool classof(AssignAST const* ast){return true;}
+    static inline bool classof(BaseAST const* baseast){
+        return baseast->getValueID()==AssignID;
+    }
+    std::string getName(){return Name;}
+    BaseAST& getAssignee(){return Assignee;}
 };
