@@ -19,6 +19,9 @@ class BaseAST{
     BaseAST(AstID id):ID(id){}
     virtual ~BaseAST(){}
     AstID getValueID()const{return ID;}
+    template<typename T>
+    virtual T getVal(){}
+¥
 };
 
 template<typename T>
@@ -43,7 +46,7 @@ class VariableAST :  public SingleAST<std::string>{
 class NumberAST : public BaseAST{
     int Val;
     public:
-    NumberAST(int & val):BaseAST(NumberID),Val(val){}
+    NumberAST(int val):BaseAST(NumberID),Val(val){}
     static inline bool classof(NumberAST const* ast){return true;}
     static inline bool classof(BaseAST const* baseast){
         return baseast->getValueID()==NumberID;
@@ -70,9 +73,9 @@ class FcallAST: public BaseAST{
 
 class BinaryExprAST: public BaseAST{
     std::string Op;
-    BaseAST *LHS, *RHS;
+    auto LHS, RHS;
     public:
-    BinaryExprAST(std::string op,BaseAST *lhs,BaseAST *rhs)
+    BinaryExprAST(std::string op,auto& lhs,auto& rhs)
     : BaseAST(BinaryExprID),Op(op),LHS(lhs),RHS(rhs){}
     static inline bool classof(BinaryExprAST const* ast){return true;}
     static inline bool classof(BaseAST const* baseast){

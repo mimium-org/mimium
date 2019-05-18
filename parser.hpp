@@ -42,18 +42,17 @@ cppcmb_def(assign)=
 
 
 BinaryExprAST to_exprast(NumberAST x,char op, NumberAST y){
-    return BinaryExprAST(std::string({op}),&x,&y);
+    BinaryExprAST test =  BinaryExprAST(std::string({op}),x,y);
+    return test;
 }
-// BinaryExprAST to_exprast(BinaryExprAST x,char op, BinaryExprAST y){
-//     return BinaryExprAST(std::string({op}),x,y);
-// }
+
 cppcmb_def(expr_top) =
       expr & pc::end
     ;
 cppcmb_def(expr) = pc::pass
     | (num & match<'+'> & num) [to_exprast]
     // | (expr & match<'-'> & mul) [to_exprast]
-    // | mul
+    // | atom
     %= pc::as_memo_d
     ;
 
