@@ -1,0 +1,43 @@
+//comment
+
+// make event
+
+x::int@ = 100(ms)
+y = x|>100(ms) //y becomes 200ms
+z = x<|100(sec)
+
+declare myunit 1(ms)! //!makes it current default time-unit context
+
+x::int@ = 100 // you can define variable without time unit, default time unit in current context is used(you must specify in your code before default unit is called)
+
+function samplefun(x::int , y::int){
+    return x+y
+}
+
+samplefun = (x::int,y::int)->int {return x+y}
+
+
+//delay
+
+//delay of 100ms
+
+function delay(input){
+    input = input<|100::ms 
+}
+
+// delay can refer future
+//practically, it makes global offset delay of 100ms and pass the input
+function futuredelay(input){
+    input = input|>100::ms
+}
+
+//recursive
+//self is special parameter in function to refer to its own output history
+
+function combfilter(input){
+ 	input = input + 0.999*(self<|100(ms) ); 
+ }
+
+function smooth(input){
+    input = input+0.999*(self[-1]) // you can specify non-uniform time sequence as array
+}
