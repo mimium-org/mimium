@@ -30,7 +30,7 @@ std::string ListExpr::to_string(){
         for(int i=0;i<exprs.size();i++){
             st<< exprs[i]->to_string();
             if(i<exprs.size()-1){
-            st<<',';
+            st<<' ';
             }
         }
         st << ')';

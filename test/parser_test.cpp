@@ -48,39 +48,39 @@ TEST(parser_test, expr) {
     auto res2 = testparser.parse(tch::exprnumnumnum);
 
     // EXPECT_TRUE(res.is_success());
-    EXPECT_EQ("(fcall,+,(1,2))",res.success().value()->to_string());
+    EXPECT_EQ("(fcall + (1 2))",res.success().value()->to_string());
     // EXPECT_TRUE(res2.is_success());
-    EXPECT_EQ("(fcall,+,((fcall,+,(1,2)),3))",res2.success().value()->to_string());
+    EXPECT_EQ("(fcall + ((fcall + (1 2)) 3))",res2.success().value()->to_string());
 }
 TEST(parser_test, list) {
     auto testparser = pc::parser(list);
     auto res = testparser.parse(tch::list);
     ListExpr test = *dynamic_cast<ListExpr*>(res.success().value().get());
 
-    EXPECT_EQ("(symb,hoge,123)",res.success().value()->to_string());
+    EXPECT_EQ("(symb hoge 123)",res.success().value()->to_string());
 }
 TEST(parser_test, fcall) {
     auto testparser = pc::parser(fcall);
     auto res = testparser.parse(tch::fcall);
     EXPECT_FALSE(!res.is_success());
-    EXPECT_EQ("(fcall,myfunc,(these,are,args,1,2,3))",res.success().value()->to_string());
+    EXPECT_EQ("(fcall myfunc (these are args 1 2 3))",res.success().value()->to_string());
 }
 TEST(parser_test, assign) {
     auto testparser = pc::parser(assign);
     auto res = testparser.parse(tch::assign);
     EXPECT_FALSE(!res.is_success());
-    EXPECT_EQ("(define,test,(fcall,+,(hoge,1)))",res.success().value()->to_string());
+    EXPECT_EQ("(define test (fcall + (hoge 1)))",res.success().value()->to_string());
 }
 TEST(parser_test, lambda) {
     auto testparser = pc::parser(lambda);
     auto res = testparser.parse(tch::lambda);
     EXPECT_FALSE(!res.is_success());
-    EXPECT_EQ("(lambda,(x,y,z),(fcall,+,((fcall,+,(x,y)),z)))",res.success().value()->to_string());
+    EXPECT_EQ("(lambda (x y z) (fcall + ((fcall + (x y)) z)))",res.success().value()->to_string());
 }
 
 TEST(parser_test, fdef) {
     auto testparser = pc::parser(fdef);
     auto res = testparser.parse(tch::fdef);
     EXPECT_FALSE(!res.is_success());
-    EXPECT_EQ("(define,test,(lambda,(x),(fcall,+,((fcall,+,(hoge,1)),(fcall,*,(x,y))))))",res.success().value()->to_string());
+    EXPECT_EQ("(define test (lambda (x) (fcall + ((fcall + (hoge 1)) (fcall * (x y))))))",res.success().value()->to_string());
 }
