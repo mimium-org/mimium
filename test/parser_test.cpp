@@ -5,11 +5,11 @@ namespace tch{
     using s  = std::string;
     s num = "123";
     s str = "hoge";
+    s list ="symb, hoge,123";
     s exprnumnum = "1+2";
     s exprnumnumnum = "1+2+3";
-
     s exprnumstr = "1+symn";
-
+    s fcall = "myfunc(these,are,args , 1,2, 3)";
 };
 
 // TEST(parser_test, digit) {
@@ -45,15 +45,21 @@ TEST(parser_test, expr) {
     auto res2 = testparser.parse(tch::exprnumnumnum);
 
     // EXPECT_TRUE(res.is_success());
-    EXPECT_EQ("(fcall,(1,2),+)",res.success().value()->to_string());
+    EXPECT_EQ("(fcall,+,(1,2))",res.success().value()->to_string());
     // EXPECT_TRUE(res2.is_success());
-    EXPECT_EQ("(fcall,((fcall,(1,2),+),3),+)",res2.success().value()->to_string());
+    EXPECT_EQ("(fcall,+,((fcall,+,(1,2)),3))",res2.success().value()->to_string());
+}
+TEST(parser_test, list) {
+    auto testparser = pc::parser(list);
+    auto res = testparser.parse(tch::list);
+    ListExpr test = *dynamic_cast<ListExpr*>(res.success().value().get());
 
-
-    
-    // auto res2 = testparser.parse(tch::exprnumstr).success().value();
-
-    // EXPECT_EQ("+", res2.getOp());
-    // EXPECT_EQ(NumberID, res2.getLHS()->getValueID());
-    // EXPECT_EQ(VariableID, res2.getRHS()->getValueID());
+    EXPECT_EQ("(symb,hoge,123)",res.success().value()->to_string());
+}
+TEST(parser_test, fcall) {
+    auto testparser = pc::parser(fcall);
+    auto res = testparser.parse(tch::fcall);
+    ListExpr test = *dynamic_cast<ListExpr*>(res.success().value().get());
+    EXPECT_FALSE(res.is_success());
+    EXPECT_EQ("(fcall,myfunc,(these,are,args,1,2,3))",res.success().value()->to_string());
 }

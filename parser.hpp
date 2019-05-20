@@ -8,7 +8,7 @@ namespace pc = cppcmb;
 template <char Ch>
 bool is_same_char(char c) { return c == Ch; }
 
-inline constexpr auto wh =  (+pc::one[pc::filter([](char ch){return ch==' ';})])[pc::select<>];
+inline constexpr auto wh =  +pc::one[pc::filter(is_same_char<' '>)];
 
 template <char Ch>
 inline constexpr auto match = (-wh & pc::one[pc::filter(is_same_char<Ch>)]& -wh)[pc::select<1>] ;
@@ -30,12 +30,28 @@ S_Ptr to_symbol(std::vector<char> const& chs){
     S_Ptr res = std::make_shared<LiteralExpr>(str);
     return res;
 }
-
-S_Ptr fcall(S_Ptr args,S_Ptr body){
+S_Ptr to_list(S_Ptr fst,pc::maybe<std::vector<S_Ptr>> rest){
+    S_Ptr res = std::make_shared<ListExpr>();
+   res->add_ptr(fst);
+    if(rest.is_some()){
+        for(auto &v :rest.some().value() )
+        res->add_ptr(v);
+    }
+    return res;
+}   
+S_Ptr to_fcall(S_Ptr ident,S_Ptr args){
     S_Ptr res = std::make_shared<ListExpr>();
     res->add_str("fcall");
+    res->add_ptr(ident);
     res->add_ptr(args);
-    res->add_ptr(body);
+    return res;
+}
+//this weird
+S_Ptr to_fcall_raw(S_Ptr ident,char dm,S_Ptr args,char dm2){
+    S_Ptr res = std::make_shared<ListExpr>();
+    res->add_str("fcall");
+    res->add_ptr(ident);
+    res->add_ptr(args);
     return res;
 }
 S_Ptr binary_to_fcall(S_Ptr lhs,char op,S_Ptr rhs){
@@ -43,7 +59,7 @@ S_Ptr binary_to_fcall(S_Ptr lhs,char op,S_Ptr rhs){
     args->add_ptr(lhs);
     args->add_ptr(rhs);
     S_Ptr ops = std::make_shared<LiteralExpr>(op);
-    return  fcall(args,ops);
+    return  to_fcall(ops,args);
 } 
 S_Ptr lambda(S_Ptr args,S_Ptr body){
     S_Ptr res = std::make_shared<ListExpr>();
@@ -65,13 +81,15 @@ S_Ptr fdef (S_Ptr name,S_Ptr args,S_Ptr body){
 cppcmb_decl(expr_top,S_Ptr );
 cppcmb_decl(expr, S_Ptr );
 cppcmb_decl(assign, S_Ptr );
-
+cppcmb_decl(fcall, S_Ptr );
+cppcmb_decl(list, S_Ptr );
 cppcmb_decl(mul,      S_Ptr );
 cppcmb_decl(expon,    S_Ptr );
 cppcmb_decl(atom,     S_Ptr );
 cppcmb_decl(num,     S_Ptr);
 cppcmb_decl(symbol,      S_Ptr);
 cppcmb_decl(digit,    char);
+
 cppcmb_def(assign)= 
     (symbol &match<'='>& expr)[pc::select<0,2>][to_assign];
 
@@ -99,9 +117,17 @@ cppcmb_def(expon) = pc::pass
 
 cppcmb_def(atom) = pc::pass
     | (match<'('> & expr & match<')'>) [pc::select<1>]
+    | fcall
     | symbol
     | num
     %= pc::as_memo_d;
+
+
+
+cppcmb_def(list) = (symbol & -+((match<','> & (atom) )[pc::select<1>]) )[to_list]%= pc::as_memo_d;;
+
+//something is weird if we use pc::select<0,2> it fails
+cppcmb_def(fcall) = (symbol& match<'('>& list & match<')'>) [to_fcall_raw];
 
 cppcmb_def(symbol) = (+pc::one[pc::filter(isalpha)])[to_symbol];
 
@@ -109,6 +135,5 @@ cppcmb_def(num) = (+digit) [to_num]
                 ;
 
 cppcmb_def(digit) = pc::one[pc::filter(isdigit)];
-
 
 
