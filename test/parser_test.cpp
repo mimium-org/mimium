@@ -10,6 +10,7 @@ namespace tch{
     s exprnumnumnum = "1+2+3";
     s exprnumstr = "1+symn";
     s fcall = "myfunc(these,are,args , 1,2, 3)";
+    s assign  ="test = hoge + 1";
 };
 
 // TEST(parser_test, digit) {
@@ -60,6 +61,13 @@ TEST(parser_test, fcall) {
     auto testparser = pc::parser(fcall);
     auto res = testparser.parse(tch::fcall);
     ListExpr test = *dynamic_cast<ListExpr*>(res.success().value().get());
-    EXPECT_FALSE(res.is_success());
+    EXPECT_FALSE(!res.is_success());
     EXPECT_EQ("(fcall,myfunc,(these,are,args,1,2,3))",res.success().value()->to_string());
+}
+TEST(parser_test, assign) {
+    auto testparser = pc::parser(assign);
+    auto res = testparser.parse(tch::assign);
+    ListExpr test = *dynamic_cast<ListExpr*>(res.success().value().get());
+    EXPECT_FALSE(!res.is_success());
+    EXPECT_EQ("(define,test,(fcall,+,(hoge,1)))",res.success().value()->to_string());
 }

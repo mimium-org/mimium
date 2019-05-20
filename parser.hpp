@@ -68,12 +68,16 @@ S_Ptr lambda(S_Ptr args,S_Ptr body){
     res->add_ptr(body);
     return  res;
 }
+
 S_Ptr to_assign (S_Ptr name,S_Ptr assignee){
     S_Ptr res = std::make_shared<ListExpr>();
     res->add_str("define");
     res->add_ptr(name);
     res->add_ptr(assignee);    
     return res;
+};
+S_Ptr to_assign_raw (S_Ptr name,char eq,S_Ptr assignee){
+    return to_assign(name,assignee);
 };
 S_Ptr fdef (S_Ptr name,S_Ptr args,S_Ptr body){
     return to_assign(name,lambda(args,body));
@@ -91,7 +95,7 @@ cppcmb_decl(symbol,      S_Ptr);
 cppcmb_decl(digit,    char);
 
 cppcmb_def(assign)= 
-    (symbol &match<'='>& expr)[pc::select<0,2>][to_assign];
+    (symbol &match<'='>& expr)[to_assign_raw];
 
 cppcmb_def(expr_top) =
       expr & pc::end [pc::select<0>]
