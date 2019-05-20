@@ -45,9 +45,9 @@ TEST(parser_test, expr) {
     auto res2 = testparser.parse(tch::exprnumnumnum);
 
     // EXPECT_TRUE(res.is_success());
-    EXPECT_EQ("(fcall,+,(1,2))",res.success().value()->to_string());
+    EXPECT_EQ("(fcall,(1,2),+)",res.success().value()->to_string());
     // EXPECT_TRUE(res2.is_success());
-    EXPECT_EQ("(fcall,+,((fcall,+,(1,2)),3))",res2.success().value()->to_string());
+    EXPECT_EQ("(fcall,((fcall,(1,2),+),3),+)",res2.success().value()->to_string());
 
 
     

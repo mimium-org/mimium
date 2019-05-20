@@ -8,66 +8,72 @@ namespace pc = cppcmb;
 template <char Ch>
 bool is_same_char(char c) { return c == Ch; }
 
+inline constexpr auto wh =  (+pc::one[pc::filter([](char ch){return ch==' ';})])[pc::select<>];
+
 template <char Ch>
-inline constexpr auto match = pc::one[pc::filter(is_same_char<Ch>)];
+inline constexpr auto match = (-wh & pc::one[pc::filter(is_same_char<Ch>)]& -wh)[pc::select<1>] ;
 
 
-cppcmb_decl(expr_top,std::shared_ptr<S_Expr> );
-cppcmb_decl(expr, std::shared_ptr<S_Expr> );
-cppcmb_decl(assign, std::shared_ptr<S_Expr> );
-
-cppcmb_decl(mul,      std::shared_ptr<S_Expr> );
-cppcmb_decl(expon,    std::shared_ptr<S_Expr> );
-cppcmb_decl(atom,     std::shared_ptr<S_Expr> );
-cppcmb_decl(num,     std::shared_ptr<S_Expr>);
-cppcmb_decl(symbol,      std::shared_ptr<S_Expr>);
-cppcmb_decl(digit,    char);
+using S_Ptr = std::shared_ptr<S_Expr>;
 
 
-std::shared_ptr<S_Expr> to_num(std::vector<char> const& chs) {
+S_Ptr to_num(std::vector<char> const& chs) {
     const std::string str(chs.begin(), chs.end());
-    std::shared_ptr<S_Expr> res = std::make_shared<LiteralExpr>(str);
+    S_Ptr res = std::make_shared<LiteralExpr>(str);
     // int n = 0;
     // for (auto c : chs) n = n * 10 + (c - '0');
     return res;
 }
 
-std::shared_ptr<S_Expr> to_symbol(std::vector<char> const& chs){
+S_Ptr to_symbol(std::vector<char> const& chs){
     const std::string str(chs.begin(), chs.end());
-    std::shared_ptr<S_Expr> res = std::make_shared<LiteralExpr>(str);
+    S_Ptr res = std::make_shared<LiteralExpr>(str);
     return res;
 }
 
-// AssignAST to_assign(std::string var,char eq,BaseAST expr){
-//     return AssignAST(var,expr);
-// }
-
-
-auto to_assign = [](std::string name,char eq,auto assignee){
-    return std::make_tuple("assign",name,assignee);
-};
-
-
-std::shared_ptr<S_Expr> binary_to_fcall(std::shared_ptr<S_Expr> lhs,char op,std::shared_ptr<S_Expr> rhs){
-    std::shared_ptr<S_Expr> args = std::make_shared<ListExpr>();
+S_Ptr fcall(S_Ptr args,S_Ptr body){
+    S_Ptr res = std::make_shared<ListExpr>();
+    res->add_str("fcall");
+    res->add_ptr(args);
+    res->add_ptr(body);
+    return res;
+}
+S_Ptr binary_to_fcall(S_Ptr lhs,char op,S_Ptr rhs){
+    S_Ptr args = std::make_shared<ListExpr>();
     args->add_ptr(lhs);
     args->add_ptr(rhs);
-    std::shared_ptr<S_Expr> res = std::make_shared<ListExpr>();
-    res->add_str("fcall");
-    res->add_str(op);
-    res->add_ptr(args);
-    return res;
+    S_Ptr ops = std::make_shared<LiteralExpr>(op);
+    return  fcall(args,ops);
 } 
-
-auto lambda = [](std::vector<std::string> args,auto body){
-    return std::make_tuple("lambda",args,body);
+S_Ptr lambda(S_Ptr args,S_Ptr body){
+    S_Ptr res = std::make_shared<ListExpr>();
+    res->add_str("lambda");
+    res->add_ptr(args);
+    res->add_ptr(body);
+    return  res;
+}
+S_Ptr to_assign (S_Ptr name,S_Ptr assignee){
+    S_Ptr res = std::make_shared<ListExpr>();
+    res->add_str("define");
+    res->add_ptr(name);
+    res->add_ptr(assignee);    
+    return res;
 };
-auto fdef = [](std::string name,std::vector<std::string> args,auto body){
-    return assign(name,lambda(args,body));
+S_Ptr fdef (S_Ptr name,S_Ptr args,S_Ptr body){
+    return to_assign(name,lambda(args,body));
 };
+cppcmb_decl(expr_top,S_Ptr );
+cppcmb_decl(expr, S_Ptr );
+cppcmb_decl(assign, S_Ptr );
 
+cppcmb_decl(mul,      S_Ptr );
+cppcmb_decl(expon,    S_Ptr );
+cppcmb_decl(atom,     S_Ptr );
+cppcmb_decl(num,     S_Ptr);
+cppcmb_decl(symbol,      S_Ptr);
+cppcmb_decl(digit,    char);
 cppcmb_def(assign)= 
-    (symbol &match<'='>& expr)[to_assign];
+    (symbol &match<'='>& expr)[pc::select<0,2>][to_assign];
 
 cppcmb_def(expr_top) =
       expr & pc::end [pc::select<0>]
@@ -99,7 +105,7 @@ cppcmb_def(atom) = pc::pass
 
 cppcmb_def(symbol) = (+pc::one[pc::filter(isalpha)])[to_symbol];
 
-    cppcmb_def(num) = (+digit) [to_num]
+cppcmb_def(num) = (+digit) [to_num]
                 ;
 
 cppcmb_def(digit) = pc::one[pc::filter(isdigit)];
