@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.0)
 project(Testcode CXX)
 
 find_package(GTest REQUIRED)
-add_executable(mytest parser_test.cpp)
+add_executable(mytest 
+../s-exp.cpp 
+parser_test.cpp)
 target_link_libraries(mytest
   PRIVATE
     GTest::GTest

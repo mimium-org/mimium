@@ -22,4 +22,4 @@ project (mimium CXX)
 #add_subdirectory( CppCmb )
 add_subdirectory( test )
 
-add_executable(Main main.cpp)
+add_executable(Main main.cpp s-exp.cpp)
