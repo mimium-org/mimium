@@ -20,26 +20,22 @@ input::int@ 1@100[ms] //これは絶対位置100msに置かれるinputという�
 #### 時間シフト演算子 <| と |>
 
 ```
- function delay(input::int@){
- 	return input <| 100::ms //過去の入力を出力する
- 	}
- function future(input::int@){
- 	return input |> 100::ms //未来の入力を出力する(フィルターとか作るときに有効)
- }
- //VSTプラグインのように全体にオフセットディレイがかかる感じかな（CHronicでもやってた） 
+ 
+delay(input::int@) = input <| 100::ms //過去の入力を出力する
+
+future(input::int@) = input |> 100::ms //未来の入力を出力する(フィルターとか作るときに有効)
+
+ //VSTプラグインのように全体にオフセットディレイがかかる感じ（CHronicでもやってた） 
 ```
 
 ### また、関数は自身の過去の出力をselfキーワードで参照できる
 
 ```
-	function combfilter(input){
- 	return input + 0.999*( self<|1 ); // |>出力で未来の参照は流石にエラー
+	combfilter(input) = input + 0.999*( self<|1 ) // 出力で未来の参照|>は流石にエラー
  	 }
+
+    combfilter = input+0.999*(self <| 1[sec] ) // //絶対時間で遡ることも補完が効けばできる??無理かも
  
- process = combfilter; // lazy evaluationならhistoryの最大値もコードの中から推論できる？
- function combfilter(input::TimedArray){
- 	return input+0.999*self(-1::seconds) //絶対時間で遡ることもできる？TimedArray限定かな
- 	}
 ```
 
 
