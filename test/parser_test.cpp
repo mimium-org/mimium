@@ -11,6 +11,8 @@ namespace tch{
     s exprnumstr = "1+symn";
     s fcall = "myfunc(these,are,args , 1,2, 3)";
     s assign  ="test = hoge + 1";
+    s fdef  ="test(x)=hoge+1+x*y";
+    s lambda = "(x,y,z)=>{x+y+z}";
 };
 
 // TEST(parser_test, digit) {
@@ -60,14 +62,25 @@ TEST(parser_test, list) {
 TEST(parser_test, fcall) {
     auto testparser = pc::parser(fcall);
     auto res = testparser.parse(tch::fcall);
-    ListExpr test = *dynamic_cast<ListExpr*>(res.success().value().get());
     EXPECT_FALSE(!res.is_success());
     EXPECT_EQ("(fcall,myfunc,(these,are,args,1,2,3))",res.success().value()->to_string());
 }
 TEST(parser_test, assign) {
     auto testparser = pc::parser(assign);
     auto res = testparser.parse(tch::assign);
-    ListExpr test = *dynamic_cast<ListExpr*>(res.success().value().get());
     EXPECT_FALSE(!res.is_success());
     EXPECT_EQ("(define,test,(fcall,+,(hoge,1)))",res.success().value()->to_string());
+}
+TEST(parser_test, lambda) {
+    auto testparser = pc::parser(lambda);
+    auto res = testparser.parse(tch::lambda);
+    EXPECT_FALSE(!res.is_success());
+    EXPECT_EQ("(lambda,(x,y,z),(fcall,+,((fcall,+,(x,y)),z)))",res.success().value()->to_string());
+}
+
+TEST(parser_test, fdef) {
+    auto testparser = pc::parser(fdef);
+    auto res = testparser.parse(tch::fdef);
+    EXPECT_FALSE(!res.is_success());
+    EXPECT_EQ("(define,test,(lambda,(x),(fcall,+,((fcall,+,(hoge,1)),(fcall,*,(x,y))))))",res.success().value()->to_string());
 }
