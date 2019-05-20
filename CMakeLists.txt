@@ -17,9 +17,8 @@ project(dummy NONE)
   endif()
 project (mimium CXX)
 
-
+include_directories(CppCmb)
 
 #add_subdirectory( CppCmb )
+add_subdirectory( src )
 add_subdirectory( test )
-
-add_executable(Main main.cpp s-exp.cpp)

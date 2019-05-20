@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include "../parser.hpp"
+#include "parser.hpp"
 
 namespace tch{
     using s  = std::string;

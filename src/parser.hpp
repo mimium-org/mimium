@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 #include <tuple>
-#include "CppCmb/cppcmb.hpp"
+#include "cppcmb.hpp"
 #include "s-exp.hpp"
 namespace pc = cppcmb;
 
