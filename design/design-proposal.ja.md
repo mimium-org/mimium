@@ -1,3 +1,5 @@
+[English](./design_proposal.md)
+
 
 # 全体の構造
 

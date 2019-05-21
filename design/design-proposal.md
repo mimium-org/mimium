@@ -1,3 +1,5 @@
+[日本語](./design_proposal.ja.md)
+
 
 # Overall Structure
 
