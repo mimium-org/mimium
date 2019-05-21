@@ -60,9 +60,9 @@ pitch_index::int = produce((x)=>{x+x},5)//[2,4,6,8,10]
 
 ```
  
-delay(input::int@) = input <| 100::ms //過去の入力を出力する
+delay(input::int@) = input <| 100[ms] //過去の入力を出力する
 
-future(input::int@) = input |> 100::ms //未来の入力を出力する(フィルターとか作るときに有効)
+future(input::int@) = input |> 100[ms] //未来の入力を出力する(フィルターとか作るときに有効)
 
  //VSTプラグインのように全体にオフセットディレイがかかる感じ（CHronicでもやってた） 
 ```

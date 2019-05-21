@@ -99,7 +99,7 @@ we can call like `hoge[0.3]`and it outputs between 20 and 30
 
 We can define interpolation function
 
-### Dialect機能
+### Dialect feature
 
 it's like a alias for type/function name but it can be applied once( you cannnot make an alias of alias)
 
