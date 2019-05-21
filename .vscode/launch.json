@@ -18,7 +18,7 @@
             "MIMode": "lldb"
         },
         {
-            "name": "clang++ build and debug active file",
+            "name": "Main Debug",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/Main",
@@ -28,7 +28,7 @@
             "environment": [],
             "externalConsole": false,
             "MIMode": "lldb",
-            "preLaunchTask": "make file"
+            "preLaunchTask": "cmake file"
         }
     ]
 }
