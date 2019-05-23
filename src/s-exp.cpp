@@ -20,7 +20,7 @@ void ListExpr::add_str(char ch){
         exprs.push_back(s);
 };
 void ListExpr::add_ptr(std::shared_ptr<S_Expr> ptr){
-        exprs.push_back(ptr);
+        exprs.push_back(std::move(ptr));
 };
 
 
@@ -28,7 +28,11 @@ std::string ListExpr::to_string(){
         std::stringstream st;
         st << '(';
         for(int i=0;i<exprs.size();i++){
-            st<< exprs[i]->to_string();
+                if(exprs[i]!=nullptr){
+                        st<< exprs[i]->to_string();
+                }else{
+                        st<<"null";
+                }
             if(i<exprs.size()-1){
             st<<' ';
             }

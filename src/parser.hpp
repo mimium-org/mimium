@@ -35,7 +35,7 @@ S_Ptr to_symbol(std::vector<char> const& chs){
 }
 S_Ptr to_list(S_Ptr fst,pc::maybe<std::vector<S_Ptr>> rest){
     S_Ptr res = std::make_shared<ListExpr>();
-   res->add_ptr(fst);
+   res->add_ptr(std::move(fst));
     if(rest.is_some()){
         for(auto &v :rest.some().value() )
         res->add_ptr(v);

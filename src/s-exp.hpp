@@ -32,7 +32,7 @@ struct LiteralExpr : public S_Expr {
     std::string value;
     ~LiteralExpr(){};
     LiteralExpr(LiteralExpr& self){};
-    LiteralExpr(std::string val){value=val;}
+    LiteralExpr(std::string val):value(val){}
     LiteralExpr(char val){
         std::string str{val};
         value = str;
