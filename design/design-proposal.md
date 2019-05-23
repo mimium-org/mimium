@@ -50,7 +50,8 @@ pitch_index::int = produce((x)=>{x+x},5)//[2,4,6,8,10]
  end_index = time_index.map((t)=>{ t |> 2[s]}) //[@3,@6,@11,@18,@27]
  
  
- pitchevents = pitch_index.tbind((x,i)=>{x@time_index[i]@end_index[i]}) //[2@[1,3],4@[4,6],6@[9,11],8@[16,18],10@[25,27]]
+ pitchevents = pitch_index.tbind((x,i)=>{x@[time_index[i],end_index[i]]}) //[2@[1,3],4@[4,6],6@[9,11],8@[16,18],10@[25,27]]
+
  
  function noteOn(input_pitch::int,instrument){//input_pitch is like 2@[1,3] and trigger at time 1
  	instrument.pitch = input_pitch
