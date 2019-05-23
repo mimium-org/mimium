@@ -8,11 +8,14 @@ namespace pc = cppcmb;
 template <char Ch>
 bool is_same_char(char c) { return c == Ch; }
 
-inline constexpr auto wh =  +pc::one[pc::filter(is_same_char<' '>)];
 
 template <char Ch>
-inline constexpr auto match = (-wh & pc::one[pc::filter(is_same_char<Ch>)]& -wh)[pc::select<1>] ;
+inline constexpr auto match = pc::one[pc::filter(is_same_char<Ch>)];
 
+inline constexpr auto wh =  +match<' '>;
+
+template <char Ch>
+inline constexpr auto matchwh =(-wh&match<Ch>&-wh)[pc::select<1>];
 
 using S_Ptr = std::shared_ptr<S_Expr>;
 
@@ -102,39 +105,39 @@ cppcmb_decl(symbol,      S_Ptr);
 cppcmb_decl(digit,    char);
 
 cppcmb_def(fdef)= 
-    (symbol&match<'('>&list&match<')'> & match<'='> & expr) [to_fdef];
+    (symbol&matchwh<'('>&list&matchwh<')'> & matchwh<'='> & expr) [to_fdef];
 
 cppcmb_def(lambda)= 
-    (match<'('>&list&match<')'>&match<'='>&match<'>'>&match<'{'>&expr&match<'}'> ) [to_lambda_raw]
+    (matchwh<'('>&list&matchwh<')'>&match<'='>&match<'>'>&matchwh<'{'>&expr&matchwh<'}'> ) [to_lambda_raw]
     ;
 
 cppcmb_def(assign)= 
-    (symbol &match<'='>& expr)[to_assign_raw];
+    (symbol &matchwh<'='>& expr)[to_assign_raw];
 
 cppcmb_def(expr_top) =
       expr & pc::end [pc::select<0>]
     ;
 
 cppcmb_def(expr) = pc::pass
-    | (expr & match<'+'> &mul)[binary_to_fcall]
-    | (expr & match<'-'> & mul) [binary_to_fcall]
+    | (expr & matchwh<'+'> &mul)[binary_to_fcall]
+    | (expr & matchwh<'-'> & mul) [binary_to_fcall]
     | mul
     %= pc::as_memo_d
     ;
 
 cppcmb_def(mul) = pc::pass
-    | (mul & match<'*'> & expon) [binary_to_fcall] 
-    | (mul & match<'/'> & expon) [binary_to_fcall]
+    | (mul & matchwh<'*'> & expon) [binary_to_fcall] 
+    | (mul & matchwh<'/'> & expon) [binary_to_fcall]
     | expon
     %= pc::as_memo_d;
 
 cppcmb_def(expon) = pc::pass
-    | (atom & match<'^'> & expon) [binary_to_fcall]
+    | (atom & matchwh<'^'> & expon) [binary_to_fcall]
     | atom
     %= pc::as_memo_d;
 
 cppcmb_def(atom) = pc::pass
-    | (match<'('> & expr & match<')'>) [pc::select<1>]
+    | (matchwh<'('> & expr & matchwh<')'>) [pc::select<1>]
     | fcall
     | symbol
     | num
@@ -142,10 +145,10 @@ cppcmb_def(atom) = pc::pass
 
 
 
-cppcmb_def(list) = (symbol & -+((match<','> & (atom) )[pc::select<1>]) )[to_list]%= pc::as_memo_d;;
+cppcmb_def(list) = (symbol & -+((matchwh<','> & (atom) )[pc::select<1>]) )[to_list]%= pc::as_memo_d;;
 
 //something is weird if we use pc::select<0,2> it fails
-cppcmb_def(fcall) = (symbol& match<'('>& list & match<')'>) [to_fcall_raw];
+cppcmb_def(fcall) = (symbol& matchwh<'('>& list & matchwh<')'>) [to_fcall_raw];
 
 cppcmb_def(symbol) = (+pc::one[pc::filter(isalpha)])[to_symbol];
 
