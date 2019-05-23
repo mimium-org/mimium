@@ -20,6 +20,7 @@ struct ListExpr : public S_Expr {
     std::vector<std::shared_ptr<S_Expr>> exprs;
     ListExpr(){};
     ListExpr(std::vector<std::string> strs);
+    ListExpr(std::vector<std::shared_ptr<S_Expr>> _exprs);
     ListExpr(ListExpr& self){};
     ~ListExpr(){};
     void add_str(std::string str);

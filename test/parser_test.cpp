@@ -13,6 +13,7 @@ namespace tch{
     s assign  ="test = hoge + 1";
     s fdef  ="test(x)=hoge+1+x*y";
     s lambda = "(x,y,z)=>{x+y+z}";
+    s top = "test(x)=hoge+1+x*y;test = hoge + 1;test(x)=hoge+1+x*y;";
 };
 
 // TEST(parser_test, digit) {
@@ -83,4 +84,20 @@ TEST(parser_test, fdef) {
     auto res = testparser.parse(tch::fdef);
     EXPECT_FALSE(!res.is_success());
     EXPECT_EQ("(define test (lambda (x) (fcall + ((fcall + (hoge 1)) (fcall * (x y))))))",res.success().value()->to_string());
+}
+
+TEST(parser_test, statement) {
+    auto testparser = pc::parser(statement);
+    auto res = testparser.parse(tch::fdef);
+    EXPECT_FALSE(!res.is_success());
+    EXPECT_EQ("(define test (lambda (x) (fcall + ((fcall + (hoge 1)) (fcall * (x y))))))",res.success().value()->to_string());
+    auto res2 = testparser.parse(tch::assign);
+    EXPECT_FALSE(!res2.is_success());
+    EXPECT_EQ("(define test (fcall + (hoge 1)))",res2.success().value()->to_string());
+}
+TEST(parser_test, top) {
+    auto testparser = pc::parser(top);
+    auto res = testparser.parse(tch::top);
+    EXPECT_FALSE(!res.is_success());
+    EXPECT_EQ("((define test (lambda (x) (fcall + ((fcall + (hoge 1)) (fcall * (x y)))))) (define test (fcall + (hoge 1))) (define test (lambda (x) (fcall + ((fcall + (hoge 1)) (fcall * (x y)))))))",res.success().value()->to_string());
 }

@@ -13,8 +13,8 @@
 
 
 int main() {
-    auto parser = pc::parser(fdef);
-    std::string line = "1+2+2+1";
+    auto parser = pc::parser(top);
+    std::string line;
 
     while (std::getline(std::cin, line)) {
     auto res = parser.parse(line);

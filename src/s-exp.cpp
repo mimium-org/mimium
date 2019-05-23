@@ -10,6 +10,11 @@ ListExpr::ListExpr(std::vector<std::string> strs){
         exprs.push_back(s);
     }
 }
+ListExpr::ListExpr(std::vector<std::shared_ptr<S_Expr>> _exprs){
+        for(auto &expr : _exprs){
+        exprs.push_back(std::move(expr));
+    }
+};
 
 void ListExpr::add_str(std::string str){
         std::shared_ptr<S_Expr> s = std::make_shared<LiteralExpr>(str);

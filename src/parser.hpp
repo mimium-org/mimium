@@ -17,6 +17,9 @@ inline constexpr auto wh =  +match<' '>;
 template <char Ch>
 inline constexpr auto matchwh =(-wh&match<Ch>&-wh)[pc::select<1>];
 
+inline constexpr auto eol =  (-wh&(match<'\n'>| match<'\r'>|match<';'>) &-wh)[pc::select<1>];
+
+
 using S_Ptr = std::shared_ptr<S_Expr>;
 
 
@@ -89,6 +92,16 @@ S_Ptr to_fdef (S_Ptr name,char lpar,S_Ptr args,char rpar,char eq,S_Ptr body){
     return to_assign(name,to_lambda(args,body));
 };
 
+S_Ptr to_top (std::vector<S_Ptr> sptrs){
+    S_Ptr res = std::make_shared<ListExpr>(sptrs);
+    return res;
+};
+
+
+cppcmb_decl(top,S_Ptr);
+cppcmb_decl(statement,S_Ptr );
+
+
 cppcmb_decl(expr_top,S_Ptr );
 cppcmb_decl(expr, S_Ptr );
 cppcmb_decl(fdef, S_Ptr );
@@ -104,6 +117,13 @@ cppcmb_decl(num,     S_Ptr);
 cppcmb_decl(symbol,      S_Ptr);
 cppcmb_decl(digit,    char);
 
+cppcmb_def(top)= (+((statement&eol)[pc::select<0>])&pc::end) [to_top];
+
+cppcmb_def(statement)= pc::pass
+    |(matchwh<'{'> &statement & matchwh<'}'>) [pc::select<1>]
+    |assign
+    |fdef 
+;
 cppcmb_def(fdef)= 
     (symbol&matchwh<'('>&list&matchwh<')'> & matchwh<'='> & expr) [to_fdef];
 
@@ -114,9 +134,6 @@ cppcmb_def(lambda)=
 cppcmb_def(assign)= 
     (symbol &matchwh<'='>& expr)[to_assign_raw];
 
-cppcmb_def(expr_top) =
-      expr & pc::end [pc::select<0>]
-    ;
 
 cppcmb_def(expr) = pc::pass
     | (expr & matchwh<'+'> &mul)[binary_to_fcall]
