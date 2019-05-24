@@ -115,17 +115,21 @@ cppcmb_decl(expr, S_Ptr );
 cppcmb_decl(fdef, S_Ptr );
 cppcmb_decl(lambda, S_Ptr );
 
-cppcmb_decl(arrayinit, S_Ptr );
-cppcmb_decl(arrayrows, S_Ptr );
-cppcmb_decl(arraycontent, S_Ptr );
 
 
 cppcmb_decl(assign, S_Ptr );
 cppcmb_decl(fcall, S_Ptr );
-cppcmb_decl(list, S_Ptr );
 cppcmb_decl(mul,      S_Ptr );
 cppcmb_decl(expon,    S_Ptr );
+
 cppcmb_decl(atom,     S_Ptr );
+
+cppcmb_decl(arrayinit, S_Ptr );
+cppcmb_decl(arrayrows, S_Ptr );
+cppcmb_decl(arraycontent, S_Ptr );
+
+cppcmb_decl(list, S_Ptr );
+
 cppcmb_decl(num,     S_Ptr);
 cppcmb_decl(symbol,      S_Ptr);
 cppcmb_decl(digit,    char);
@@ -147,11 +151,7 @@ cppcmb_def(lambda)=
 cppcmb_def(assign)= 
     (symbol &matchwh<'='>& expr)[to_assign_raw];
 
-cppcmb_def(arrayinit)=(matchwh<'['>&arrayrows&matchwh<']'>)[to_array];
 
-cppcmb_def(arrayrows) = (arraycontent & -+(matchwh<';'> & arraycontent)[pc::select<1>]) [to_list];
-
-cppcmb_def(arraycontent) = (num & -+((+wh[pc::select<>]) & (num) )[pc::select<1>])[to_list];
 
 cppcmb_def(expr) = pc::pass
     | (expr & matchwh<'+'> &mul)[binary_to_fcall]
@@ -174,12 +174,17 @@ cppcmb_def(expon) = pc::pass
 cppcmb_def(atom) = pc::pass
     | (matchwh<'('> & expr & matchwh<')'>) [pc::select<1>]
     | fcall
+    | arrayinit
     | symbol
     | num
     %= pc::as_memo_d;
 
 
+cppcmb_def(arrayinit)=(matchwh<'['>&arrayrows&matchwh<']'>)[to_array];
 
+cppcmb_def(arrayrows) = (arraycontent & -+(matchwh<';'> & arraycontent)[pc::select<1>]) [to_list];
+
+cppcmb_def(arraycontent) = (num & -+((+wh[pc::select<>]) & (num) )[pc::select<1>])[to_list];
 cppcmb_def(list) = (symbol & -+((matchwh<','> & (atom) )[pc::select<1>]) )[to_list]%= pc::as_memo_d;;
 
 //something is weird if we use pc::select<0,2> it fails
