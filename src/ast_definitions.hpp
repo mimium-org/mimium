@@ -1,4 +1,6 @@
+#pragma once 
 #include <map>
+// using S_Ptr = std::shared_ptr<S_Expr>;
 
 enum AST_ID{
     NUMBER,
@@ -15,7 +17,15 @@ namespace mimium{
         {"fcall",FCALL},
         {"define",ASSIGN},
         {"fdef",FDEF},
-        {"array",ARRAYUNIT},
+        {"array",ARRAYINIT},
         {"lambda",LAMBDA}
-    }
-}
+    };
+    static AST_ID str_to_id(std::string str){
+        auto id = mimium::ast_id.find(str);
+                if(id!=std::end(mimium::ast_id)){
+                        return id->second;
+                }else{
+                        return NUMBER;
+                }
+    };
+};

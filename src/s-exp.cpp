@@ -32,16 +32,22 @@ void ListExpr::add_vector(std::vector<std::shared_ptr<S_Expr>>& vec){
         exprs.insert(exprs.end(),vec.begin(),vec.end());
 };
 
-AST_ID ListExpr::get_head(){
+std::shared_ptr<S_Expr> ListExpr::get_head(){
         if(exprs.size()<1){
                 std::cerr<<"List Empty" <<std::endl;
         }else{
-                auto id = mimium::ast_id.find(exprs[0]->to_string());
-                if(id!=std::end(mimium::ast_id)){
-                        return id->second;
-                }else{
-                        return NUMBER;
-                }
+                return exprs[0];
+        }
+}
+std::shared_ptr<S_Expr> ListExpr::get_tail(){
+        if(exprs.size()<1){
+                std::cerr<<"List Empty" <<std::endl;
+        }else if(exprs.size()==2){
+                return exprs[1];
+        }else{
+                std::vector<std::shared_ptr<S_Expr>> vec;
+                std::copy(exprs.begin()+1,exprs.end(),vec.begin());
+                return std::make_shared<ListExpr>(vec);
         }
 }
 
