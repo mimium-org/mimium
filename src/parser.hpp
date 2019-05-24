@@ -17,7 +17,7 @@ inline constexpr auto wh =  +match<' '>;
 template <char Ch>
 inline constexpr auto matchwh =(-wh&match<Ch>&-wh)[pc::select<1>];
 
-inline constexpr auto eol =  (-wh&(match<'\n'>| match<'\r'>|match<';'>) &-wh)[pc::select<1>];
+inline constexpr auto eol =  (-wh&(match<';'>|match<'\n'>| match<'\r'>) &-wh)[pc::select<1>];
 
 
 using S_Ptr = std::shared_ptr<S_Expr>;
@@ -98,6 +98,14 @@ S_Ptr to_top (std::vector<S_Ptr> sptrs){
 };
 
 
+S_Ptr to_array (char lbrc,S_Ptr sptrs,char rbrc){
+    S_Ptr res = std::make_shared<ListExpr>();
+    res->add_str("array");
+    res->add_ptr(sptrs);
+    return res;
+};
+
+
 cppcmb_decl(top,S_Ptr);
 cppcmb_decl(statement,S_Ptr );
 
@@ -106,6 +114,11 @@ cppcmb_decl(expr_top,S_Ptr );
 cppcmb_decl(expr, S_Ptr );
 cppcmb_decl(fdef, S_Ptr );
 cppcmb_decl(lambda, S_Ptr );
+
+cppcmb_decl(arrayinit, S_Ptr );
+cppcmb_decl(arrayrows, S_Ptr );
+cppcmb_decl(arraycontent, S_Ptr );
+
 
 cppcmb_decl(assign, S_Ptr );
 cppcmb_decl(fcall, S_Ptr );
@@ -134,6 +147,11 @@ cppcmb_def(lambda)=
 cppcmb_def(assign)= 
     (symbol &matchwh<'='>& expr)[to_assign_raw];
 
+cppcmb_def(arrayinit)=(matchwh<'['>&arrayrows&matchwh<']'>)[to_array];
+
+cppcmb_def(arrayrows) = (arraycontent & -+(matchwh<';'> & arraycontent)[pc::select<1>]) [to_list];
+
+cppcmb_def(arraycontent) = (num & -+((+wh[pc::select<>]) & (num) )[pc::select<1>])[to_list];
 
 cppcmb_def(expr) = pc::pass
     | (expr & matchwh<'+'> &mul)[binary_to_fcall]

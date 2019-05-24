@@ -28,6 +28,9 @@ void ListExpr::add_ptr(std::shared_ptr<S_Expr> ptr){
         exprs.push_back(std::move(ptr));
 };
 
+void ListExpr::add_vector(std::vector<std::shared_ptr<S_Expr>>& vec){
+        exprs.insert(exprs.end(),vec.begin(),vec.end());
+};
 
 std::string ListExpr::to_string(){
         std::stringstream st;

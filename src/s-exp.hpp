@@ -14,6 +14,8 @@ struct S_Expr {
     virtual void add_str(char ch){};
     virtual void add_str(std::string str){};
     virtual void add_ptr(std::shared_ptr<S_Expr> ptr){};
+    virtual void add_vector(std::vector<std::shared_ptr<S_Expr>>& vec){};
+
 };
 
 struct ListExpr : public S_Expr {
@@ -26,6 +28,8 @@ struct ListExpr : public S_Expr {
     void add_str(std::string str);
     void add_str(char ch);
     void add_ptr(std::shared_ptr<S_Expr> ptr);
+    void add_vector(std::vector<std::shared_ptr<S_Expr>>& vec);
+
     std::string to_string();
 };
 
@@ -41,5 +45,6 @@ struct LiteralExpr : public S_Expr {
     virtual void add_str(char ch){};
     virtual void add_str(std::string str){};
     virtual void add_ptr(std::shared_ptr<S_Expr> ptr){};
+    virtual void add_vector(std::vector<std::shared_ptr<S_Expr>>& vec){};
     std::string to_string(){return value;}
 };

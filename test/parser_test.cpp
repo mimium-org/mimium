@@ -10,6 +10,7 @@ namespace tch{
     s exprnumnumnum = "1+2+3";
     s exprnumstr = "1+symn";
     s fcall = "myfunc(these,are,args , 1,2, 3)";
+    s array  ="[1 2 3 ; 4 5 6]";
     s assign  ="test = hoge + 1";
     s fdef  ="test(x)=hoge+1+x*y";
     s lambda = "(x,y,z)=>{x+y+z}";
@@ -78,6 +79,13 @@ TEST(parser_test, lambda) {
     EXPECT_FALSE(!res.is_success());
     EXPECT_EQ("(lambda (x y z) (fcall + ((fcall + (x y)) z)))",res.success().value()->to_string());
 }
+TEST(parser_test, array) {
+    auto testparser = pc::parser(arrayinit);
+    auto res = testparser.parse(tch::array);
+    EXPECT_FALSE(!res.is_success());
+    EXPECT_EQ("(array ((1 2 3) (4 5 6)))",res.success().value()->to_string());
+}
+
 
 TEST(parser_test, fdef) {
     auto testparser = pc::parser(fdef);
