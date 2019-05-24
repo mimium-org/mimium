@@ -6,8 +6,8 @@ find_package(GTest REQUIRED)
 include_directories(../src)
 
 add_executable(mytest 
-../src/s-exp.cpp 
-parser_test.cpp)
+../src/s-exp.cpp ../src/interpreter.cpp
+parser_test.cpp interpreter_test.cpp)
 target_link_libraries(mytest
   PRIVATE
     GTest::GTest

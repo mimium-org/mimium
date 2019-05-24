@@ -9,6 +9,8 @@
 #include <string>
 #include <vector>
 #include "parser.hpp"
+#include "interpreter.hpp"
+
 // #include "AST.hpp"
 
 

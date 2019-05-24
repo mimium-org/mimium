@@ -32,6 +32,19 @@ void ListExpr::add_vector(std::vector<std::shared_ptr<S_Expr>>& vec){
         exprs.insert(exprs.end(),vec.begin(),vec.end());
 };
 
+AST_ID ListExpr::get_head(){
+        if(exprs.size()<1){
+                std::cerr<<"List Empty" <<std::endl;
+        }else{
+                auto id = mimium::ast_id.find(exprs[0]->to_string());
+                if(id!=std::end(mimium::ast_id)){
+                        return id->second;
+                }else{
+                        return NUMBER;
+                }
+        }
+}
+
 std::string ListExpr::to_string(){
         std::stringstream st;
         st << '(';
