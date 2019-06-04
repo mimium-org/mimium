@@ -1,3 +1,11 @@
+%skeleton "lalr1.cc"
+%require "3.4"
+
+%defines
+%define api.parser.class {MimiumParser}
+%define api.namespace{mmmpsr}
+%define api.value.type  variant
+
 %{
 #define YYDEBUG 1
 #define YYERROR_VERBOSE 1
@@ -5,31 +13,24 @@
 
 %}
 
-%union {
-  node* nd;
-  node_string id;
-}
-%type <nd> expr primary  NUM
 
-
-
+%define api.token.prefix {TOK_}
 %token
-    NUM
-    ADD
-    SUB
-    MOD
-    MUL
-    DIV
-    EXPONENT
-    AND
-    OR
-    BITAND
-    BITOR
-    NEQ
-    EQ
-    NOT
-
-
+    ADD "+"
+    SUB "-"
+    MOD "%"
+    MUL "*"
+    DIV "/"
+    EXPONENT "^"
+    AND "&"
+    OR "|"
+    BITAND "&&"
+    BITOR "||"
+    NEQ "!="
+    EQ "=="
+    NOT "!"
+;
+%token <int> NUM "number"
 
 
 %left  OR BITOR
