@@ -1,14 +1,18 @@
 #pragma once 
 #include <map>
-// using S_Ptr = std::shared_ptr<S_Expr>;
+#include <string>
+#include <memory>
+
 
 enum AST_ID{
+    BASE,
     NUMBER,
     FCALL,
     ASSIGN,
     FDEF,
     ARRAYINIT,
-    LAMBDA
+    LAMBDA,
+    OP
 };
 
 
@@ -28,4 +32,22 @@ namespace mimium{
                         return NUMBER;
                 }
     };
+};
+
+class AST{
+    public:
+    AST_ID id;
+};
+using AST_Ptr = std::shared_ptr<AST>;
+
+class OpAST : AST{
+    public:
+    AST_Ptr lhs,rhs;
+    std::string op;
+    OpAST(std::string& OPERATOR,AST_Ptr LHS, AST_Ptr RHS){
+        id=OP;
+        lhs = LHS;
+        rhs = RHS;
+        op = OPERATOR;
+    }
 };
