@@ -58,7 +58,7 @@ class OpAST : public AST,public std::enable_shared_from_this<OpAST>{
     }
     std::string to_string(){
         std::stringstream stream;
-        stream << op <<" " <<lhs->to_string() << " " << rhs->to_string();
+        stream << "("<< op <<" " <<lhs->to_string() << " " << rhs->to_string() <<")";
         return stream.str();
     }
 };
@@ -75,11 +75,11 @@ class ListAST : AST{
     }
     std::string to_string(){
         std::stringstream stream;
-        stream << "[";
+        stream << "(";
         for(auto &elem :asts){
             stream << elem->to_string() << " ";
         }
-        stream << "]";
+        stream << ")";
         return stream.str();
     }
 };

@@ -57,8 +57,7 @@ void mmmpsr::MimiumDriver::add_line(AST_Ptr in){
 
 std::ostream&  mmmpsr::MimiumDriver::print( std::ostream &stream )
 {
-   stream << red  << "Results: " << norm << "\n";
-   stream << blue << "Words: " << norm << mainast.to_string() << "\n";
+   stream << mainast.to_string();
    return(stream);
 }
 
