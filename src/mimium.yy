@@ -55,7 +55,7 @@
 ;
 %token <int> NUM "number"
 %type  <AST_Ptr> expr "expression"
-%type <AST_Ptr> primary "primary"
+%type <AST_Ptr> term "primary"
 %type <AST_Ptr> top "top"
 
 
@@ -73,23 +73,24 @@
 
 %%
 
-top : expr END {driver.add_line($1);}
+top : expr  {driver.add_line($1);}
+   | expr top END {driver.add_line($1);}
     ;
 
 
 expr : expr ADD expr  {$$ = driver.add_op("+",$1,$3);}
-    /* | expr SUB expr  {$$ = std::make_shared<OpAST>("-", $1, $3);}
-     | expr MUL expr  {$$ = std::make_shared<OpAST>("*", $1, $3);}
-     | expr DIV expr  {$$ = std::make_shared<OpAST>("/", $1, $3);}
-     | expr MOD expr  {$$ = std::make_shared<OpAST>("%", $1, $3);}
-     | expr EXPONENT expr  {$$ = std::make_shared<OpAST>("^", $1, $3);}
-     | expr OR expr  {$$ = std::make_shared<OpAST>("|", $1, $3);}
-     | expr AND expr  {$$ = std::make_shared<OpAST>("&", $1, $3);}
-     | expr BITOR expr  {$$ = std::make_shared<OpAST>("||", $1, $3);}
-     | expr BITAND expr  {$$ = std::make_shared<OpAST>("&&", $1, $3);} */
-     | primary;
+     | expr SUB expr  {$$ = driver.add_op("-", $1, $3);}
+     | expr MUL expr  {$$ = driver.add_op("*", $1, $3);}
+     | expr DIV expr  {$$ = driver.add_op("/", $1, $3);}
+     | expr MOD expr  {$$ = driver.add_op("%", $1, $3);}
+     | expr EXPONENT expr  {$$ = driver.add_op("^", $1, $3);}
+     | expr OR expr  {$$ = driver.add_op("|", $1, $3);}
+     | expr AND expr  {$$ = driver.add_op("&", $1, $3);}
+     | expr BITOR expr  {$$ = driver.add_op("||", $1, $3);}
+     | expr BITAND expr  {$$ = driver.add_op("&&", $1, $3);}
+     | term;
 
-primary : NUM {$$ = driver.add_number($1);}
+term : NUM {$$ = driver.add_number($1);}
         | '(' expr ')' {$$ =$2;};
 
 %%

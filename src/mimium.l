@@ -14,7 +14,7 @@ NONZERO  [1-9]
 DIGIT    [[:digit:]]
 FLOAT    ({NONZERO}{DIGIT}*\.?|0\.|\.{DIGIT}){DIGIT}*|0
 EXPONENT [eE](-|\+?){DIGIT}+
-
+DELIMITER	"{"|"}"|"("|")"|"["|"]"|","|";"
 NUMBER   {FLOAT}{EXPONENT}?
 WSPACE   [[:blank:]]+
 
@@ -52,9 +52,13 @@ WSPACE   [[:blank:]]+
 
 "!" {return token::NOT;};
 
+\r\n|\r|\n	{ loc->lines(); loc->step(); }
+
+{DELIMITER} {return yytext[0];}
+
 . {
-    fprintf(stderr,"lexical error.\n");
-    exit(1);
+    std::cerr << "Lexer: Unrecognized char \"" << yytext[0] << "\"" << std::endl;
+		loc->step();
 }
 
 %%
