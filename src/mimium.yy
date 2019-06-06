@@ -51,12 +51,13 @@
     EQ "=="
     NOT "!"
     END    0     "end of file"
-    NEWLINE "\n"
+    NEWLINE "newline"
 ;
 %token <int> NUM "number"
 %type  <AST_Ptr> expr "expression"
 %type <AST_Ptr> term "primary"
 %type <AST_Ptr> top "top"
+%type <AST_Ptr> statements "statements"
 
 
 %locations
@@ -73,10 +74,12 @@
 
 %%
 
-top : expr  {driver.add_line($1);}
-   | expr top END {driver.add_line($1);}
+top :statements END {$$=$1;}
     ;
 
+statements : expr {driver.add_line($1);}
+      | expr NEWLINE statements {driver.add_line($1);}
+      ;
 
 expr : expr ADD expr  {$$ = driver.add_op("+",$1,$3);}
      | expr SUB expr  {$$ = driver.add_op("-", $1, $3);}

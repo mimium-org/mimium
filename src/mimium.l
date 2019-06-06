@@ -14,10 +14,11 @@ NONZERO  [1-9]
 DIGIT    [[:digit:]]
 FLOAT    ({NONZERO}{DIGIT}*\.?|0\.|\.{DIGIT}){DIGIT}*|0
 EXPONENT [eE](-|\+?){DIGIT}+
-DELIMITER	"{"|"}"|"("|")"|"["|"]"|","|";"
 NUMBER   {FLOAT}{EXPONENT}?
+DELIMITER "{"|"}"|"("|")"|"["|"]"|","
 WSPACE   [[:blank:]]+
-
+BREAK  "\r\n" | "\n" | "\r"
+NEWLINE {BREAK} | ";"
 %%
 
 %{
@@ -31,34 +32,24 @@ WSPACE   [[:blank:]]+
 
 {WSPACE} ;
 
-"\n" {return token::NEWLINE;}
-
 "/"  {return token::DIV; };
 "*"  {return token::MUL; };
 "%"  {return token::MOD; };
 "+"  {return token::ADD; };
 "-"  {return token::SUB; };
 "^"  {return token::EXPONENT;};
-
-
 "&" {return token::AND;};
 "|" {return token::OR;};
 "&&" {return token::BITAND;};
 "||" {return token::BITOR;};
-
 "!=" {return token::NEQ;};
-
-"==" {return token::EQ;};
-
-"!" {return token::NOT;};
-
-\r\n|\r|\n	{ loc->lines(); loc->step(); }
-
-{DELIMITER} {return yytext[0];}
-
+"==" {return token::EQ;}
+"!" {return token::NOT;}
+\r\n|\r|\n	{ loc->lines(); loc->step(); return token::NEWLINE;}
+{DELIMITER} { return yytext[0];};
 . {
-    std::cerr << "Lexer: Unrecognized char \"" << yytext[0] << "\"" << std::endl;
+std::cerr << "Lexer: Unrecognized char \"" << yytext[0] << "\"" << std::endl;
 		loc->step();
 }
-
 %%
+
