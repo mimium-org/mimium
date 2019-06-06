@@ -26,7 +26,6 @@ WSPACE   [[:blank:]]+
 
 {NUMBER} {
     yylval->emplace<int>(std::stoi(yytext));
-    std::cout << "hit number" <<std::endl;
     return token::NUM;
 };
 

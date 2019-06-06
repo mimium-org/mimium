@@ -69,9 +69,7 @@ class ListAST : AST{
         id = LIST;
     }
     void addAST(AST_Ptr ast){
-        std::cout << ast;
         asts.push_back(ast);
-        std::cout << asts.size() ;
     }
     std::string to_string(){
         std::stringstream stream;
