@@ -51,10 +51,13 @@
     EQ "=="
     NOT "!"
     END    0     "end of file"
+    NEWLINE "\n"
 ;
 %token <int> NUM "number"
 %type  <AST_Ptr> expr "expression"
-%type <AST_Ptr> primary
+%type <AST_Ptr> primary "primary"
+%type <AST_Ptr> top "top"
+
 
 %locations
 
@@ -66,7 +69,13 @@
 %left  MUL DIV MOD
 %right NOT 
 
+%start top
+
 %%
+
+top : expr END {driver.add_line($1);}
+    ;
+
 
 expr : expr ADD expr  {$$ = driver.add_op("+",$1,$3);}
     /* | expr SUB expr  {$$ = std::make_shared<OpAST>("-", $1, $3);}

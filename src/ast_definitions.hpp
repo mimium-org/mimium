@@ -4,7 +4,7 @@
 #include <sstream>
 #include <memory>
 #include <vector>
-
+ #include <iostream>
 
 enum AST_ID{
     BASE,
@@ -69,7 +69,9 @@ class ListAST : AST{
         id = LIST;
     }
     void addAST(AST_Ptr ast){
+        std::cout << ast;
         asts.push_back(ast);
+        std::cout << asts.size() ;
     }
     std::string to_string(){
         std::stringstream stream;

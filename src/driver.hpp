@@ -24,7 +24,7 @@ namespace mmmpsr{
         // AST_Ptr add_op(std::string op,int lhs,AST_Ptr rhs);
         AST_Ptr add_op(std::string op,AST_Ptr lhs,AST_Ptr rhs);
 
-        AST_Ptr add_line(AST_Ptr in);
+        void add_line(AST_Ptr in);
         std::ostream& print(std::ostream &stream);
 
         private:

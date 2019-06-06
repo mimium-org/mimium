@@ -51,7 +51,7 @@ AST_Ptr mmmpsr::MimiumDriver::add_op(std::string op,AST_Ptr lhs,AST_Ptr rhs){
    return std::dynamic_pointer_cast<AST>(std::make_shared<OpAST>(op,lhs,rhs));
 }
 
-AST_Ptr mmmpsr::MimiumDriver::add_line(AST_Ptr in){
+void mmmpsr::MimiumDriver::add_line(AST_Ptr in){
    mainast.addAST(in);
 }
 

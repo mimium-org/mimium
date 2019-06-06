@@ -32,7 +32,7 @@ WSPACE   [[:blank:]]+
 
 {WSPACE} ;
 
-
+"\n" {return token::NEWLINE;}
 
 "/"  {return token::DIV; };
 "*"  {return token::MUL; };
