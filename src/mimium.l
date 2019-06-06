@@ -1,11 +1,14 @@
 %{
-  #include <stdio.h>
-  #include <stdlib.h>
-  #include <string.h>
-
-
-  extern "C" int yywrap( void ){ return 1 ; }
+  #include "scanner.hpp"
+  #undef  YY_DECL
+  #define YY_DECL int mmmpsr::MimiumScanner::yylex( mmmpsr::MimiumParser::semantic_type * const lval, mmmpsr::MimiumParser::location_type *loc )
+  
+  using token = mmmpsr::MimiumParser::token;
+  #define yyterminate() return ( token::END )
+  #define YY_USER_ACTION loc->step(); loc->columns(yyleng);
 %}
+%option c++ noyywrap nounput noinput nodefault debug
+%option yyclass="mmmpsr::MimiumParser"
 
 NONZERO  [1-9]
 DIGIT    [[:digit:]]
@@ -17,35 +20,38 @@ WSPACE   [[:blank:]]+
 
 %%
 
-NUMBER {
-    double temp;
-    sscanf(yytext,"%lf",&temp);
-    yylval.double_value = temp;
-    return NUM
-}
+%{
+   yylval = lval;
+%}
 
-WSPACE ;
+{NUMBER} {
+    yylval->emplace<int>(std::stoi(yytext));
+    std::cout << "hit number" <<std::endl;
+    return token::NUM;
+};
 
-
-
-"*"  return MUL ;
-"/"  return DIV ;
-"%"  return MOD ;
-"+"  return ADD ;
-"-"  return SUB ;
-"^"  return EXPONENT;
+{WSPACE} ;
 
 
-"&" return AND;
-"|" return OR;
-"&&" return BITAND;
-"||" return BITOR;
 
-"!=" return NEQ;
+"/"  {return token::DIV; };
+"*"  {return token::MUL; };
+"%"  {return token::MOD; };
+"+"  {return token::ADD; };
+"-"  {return token::SUB; };
+"^"  {return token::EXPONENT;};
 
-"==" return EQ;
 
-"!" return NOT;
+"&" {return token::AND;};
+"|" {return token::OR;};
+"&&" {return token::BITAND;};
+"||" {return token::BITOR;};
+
+"!=" {return token::NEQ;};
+
+"==" {return token::EQ;};
+
+"!" {return token::NOT;};
 
 . {
     fprintf(stderr,"lexical error.\n");

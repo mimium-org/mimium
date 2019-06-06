@@ -1,10 +1,11 @@
 %skeleton "lalr1.cc"
-%require "3.4"
+%require "3.0"
+%debug 
 
 %defines
 %define api.parser.class {MimiumParser}
 %define api.namespace{mmmpsr}
-%define api.value.type  variant
+
 
 %{
 #define YYDEBUG 1
@@ -13,8 +14,28 @@
 
 %}
 
+%code requires{
+   namespace mmmpsr {
+      class MimiumDriver;
+      class MimiumScanner;
+   }
+  #include <memory>
+  #include "ast_definitions.hpp"
+  #define YYDEBUG 1
+  using AST_Ptr = std::shared_ptr<AST>;
 
-%define api.token.prefix {TOK_}
+}
+%parse-param { MimiumScanner &scanner  }
+%parse-param { MimiumDriver  &driver  }
+
+%code {
+    #include "driver.hpp"
+
+  #undef yylex
+  #define yylex scanner.yylex
+}
+%define api.value.type variant
+%define parse.assert
 %token
     ADD "+"
     SUB "-"
@@ -29,8 +50,13 @@
     NEQ "!="
     EQ "=="
     NOT "!"
+    END    0     "end of file"
 ;
 %token <int> NUM "number"
+%type  <AST_Ptr> expr "expression"
+%type <AST_Ptr> primary
+
+%locations
 
 
 %left  OR BITOR
@@ -42,33 +68,26 @@
 
 %%
 
-expr : expr ADD expr  {$$ = node_op_new("+", $1, $3);}
-     | expr SUB expr  {$$ = node_op_new("-", $1, $3);}
-     | expr MUL expr  {$$ = node_op_new("*", $1, $3);}
-     | expr DIV expr  {$$ = node_op_new("/", $1, $3);}
-     | expr MOD expr  {$$ = node_op_new("%", $1, $3);}
-     | expr EXPONENT expr  {$$ = node_op_new("^", $1, $3);}
-     | expr OR expr  {$$ = node_op_new("|", $1, $3);}
-     | expr AND expr  {$$ = node_op_new("&", $1, $3);}
-     | expr BITOR expr  {$$ = node_op_new("||", $1, $3);}
-     | expr BITAND expr  {$$ = node_op_new("&&", $1, $3);}
+expr : expr ADD expr  {$$ = driver.add_op("+",$1,$3);}
+    /* | expr SUB expr  {$$ = std::make_shared<OpAST>("-", $1, $3);}
+     | expr MUL expr  {$$ = std::make_shared<OpAST>("*", $1, $3);}
+     | expr DIV expr  {$$ = std::make_shared<OpAST>("/", $1, $3);}
+     | expr MOD expr  {$$ = std::make_shared<OpAST>("%", $1, $3);}
+     | expr EXPONENT expr  {$$ = std::make_shared<OpAST>("^", $1, $3);}
+     | expr OR expr  {$$ = std::make_shared<OpAST>("|", $1, $3);}
+     | expr AND expr  {$$ = std::make_shared<OpAST>("&", $1, $3);}
+     | expr BITOR expr  {$$ = std::make_shared<OpAST>("||", $1, $3);}
+     | expr BITAND expr  {$$ = std::make_shared<OpAST>("&&", $1, $3);} */
      | primary;
 
-primary : NUM
+primary : NUM {$$ = driver.add_number($1);}
         | '(' expr ')' {$$ =$2;};
 
 %%
 
-#include "lex.yy.c"
 
-static void
-yyerror(parser_state *p, const char *s)
+void 
+mmmpsr::MimiumParser::error( const location_type &l, const std::string &err_message )
 {
-  p->nerr++;
-  if (p->fname) {
-    fprintf(stderr, "%s:%d:%s\n", p->fname, p->lineno, s);
-  }
-  else {
-    fprintf(stderr, "%d:%s\n", p->lineno, s);
-  }
+   std::cerr << "Error: " << err_message << " at " << l << "\n";
 }

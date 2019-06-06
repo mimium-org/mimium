@@ -1,7 +1,9 @@
 #pragma once 
 #include <map>
 #include <string>
+#include <sstream>
 #include <memory>
+#include <vector>
 
 
 enum AST_ID{
@@ -12,7 +14,8 @@ enum AST_ID{
     FDEF,
     ARRAYINIT,
     LAMBDA,
-    OP
+    OP,
+    LIST
 };
 
 
@@ -37,10 +40,13 @@ namespace mimium{
 class AST{
     public:
     AST_ID id;
+    AST()=default;
+    AST(std::string& OPERATOR,std::shared_ptr<AST> LHS, std::shared_ptr<AST> RHS){};
+    virtual std::string to_string() = 0;
 };
 using AST_Ptr = std::shared_ptr<AST>;
 
-class OpAST : AST{
+class OpAST : public AST,public std::enable_shared_from_this<OpAST>{
     public:
     AST_Ptr lhs,rhs;
     std::string op;
@@ -49,5 +55,40 @@ class OpAST : AST{
         lhs = LHS;
         rhs = RHS;
         op = OPERATOR;
+    }
+    std::string to_string(){
+        std::stringstream stream;
+        stream << op <<" " <<lhs->to_string() << " " << rhs->to_string();
+        return stream.str();
+    }
+};
+class ListAST : AST{
+    public:
+    std::vector<AST_Ptr> asts;
+    ListAST(){
+        id = LIST;
+    }
+    void addAST(AST_Ptr ast){
+        asts.push_back(ast);
+    }
+    std::string to_string(){
+        std::stringstream stream;
+        stream << "[";
+        for(auto &elem :asts){
+            stream << elem->to_string() << " ";
+        }
+        stream << "]";
+        return stream.str();
+    }
+};
+class NumberAST :  public AST,public std::enable_shared_from_this<NumberAST>{
+    public:
+    int val;
+    NumberAST(int input){
+        id=NUMBER;
+        val = input;
+    }
+    std::string to_string(){
+        return std::to_string(val);
     }
 };

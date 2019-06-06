@@ -1,6 +1,8 @@
 #include "gtest/gtest.h"
-#include "mimium_parser.hpp" //generated from bison
+#include "driver.hpp"
 
 TEST(bison_parser_test, expr) {
-     yyparse();
+     mmmpsr::MimiumDriver driver;
+     std::string teststr = "1+2+3";
+     driver.parse(teststr);
 }
