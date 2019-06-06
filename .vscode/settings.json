@@ -1,6 +1,7 @@
 {
     "files.associations": {
-        "__locale": "."
+        "__locale": ".",
+        "memory": "cpp"
     },
     "C_Cpp.configurationWarnings": "Disabled"
 }
