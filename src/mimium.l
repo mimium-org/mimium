@@ -32,19 +32,22 @@ NEWLINE {BREAK} | ";"
 
 {WSPACE} ;
 
-"/"  {return token::DIV; };
-"*"  {return token::MUL; };
-"%"  {return token::MOD; };
-"+"  {return token::ADD; };
-"-"  {return token::SUB; };
-"^"  {return token::EXPONENT;};
-"&" {return token::AND;};
-"|" {return token::OR;};
-"&&" {return token::BITAND;};
-"||" {return token::BITOR;};
-"!=" {return token::NEQ;};
-"==" {return token::EQ;}
-"!" {return token::NOT;}
+"/"  return token::DIV; 
+"*"  return token::MUL; 
+"%"  return token::MOD; 
+"+"  return token::ADD; 
+"-"  return token::SUB; 
+"^"  return token::EXPONENT;
+"&" return token::AND;
+"|" return token::OR;
+"&&" return token::BITAND;
+"||" return token::BITOR;
+"!=" return token::NEQ;
+"==" return token::EQ;
+"!"  return token::NOT;
+
+"@" return token::AT;
+
 \r\n|\r|\n	{ loc->lines(); loc->step(); return token::NEWLINE;}
 {DELIMITER} { return yytext[0];};
 . {

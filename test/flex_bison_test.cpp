@@ -30,3 +30,13 @@ TEST(bison_parser_test, lines) {
      std::cout << ss.str()<<std::endl;
      EXPECT_EQ(ss.str(),"((+ 3 5) (/ (/ (+ 2 3) 5) 4) )");
 }
+
+TEST(bison_parser_test, time) {
+     mmmpsr::MimiumDriver driver;
+     std::string teststr = "(3+2)@50";
+     driver.parse(teststr);
+     std::stringstream ss;
+     driver.print(ss);
+     std::cout << ss.str()<<std::endl;
+     EXPECT_EQ(ss.str(),"((+ 3 2)@50 )");
+}

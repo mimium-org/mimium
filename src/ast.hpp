@@ -44,6 +44,12 @@ class AST{
     AST(std::string& OPERATOR,std::shared_ptr<AST> LHS, std::shared_ptr<AST> RHS){};
     virtual std::string to_string() = 0;
     AST_ID getid(){return id;}
+    void set_time(int t){time = t;}
+    int get_time(){return time;}
+    bool istimeset(){return (time>=0);}
+    int time = -1;
+    private:
+    
 };
 using AST_Ptr = std::shared_ptr<AST>;
 
@@ -77,7 +83,5 @@ class NumberAST :  public AST,public std::enable_shared_from_this<NumberAST>{
         id=NUMBER;
         val = input;
     }
-    std::string to_string(){
-        return std::to_string(val);
-    }
+    std::string to_string();
 };

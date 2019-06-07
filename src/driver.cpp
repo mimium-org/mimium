@@ -4,13 +4,14 @@
 
 #include "driver.hpp"
 
+namespace mmmpsr{
 
-mmmpsr::MimiumDriver::~MimiumDriver()
+MimiumDriver::~MimiumDriver()
 {
 
 }
 
-void mmmpsr::MimiumDriver::parse(std::string &str){
+void MimiumDriver::parse(std::string &str){
    std::stringbuf strBuf( str.c_str() );
    std::istream instream( &strBuf );
     scanner.reset();
@@ -41,23 +42,29 @@ void mmmpsr::MimiumDriver::parse(std::string &str){
       std::cerr << "Parse failed!!\n";
    }
 }
-AST_Ptr mmmpsr::MimiumDriver::add_number(int num){
+AST_Ptr MimiumDriver::add_number(int num){
    return createAST_Ptr<NumberAST>(num);
 }
-AST_Ptr mmmpsr::MimiumDriver::add_op(std::string op,int lhs,int rhs){
+AST_Ptr MimiumDriver::add_op(std::string op,int lhs,int rhs){
    return add_op(op,createAST_Ptr<NumberAST>(lhs),createAST_Ptr<NumberAST>(rhs));
 }
-AST_Ptr mmmpsr::MimiumDriver::add_op(std::string op,AST_Ptr lhs,AST_Ptr rhs){
+AST_Ptr MimiumDriver::add_op(std::string op,AST_Ptr lhs,AST_Ptr rhs){
    return std::dynamic_pointer_cast<AST>(std::make_shared<OpAST>(op,lhs,rhs));
 }
 
-void mmmpsr::MimiumDriver::add_line(AST_Ptr in){
+AST_Ptr MimiumDriver::set_time(AST_Ptr elem,int time){
+    elem->set_time(time);
+    return elem;
+}
+
+void MimiumDriver::add_line(AST_Ptr in){
    mainast.addAST(in);
 }
 
-std::ostream&  mmmpsr::MimiumDriver::print( std::ostream &stream )
+std::ostream&  MimiumDriver::print( std::ostream &stream )
 {
    stream << mainast.to_string();
    return(stream);
 }
 
+} // namespace mmmpsr

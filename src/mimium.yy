@@ -37,24 +37,28 @@
 %define api.value.type variant
 %define parse.assert
 %token
-    ADD "+"
-    SUB "-"
-    MOD "%"
-    MUL "*"
-    DIV "/"
-    EXPONENT "^"
-    AND "&"
-    OR "|"
-    BITAND "&&"
-    BITOR "||"
-    NEQ "!="
-    EQ "=="
-    NOT "!"
-    END    0     "end of file"
-    NEWLINE "newline"
+   ADD "+"
+   SUB "-"
+   MOD "%"
+   MUL "*"
+   DIV "/"
+   EXPONENT "^"
+   AND "&"
+   OR "|"
+   BITAND "&&"
+   BITOR "||"
+   NEQ "!="
+   EQ "=="
+   NOT "!"
+
+   AT "@"
+   
+   END    0     "end of file"
+   NEWLINE "newline"
 ;
 %token <int> NUM "number"
 %type  <AST_Ptr> expr "expression"
+%type <AST_Ptr> term_time "term @ something"
 %type <AST_Ptr> term "primary"
 %type <AST_Ptr> top "top"
 %type <AST_Ptr> statements "statements"
@@ -68,6 +72,9 @@
 %nonassoc  EQ NEQ
 %left  ADD SUB
 %left  MUL DIV MOD
+
+%left  AT
+
 %right NOT 
 
 %start top
@@ -91,8 +98,11 @@ expr : expr ADD expr  {$$ = driver.add_op("+",$1,$3);}
      | expr AND expr  {$$ = driver.add_op("&", $1, $3);}
      | expr BITOR expr  {$$ = driver.add_op("||", $1, $3);}
      | expr BITAND expr  {$$ = driver.add_op("&&", $1, $3);}
-     | term;
+     | term_time;
 
+term_time : term AT NUM {$$ = driver.set_time($1,$3);}
+         | term
+         ;
 term : NUM {$$ = driver.add_number($1);}
         | '(' expr ')' {$$ =$2;};
 
