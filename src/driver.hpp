@@ -18,7 +18,7 @@ namespace mmmpsr{
         virtual ~MimiumDriver();
         void parse(std::istream &is);
         void parsestring(std::string& str);
-        void parsefile(std::string& filename);
+        void parsefile(char *filename);
 
 
         AST_Ptr add_number(int num);

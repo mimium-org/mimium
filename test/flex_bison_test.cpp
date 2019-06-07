@@ -40,3 +40,13 @@ TEST(bison_parser_test, time) {
      std::cout << ss.str()<<std::endl;
      EXPECT_EQ(ss.str(),"((+ 3 2)@50 )");
 }
+
+
+TEST(bison_parser_test, fileread) {
+     mmmpsr::MimiumDriver driver;
+     driver.parsefile("testfile1.mmm");
+     std::stringstream ss;
+     driver.print(ss);
+     std::cout << ss.str()<<std::endl;
+     EXPECT_EQ(ss.str(),"((+ 2 3)@128 )");
+}

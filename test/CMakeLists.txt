@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-project(Testcode CXX)
+project(mytest CXX)
 
 
 find_package(GTest REQUIRED)
@@ -19,6 +19,8 @@ ADD_FLEX_BISON_DEPENDENCY(MyScanner MyParser)
 add_executable(mytest 
 ${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} ../src/ast.cpp  ../src/interpreter.cpp ../src/driver.cpp
  flex_bison_test.cpp  )
+
+
 target_include_directories(mytest
     PRIVATE
     .
@@ -29,3 +31,6 @@ target_link_libraries(mytest
     GTest::GTest
     GTest::Main   # GTest::Mainをリンクすると自分でmain関数を書く必要がなくなる
   )
+
+file(GLOB testsource *.mmm)
+configure_file(${testsource} . COPYONLY)

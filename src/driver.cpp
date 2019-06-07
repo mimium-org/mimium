@@ -27,9 +27,19 @@ void MimiumDriver::parsestring(std::string &str){
    parse(instream);
 }
 
-void MimiumDriver::parsefile(std::string &filename){
-   std::ifstream ifs(filename);
-   parse(ifs);
+void MimiumDriver::parsefile(char *filename){
+   std::ifstream ifs;
+   ifs.exceptions(std::fstream::failbit | std::fstream::badbit);
+
+   try{
+      ifs.open(filename);
+      parse(ifs);
+   }catch( std::ios_base::failure e){
+        std::cerr << "File read error" << std::endl;
+        if(ifs.fail()){
+         std::cerr << "no such file:" << filename <<std::endl;
+        }
+   }
 }
 
 AST_Ptr MimiumDriver::add_number(int num){
