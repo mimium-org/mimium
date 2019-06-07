@@ -4,7 +4,7 @@
 TEST(bison_parser_test, expr) {
      mmmpsr::MimiumDriver driver;
      std::string teststr = "1+2+3*2/2";
-     driver.parse(teststr);
+     driver.parsestring(teststr);
      std::stringstream ss;
      driver.print(ss);
      std::cout << ss.str()<<std::endl;
@@ -14,7 +14,7 @@ TEST(bison_parser_test, expr) {
 TEST(bison_parser_test, parensis) {
      mmmpsr::MimiumDriver driver;
      std::string teststr = "(2+3)/5/4";
-     driver.parse(teststr);
+     driver.parsestring(teststr);
      std::stringstream ss;
      driver.print(ss);
      std::cout << ss.str()<<std::endl;
@@ -24,7 +24,7 @@ TEST(bison_parser_test, parensis) {
 TEST(bison_parser_test, lines) {
      mmmpsr::MimiumDriver driver;
      std::string teststr = "(2+3)/5/4 \n 3+5";
-     driver.parse(teststr);
+     driver.parsestring(teststr);
      std::stringstream ss;
      driver.print(ss);
      std::cout << ss.str()<<std::endl;
@@ -34,7 +34,7 @@ TEST(bison_parser_test, lines) {
 TEST(bison_parser_test, time) {
      mmmpsr::MimiumDriver driver;
      std::string teststr = "(3+2)@50";
-     driver.parse(teststr);
+     driver.parsestring(teststr);
      std::stringstream ss;
      driver.print(ss);
      std::cout << ss.str()<<std::endl;

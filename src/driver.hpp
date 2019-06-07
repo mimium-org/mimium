@@ -16,7 +16,11 @@ namespace mmmpsr{
         public:
         MimiumDriver() = default;
         virtual ~MimiumDriver();
-        void parse(std::string& str);
+        void parse(std::istream &is);
+        void parsestring(std::string& str);
+        void parsefile(std::string& filename);
+
+
         AST_Ptr add_number(int num);
 
         AST_Ptr add_op(std::string op,int lhs,int rhs);

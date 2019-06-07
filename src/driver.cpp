@@ -1,4 +1,6 @@
 #include <iostream>
+#include <fstream>
+
 #include <string>
 #include <sstream>
 
@@ -10,38 +12,26 @@ MimiumDriver::~MimiumDriver()
 {
 
 }
-
-void MimiumDriver::parse(std::string &str){
-   std::stringbuf strBuf( str.c_str() );
-   std::istream instream( &strBuf );
-    scanner.reset();
-   try
-   {
-      scanner = std::make_unique<mmmpsr::MimiumScanner>( instream );
-   }
-      catch( std::bad_alloc &ba )
-   {
-      std::cerr << "Failed to allocate scanner: (" <<
-         ba.what() << "), exiting!!\n";
-      exit( EXIT_FAILURE );
-   }
-    parser.reset();
-   try
-   {
-      parser = std::make_unique<mmmpsr::MimiumParser>( *scanner,*this );
-   }
-      catch( std::bad_alloc &ba )
-   {
-      std::cerr << "Failed to allocate parser: (" << 
-         ba.what() << "), exiting!!\n";
-      exit( EXIT_FAILURE );
-   }
-      const int accept( 0 );
-   if( parser->parse() != accept )
-   {
+void MimiumDriver::parse(std::istream &is){
+   scanner.reset();
+   scanner = std::make_unique<mmmpsr::MimiumScanner>( is );
+   parser.reset();
+   parser = std::make_unique<mmmpsr::MimiumParser>( *scanner,*this );
+   if( parser->parse() != 0 ){
       std::cerr << "Parse failed!!\n";
    }
 }
+void MimiumDriver::parsestring(std::string &str){
+   std::stringbuf strBuf( str.c_str() );
+   std::istream instream( &strBuf );
+   parse(instream);
+}
+
+void MimiumDriver::parsefile(std::string &filename){
+   std::ifstream ifs(filename);
+   parse(ifs);
+}
+
 AST_Ptr MimiumDriver::add_number(int num){
    return createAST_Ptr<NumberAST>(num);
 }
