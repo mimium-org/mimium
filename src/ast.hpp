@@ -43,6 +43,7 @@ class AST{
     AST()=default;
     AST(std::string& OPERATOR,std::shared_ptr<AST> LHS, std::shared_ptr<AST> RHS){};
     virtual std::string to_string() = 0;
+    AST_ID getid(){return id;}
 };
 using AST_Ptr = std::shared_ptr<AST>;
 
@@ -56,11 +57,7 @@ class OpAST : public AST,public std::enable_shared_from_this<OpAST>{
         rhs = RHS;
         op = OPERATOR;
     }
-    std::string to_string(){
-        std::stringstream stream;
-        stream << "("<< op <<" " <<lhs->to_string() << " " << rhs->to_string() <<")";
-        return stream.str();
-    }
+    std::string to_string();
 };
 class ListAST : AST{
     public:
@@ -71,15 +68,7 @@ class ListAST : AST{
     void addAST(AST_Ptr ast){
         asts.push_back(ast);
     }
-    std::string to_string(){
-        std::stringstream stream;
-        stream << "(";
-        for(auto &elem :asts){
-            stream << elem->to_string() << " ";
-        }
-        stream << ")";
-        return stream.str();
-    }
+    std::string to_string();
 };
 class NumberAST :  public AST,public std::enable_shared_from_this<NumberAST>{
     public:

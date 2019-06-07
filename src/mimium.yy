@@ -20,7 +20,7 @@
       class MimiumScanner;
    }
   #include <memory>
-  #include "ast_definitions.hpp"
+  #include "ast.hpp"
   #define YYDEBUG 1
   using AST_Ptr = std::shared_ptr<AST>;
 

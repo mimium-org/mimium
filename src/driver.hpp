@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 #include <memory>
-#include "ast_definitions.hpp"
+#include "ast.hpp"
 #include "mimium_parser.hpp"
 #include "scanner.hpp"
 

@@ -3,15 +3,13 @@
 #include <memory>
 #include <unordered_map> 
 
-#include "s-exp.hpp"
-
-using S_Ptr = std::shared_ptr<S_Expr>;
+#include "ast.hpp"
 
 class Interpreter{
-    S_Ptr ast;
-    std::unordered_map<std::string,S_Ptr> environment;
+    AST_Ptr ast;
+    std::unordered_map<std::string,AST_Ptr> environment;
     public:
-    void loadAst(S_Ptr _ast);
+    void loadAst(AST_Ptr _ast);
     void interpretAst();
     void genEventGraph();
 };

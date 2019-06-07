@@ -17,7 +17,7 @@ ADD_FLEX_BISON_DEPENDENCY(MyScanner MyParser)
 
 
 add_executable(mytest 
-${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} ../src/s-exp.cpp ../src/interpreter.cpp ../src/driver.cpp
+${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} ../src/ast.cpp  ../src/interpreter.cpp ../src/driver.cpp
  flex_bison_test.cpp  )
 target_include_directories(mytest
     PRIVATE
