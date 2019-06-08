@@ -1,7 +1,8 @@
 {
     "files.associations": {
         "__locale": ".",
-        "memory": "cpp"
+        "memory": "cpp",
+        "iosfwd": "cpp"
     },
     "C_Cpp.configurationWarnings": "Disabled"
 }
