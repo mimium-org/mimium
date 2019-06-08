@@ -43,13 +43,13 @@ void MimiumDriver::parsefile(char *filename){
 }
 
 AST_Ptr MimiumDriver::add_number(int num){
-   return createAST_Ptr<NumberAST>(num);
+   return std::make_unique<NumberAST>(num);
 }
 AST_Ptr MimiumDriver::add_op(std::string op,int lhs,int rhs){
-   return add_op(op,createAST_Ptr<NumberAST>(lhs),createAST_Ptr<NumberAST>(rhs));
+   return add_op(op,std::make_unique<NumberAST>(lhs),std::make_unique<NumberAST>(rhs));
 }
 AST_Ptr MimiumDriver::add_op(std::string op,AST_Ptr lhs,AST_Ptr rhs){
-   return std::dynamic_pointer_cast<AST>(std::make_shared<OpAST>(op,lhs,rhs));
+   return std::make_unique<OpAST>(op,std::move(lhs),std::move(rhs));
 }
 
 AST_Ptr MimiumDriver::set_time(AST_Ptr elem,int time){
@@ -58,12 +58,12 @@ AST_Ptr MimiumDriver::set_time(AST_Ptr elem,int time){
 }
 
 void MimiumDriver::add_line(AST_Ptr in){
-   mainast.addAST(in);
+   mainast->addAST(std::move(in));
 }
 
 std::ostream&  MimiumDriver::print( std::ostream &stream )
 {
-   stream << mainast.to_string();
+   stream << mainast->to_string();
    return(stream);
 }
 

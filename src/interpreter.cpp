@@ -1,7 +1,7 @@
 
 #include "interpreter.hpp"
 void Interpreter::loadAst(AST_Ptr _ast){
-    ast = _ast;
+    ast  = std::move(_ast);
 }
 
 void Interpreter::interpretAst(){

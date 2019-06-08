@@ -36,13 +36,16 @@ namespace mimium{
                 }
     };
 };
+class AST;
+using AST_Ptr = std::unique_ptr<AST>;
 
 class AST{
     public:
     AST_ID id;
-    AST()=default;
-    AST(std::string& OPERATOR,std::shared_ptr<AST> LHS, std::shared_ptr<AST> RHS){};
+    virtual ~AST()=default;
     virtual std::string to_string() = 0;
+    virtual void addAST(AST_Ptr ast){};//for list ast
+
     AST_ID getid(){return id;}
     void set_time(int t){time = t;}
     int get_time(){return time;}
@@ -51,37 +54,34 @@ class AST{
     private:
     
 };
-using AST_Ptr = std::shared_ptr<AST>;
 
 class OpAST : public AST,public std::enable_shared_from_this<OpAST>{
     public:
-    AST_Ptr lhs,rhs;
     std::string op;
-    OpAST(std::string& OPERATOR,AST_Ptr LHS, AST_Ptr RHS){
+    AST_Ptr lhs,rhs;
+    
+    OpAST(std::string& Op,AST_Ptr LHS, AST_Ptr RHS):op(Op),lhs(std::move(LHS)),rhs(std::move(RHS)){
         id=OP;
-        lhs = LHS;
-        rhs = RHS;
-        op = OPERATOR;
     }
     std::string to_string();
 };
 class ListAST : AST{
     public:
     std::vector<AST_Ptr> asts;
-    ListAST(){
+    ListAST(std::vector<AST_Ptr> _asts):asts(std::move(_asts)){
         id = LIST;
     }
-    void addAST(AST_Ptr ast){
-        asts.push_back(ast);
+    void addAST(AST_Ptr ast) {
+        asts.push_back(std::move(ast));
     }
+
     std::string to_string();
 };
 class NumberAST :  public AST,public std::enable_shared_from_this<NumberAST>{
     public:
     int val;
-    NumberAST(int input){
+    NumberAST(int input): val(input){
         id=NUMBER;
-        val = input;
     }
     std::string to_string();
 };

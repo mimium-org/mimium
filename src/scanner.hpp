@@ -15,7 +15,7 @@ public:
    
    MimiumScanner(std::istream &in) : yyFlexLexer(in,std::cout)
    {
-      loc = std::make_shared<mmmpsr::MimiumParser::location_type>();
+      loc = std::make_unique<mmmpsr::MimiumParser::location_type>();
    };
 
    virtual ~MimiumScanner() {

@@ -7,14 +7,17 @@
 
 template<class T>
 AST_Ptr createAST_Ptr(T inputs){
-    return std::dynamic_pointer_cast<AST>(std::make_shared<T>(inputs));
+    return std::dynamic_pointer_cast<AST>(std::make_unique<T>(inputs));
 }
 
 namespace mmmpsr{
 
     class MimiumDriver{
         public:
-        MimiumDriver() = default;
+        MimiumDriver(){
+            std::vector<AST_Ptr> vec;
+            mainast  = std::make_unique<ListAST>(std::move(vec));
+        };
         virtual ~MimiumDriver();
         void parse(std::istream &is);
         void parsestring(std::string& str);
@@ -30,7 +33,7 @@ namespace mmmpsr{
         std::ostream& print(std::ostream &stream);
 
         private:
-            ListAST mainast;    
+            std::unique_ptr<ListAST> mainast;    
             std::unique_ptr<mmmpsr::MimiumParser>  parser  = nullptr;
             std::unique_ptr<mmmpsr::MimiumScanner> scanner = nullptr;
             const std::string red   = "\033[1;31m";
