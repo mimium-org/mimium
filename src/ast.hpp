@@ -1,11 +1,32 @@
 #pragma once 
+
 #include <map>
+#include <utility> //pair
+
 #include <string>
 #include <sstream>
 #include <memory>
 #include <vector>
- #include <iostream>
+#include <iostream>
 
+#include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/IR/BasicBlock.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/Type.h"
+#include "llvm/IR/Verifier.h"
+
+//currently global
+
+static llvm::LLVMContext TheContext;
+static auto TheModule =  std::make_unique<llvm::Module>("top", TheContext);
+static llvm::IRBuilder<> Builder(TheContext)  ;
+static std::map<std::string, llvm::Value *> NamedValues;
 enum AST_ID{
     BASE,
     NUMBER,
@@ -46,24 +67,63 @@ class AST{
     virtual std::string to_string() = 0;
     virtual void addAST(AST_Ptr ast){};//for list ast
 
+    virtual llvm::Value *codegen() = 0;
+
+
     AST_ID getid(){return id;}
     void set_time(int t){time = t;}
     int get_time(){return time;}
     bool istimeset(){return (time>=0);}
-    int time = -1;
+    protected:
+
+    AST_Ptr LogError(const char *Str) {
+        std::cerr<< "Error: " << Str << std::endl;
+        return nullptr;
+    }
+    llvm::Value *LogErrorV(const char *Str) {
+        LogError(Str);
+        return nullptr;
+    }
     private:
-    
+    int time = -1;
+
 };
 
 class OpAST : public AST,public std::enable_shared_from_this<OpAST>{
     public:
     std::string op;
+    int op_id;
     AST_Ptr lhs,rhs;
     
-    OpAST(std::string& Op,AST_Ptr LHS, AST_Ptr RHS):op(Op),lhs(std::move(LHS)),rhs(std::move(RHS)){
+    OpAST(std::string Op,AST_Ptr LHS, AST_Ptr RHS):op(Op),lhs(std::move(LHS)),rhs(std::move(RHS)){
         id=OP;
     }
+    OpAST(int Op_id,AST_Ptr LHS, AST_Ptr RHS):op_id(Op_id),lhs(std::move(LHS)),rhs(std::move(RHS)){
+        id=OP;
+    }
+
+    virtual llvm::Value *codegen() = 0;
     std::string to_string();
+    protected:
+    auto codegen_pre();
+
+    // static int getop(std::string op){return mimium::op_map[op];}
+};
+struct AddAST: public OpAST{
+    AddAST(AST_Ptr LHS, AST_Ptr RHS): OpAST("+",std::move(LHS) ,std::move(RHS)){};
+    llvm::Value *codegen() override;
+};
+struct SubAST: public OpAST{
+    SubAST(AST_Ptr LHS, AST_Ptr RHS): OpAST("-",std::move(LHS) ,std::move(RHS)){};
+    llvm::Value *codegen() override;
+};
+struct MulAST: public OpAST{
+    MulAST(AST_Ptr LHS, AST_Ptr RHS): OpAST("*",std::move(LHS) ,std::move(RHS)){};
+    llvm::Value *codegen() override;
+};
+struct DivAST: public OpAST{
+    DivAST(AST_Ptr LHS, AST_Ptr RHS): OpAST("/",std::move(LHS) ,std::move(RHS)){};
+    llvm::Value *codegen() override;
 };
 class ListAST : AST{
     public:
@@ -74,8 +134,9 @@ class ListAST : AST{
     void addAST(AST_Ptr ast) {
         asts.push_back(std::move(ast));
     }
-
     std::string to_string();
+    llvm::Value *codegen();
+
 };
 class NumberAST :  public AST,public std::enable_shared_from_this<NumberAST>{
     public:
@@ -84,4 +145,5 @@ class NumberAST :  public AST,public std::enable_shared_from_this<NumberAST>{
         id=NUMBER;
     }
     std::string to_string();
+    llvm::Value *codegen();
 };

@@ -43,13 +43,36 @@ void MimiumDriver::parsefile(char *filename){
 }
 
 AST_Ptr MimiumDriver::add_number(int num){
-   return std::make_unique<NumberAST>(num);
+   return std::make_unique<NumberAST>(std::move(num));
+}
+AST_Ptr MimiumDriver::add_op(tokentype op,AST_Ptr lhs,AST_Ptr rhs){
+   switch (op)
+   {
+   case MimiumParser::token::ADD:
+      return std::make_unique<AddAST>(std::move(lhs),std::move(rhs));
+      break;
+   case MimiumParser::token::SUB:
+      return std::make_unique<SubAST>(std::move(lhs),std::move(rhs));
+      break;
+   case MimiumParser::token::MUL:
+      return std::make_unique<MulAST>(std::move(lhs),std::move(rhs));
+      break;
+   case MimiumParser::token::DIV:
+      return std::make_unique<DivAST>(std::move(lhs),std::move(rhs));
+      break;
+   default:
+      std::cerr<< "the operator is not implemented yet" << std::endl;
+      return nullptr;
+      break;
+   }
 }
 AST_Ptr MimiumDriver::add_op(std::string op,int lhs,int rhs){
-   return add_op(op,std::make_unique<NumberAST>(lhs),std::make_unique<NumberAST>(rhs));
+      tokentype tt = op_map[op];
+   return add_op(tt,std::make_unique<NumberAST>(lhs),std::make_unique<NumberAST>(rhs));
 }
 AST_Ptr MimiumDriver::add_op(std::string op,AST_Ptr lhs,AST_Ptr rhs){
-   return std::make_unique<OpAST>(op,std::move(lhs),std::move(rhs));
+   tokentype tt = op_map[op];
+   return add_op(tt,std::move(lhs),std::move(rhs));
 }
 
 AST_Ptr MimiumDriver::set_time(AST_Ptr elem,int time){

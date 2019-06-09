@@ -1,14 +1,16 @@
 #pragma once
 #include <string>
 #include <memory>
-#include "ast.hpp"
+
 #include "mimium_parser.hpp"
+#include "op_map.hpp"
 #include "scanner.hpp"
 
 template<class T>
 AST_Ptr createAST_Ptr(T inputs){
     return std::dynamic_pointer_cast<AST>(std::make_unique<T>(inputs));
 }
+using tokentype = mmmpsr::MimiumParser::token::yytokentype;
 
 namespace mmmpsr{
 
@@ -28,6 +30,8 @@ namespace mmmpsr{
 
         AST_Ptr add_op(std::string op,int lhs,int rhs);
         AST_Ptr add_op(std::string op,AST_Ptr lhs,AST_Ptr rhs);
+        AST_Ptr add_op(tokentype op ,AST_Ptr lhs,AST_Ptr rhs);
+
         AST_Ptr set_time(AST_Ptr elem,int time);
         void add_line(AST_Ptr in);
         std::ostream& print(std::ostream &stream);
@@ -39,5 +43,6 @@ namespace mmmpsr{
             const std::string red   = "\033[1;31m";
             const std::string blue  = "\033[1;36m";
             const std::string norm  = "\033[0m";
+
     };
 };

@@ -30,6 +30,7 @@ target_link_libraries(mytest
   PRIVATE
     GTest::GTest
     GTest::Main   # GTest::Mainをリンクすると自分でmain関数を書く必要がなくなる
+    ${llvm_libs}
   )
 
 file(GLOB testsource *.mmm)

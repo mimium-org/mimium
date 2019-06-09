@@ -6,6 +6,7 @@
 %define api.parser.class {MimiumParser}
 %define api.namespace{mmmpsr}
 
+%token-table
 
 %{
 #define YYDEBUG 1
@@ -20,7 +21,8 @@
       class MimiumScanner;
    }
   #include <memory>
-  #include "ast.hpp"
+#include "ast.hpp"
+  using AST_Ptr = std::unique_ptr<AST>;
   #define YYDEBUG 1
 
 }
@@ -87,10 +89,10 @@ statements : expr {driver.add_line(std::move($1));}
       | expr NEWLINE statements {driver.add_line(std::move($1));}
       ;
 
-expr : expr ADD    expr  {$$ = driver.add_op("+" , std::move($1),std::move($3));}
-     | expr SUB    expr  {$$ = driver.add_op("-" , std::move($1),std::move($3));}
-     | expr MUL    expr  {$$ = driver.add_op("*" , std::move($1),std::move($3));}
-     | expr DIV    expr  {$$ = driver.add_op("/" , std::move($1),std::move($3));}
+expr : expr ADD    expr  {$$ = driver.add_op(token::ADD , std::move($1),std::move($3));}
+     | expr SUB    expr  {$$ = driver.add_op(token::SUB , std::move($1),std::move($3));}
+     | expr MUL    expr  {$$ = driver.add_op(token::MUL , std::move($1),std::move($3));}
+     | expr DIV    expr  {$$ = driver.add_op(token::DIV , std::move($1),std::move($3));}
      | expr MOD    expr  {$$ = driver.add_op("%" , std::move($1),std::move($3));}
      | expr EXPONENT expr{$$ = driver.add_op("^" , std::move($1),std::move($3));}
      | expr OR     expr  {$$ = driver.add_op("|" , std::move($1),std::move($3));}
