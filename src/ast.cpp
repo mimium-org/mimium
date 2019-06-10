@@ -80,6 +80,38 @@ std::ostream& ListAST::to_string(std::ostream& ss){
 llvm::Value* ListAST::codegen(){
     return LogErrorV("not implemented yet");
 }
+std::ostream& ArgumentsAST::to_string(std::ostream& ss){
+        ss << "(";
+        for(auto &elem :args){
+            elem->to_string(ss);
+            ss<< " ";
+        }
+        ss << ")";
+        if(istimeset()){
+            ss << "@" << std::to_string(get_time());
+        }
+        return ss;
+    }
+
+llvm::Value* ArgumentsAST::codegen(){
+    return LogErrorV("not implemented yet");
+}
+
+std::ostream& LambdaAST::to_string(std::ostream& ss){
+        ss << "(lambda (";
+        args->to_string(ss);
+        ss <<")";
+        body->to_string(ss) ;
+        ss << ")";
+        if(istimeset()){
+            ss << "@" << std::to_string(get_time());
+        }
+        return ss;
+    }
+
+llvm::Value* LambdaAST::codegen(){
+    return LogErrorV("not implemented yet");
+}
 
 std::ostream& AssignAST::to_string(std::ostream& ss){
         ss << "("<< "assign" <<" ";

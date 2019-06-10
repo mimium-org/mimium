@@ -6,6 +6,10 @@
 
 #include "driver.hpp"
 
+#ifndef DEBUG_LEVEL
+#define DEBUG_LEVEL 0
+#endif
+
 namespace mmmpsr{
 
 MimiumDriver::~MimiumDriver()
@@ -17,7 +21,7 @@ void MimiumDriver::parse(std::istream &is){
    scanner = std::make_unique<mmmpsr::MimiumScanner>( is );
    parser.reset();
    parser = std::make_unique<mmmpsr::MimiumParser>( *scanner,*this );
-   // parser->set_debug_level(4);
+   parser->set_debug_level(DEBUG_LEVEL); //debug
    if( parser->parse() != 0 ){
       std::cerr << "Parse failed!!\n";
    }
@@ -85,14 +89,29 @@ AST_Ptr MimiumDriver::add_op(std::string op,AST_Ptr lhs,AST_Ptr rhs){
 AST_Ptr MimiumDriver::add_assign(AST_Ptr symbol,AST_Ptr expr){
    return std::make_unique<AssignAST>(std::move(symbol),std::move(expr));
 }
+AST_Ptr MimiumDriver::add_arguments(AST_Ptr arg){
+   return std::make_unique<ArgumentsAST>(std::move(arg));
+}
+
+AST_Ptr MimiumDriver::add_lambda(AST_Ptr args,AST_Ptr body){
+   return std::make_unique<LambdaAST>(std::move(args),std::move(body));
+}
+
+AST_Ptr MimiumDriver::add_statements(AST_Ptr statements){
+   return std::make_unique<ListAST>(std::move(statements));
+};
+
 
 AST_Ptr MimiumDriver::set_time(AST_Ptr elem,int time){
     elem->set_time(time);
     return elem;
 }
 
-void MimiumDriver::add_line(AST_Ptr in){
-   mainast->addAST(std::move(in));
+// void MimiumDriver::add_line(AST_Ptr in){
+//    mainast->addAST(std::move(in));
+// }
+void MimiumDriver::add_top(AST_Ptr top){
+     mainast = std::move(top);
 }
 
 std::ostream&  MimiumDriver::print( std::ostream &stream )

@@ -7,6 +7,7 @@
 #include <sstream>
 #include <memory>
 #include <vector>
+#include <list>  
 #include <iostream>
 
 #include "llvm/ADT/APFloat.h"
@@ -31,6 +32,8 @@ enum AST_ID{
     BASE,
     NUMBER,
     SYMBOL,
+    ARG,
+    ARGS,
     FCALL,
     ASSIGN,
     FDEF,
@@ -66,7 +69,7 @@ class AST{
     AST_ID id;
     virtual ~AST()=default;
     virtual std::ostream& to_string(std::ostream &ss) = 0;
-    virtual void addAST(AST_Ptr ast){};//for list ast
+    virtual void addAST(AST_Ptr ast){};//for list/argument ast
 
     virtual llvm::Value *codegen() = 0;
 
@@ -126,10 +129,15 @@ struct DivAST: public OpAST{
     DivAST(AST_Ptr LHS, AST_Ptr RHS): OpAST("/",std::move(LHS) ,std::move(RHS)){};
     llvm::Value *codegen() override;
 };
-class ListAST : AST{
+class ListAST : public AST,public std::enable_shared_from_this<ListAST>{
     public:
-    std::vector<AST_Ptr> asts;
-    ListAST(std::vector<AST_Ptr> _asts):asts(std::move(_asts)){
+    std::list<AST_Ptr> asts;
+    ListAST(){ //empty constructor
+        id=LIST;
+    }
+
+    ListAST(AST_Ptr _asts){
+        asts.push_front(std::move(_asts));
         id = LIST;
     }
     void addAST(AST_Ptr ast) {
@@ -154,6 +162,33 @@ class SymbolAST :  public AST{
     std::string val;
     SymbolAST(std::string input): val(input){
         id=SYMBOL;
+    }
+    std::ostream& to_string(std::ostream& ss);
+    llvm::Value *codegen();
+};
+
+class ArgumentsAST : public AST{
+    public:
+    std::list<AST_Ptr> args;
+
+
+    ArgumentsAST(AST_Ptr arg){
+        args.push_front(std::move(arg));
+        id=ARGS;
+    }
+    void addAST(AST_Ptr arg){
+        args.push_front(std::move(arg));
+    };
+    std::ostream& to_string(std::ostream& ss);
+    llvm::Value *codegen();
+};
+
+class LambdaAST: public AST{
+    public:
+    AST_Ptr args;
+    AST_Ptr body;
+    LambdaAST(AST_Ptr Args, AST_Ptr Body): args(std::move(Args)),body(std::move(Body)){
+        id = LAMBDA;
     }
     std::ostream& to_string(std::ostream& ss);
     llvm::Value *codegen();

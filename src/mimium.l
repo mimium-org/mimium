@@ -52,6 +52,8 @@ NEWLINE {BREAK} | ";"
 "==" return token::EQ;
 "!"  return token::NOT;
 
+"->" return token::ARROW;
+
 "@" return token::AT;
 
 "=" return token::ASSIGN;

@@ -54,18 +54,31 @@
    ASSIGN "="
    AT "@"
    
+   ARROW "->"
+   
    END    0     "end of file"
    NEWLINE "newline"
 ;
 %token <int> NUM "number"
 %token  <std::string> SYMBOL "symbol_token"
 
+%type <AST_Ptr> block "block"
+
+
 %type <AST_Ptr> symbol "symbol"
 %type  <AST_Ptr> expr "expression"
 %type <AST_Ptr> term_time "term @ something"
 %type <AST_Ptr> term "primary"
 
+%type <AST_Ptr> lambda "lambda"
+
+%type <AST_Ptr> arg "arg element"
+%type <AST_Ptr> arguments "arguments"
+
 %type <AST_Ptr> assign "assign"
+%type <AST_Ptr> fdef "fdef"
+
+%type <AST_Ptr> statement "single statement"
 
 %type <AST_Ptr> statements "statements"
 
@@ -89,14 +102,34 @@
 
 %%
 
-top :statements END {$$=std::move($1);}
+top :statements END {driver.add_top(std::move($1));}
     ;
 
-statements : assign {driver.add_line(std::move($1));}
-      | assign NEWLINE statements {driver.add_line(std::move($1));}
+block : '{' statements '}' {$$ = std::move($2);}
+;
+
+statements : statement NEWLINE statements {$3->addAST(std::move($1));
+                                           $$ = std::move($3);  }
+            | statement {  $$ = driver.add_statements(std::move($1));}
       ;
 
+statement : assign {$$=std::move($1);} 
+         | fdef  {$$=std::move($1);} 
+         ;
+
+fdef : symbol '(' arguments ')' ASSIGN expr {$$ = driver.add_assign(std::move($1),driver.add_lambda(std::move($3),std::move($6)));};
+
+lambda: '(' arguments ')' ARROW '{' expr '}' {$$ = driver.add_lambda(std::move($2),std::move($6));};
+
 assign : symbol ASSIGN expr {$$ = driver.add_assign(std::move($1),std::move($3));}
+      |  symbol ASSIGN lambda {$$ = driver.add_assign(std::move($1),std::move($3));}
+
+arguments : arg ',' arguments   {$3->addAST(std::move($1));
+                                 $$ = std::move($3); }
+         |  arg {$$ = driver.add_arguments(std::move($1));}
+         ;
+
+arg : symbol{$$ = std::move($1);};
 
 expr : expr ADD    expr  {$$ = driver.add_op(token::ADD , std::move($1),std::move($3));}
      | expr SUB    expr  {$$ = driver.add_op(token::SUB , std::move($1),std::move($3));}

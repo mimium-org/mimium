@@ -3,6 +3,9 @@
  * Supports +, -, *, /, ^ and grouping with parenthesis.
  * Correctly handles precedence associativity.
  */
+
+#define MIMIUM_DEBUG
+
 #include <cctype>
 #include <cmath>
 #include <iostream>
