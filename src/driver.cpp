@@ -97,7 +97,7 @@ void MimiumDriver::add_line(AST_Ptr in){
 
 std::ostream&  MimiumDriver::print( std::ostream &stream )
 {
-   stream << mainast->to_string();
+  mainast->to_string(stream);
    return(stream);
 }
 

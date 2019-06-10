@@ -65,7 +65,7 @@ class AST{
     public:
     AST_ID id;
     virtual ~AST()=default;
-    virtual std::string to_string() = 0;
+    virtual std::ostream& to_string(std::ostream &ss) = 0;
     virtual void addAST(AST_Ptr ast){};//for list ast
 
     virtual llvm::Value *codegen() = 0;
@@ -104,7 +104,7 @@ class OpAST : public AST,public std::enable_shared_from_this<OpAST>{
     }
 
     virtual llvm::Value *codegen() = 0;
-    std::string to_string();
+    std::ostream& to_string(std::ostream& ss);
     protected:
     auto codegen_pre();
 
@@ -135,7 +135,7 @@ class ListAST : AST{
     void addAST(AST_Ptr ast) {
         asts.push_back(std::move(ast));
     }
-    std::string to_string();
+    std::ostream& to_string(std::ostream& ss);
     llvm::Value *codegen();
 
 };
@@ -145,7 +145,7 @@ class NumberAST :  public AST,public std::enable_shared_from_this<NumberAST>{
     NumberAST(int input): val(input){
         id=NUMBER;
     }
-    std::string to_string();
+    std::ostream& to_string(std::ostream& ss);
     llvm::Value *codegen();
 };
 
@@ -155,7 +155,7 @@ class SymbolAST :  public AST{
     SymbolAST(std::string input): val(input){
         id=SYMBOL;
     }
-    std::string to_string();
+    std::ostream& to_string(std::ostream& ss);
     llvm::Value *codegen();
 };
 
@@ -166,6 +166,6 @@ class AssignAST :  public AST{
     AssignAST(AST_Ptr Symbol,AST_Ptr Expr): symbol(std::move(Symbol)),expr(std::move(Expr)){
         id=ASSIGN;
     }
-    std::string to_string();
+    std::ostream& to_string(std::ostream& ss);
     llvm::Value *codegen();
 };

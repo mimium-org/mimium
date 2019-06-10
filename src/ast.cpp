@@ -1,13 +1,13 @@
 
 #include "ast.hpp"
 
-std::string NumberAST::to_string(){
-        std::stringstream stream;
-        stream <<  std::to_string(val);
+
+std::ostream& NumberAST::to_string(std::ostream& ss){
+        ss <<  std::to_string(val);
         if(istimeset()){
-            stream << "@" << std::to_string(get_time());
+            ss << "@" << std::to_string(get_time());
         }
-        return stream.str();
+        return ss;
     
 }
 
@@ -15,26 +15,28 @@ llvm::Value* NumberAST::codegen(){
     return llvm::ConstantFP::get(TheContext, llvm::APFloat((float)val));
 }
 
-std::string SymbolAST::to_string(){
-    std::stringstream stream;
-    stream <<  val;
+std::ostream& SymbolAST::to_string(std::ostream& ss){
+    ss <<  val;
     if(istimeset()){
-        stream << "@" << std::to_string(get_time());
+        ss << "@" << std::to_string(get_time());
     }
-    return stream.str();
+    return ss;
 }
 llvm::Value* SymbolAST::codegen(){
     return LogErrorV("not implemented yet");
 }
 
 
-std::string OpAST::to_string(){
-        std::stringstream stream;
-        stream << "("<< op <<" " <<lhs->to_string() << " " << rhs->to_string() <<")";
+std::ostream& OpAST::to_string(std::ostream& ss){
+        ss << "("<< op <<" ";
+        lhs->to_string(ss);
+        ss<< " ";
+        rhs->to_string(ss);
+        ss<<")";
         if(istimeset()){
-            stream << "@" << std::to_string(get_time());
+            ss<< "@" << std::to_string(get_time());
         }
-        return stream.str();
+        return ss;
     }
 auto OpAST::codegen_pre(){
     auto res =  std::make_pair(lhs->codegen(),rhs->codegen());
@@ -62,30 +64,33 @@ llvm::Value* DivAST::codegen(){
     return Builder.CreateUIToFP(lr.first, llvm::Type::getDoubleTy(TheContext), "booltmp");
 }
 
-std::string ListAST::to_string(){
-        std::stringstream stream;
-        stream << "(";
+std::ostream& ListAST::to_string(std::ostream& ss){
+        ss << "(";
         for(auto &elem :asts){
-            stream << elem->to_string() << " ";
+            elem->to_string(ss);
+            ss<< " ";
         }
-        stream << ")";
+        ss << ")";
         if(istimeset()){
-            stream << "@" << std::to_string(get_time());
+            ss << "@" << std::to_string(get_time());
         }
-        return stream.str();
+        return ss;
     }
 
 llvm::Value* ListAST::codegen(){
     return LogErrorV("not implemented yet");
 }
 
-std::string AssignAST::to_string(){
-     std::stringstream stream;
-        stream << "("<< "assign" <<" " <<symbol->to_string() << " " << expr->to_string() <<")";
+std::ostream& AssignAST::to_string(std::ostream& ss){
+        ss << "("<< "assign" <<" ";
+        symbol->to_string(ss);
+        ss << " ";
+        expr->to_string(ss);
+        ss <<")";
         if(istimeset()){
-            stream << "@" << std::to_string(get_time());
+            ss << "@" << std::to_string(get_time());
         }
-        return stream.str();
+        return ss;
 }
 llvm::Value* AssignAST::codegen(){
     return LogErrorV("not implemented yet");
