@@ -32,7 +32,7 @@ void MimiumDriver::parsestring(std::string &str){
    parse(instream);
 }
 
-void MimiumDriver::parsefile(char *filename){
+void MimiumDriver::parsefile(std::string filename){
    std::ifstream ifs;
    ifs.exceptions(std::fstream::failbit | std::fstream::badbit);
 

@@ -52,14 +52,14 @@ namespace mimium{
         {"array",ARRAYINIT},
         {"lambda",LAMBDA}
     };
-    static AST_ID str_to_id(std::string str){
-        auto id = mimium::ast_id.find(str);
-                if(id!=std::end(mimium::ast_id)){
-                        return id->second;
-                }else{
-                        return NUMBER;
-                }
-    };
+    // static AST_ID str_to_id(std::string str){
+    //     auto id = mimium::ast_id.find(str);
+    //             if(id!=std::end(mimium::ast_id)){
+    //                     return id->second;
+    //             }else{
+    //                     return NUMBER;
+    //             }
+    // };
 };
 class AST;
 using AST_Ptr = std::unique_ptr<AST>;
@@ -93,7 +93,7 @@ class AST{
 
 };
 
-class OpAST : public AST,public std::enable_shared_from_this<OpAST>{
+class OpAST : public AST{
     public:
     std::string op;
     int op_id;
@@ -129,7 +129,7 @@ struct DivAST: public OpAST{
     DivAST(AST_Ptr LHS, AST_Ptr RHS): OpAST("/",std::move(LHS) ,std::move(RHS)){};
     llvm::Value *codegen() override;
 };
-class ListAST : public AST,public std::enable_shared_from_this<ListAST>{
+class ListAST : public AST{
     public:
     std::list<AST_Ptr> asts;
     ListAST(){ //empty constructor
@@ -147,7 +147,7 @@ class ListAST : public AST,public std::enable_shared_from_this<ListAST>{
     llvm::Value *codegen();
 
 };
-class NumberAST :  public AST,public std::enable_shared_from_this<NumberAST>{
+class NumberAST :  public AST{
     public:
     int val;
     NumberAST(int input): val(input){
