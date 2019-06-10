@@ -15,6 +15,7 @@ DIGIT    [[:digit:]]
 FLOAT    ({NONZERO}{DIGIT}*\.?|0\.|\.{DIGIT}){DIGIT}*|0
 EXPONENT [eE](-|\+?){DIGIT}+
 NUMBER   {FLOAT}{EXPONENT}?
+SYMBOL   [[:alpha:]][[:alnum:]_]*
 DELIMITER "{"|"}"|"("|")"|"["|"]"|","
 WSPACE   [[:blank:]]+
 BREAK  "\r\n" | "\n" | "\r"
@@ -32,6 +33,11 @@ NEWLINE {BREAK} | ";"
 
 {WSPACE} ;
 
+{SYMBOL} {
+  yylval->emplace<std::string>(yytext);
+  return token::SYMBOL;
+};
+
 "/"  return token::DIV; 
 "*"  return token::MUL; 
 "%"  return token::MOD; 
@@ -47,6 +53,8 @@ NEWLINE {BREAK} | ";"
 "!"  return token::NOT;
 
 "@" return token::AT;
+
+"=" return token::ASSIGN;
 
 \r\n|\r|\n	{ loc->lines(); loc->step(); return token::NEWLINE;}
 {DELIMITER} { return yytext[0];};

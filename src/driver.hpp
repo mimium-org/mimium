@@ -27,10 +27,13 @@ namespace mmmpsr{
 
 
         AST_Ptr add_number(int num);
+        AST_Ptr add_symbol(std::string str);
 
         AST_Ptr add_op(std::string op,int lhs,int rhs);
         AST_Ptr add_op(std::string op,AST_Ptr lhs,AST_Ptr rhs);
         AST_Ptr add_op(tokentype op ,AST_Ptr lhs,AST_Ptr rhs);
+
+        AST_Ptr add_assign(AST_Ptr symbol,AST_Ptr expr);
 
         AST_Ptr set_time(AST_Ptr elem,int time);
         void add_line(AST_Ptr in);

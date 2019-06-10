@@ -17,6 +17,7 @@ void MimiumDriver::parse(std::istream &is){
    scanner = std::make_unique<mmmpsr::MimiumScanner>( is );
    parser.reset();
    parser = std::make_unique<mmmpsr::MimiumParser>( *scanner,*this );
+   // parser->set_debug_level(4);
    if( parser->parse() != 0 ){
       std::cerr << "Parse failed!!\n";
    }
@@ -45,6 +46,11 @@ void MimiumDriver::parsefile(char *filename){
 AST_Ptr MimiumDriver::add_number(int num){
    return std::make_unique<NumberAST>(std::move(num));
 }
+
+AST_Ptr MimiumDriver::add_symbol(std::string str){
+   return std::make_unique<SymbolAST>(std::move(str));
+}
+
 AST_Ptr MimiumDriver::add_op(tokentype op,AST_Ptr lhs,AST_Ptr rhs){
    switch (op)
    {
@@ -73,6 +79,11 @@ AST_Ptr MimiumDriver::add_op(std::string op,int lhs,int rhs){
 AST_Ptr MimiumDriver::add_op(std::string op,AST_Ptr lhs,AST_Ptr rhs){
    tokentype tt = op_map[op];
    return add_op(tt,std::move(lhs),std::move(rhs));
+}
+
+
+AST_Ptr MimiumDriver::add_assign(AST_Ptr symbol,AST_Ptr expr){
+   return std::make_unique<AssignAST>(std::move(symbol),std::move(expr));
 }
 
 AST_Ptr MimiumDriver::set_time(AST_Ptr elem,int time){

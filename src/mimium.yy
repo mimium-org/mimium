@@ -51,18 +51,25 @@
    NEQ "!="
    EQ "=="
    NOT "!"
-
+   ASSIGN "="
    AT "@"
    
    END    0     "end of file"
    NEWLINE "newline"
 ;
 %token <int> NUM "number"
+%token  <std::string> SYMBOL "symbol_token"
+
+%type <AST_Ptr> symbol "symbol"
 %type  <AST_Ptr> expr "expression"
 %type <AST_Ptr> term_time "term @ something"
 %type <AST_Ptr> term "primary"
-%type <AST_Ptr> top "top"
+
+%type <AST_Ptr> assign "assign"
+
 %type <AST_Ptr> statements "statements"
+
+%type <AST_Ptr> top "top"
 
 
 %locations
@@ -85,9 +92,11 @@
 top :statements END {$$=std::move($1);}
     ;
 
-statements : expr {driver.add_line(std::move($1));}
-      | expr NEWLINE statements {driver.add_line(std::move($1));}
+statements : assign {driver.add_line(std::move($1));}
+      | assign NEWLINE statements {driver.add_line(std::move($1));}
       ;
+
+assign : symbol ASSIGN expr {$$ = driver.add_assign(std::move($1),std::move($3));}
 
 expr : expr ADD    expr  {$$ = driver.add_op(token::ADD , std::move($1),std::move($3));}
      | expr SUB    expr  {$$ = driver.add_op(token::SUB , std::move($1),std::move($3));}
@@ -106,6 +115,8 @@ term_time : term AT NUM {$$ = driver.set_time(std::move($1),std::move($3));}
          ;
 term : NUM {$$ = driver.add_number($1);}
         | '(' expr ')' {$$ =std::move($2);};
+
+symbol : SYMBOL {$$ = driver.add_symbol($1);}
 
 %%
 

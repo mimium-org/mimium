@@ -15,6 +15,19 @@ llvm::Value* NumberAST::codegen(){
     return llvm::ConstantFP::get(TheContext, llvm::APFloat((float)val));
 }
 
+std::string SymbolAST::to_string(){
+    std::stringstream stream;
+    stream <<  val;
+    if(istimeset()){
+        stream << "@" << std::to_string(get_time());
+    }
+    return stream.str();
+}
+llvm::Value* SymbolAST::codegen(){
+    return LogErrorV("not implemented yet");
+}
+
+
 std::string OpAST::to_string(){
         std::stringstream stream;
         stream << "("<< op <<" " <<lhs->to_string() << " " << rhs->to_string() <<")";
@@ -63,5 +76,17 @@ std::string ListAST::to_string(){
     }
 
 llvm::Value* ListAST::codegen(){
+    return LogErrorV("not implemented yet");
+}
+
+std::string AssignAST::to_string(){
+     std::stringstream stream;
+        stream << "("<< "assign" <<" " <<symbol->to_string() << " " << expr->to_string() <<")";
+        if(istimeset()){
+            stream << "@" << std::to_string(get_time());
+        }
+        return stream.str();
+}
+llvm::Value* AssignAST::codegen(){
     return LogErrorV("not implemented yet");
 }

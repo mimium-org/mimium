@@ -30,6 +30,7 @@ static std::map<std::string, llvm::Value *> NamedValues;
 enum AST_ID{
     BASE,
     NUMBER,
+    SYMBOL,
     FCALL,
     ASSIGN,
     FDEF,
@@ -143,6 +144,27 @@ class NumberAST :  public AST,public std::enable_shared_from_this<NumberAST>{
     int val;
     NumberAST(int input): val(input){
         id=NUMBER;
+    }
+    std::string to_string();
+    llvm::Value *codegen();
+};
+
+class SymbolAST :  public AST{
+    public:
+    std::string val;
+    SymbolAST(std::string input): val(input){
+        id=SYMBOL;
+    }
+    std::string to_string();
+    llvm::Value *codegen();
+};
+
+class AssignAST :  public AST{
+    public:
+    AST_Ptr symbol;
+    AST_Ptr expr;
+    AssignAST(AST_Ptr Symbol,AST_Ptr Expr): symbol(std::move(Symbol)),expr(std::move(Expr)){
+        id=ASSIGN;
     }
     std::string to_string();
     llvm::Value *codegen();
