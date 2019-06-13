@@ -4,5 +4,6 @@
         "memory": "cpp",
         "iosfwd": "cpp"
     },
-    "C_Cpp.configurationWarnings": "Disabled"
+    "C_Cpp.configurationWarnings": "Disabled",
+    "git.ignoreLimitWarning": true
 }

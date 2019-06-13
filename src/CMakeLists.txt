@@ -1,4 +1,17 @@
 cmake_minimum_required(VERSION 3.4)
-project(MainCode CXX)
+PROJECT(MainCode CXX)
 
-add_executable(Main main.cpp ast.cpp interpreter.cpp)
+BISON_TARGET(MyParser mimium.yy ${CMAKE_CURRENT_BINARY_DIR}/mimium_parser.cpp)
+FLEX_TARGET(MyScanner mimium.l ${CMAKE_CURRENT_BINARY_DIR}/tokens.cpp)
+ADD_FLEX_BISON_DEPENDENCY(MyScanner MyParser)
+
+add_executable(Main ${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} main.cpp ast.cpp   interpreter.cpp driver.cpp)
+
+target_include_directories(Main
+    PRIVATE
+    ${CMAKE_CURRENT_BINARY_DIR}
+    )
+target_link_libraries(Main
+    PRIVATE
+      ${llvm_libs}
+    )

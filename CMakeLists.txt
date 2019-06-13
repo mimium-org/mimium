@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.4)
 
 set(LLVM_CONFIG "/usr/local/bin/llvm-config")
 # set(LLVM_DIR "/usr/local/opt/llvm/share/cmake/modules")
-list(APPEND CMAKE_PREFIX_PATH /usr/local/opt/llvm/)
+list(APPEND CMAKE_PREFIX_PATH "/usr/local/opt/llvm/")
 
 find_package(LLVM REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
@@ -29,6 +29,14 @@ project(dummy NONE)
     set(CMAKE_C_COMPILER /usr/local/opt/llvm/bin/clang)
   endif()
 project (mimium CXX)
+
+list(APPEND CMAKE_PREFIX_PATH /usr/local/opt/flex)
+list(APPEND CMAKE_PREFIX_PATH /usr/local/opt/bison)
+find_package(BISON 3.2 REQUIRED)
+find_package(Flex REQUIRED)
+include_directories(src ${FLEX_INCLUDE_DIRS})
+
+
 
 add_subdirectory( src )
 add_subdirectory( test )

@@ -4,6 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
         
         {
             "name": "testdebug",
@@ -12,7 +13,7 @@
             "program": "${workspaceFolder}/build/test/mytest",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
+            "cwd": "${workspaceFolder}/build/test",
             "environment": [],
             "externalConsole": true,
             "MIMode": "lldb"
@@ -21,13 +22,25 @@
             "name": "Main Debug",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/Main",
+            "program": "${workspaceFolder}/build/src/Main",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build",
             "environment": [],
             "externalConsole": false,
             "MIMode": "lldb",
+            // "preLaunchTask": "cmake file"
+        },
+        {
+            "name": "(lldb) Launch with stdin(./input.txt)", 
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/src/Main",
+            "args": [], 
+            "cwd": "${workspaceFolder}/build", 
+            "stdio": ["${workspaceFolder}/test/stdin.txt", null, null],
+            // "externalConsole": false,
+
             "preLaunchTask": "cmake file"
         }
     ]
