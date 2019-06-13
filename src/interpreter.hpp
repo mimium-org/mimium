@@ -35,10 +35,18 @@ class Interpreter{
         rootenv = std::make_shared<Environment>("root",nullptr);
         currentenv = rootenv; // share
     };
+    mValue findVariable(std::string str){ //fortest
+        return interpretExpr(currentenv->findVariable(str));
+    }
     bool loadAst(AST_Ptr _ast);
     bool interpretTopAst();
     bool interpretAssign(AST_Ptr line);
     bool interpretFdef(AST_Ptr line);
+    mValue interpretExpr(AST_Ptr expr);
+    mValue interpretBinaryExpr(AST_Ptr expr);
+
+    mValue interpretVariable(AST_Ptr symbol);
+    mValue interpretNumber(AST_Ptr num);
     // bool genEventGraph();
 };
 
