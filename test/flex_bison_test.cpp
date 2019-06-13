@@ -11,7 +11,16 @@ TEST(bison_parser_test, assign) {
      std::stringstream ss;
      driver.print(ss);
      std::cout << ss.str()<<std::endl;
-     EXPECT_EQ(ss.str(),"((assign a 1) )");
+     EXPECT_EQ(ss.str(),"((assign a 1.000000) )");
+}
+TEST(bison_parser_test, assignfpoint) {
+     mmmpsr::MimiumDriver driver;
+     std::string teststr = "a = 1.245";
+     driver.parsestring(teststr);
+     std::stringstream ss;
+     driver.print(ss);
+     std::cout << ss.str()<<std::endl;
+     EXPECT_EQ(ss.str(),"((assign a 1.245000) )");
 }
 
 TEST(bison_parser_test, expr) {
@@ -21,7 +30,7 @@ TEST(bison_parser_test, expr) {
      std::stringstream ss;
      driver.print(ss);
      std::cout << ss.str()<<std::endl;
-     EXPECT_EQ(ss.str(),"((assign a (+ (+ 1 2) (/ (* 3 2) 2))) )");
+     EXPECT_EQ(ss.str(),"((assign a (+ (+ 1.000000 2.000000) (/ (* 3.000000 2.000000) 2.000000))) )");
 }
 
 TEST(bison_parser_test, parensis) {
@@ -31,7 +40,7 @@ TEST(bison_parser_test, parensis) {
      std::stringstream ss;
      driver.print(ss);
      std::cout << ss.str()<<std::endl;
-     EXPECT_EQ(ss.str(),"((assign a (/ (+ 2 3) 5)) )");
+     EXPECT_EQ(ss.str(),"((assign a (/ (+ 2.000000 3.000000) 5.000000)) )");
 }
 
 TEST(bison_parser_test, lines) {
@@ -41,7 +50,7 @@ TEST(bison_parser_test, lines) {
      std::stringstream ss;
      driver.print(ss);
      std::cout << ss.str()<<std::endl;
-     EXPECT_EQ(ss.str(),"((assign b 3) (assign a 2) )");
+     EXPECT_EQ(ss.str(),"((assign b 3.000000) (assign a 2.000000) )");
 }
 
 TEST(bison_parser_test, fdef) {
@@ -51,7 +60,7 @@ TEST(bison_parser_test, fdef) {
      std::stringstream ss;
      driver.print(ss);
      std::cout << ss.str()<<std::endl;
-     EXPECT_EQ(ss.str(),"((assign myfunc (lambda ((a b ))(+ 1 2))) )");
+     EXPECT_EQ(ss.str(),"((assign myfunc (lambda ((a b ))(+ 1.000000 2.000000))) )");
 }
 TEST(bison_parser_test, lambda) {
      mmmpsr::MimiumDriver driver;
@@ -60,7 +69,7 @@ TEST(bison_parser_test, lambda) {
      std::stringstream ss;
      driver.print(ss);
      std::cout << ss.str()<<std::endl;
-     EXPECT_EQ(ss.str(),"((assign myfunc (lambda ((a b ))(+ 1 2))) )");
+     EXPECT_EQ(ss.str(),"((assign myfunc (lambda ((a b ))(+ 1.000000 2.000000))) )");
 }
 
 
@@ -71,7 +80,7 @@ TEST(bison_parser_test, time) {
      std::stringstream ss;
      driver.print(ss);
      std::cout << ss.str()<<std::endl;
-     EXPECT_EQ(ss.str(),"((assign a (+ 3 2)@50) )");
+     EXPECT_EQ(ss.str(),"((assign a (+ 3.000000 2.000000)@50) )");
 }
 
 
@@ -81,5 +90,5 @@ TEST(bison_parser_test, fileread) {
      std::stringstream ss;
      driver.print(ss);
      std::cout << ss.str()<<std::endl;
-     EXPECT_EQ(ss.str(),"((assign a (+ 2 3)@128) )");
+     EXPECT_EQ(ss.str(),"((assign a (+ 2.000000 3.000000)@128) )");
 }

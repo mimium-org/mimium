@@ -3,32 +3,23 @@
  * Supports +, -, *, /, ^ and grouping with parenthesis.
  * Correctly handles precedence associativity.
  */
-
-#define MIMIUM_DEBUG
-
-#include <cctype>
-#include <cmath>
-#include <iostream>
 #include <string>
-#include <vector>
-#include "parser.hpp"
+#include "driver.hpp"
+
 #include "interpreter.hpp"
-
-// #include "AST.hpp"
-
+    mmmpsr::MimiumDriver driver;
+    mimium::Interpreter interpreter;
 
 int main() {
-    auto parser = pc::parser(top);
     std::string line;
+    std::cout << "start" <<std::endl;
+    std::string teststr1 = "main = 1.245";
 
     while (std::getline(std::cin, line)) {
-    auto res = parser.parse(line);
-    if (res.is_success()) {
-            std::cout << "Result = " << res.success().value()->to_string() << std::endl;
-        }
-        else {
-            std::cout << "Failed to parse expression!" << std::endl;
-        }
+    driver.parsestring(line);
+    interpreter.loadAst(driver.getMainAst());
+    double res = interpreter.findVariable("main");
+    std::cout << res << std::endl;
     }
     return 0;
 }
