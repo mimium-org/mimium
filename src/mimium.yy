@@ -147,6 +147,7 @@ term_time : term AT NUM {$$ = driver.set_time(std::move($1),std::move($3));}
          | term {$$ = std::move($1);}
          ;
 term : NUM {$$ = driver.add_number($1);}
+      |symbol
         | '(' expr ')' {$$ =std::move($2);};
 
 symbol : SYMBOL {$$ = driver.add_symbol($1);}
