@@ -43,9 +43,9 @@ namespace mmmpsr{
         void add_top(AST_Ptr top); // final action
 
         std::ostream& print(std::ostream &stream);
-
+        AST_Ptr getMainAst(){return std::move(mainast);};
         private:
-            std::unique_ptr<AST> mainast;    
+            std::shared_ptr<AST> mainast;    
             std::unique_ptr<AST> temporaryast;    
 
             std::unique_ptr<mmmpsr::MimiumParser>  parser  = nullptr;

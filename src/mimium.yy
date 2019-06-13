@@ -22,7 +22,7 @@
    }
   #include <memory>
 #include "ast.hpp"
-  using AST_Ptr = std::unique_ptr<AST>;
+  using AST_Ptr = std::shared_ptr<AST>;
   #define YYDEBUG 1
 
 }
@@ -66,7 +66,7 @@
 
 
 %type <AST_Ptr> symbol "symbol"
-%type  <AST_Ptr> expr "expression"
+%type <AST_Ptr> expr "expression"
 %type <AST_Ptr> term_time "term @ something"
 %type <AST_Ptr> term "primary"
 

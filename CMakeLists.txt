@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.4)
 
 set(LLVM_CONFIG "/usr/local/bin/llvm-config")
+# set(LLVM_DIR "/usr/local/opt/llvm/share/cmake/modules")
+list(APPEND CMAKE_PREFIX_PATH /usr/local/opt/llvm/)
 
 find_package(LLVM REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")

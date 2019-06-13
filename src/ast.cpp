@@ -2,6 +2,7 @@
 #include "ast.hpp"
 
 
+
 std::ostream& NumberAST::to_string(std::ostream& ss){
         ss <<  std::to_string(val);
         if(istimeset()){
@@ -11,9 +12,7 @@ std::ostream& NumberAST::to_string(std::ostream& ss){
     
 }
 
-llvm::Value* NumberAST::codegen(){
-    return llvm::ConstantFP::get(TheContext, llvm::APFloat((float)val));
-}
+
 
 std::ostream& SymbolAST::to_string(std::ostream& ss){
     ss <<  val;
@@ -22,10 +21,11 @@ std::ostream& SymbolAST::to_string(std::ostream& ss){
     }
     return ss;
 }
-llvm::Value* SymbolAST::codegen(){
-    return LogErrorV("not implemented yet");
-}
 
+OpAST::OpAST(std::string Op,AST_Ptr LHS, AST_Ptr RHS):op(Op),lhs(std::move(LHS)),rhs(std::move(RHS)){
+        id=OP;
+        op_id = optable[Op];
+}
 
 std::ostream& OpAST::to_string(std::ostream& ss){
         ss << "("<< op <<" ";
@@ -38,31 +38,7 @@ std::ostream& OpAST::to_string(std::ostream& ss){
         }
         return ss;
     }
-auto OpAST::codegen_pre(){
-    auto res =  std::make_pair(lhs->codegen(),rhs->codegen());
-    return res;
-}
-llvm::Value* AddAST::codegen(){
-    auto lr  = codegen_pre();
-    Builder.CreateFAdd(lr.first, lr.second, "addtmp");
-    return Builder.CreateUIToFP(lr.first, llvm::Type::getDoubleTy(TheContext), "booltmp");
-}
-llvm::Value* SubAST::codegen(){
-    auto lr  = codegen_pre();
-    Builder.CreateFSub(lr.first, lr.second, "subtmp");
-    return Builder.CreateUIToFP(lr.first, llvm::Type::getDoubleTy(TheContext), "booltmp");
-}
 
-llvm::Value* MulAST::codegen(){
-    auto lr  = codegen_pre();
-    Builder.CreateFMul(lr.first, lr.second, "multmp");
-    return Builder.CreateUIToFP(lr.first, llvm::Type::getDoubleTy(TheContext), "booltmp");
-}
-llvm::Value* DivAST::codegen(){
-    auto lr  = codegen_pre();
-    Builder.CreateFDiv(lr.first, lr.second, "divtmp");
-    return Builder.CreateUIToFP(lr.first, llvm::Type::getDoubleTy(TheContext), "booltmp");
-}
 
 std::ostream& ListAST::to_string(std::ostream& ss){
         ss << "(";
@@ -77,9 +53,6 @@ std::ostream& ListAST::to_string(std::ostream& ss){
         return ss;
     }
 
-llvm::Value* ListAST::codegen(){
-    return LogErrorV("not implemented yet");
-}
 std::ostream& ArgumentsAST::to_string(std::ostream& ss){
         ss << "(";
         for(auto &elem :args){
@@ -93,9 +66,7 @@ std::ostream& ArgumentsAST::to_string(std::ostream& ss){
         return ss;
     }
 
-llvm::Value* ArgumentsAST::codegen(){
-    return LogErrorV("not implemented yet");
-}
+
 
 std::ostream& LambdaAST::to_string(std::ostream& ss){
         ss << "(lambda (";
@@ -109,9 +80,6 @@ std::ostream& LambdaAST::to_string(std::ostream& ss){
         return ss;
     }
 
-llvm::Value* LambdaAST::codegen(){
-    return LogErrorV("not implemented yet");
-}
 
 std::ostream& AssignAST::to_string(std::ostream& ss){
         ss << "("<< "assign" <<" ";
@@ -123,7 +91,4 @@ std::ostream& AssignAST::to_string(std::ostream& ss){
             ss << "@" << std::to_string(get_time());
         }
         return ss;
-}
-llvm::Value* AssignAST::codegen(){
-    return LogErrorV("not implemented yet");
 }
