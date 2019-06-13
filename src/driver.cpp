@@ -47,7 +47,7 @@ void MimiumDriver::parsefile(std::string filename){
    }
 }
 
-AST_Ptr MimiumDriver::add_number(int num){
+AST_Ptr MimiumDriver::add_number(mValue num){
    return std::make_unique<NumberAST>(std::move(num));
 }
 
@@ -76,7 +76,7 @@ AST_Ptr MimiumDriver::add_op(tokentype op,AST_Ptr lhs,AST_Ptr rhs){
       break;
    }
 }
-AST_Ptr MimiumDriver::add_op(std::string op,int lhs,int rhs){
+AST_Ptr MimiumDriver::add_op(std::string op,mValue lhs,mValue rhs){
       tokentype tt = op_map[op];
    return add_op(tt,std::make_unique<NumberAST>(lhs),std::make_unique<NumberAST>(rhs));
 }

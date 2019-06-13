@@ -59,7 +59,7 @@
    END    0     "end of file"
    NEWLINE "newline"
 ;
-%token <int> NUM "number"
+%token <mValue> NUM "number"
 %token  <std::string> SYMBOL "symbol_token"
 
 %type <AST_Ptr> block "block"
@@ -148,7 +148,7 @@ term_time : term AT NUM {$$ = driver.set_time(std::move($1),std::move($3));}
          ;
 term : NUM {$$ = driver.add_number($1);}
       |symbol
-        | '(' expr ')' {$$ =std::move($2);};
+      | '(' expr ')' {$$ =std::move($2);};
 
 symbol : SYMBOL {$$ = driver.add_symbol($1);}
 

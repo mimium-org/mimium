@@ -12,6 +12,8 @@
 
 
 
+using mValue = double;
+
 
 enum AST_ID{
     BASE,
@@ -89,7 +91,7 @@ static std::map<std::string, OP_ID> optable={
 class OpAST : public AST{
     public:
     std::string op;
-    int op_id;
+    OP_ID op_id;
     AST_Ptr lhs,rhs;
     
     OpAST(std::string Op,AST_Ptr LHS, AST_Ptr RHS);
@@ -98,6 +100,7 @@ class OpAST : public AST{
     }
 
     std::ostream& to_string(std::ostream& ss);
+    OP_ID getOpId(){return op_id;};
     protected:
 
     // static int getop(std::string op){return mimium::op_map[op];}
@@ -134,10 +137,12 @@ class ListAST : public AST{
 };
 class NumberAST :  public AST{
     public:
-    int val;
-    NumberAST(int input): val(input){
+    mValue val;
+    NumberAST(mValue input): val(input){
         id=NUMBER;
     }
+    mValue& getVal(){return val;};
+
     std::ostream& to_string(std::ostream& ss);
 };
 

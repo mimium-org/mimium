@@ -27,7 +27,7 @@ NEWLINE {BREAK} | ";"
 %}
 
 {NUMBER} {
-    yylval->emplace<int>(std::stoi(yytext));
+    yylval->emplace<mValue>(std::stod(yytext));
     return token::NUM;
 };
 

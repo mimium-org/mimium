@@ -6,6 +6,8 @@
 
 #include "ast.hpp"
 
+using mValue = double; // temporary
+
 namespace mimium{
 
 class Environment:std::enable_shared_from_this<Environment>{
