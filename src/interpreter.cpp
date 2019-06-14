@@ -1,6 +1,11 @@
 
 #include "interpreter.hpp"
 namespace mimium{
+
+std::string Closure::to_string(){
+    return "Closure" ; //temporary
+}
+
 AST_Ptr Environment::findVariable(std::string key){
     if(variables.count(key)){//search dictionary
         return variables.at(key);
@@ -33,7 +38,7 @@ bool Interpreter::interpretTopAst(){
         break;
 
     case FDEF:
-    std::cerr<< "notimplemented" <<std::endl;
+        tmpres=  interpretAssign(line); // currently function definition is converted into lambda function definition
         break;
     default: 
         break;
@@ -63,20 +68,25 @@ bool Interpreter::interpretAssign(AST_Ptr line){
     }
 }
 
-bool Interpreter::interpretFdef(AST_Ptr line){
-    return false;
-}
+
 
 mValue Interpreter::interpretExpr(AST_Ptr expr){
     switch(expr->getid()){
         case SYMBOL:
-            return interpretVariable(expr);
+            return interpretExpr( interpretVariable(expr) );
         break;
         case NUMBER:
             return interpretNumber(expr);
         break;
         case OP:
             return interpretBinaryExpr(expr);
+        break;
+        case LAMBDA:
+            return interpretLambda(expr);
+        break;
+        case FCALL:
+            return interpretFcall(expr);
+        break;
         default:
             std::cerr << "invalid expression" <<std::endl;
             return 0.0;
@@ -106,10 +116,10 @@ mValue Interpreter::interpretBinaryExpr(AST_Ptr expr){
     }
 }
 
-mValue Interpreter::interpretVariable(AST_Ptr symbol){
+AST_Ptr Interpreter::interpretVariable(AST_Ptr symbol){
     try{
     auto var  = std::dynamic_pointer_cast<SymbolAST>(symbol);
-        return interpretExpr( currentenv->findVariable(var->getVal()) );
+        return currentenv->findVariable(var->getVal());
     }catch(std::exception e){
         std::cerr<< "Variable not defined" <<std::endl;
         return false;
@@ -125,5 +135,58 @@ mValue Interpreter::interpretNumber(AST_Ptr num){
         return 0.0;
     }
 }
+mValue Interpreter::interpretLambda(AST_Ptr expr){
+    try{
+        auto lambda  = std::dynamic_pointer_cast<LambdaAST>(expr);
+        auto args  =  lambda->getArgs();
+        currentenv = currentenv->createNewChild("test"); //switch environment
+        auto res = std::make_shared<Closure>(currentenv,lambda->getBody());
 
+        int count = 0;
+        for(auto& a: args->getArgs()){
+            std::string vname = std::dynamic_pointer_cast<SymbolAST>(a)->getVal();
+            currentenv->getVariables()[vname] = 0;
+            count++;
+        }
+        return  res;
+    }catch(std::exception e){
+        std::cerr<< e.what()<<std::endl;
+        return 0.0;
+    }
+}
+mValue Interpreter::interpretFcall(AST_Ptr expr){
+    try{
+    auto fcall  = std::dynamic_pointer_cast<FcallAST>(expr);
+    auto name  =  fcall->getFname();
+    auto args = fcall->getArgs();
+    AST_Ptr lambda = std::dynamic_pointer_cast<LambdaAST>(interpretVariable(name));
+    auto closure = interpretLambda(lambda);
+    currentenv = closure->env; //switch
+    int argscond = currentenv->variables.length() - args.length();
+    if(argscond<0){
+        throw std::exception("too many arguments");
+    }else {
+        int count = 0;
+        for (auto& [key, value] : currentenv->variables ){
+            currentenv->variables[vname] = std::dynamic_pointer_cast<NumberAST>(args[count]).getVal(); //currently only Number,we need to define LHS
+            count++;
+        }
+        if(argscond==0){
+            auto res = interpretExpr(lambda->getBody());
+            currentenv = currentenv->parent;//switch back env
+            return res;
+        }else{
+            return closure;
+        }
+    }
+
+    for(int i=0;i<args.length();i++){
+        std::string vname = std::dynamic_pointer_cast<SymbolAST>(args[i])->getVal();
+        currentenv->variables[vname] = 
+    }
+    }catch(std::exception e){
+        std::cerr<< e.what()<<std::endl;
+        return 0.0;
+    }
+}
 }//mimium ns

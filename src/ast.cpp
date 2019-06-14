@@ -3,6 +3,7 @@
 
 
 
+
 std::ostream& NumberAST::to_string(std::ostream& ss){
         ss <<  std::to_string(val);
         if(istimeset()){

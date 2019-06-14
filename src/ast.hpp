@@ -9,10 +9,12 @@
 #include <vector>
 #include <list>  
 #include <iostream>
+#include <variant>
 
+struct Closure; // forward
 
+using mValue = std::variant<double,std::shared_ptr<Closure>>;
 
-using mValue = double;
 
 
 enum AST_ID{
@@ -161,7 +163,6 @@ class ArgumentsAST : public AST{
     public:
     std::list<AST_Ptr> args;
 
-
     ArgumentsAST(AST_Ptr arg){
         args.push_front(std::move(arg));
         id=ARGS;
@@ -169,6 +170,7 @@ class ArgumentsAST : public AST{
     void addAST(AST_Ptr arg){
         args.push_front(std::move(arg));
     };
+    auto& getArgs(){return args;}
     std::ostream& to_string(std::ostream& ss);
 };
 
@@ -179,6 +181,8 @@ class LambdaAST: public AST{
     LambdaAST(AST_Ptr Args, AST_Ptr Body): args(std::move(Args)),body(std::move(Body)){
         id = LAMBDA;
     }
+    auto getArgs(){return std::dynamic_pointer_cast<ArgumentsAST>(args);};
+    AST_Ptr getBody(){return std::move(body);};
     std::ostream& to_string(std::ostream& ss);
 };
 
@@ -192,5 +196,17 @@ class AssignAST :  public AST{
     auto getName(){return std::dynamic_pointer_cast<SymbolAST>(std::move(symbol));};
     AST_Ptr getBody(){return std::move(expr);};
 
+    std::ostream& to_string(std::ostream& ss);
+};
+
+class FcallAST: public AST{
+    public:
+    AST_Ptr fname;
+    AST_Ptr args;
+    FcallAST(AST_Ptr Fname, AST_Ptr Args): fname(std::move(Fname)),args(std::move(Args)){
+        id = FCALL;
+    }
+    auto getArgs(){return std::dynamic_pointer_cast<ArgumentsAST>(args); };
+    auto getFname(){return std::dynamic_pointer_cast<SymbolAST>(fname);};
     std::ostream& to_string(std::ostream& ss);
 };
