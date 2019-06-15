@@ -1,1 +1,3 @@
-main = 1+2
+main = 1 
+func(x,y) = x*y 
+main=func(5,7)

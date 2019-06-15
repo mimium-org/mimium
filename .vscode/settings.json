@@ -2,7 +2,10 @@
     "files.associations": {
         "__locale": ".",
         "memory": "cpp",
-        "iosfwd": "cpp"
+        "iosfwd": "cpp",
+        "__config": "cpp",
+        "__nullptr": "cpp",
+        "bitset": "cpp"
     },
     "C_Cpp.configurationWarnings": "Disabled",
     "git.ignoreLimitWarning": true
