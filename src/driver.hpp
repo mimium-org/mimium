@@ -25,15 +25,17 @@ namespace mmmpsr{
         void parsefile(std::string filename);
 
 
-        AST_Ptr add_number(mValue num);
+        AST_Ptr add_number(double num);
         AST_Ptr add_symbol(std::string str);
 
-        AST_Ptr add_op(std::string op,mValue lhs,mValue rhs);
+        AST_Ptr add_op(std::string op,double lhs,double rhs);
         AST_Ptr add_op(std::string op,AST_Ptr lhs,AST_Ptr rhs);
         AST_Ptr add_op(tokentype op ,AST_Ptr lhs,AST_Ptr rhs);
 
         AST_Ptr add_arguments(AST_Ptr arg);
         AST_Ptr add_lambda(AST_Ptr args,AST_Ptr body);
+
+        AST_Ptr add_fcall(AST_Ptr fname,AST_Ptr args);
 
         AST_Ptr add_assign(AST_Ptr symbol,AST_Ptr expr);
         AST_Ptr add_statements(AST_Ptr statements);

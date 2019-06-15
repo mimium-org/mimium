@@ -18,8 +18,9 @@ int main() {
     while (std::getline(std::cin, line)) {
     driver.parsestring(line);
     interpreter.loadAst(driver.getMainAst());
-    double res = interpreter.findVariable("main");
-    std::cout << res << std::endl;
+    mValue res = interpreter.findVariable("main");
+    double resv = mimium::Interpreter::get_as_double(res);
+    std::cout << resv << std::endl;
     }
     return 0;
 }

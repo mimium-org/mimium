@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef __MMMSCANNER_HPP__
 #define __MMMSCANNER_HPP__ 1
 

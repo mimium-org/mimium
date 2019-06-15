@@ -2,9 +2,6 @@
 #include "interpreter.hpp"
 namespace mimium{
 
-std::string Closure::to_string(){
-    return "Closure" ; //temporary
-}
 
 AST_Ptr Environment::findVariable(std::string key){
     if(variables.count(key)){//search dictionary
@@ -92,23 +89,32 @@ mValue Interpreter::interpretExpr(AST_Ptr expr){
             return 0.0;
     }
 }
-
+struct binary_visitor{
+    double operator()(double lhs){return lhs;}
+    double operator()(AST_Ptr lhs){
+        std::cerr << "invarid binary operation!" << std::endl;
+        return 0.0;
+    }
+};
 mValue Interpreter::interpretBinaryExpr(AST_Ptr expr){
     auto var  = std::dynamic_pointer_cast<OpAST>(expr);
     mValue lhs = interpretExpr(var->lhs);
+    double lv = std::visit(binary_visitor{},lhs);
     mValue rhs = interpretExpr(var->rhs);
+    double rv = std::visit(binary_visitor{},rhs);
+
     switch (var->getOpId()){
         case ADD:
-            return lhs + rhs;
+            return lv + rv;
             break;
         case SUB:
-            return lhs - rhs;
+            return lv - rv;
             break;
         case MUL:
-            return lhs * rhs;
+            return lv * rv;
             break;
         case DIV:
-            return lhs / rhs;                                     
+            return lv / rv;                             
             break;
         default: 
             std::cerr << "invalid operator" <<std::endl;
@@ -122,7 +128,7 @@ AST_Ptr Interpreter::interpretVariable(AST_Ptr symbol){
         return currentenv->findVariable(var->getVal());
     }catch(std::exception e){
         std::cerr<< "Variable not defined" <<std::endl;
-        return false;
+        return nullptr;
     }
 }
 
@@ -138,16 +144,7 @@ mValue Interpreter::interpretNumber(AST_Ptr num){
 mValue Interpreter::interpretLambda(AST_Ptr expr){
     try{
         auto lambda  = std::dynamic_pointer_cast<LambdaAST>(expr);
-        auto args  =  lambda->getArgs();
-        currentenv = currentenv->createNewChild("test"); //switch environment
-        auto res = std::make_shared<Closure>(currentenv,lambda->getBody());
 
-        int count = 0;
-        for(auto& a: args->getArgs()){
-            std::string vname = std::dynamic_pointer_cast<SymbolAST>(a)->getVal();
-            currentenv->getVariables()[vname] = 0;
-            count++;
-        }
         return  res;
     }catch(std::exception e){
         std::cerr<< e.what()<<std::endl;
@@ -158,35 +155,46 @@ mValue Interpreter::interpretFcall(AST_Ptr expr){
     try{
     auto fcall  = std::dynamic_pointer_cast<FcallAST>(expr);
     auto name  =  fcall->getFname();
-    auto args = fcall->getArgs();
-    AST_Ptr lambda = std::dynamic_pointer_cast<LambdaAST>(interpretVariable(name));
-    auto closure = interpretLambda(lambda);
-    currentenv = closure->env; //switch
-    int argscond = currentenv->variables.length() - args.length();
+    auto args = fcall->getArgs()->getArgs();
+    auto lambda = std::dynamic_pointer_cast<LambdaAST>(interpretVariable(name));
+    auto lambdaargs = std::dynamic_pointer_cast<ArgumentsAST>(lambda->getArgs())->getArgs();
+
+    auto body  = lambda->getBody();
+    currentenv = currentenv->createNewChild(name->getVal()); //switch
+    int argscond = lambdaargs.size() - args.size();
     if(argscond<0){
-        throw std::exception("too many arguments");
+        throw std::runtime_error("too many arguments");
     }else {
         int count = 0;
-        for (auto& [key, value] : currentenv->variables ){
-            currentenv->variables[vname] = std::dynamic_pointer_cast<NumberAST>(args[count]).getVal(); //currently only Number,we need to define LHS
+        for (auto& larg:lambdaargs ){
+            std::string key = std::dynamic_pointer_cast<SymbolAST>(larg)->getVal();
+            currentenv->getVariables()[key] = args[count]; //currently only Number,we need to define LHS
             count++;
         }
         if(argscond==0){
-            auto res = interpretExpr(lambda->getBody());
-            currentenv = currentenv->parent;//switch back env
+            auto tmp = lambda->getBody();
+            auto res = interpretExpr(tmp);
+            currentenv = currentenv->getParent();//switch back env
             return res;
         }else{
-            return closure;
+            throw std::runtime_error("too few arguments"); //ideally we want to return new function like closure
         }
-    }
-
-    for(int i=0;i<args.length();i++){
-        std::string vname = std::dynamic_pointer_cast<SymbolAST>(args[i])->getVal();
-        currentenv->variables[vname] = 
     }
     }catch(std::exception e){
         std::cerr<< e.what()<<std::endl;
         return 0.0;
     }
 }
+struct getdouble_visitor{
+    double operator()(double v){return v;};
+    double operator()(AST_Ptr v){
+        std::cerr<< "invalid value" <<std::endl;
+        return 0;
+        };
+};
+double Interpreter::get_as_double(mValue v){
+    return std::visit(getdouble_visitor{},v);
+}
+
+
 }//mimium ns

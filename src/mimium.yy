@@ -59,24 +59,37 @@
    END    0     "end of file"
    NEWLINE "newline"
 ;
-%token <mValue> NUM "number"
+%token <double> NUM "number_token"
 %token  <std::string> SYMBOL "symbol_token"
+%token  <std::string> FNAME "fname_token"
+
+%type <AST_Ptr> fname "fname"
+
 
 %type <AST_Ptr> block "block"
 
-
+%type <AST_Ptr> num "number"
 %type <AST_Ptr> symbol "symbol"
+
+%type <AST_Ptr> single "symbol or number"
+
 %type <AST_Ptr> expr "expression"
 %type <AST_Ptr> term_time "term @ something"
 %type <AST_Ptr> term "primary"
 
 %type <AST_Ptr> lambda "lambda"
 
-%type <AST_Ptr> arg "arg element"
-%type <AST_Ptr> arguments "arguments"
+
+%type <AST_Ptr> arguments "arguments for fdef"
+%type <AST_Ptr> arguments_fcall "arguments for fcall"
+
+
 
 %type <AST_Ptr> assign "assign"
 %type <AST_Ptr> fdef "fdef"
+
+%type <AST_Ptr> fcall "fcall"
+
 
 %type <AST_Ptr> statement "single statement"
 
@@ -87,7 +100,7 @@
 
 %locations
 
-
+%left ','
 %left  OR BITOR
 %left  AND BITAND
 %nonassoc  EQ NEQ
@@ -117,19 +130,24 @@ statement : assign {$$=std::move($1);}
          | fdef  {$$=std::move($1);} 
          ;
 
-fdef : symbol '(' arguments ')' ASSIGN expr {$$ = driver.add_assign(std::move($1),driver.add_lambda(std::move($3),std::move($6)));};
+
+fdef : fname arguments ')' ASSIGN expr {$$ = driver.add_assign(std::move($1),driver.add_lambda(std::move($2),std::move($5)));};
 
 lambda: '(' arguments ')' ARROW '{' expr '}' {$$ = driver.add_lambda(std::move($2),std::move($6));};
 
 assign : symbol ASSIGN expr {$$ = driver.add_assign(std::move($1),std::move($3));}
       |  symbol ASSIGN lambda {$$ = driver.add_assign(std::move($1),std::move($3));}
 
-arguments : arg ',' arguments   {$3->addAST(std::move($1));
-                                 $$ = std::move($3); }
-         |  arg {$$ = driver.add_arguments(std::move($1));}
+arguments : symbol ',' arguments   {$3->addAST(std::move($1));
+                                    $$ = std::move($3); }
+         |  symbol {$$ = driver.add_arguments(std::move($1));}
          ;
 
-arg : symbol{$$ = std::move($1);};
+
+arguments_fcall : single ',' arguments_fcall   {$3->addAST(std::move($1));
+                                          $$ = std::move($3); }
+         | single {$$ = driver.add_arguments(std::move($1));}
+         ;
 
 expr : expr ADD    expr  {$$ = driver.add_op(token::ADD , std::move($1),std::move($3));}
      | expr SUB    expr  {$$ = driver.add_op(token::SUB , std::move($1),std::move($3));}
@@ -146,9 +164,22 @@ expr : expr ADD    expr  {$$ = driver.add_op(token::ADD , std::move($1),std::mov
 term_time : term AT NUM {$$ = driver.set_time(std::move($1),std::move($3));}
          | term {$$ = std::move($1);}
          ;
-term : NUM {$$ = driver.add_number($1);}
-      |symbol
+term : single
+      |fcall
       | '(' expr ')' {$$ =std::move($2);};
+
+
+
+
+fcall : fname arguments_fcall ')' {$$ = driver.add_fcall(std::move($1),std::move($2));}
+;
+
+single : symbol{$$=std::move($1);}
+      |  num   {$$=std::move($1);};
+
+num :NUM {$$ = driver.add_number($1);};
+
+fname : FNAME {$$ = driver.add_symbol($1);}
 
 symbol : SYMBOL {$$ = driver.add_symbol($1);}
 

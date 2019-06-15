@@ -11,10 +11,6 @@
 #include <iostream>
 #include <variant>
 
-struct Closure; // forward
-
-using mValue = std::variant<double,std::shared_ptr<Closure>>;
-
 
 
 enum AST_ID{
@@ -52,6 +48,9 @@ namespace mimium{
 };
 class AST;
 using AST_Ptr = std::shared_ptr<AST>;
+using mValue = std::variant<double,std::shared_ptr<AST>>;
+
+
 
 class AST{
     public:
@@ -77,6 +76,8 @@ class AST{
     int time = -1;
 
 };
+
+
 enum OP_ID{
     ADD,
     SUB,
@@ -121,29 +122,30 @@ struct DivAST: public OpAST{
 };
 class ListAST : public AST{
     public:
-    std::list<AST_Ptr> asts;
+    std::vector<AST_Ptr> asts;
     ListAST(){ //empty constructor
         id=LIST;
     }
 
     ListAST(AST_Ptr _asts){
-        asts.push_front(std::move(_asts));
+        asts.insert(asts.begin(),std::move(_asts)); //push_front
         id = LIST;
     }
     void addAST(AST_Ptr ast) {
         asts.push_back(std::move(ast));
     }
-    std::list<AST_Ptr>& getlist(){return asts;};
+    std::vector<AST_Ptr>& getlist(){return asts;};
     std::ostream& to_string(std::ostream& ss);
 
 };
 class NumberAST :  public AST{
     public:
-    mValue val;
-    NumberAST(mValue input): val(input){
+    double val;
+    NumberAST(double input){
+        val=input;
         id=NUMBER;
     }
-    mValue& getVal(){return val;};
+    double getVal(){return val;};
 
     std::ostream& to_string(std::ostream& ss);
 };
@@ -161,14 +163,14 @@ class SymbolAST :  public AST{
 
 class ArgumentsAST : public AST{
     public:
-    std::list<AST_Ptr> args;
+    std::vector<AST_Ptr> args;
 
     ArgumentsAST(AST_Ptr arg){
-        args.push_front(std::move(arg));
+        args.insert(args.begin(),std::move(arg));
         id=ARGS;
     }
     void addAST(AST_Ptr arg){
-        args.push_front(std::move(arg));
+        args.insert(args.begin(),std::move(arg));
     };
     auto& getArgs(){return args;}
     std::ostream& to_string(std::ostream& ss);
@@ -182,7 +184,7 @@ class LambdaAST: public AST{
         id = LAMBDA;
     }
     auto getArgs(){return std::dynamic_pointer_cast<ArgumentsAST>(args);};
-    AST_Ptr getBody(){return std::move(body);};
+    AST_Ptr getBody(){return body;};
     std::ostream& to_string(std::ostream& ss);
 };
 

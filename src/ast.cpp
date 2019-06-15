@@ -5,11 +5,12 @@
 
 
 std::ostream& NumberAST::to_string(std::ostream& ss){
-        ss <<  std::to_string(val);
-        if(istimeset()){
+    //type matching
+    ss << val;
+    if(istimeset()){
             ss << "@" << std::to_string(get_time());
         }
-        return ss;
+    return ss;
     
 }
 
@@ -88,6 +89,18 @@ std::ostream& AssignAST::to_string(std::ostream& ss){
         ss << " ";
         expr->to_string(ss);
         ss <<")";
+        if(istimeset()){
+            ss << "@" << std::to_string(get_time());
+        }
+        return ss;
+}
+
+std::ostream& FcallAST::to_string(std::ostream& ss){
+        ss << "(";
+        fname->to_string(ss);
+        ss << " (";
+        args->to_string(ss);
+        ss <<"))";
         if(istimeset()){
             ss << "@" << std::to_string(get_time());
         }

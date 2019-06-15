@@ -27,7 +27,7 @@ NEWLINE {BREAK} | ";"
 %}
 
 {NUMBER} {
-    yylval->emplace<mValue>(std::stod(yytext));
+    yylval->emplace<double>(std::stod(yytext));
     return token::NUM;
 };
 
@@ -37,6 +37,12 @@ NEWLINE {BREAK} | ";"
   yylval->emplace<std::string>(yytext);
   return token::SYMBOL;
 };
+{SYMBOL}"(" {
+  std::string res =  yytext;
+  res = res.substr(0,res.size()-1);
+    yylval->emplace<std::string>(res);
+    return token::FNAME;
+}
 
 "/"  return token::DIV; 
 "*"  return token::MUL; 
@@ -57,6 +63,7 @@ NEWLINE {BREAK} | ";"
 "@" return token::AT;
 
 "=" return token::ASSIGN;
+
 
 \r\n|\r|\n	{ loc->lines(); loc->step(); return token::NEWLINE;}
 {DELIMITER} { return yytext[0];};

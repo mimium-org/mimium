@@ -3,14 +3,16 @@
 #include <memory>
 #include <unordered_map> 
 #include <string>
+#include <variant>
 
 #include "ast.hpp"
 
-using mValue = std::variant<double,std::shared_ptr<Closure>>;
+using mValue = std::variant<double,std::shared_ptr<AST>>;
+
 
 namespace mimium{
 
-class Environment:std::enable_shared_from_this<Environment>{
+class Environment: public std::enable_shared_from_this<Environment>{
     std::map<std::string,std::shared_ptr<AST>> variables;
     std::shared_ptr<Environment> parent;
     std::vector<std::shared_ptr<Environment>> children;
@@ -21,15 +23,17 @@ class Environment:std::enable_shared_from_this<Environment>{
     }
     AST_Ptr findVariable(std::string key);
     auto& getVariables(){return variables;}
+    auto getParent(){return parent;}
     std::shared_ptr<Environment> createNewChild(std::string newname);
 };
-struct Closure{
-    std::shared_ptr<Environment> env;
-    std::shared_ptr<LambdaAST> fun;
-    Closure(std::shared_ptr<Environment> Env,std::shared_ptr<LambdaAST> Fun):env(std::move(Env)),fun(std::move(Fun)){};
 
-    std::string to_string();
-};
+// struct Closure{
+//     std::shared_ptr<Environment> env;
+//     std::shared_ptr<LambdaAST> fun;
+//     Closure(std::shared_ptr<Environment> Env,std::shared_ptr<LambdaAST> Fun):env(std::move(Env)),fun(std::move(Fun)){};
+
+//     std::string to_string();
+// };
 
 
 
@@ -45,7 +49,8 @@ class Interpreter{
         currentenv = rootenv; // share
     };
     mValue findVariable(std::string str){ //fortest
-        return interpretExpr(currentenv->findVariable(str));
+    AST_Ptr tmp = currentenv->findVariable(str);
+        return interpretExpr(tmp);
     }
     bool loadAst(AST_Ptr _ast);
     bool interpretTopAst();
@@ -62,6 +67,7 @@ class Interpreter{
 
     mValue interpretFcall(AST_Ptr expr);
 
+    static double get_as_double(mValue v);
 
     // bool genEventGraph();
 };
@@ -69,9 +75,4 @@ class Interpreter{
 
 }
 
-namespace std{
-    std::string to_string(std::shared_ptr<mimium::Closure> closure){
-        return closure->to_string();
-    };
-}
 
