@@ -1,4 +1,4 @@
-[日本語](./design_proposal.ja.md)
+[日本語](./design-proposal.ja.md)
 
 
 # Overall Structure
