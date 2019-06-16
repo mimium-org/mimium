@@ -34,7 +34,9 @@ list(APPEND CMAKE_PREFIX_PATH /usr/local/opt/flex)
 list(APPEND CMAKE_PREFIX_PATH /usr/local/opt/bison)
 find_package(BISON 3.2 REQUIRED)
 find_package(Flex REQUIRED)
-include_directories(src ${FLEX_INCLUDE_DIRS})
+
+
+include_directories(src ${FLEX_INCLUDE_DIRS} libs/rtaudio)
 
 
 
