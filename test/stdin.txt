@@ -1,3 +1,6 @@
-main = 1 
-func(x,y) = x*y 
-main=func(5,7)
+fuga(x,y) = x+y
+
+func hoge(x,y)
+ return x*y 
+end
+main=hoge(5,7)

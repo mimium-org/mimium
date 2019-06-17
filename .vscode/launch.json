@@ -5,12 +5,13 @@
     "version": "0.2.0",
     "configurations": [
 
+
         
         {
             "name": "testdebug",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/test/mytest",
+            "program": "${workspaceFolder}/build/test/Test",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build/test",
