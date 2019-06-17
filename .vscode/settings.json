@@ -6,7 +6,8 @@
         "__config": "cpp",
         "__nullptr": "cpp",
         "bitset": "cpp",
-        "map": "cpp"
+        "map": "cpp",
+        "utility": "cpp"
     },
     "C_Cpp.configurationWarnings": "Disabled",
     "git.ignoreLimitWarning": true
