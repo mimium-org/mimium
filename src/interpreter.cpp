@@ -3,14 +3,15 @@
 namespace mimium{
 
 
-AST_Ptr Environment::findVariable(std::string key){
+mValue Environment::findVariable(std::string key){
     if(variables.size()>0 && variables.count(key)>0){//search dictionary
         return variables.at(key);
     }else if(parent !=nullptr){
         return parent->findVariable(key); //search recursively
     }else{
         std::cerr << "Variable" << key << "not found" << std::endl;
-        return nullptr;
+    
+        return 0;
     }
 }
 
@@ -83,7 +84,7 @@ mValue Interpreter::interpretAssign(AST_Ptr line){
     }
     auto body  = assign->getBody();
     if(body){
-        currentenv->getVariables()[varname] =  body; //share
+        currentenv->getVariables()[varname] =  interpretExpr(body); //share
         return line; //for print
     }else{
         throw  std::runtime_error("expression not resolved");
@@ -110,7 +111,7 @@ mValue Interpreter::interpretAssign(AST_Ptr line){
 mValue Interpreter::interpretExpr(AST_Ptr expr){
     switch(expr->getid()){
         case SYMBOL:
-            return interpretStatementsAst( interpretVariable(expr) );
+            return interpretVariable(expr);
         break;
         case NUMBER:
             return interpretNumber(expr);
@@ -162,7 +163,7 @@ mValue Interpreter::interpretBinaryExpr(AST_Ptr expr){
     }
 }
 
-AST_Ptr Interpreter::interpretVariable(AST_Ptr symbol){
+mValue Interpreter::interpretVariable(AST_Ptr symbol){
     try{
     auto var  = std::dynamic_pointer_cast<SymbolAST>(symbol);
         return currentenv->findVariable(var->getVal());
@@ -191,16 +192,29 @@ mValue Interpreter::interpretLambda(AST_Ptr expr){
         return 0.0;
     }
 }
+struct fcall_visitor{
+    AST_Ptr operator()(double v){
+        std::cout<<v<<std::endl;
+        std::runtime_error("reffered variable is not a function");
+        return nullptr;
+        };
+    AST_Ptr operator()(AST_Ptr v){
+        std::cout<<v->getid()<<std::endl;
+        return v;
+        };
+};
 mValue Interpreter::interpretFcall(AST_Ptr expr){
     try{
     auto fcall  = std::dynamic_pointer_cast<FcallAST>(expr);
-    auto name  =  fcall->getFname();
+    auto name  =  std::dynamic_pointer_cast<SymbolAST>(fcall->getFname())->getVal();
     auto args = fcall->getArgs()->getArgs();
-    auto lambda = std::dynamic_pointer_cast<LambdaAST>(interpretVariable(name));
+    mValue var = findVariable(name);
+
+    auto lambda = std::dynamic_pointer_cast<LambdaAST>(std::visit(fcall_visitor{},var));
     auto lambdaargs = std::dynamic_pointer_cast<ArgumentsAST>(lambda->getArgs())->getArgs();
 
     auto body  = lambda->getBody();
-    currentenv = currentenv->createNewChild(name->getVal()); //switch
+    currentenv = currentenv->createNewChild(name); //switch
     int argscond = lambdaargs.size() - args.size();
     if(argscond<0){
         throw std::runtime_error("too many arguments");

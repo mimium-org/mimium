@@ -1,0 +1,8 @@
+fun hoge(x)
+    localvar = 0
+    fun fuga(y)
+        return localvar+y
+    end
+    return fuga(0)
+end
+main = hoge(0)

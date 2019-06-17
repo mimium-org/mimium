@@ -13,7 +13,7 @@ using mValue = std::variant<double,std::shared_ptr<AST>>;
 namespace mimium{
 
 class Environment: public std::enable_shared_from_this<Environment>{
-    std::map<std::string,std::shared_ptr<AST>> variables;
+    std::map<std::string,mValue> variables;
     std::shared_ptr<Environment> parent;
     std::vector<std::shared_ptr<Environment>> children;
     std::string name;
@@ -21,7 +21,7 @@ class Environment: public std::enable_shared_from_this<Environment>{
     Environment():parent(nullptr),name(""){}
     Environment(std::string Name,std::shared_ptr<Environment> Parent):parent(Parent),name(Name){
     }
-    AST_Ptr findVariable(std::string key);
+    mValue findVariable(std::string key);
     auto& getVariables(){return variables;}
     auto getParent(){return parent;}
     std::shared_ptr<Environment> createNewChild(std::string newname);
@@ -50,14 +50,12 @@ class Interpreter{
         currentenv = rootenv; // share
     };
     mValue findVariable(std::string str){ //fortest
-    auto it = arguments.find(str);
-    if(it!=arguments.end()){
-        return it->second;
-    }else{
-        AST_Ptr tmp;
-        tmp = currentenv->findVariable(str);
-        return interpretStatementsAst(tmp);
-    }
+        auto it = arguments.find(str);
+        if(it!=arguments.end()){
+            return it->second;
+        }else{
+            return currentenv->findVariable(str);
+        }
     }
     mValue loadAst(AST_Ptr _ast);
     mValue interpretListAst(AST_Ptr ast);
@@ -66,7 +64,7 @@ class Interpreter{
     mValue interpretAssign(AST_Ptr line);
     mValue interpretReturn(AST_Ptr line);
 
-    AST_Ptr interpretVariable(AST_Ptr symbol);
+    mValue interpretVariable(AST_Ptr symbol);
 
     mValue interpretExpr(AST_Ptr expr);
     mValue interpretBinaryExpr(AST_Ptr expr);

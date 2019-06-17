@@ -19,8 +19,8 @@ SYMBOL   [[:alpha:]][[:alnum:]_]*
 DELIMITER "{"|"}"|"("|")"|"["|"]"|","
 WSPACE   [[:blank:]]+
 BREAK  "\r\n"|"\n"|"\r"
-NEWLINE {BREAK} | ";"
-END {BREAK}"end"
+NEWLINE {BREAK}* | ";"
+END {BREAK}{WSPACE}*"end"
 %%
 
 %{

@@ -110,3 +110,11 @@ TEST(bison_parser_test, statements) {
      std::cout << ss.str()<<std::endl;
      EXPECT_EQ(ss.str(),"((assign hoge (lambda ((x y ))(( return (+ x y)) ))) (assign main (hoge (3 5 ))) )");
 }
+TEST(bison_parser_test, nestfunction) {
+          mmmpsr::MimiumDriver driver;
+     driver.parsefile("test_localvar2.mmm");
+     std::stringstream ss;
+     driver.print(ss);
+     std::cout << ss.str()<<std::endl;
+     EXPECT_EQ(ss.str(),"((assign hoge (lambda ((x y ))(( return (+ x y)) ))) (assign main (hoge (3 5 ))) )");
+}
