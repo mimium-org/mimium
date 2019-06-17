@@ -15,7 +15,6 @@ int main() {
     std::cout << "start" <<std::endl;
     std::string teststr1 = "main = 1.245";
 
-    driver.parsefile("stdin.")
     while (std::getline(std::cin, line)) {
     driver.parsestring(line);
     mValue res = interpreter.loadAst(driver.getMainAst());

@@ -1,6 +1,5 @@
-fuga(x,y) = x+y
-
-func hoge(x,y)
- return x*y 
+fun hoge(x,y)
+    localvar = 2
+    return x*y+localvar
 end
-main=hoge(5,7)
+main = hoge(5,7)

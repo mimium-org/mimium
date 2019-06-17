@@ -1,8 +1,9 @@
 fun hoge(x)
-    localvar = 0
+    localvar = x
     fun fuga(y)
-        return localvar+y
+        localvar= localvar+y
+        return localvar
     end
-    return fuga(0)
+    return fuga(2.5)
 end
-main = hoge(0)
+main = hoge(1)

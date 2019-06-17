@@ -67,7 +67,7 @@ TEST(interpreter_test, localvar) {
     double resv = mimium::Interpreter::get_as_double(main);
      EXPECT_EQ(resv,37);
      } 
-TEST(interpreter_test, localvar_closure) {
+TEST(interpreter_test, localvar_nestfun) {
      mmmpsr::MimiumDriver driver;
      mimium::Interpreter interpreter2;
 
@@ -75,5 +75,5 @@ TEST(interpreter_test, localvar_closure) {
      mValue res = interpreter2.loadAst(driver.getMainAst());
      mValue main = interpreter2.findVariable("main");
     double resv = mimium::Interpreter::get_as_double(main);
-     EXPECT_EQ(resv,37);
+     EXPECT_EQ(resv,3.5);
 }

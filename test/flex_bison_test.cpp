@@ -116,5 +116,5 @@ TEST(bison_parser_test, nestfunction) {
      std::stringstream ss;
      driver.print(ss);
      std::cout << ss.str()<<std::endl;
-     EXPECT_EQ(ss.str(),"((assign hoge (lambda ((x y ))(( return (+ x y)) ))) (assign main (hoge (3 5 ))) )");
+     EXPECT_EQ(ss.str(),"((assign hoge (lambda ((x ))((assign localvar x) (assign fuga (lambda ((y ))((assign localvar (+ localvar y)) ( return localvar) ))) ( return (fuga (2.5 ))) ))) (assign main (hoge (1 ))) )");
 }

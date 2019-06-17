@@ -133,6 +133,7 @@ mValue Interpreter::interpretExpr(AST_Ptr expr){
 struct binary_visitor{
     double operator()(double lhs){return lhs;}
     double operator()(AST_Ptr lhs){
+        mValue val = (lhs);
         std::cerr << "invarid binary operation!" << std::endl;
         return 0.0;
     }
@@ -184,22 +185,19 @@ mValue Interpreter::interpretNumber(AST_Ptr num){
 }
 mValue Interpreter::interpretLambda(AST_Ptr expr){
     try{
-        auto lambda  = std::dynamic_pointer_cast<LambdaAST>(expr);
-
-        return  res;
+        return expr;
     }catch(std::exception e){
         std::cerr<< e.what()<<std::endl;
-        return 0.0;
+        return nullptr;
     }
 }
 struct fcall_visitor{
     AST_Ptr operator()(double v){
         std::cout<<v<<std::endl;
-        std::runtime_error("reffered variable is not a function");
+        throw std::runtime_error("reffered variable is not a function");
         return nullptr;
         };
     AST_Ptr operator()(AST_Ptr v){
-        std::cout<<v->getid()<<std::endl;
         return v;
         };
 };
@@ -222,7 +220,7 @@ mValue Interpreter::interpretFcall(AST_Ptr expr){
         int count = 0;
         for (auto& larg:lambdaargs ){
             std::string key = std::dynamic_pointer_cast<SymbolAST>(larg)->getVal();
-            currentenv->getVariables()[key] = args[count]; //currently only Number,we need to define LHS
+            currentenv->getVariables()[key] = std::dynamic_pointer_cast<NumberAST>(args[count])->getVal(); //currently only Number,we need to define LHS
             count++;
         }
         if(argscond==0){

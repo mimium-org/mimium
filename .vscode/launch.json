@@ -16,7 +16,7 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build/test",
             "environment": [],
-            "externalConsole": true,
+            "externalConsole": false,
             "MIMode": "lldb"
         },
         {
