@@ -2,6 +2,8 @@
 %require "3.0"
 %debug 
 
+
+
 %defines
 %define api.parser.class {MimiumParser}
 %define api.namespace{mmmpsr}
@@ -55,18 +57,21 @@
    AT "@"
    
    ARROW "->"
-   
-   END    0     "end of file"
+   FUNC "FUNC_token"
+   END "end_token"
+   RETURN "return_token"
+
+   ENDFILE    0     "end of file"
    NEWLINE "newline"
 ;
 %token <double> NUM "number_token"
 %token  <std::string> SYMBOL "symbol_token"
 %token  <std::string> FNAME "fname_token"
 
+
+
+
 %type <AST_Ptr> fname "fname"
-
-
-%type <AST_Ptr> block "block"
 
 %type <AST_Ptr> num "number"
 %type <AST_Ptr> symbol "symbol"
@@ -79,6 +84,7 @@
 
 %type <AST_Ptr> lambda "lambda"
 
+%type <AST_Ptr> arguments_top "arguments top"
 
 %type <AST_Ptr> arguments "arguments for fdef"
 %type <AST_Ptr> arguments_fcall "arguments for fcall"
@@ -92,34 +98,37 @@
 
 
 %type <AST_Ptr> statement "single statement"
-
 %type <AST_Ptr> statements "statements"
+
 
 %type <AST_Ptr> top "top"
 
 
 %locations
 
-%left ','
 %left  OR BITOR
 %left  AND BITAND
 %nonassoc  EQ NEQ
 %left  ADD SUB
 %left  MUL DIV MOD
+%left  EXPONENT
+
 
 %left  AT
 
 %right NOT 
 
+%left ','
+
+%left NEWLINE
+
+
 %start top
 
 %%
 
-top :statements END {driver.add_top(std::move($1));}
+top :statements ENDFILE {driver.add_top(std::move($1));}
     ;
-
-block : '{' statements '}' {$$ = std::move($2);}
-;
 
 statements : statement NEWLINE statements {$3->addAST(std::move($1));
                                            $$ = std::move($3);  }
@@ -128,15 +137,24 @@ statements : statement NEWLINE statements {$3->addAST(std::move($1));
 
 statement : assign {$$=std::move($1);} 
          | fdef  {$$=std::move($1);} 
+         |RETURN expr {$$ = driver.add_return(std::move($2));}
          ;
 
+fdef : symbol arguments_top ASSIGN expr {$$ = driver.add_assign(std::move($1),driver.add_lambda(std::move($2),std::move($4)));}
+      |FUNC symbol arguments_top NEWLINE statements end
+      {$$ = driver.add_assign(std::move($2),driver.add_lambda(std::move($3),std::move($5)));};
 
-fdef : fname arguments ')' ASSIGN expr {$$ = driver.add_assign(std::move($1),driver.add_lambda(std::move($2),std::move($5)));};
 
-lambda: '(' arguments ')' ARROW '{' expr '}' {$$ = driver.add_lambda(std::move($2),std::move($6));};
+
+end : END;
+
+lambda: arguments_top ARROW '{' expr '}' {$$ = driver.add_lambda(std::move($1),std::move($4));};
 
 assign : symbol ASSIGN expr {$$ = driver.add_assign(std::move($1),std::move($3));}
       |  symbol ASSIGN lambda {$$ = driver.add_assign(std::move($1),std::move($3));}
+;
+
+arguments_top: '(' arguments ')' {$$=std::move($2);};
 
 arguments : symbol ',' arguments   {$3->addAST(std::move($1));
                                     $$ = std::move($3); }
@@ -171,7 +189,7 @@ term : single
 
 
 
-fcall : fname arguments_fcall ')' {$$ = driver.add_fcall(std::move($1),std::move($2));}
+fcall : symbol '(' arguments_fcall ')' {$$ = driver.add_fcall(std::move($1),std::move($3));}
 ;
 
 single : symbol{$$=std::move($1);}

@@ -27,6 +27,7 @@ target_link_libraries(Test
   PRIVATE
     GTest::GTest
     GTest::Main   # GTest::Mainをリンクすると自分でmain関数を書く必要がなくなる
+    rtaudio
     ${llvm_libs}
   )
 
@@ -36,4 +37,4 @@ target_link_libraries(AudioTest
 )
 
 file(GLOB testsource *.mmm)
-configure_file(${testsource} . COPYONLY)
+file(COPY ${testsource} DESTINATION ${CMAKE_CURRENT_BINARY_DIR} )

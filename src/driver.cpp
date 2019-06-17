@@ -101,6 +101,9 @@ AST_Ptr MimiumDriver::add_fcall(AST_Ptr fname,AST_Ptr args){
    return std::make_unique<FcallAST>(std::move(fname),std::move(args));
 };
 
+AST_Ptr MimiumDriver::add_return(AST_Ptr expr){
+   return std::make_unique<ReturnAST>(std::move(expr));
+};
 
 AST_Ptr MimiumDriver::add_statements(AST_Ptr statements){
    return std::make_unique<ListAST>(std::move(statements));

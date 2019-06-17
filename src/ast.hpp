@@ -22,6 +22,7 @@ enum AST_ID{
     FCALL,
     ASSIGN,
     FDEF,
+    RETURN,
     ARRAYINIT,
     LAMBDA,
     OP,
@@ -128,11 +129,11 @@ class ListAST : public AST{
     }
 
     ListAST(AST_Ptr _asts){
-        asts.insert(asts.begin(),std::move(_asts)); //push_front
+        asts.push_back(std::move(_asts)); //push_front
         id = LIST;
     }
     void addAST(AST_Ptr ast) {
-        asts.push_back(std::move(ast));
+        asts.insert(asts.begin(),std::move(ast));
     }
     std::vector<AST_Ptr>& getlist(){return asts;};
     std::ostream& to_string(std::ostream& ss);
@@ -179,7 +180,7 @@ class ArgumentsAST : public AST{
 class LambdaAST: public AST{
     public:
     AST_Ptr args;
-    AST_Ptr body;
+    AST_Ptr body; //statements
     LambdaAST(AST_Ptr Args, AST_Ptr Body): args(std::move(Args)),body(std::move(Body)){
         id = LAMBDA;
     }
@@ -195,11 +196,26 @@ class AssignAST :  public AST{
     AssignAST(AST_Ptr Symbol,AST_Ptr Expr): symbol(std::move(Symbol)),expr(std::move(Expr)){
         id=ASSIGN;
     }
-    auto getName(){return std::dynamic_pointer_cast<SymbolAST>(std::move(symbol));};
-    AST_Ptr getBody(){return std::move(expr);};
+    auto getName(){return std::dynamic_pointer_cast<SymbolAST>(symbol);};
+    AST_Ptr getBody(){return expr;};
 
     std::ostream& to_string(std::ostream& ss);
 };
+
+// class FdefAST :  public AST{
+//     public:
+//     AST_Ptr fname;
+//     AST_Ptr arguments;
+//     AST_Ptr statements;
+//     AssignAST(AST_Ptr Fname,AST_Ptr Arguments,AST_Ptr Statements): fname(std::move(Fname)),arguments(std::move(Arguments)),statements(std::move(Statements)){
+//         id=FDEF;
+//     }
+//     auto getFname(){return std::dynamic_pointer_cast<SymbolAST>(fname);};
+//     auto getArguments(){return arguments;};
+//     auto getFbody(){return statements;};
+
+//     std::ostream& to_string(std::ostream& ss);
+// };
 
 class FcallAST: public AST{
     public:
@@ -210,5 +226,14 @@ class FcallAST: public AST{
     }
     auto getArgs(){return std::dynamic_pointer_cast<ArgumentsAST>(args); };
     auto getFname(){return std::dynamic_pointer_cast<SymbolAST>(fname);};
+    std::ostream& to_string(std::ostream& ss);
+};
+class ReturnAST: public AST{
+    public:
+    AST_Ptr expr;
+        ReturnAST(AST_Ptr Expr):expr(std::move(Expr)){
+        id = RETURN;
+    }
+    auto getExpr(){return expr;}
     std::ostream& to_string(std::ostream& ss);
 };

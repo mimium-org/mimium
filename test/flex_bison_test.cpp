@@ -11,7 +11,7 @@ TEST(bison_parser_test, assign) {
      std::stringstream ss;
      driver.print(ss);
      std::cout << ss.str()<<std::endl;
-     EXPECT_EQ(ss.str(),"((assign a 1.000000) )");
+     EXPECT_EQ(ss.str(),"((assign a 1) )");
 }
 TEST(bison_parser_test, assignfpoint) {
      mmmpsr::MimiumDriver driver;
@@ -20,7 +20,7 @@ TEST(bison_parser_test, assignfpoint) {
      std::stringstream ss;
      driver.print(ss);
      std::cout << ss.str()<<std::endl;
-     EXPECT_EQ(ss.str(),"((assign a 1.245000) )");
+     EXPECT_EQ(ss.str(),"((assign a 1.245) )");
 }
 
 TEST(bison_parser_test, expr) {
@@ -30,7 +30,7 @@ TEST(bison_parser_test, expr) {
      std::stringstream ss;
      driver.print(ss);
      std::cout << ss.str()<<std::endl;
-     EXPECT_EQ(ss.str(),"((assign a (+ (+ 1.000000 2.000000) (/ (* 3.000000 2.000000) 2.000000))) )");
+     EXPECT_EQ(ss.str(),"((assign a (+ (+ 1 2) (/ (* 3 2) 2))) )");
 }
 
 TEST(bison_parser_test, parensis) {
@@ -40,7 +40,7 @@ TEST(bison_parser_test, parensis) {
      std::stringstream ss;
      driver.print(ss);
      std::cout << ss.str()<<std::endl;
-     EXPECT_EQ(ss.str(),"((assign a (/ (+ 2.000000 3.000000) 5.000000)) )");
+     EXPECT_EQ(ss.str(),"((assign a (/ (+ 2 3) 5)) )");
 }
 
 TEST(bison_parser_test, lines) {
@@ -50,7 +50,7 @@ TEST(bison_parser_test, lines) {
      std::stringstream ss;
      driver.print(ss);
      std::cout << ss.str()<<std::endl;
-     EXPECT_EQ(ss.str(),"((assign b 3.000000) (assign a 2.000000) )");
+     EXPECT_EQ(ss.str(),"((assign a 2) (assign b 3) )");
 }
 
 TEST(bison_parser_test, fdef) {
@@ -60,7 +60,7 @@ TEST(bison_parser_test, fdef) {
      std::stringstream ss;
      driver.print(ss);
      std::cout << ss.str()<<std::endl;
-     EXPECT_EQ(ss.str(),"((assign myfunc (lambda ((a b ))(+ 1.000000 2.000000))) )");
+     EXPECT_EQ(ss.str(),"((assign myfunc (lambda ((a b ))(+ 1 2))) )");
 }
 TEST(bison_parser_test, lambda) {
      mmmpsr::MimiumDriver driver;
@@ -69,7 +69,7 @@ TEST(bison_parser_test, lambda) {
      std::stringstream ss;
      driver.print(ss);
      std::cout << ss.str()<<std::endl;
-     EXPECT_EQ(ss.str(),"((assign myfunc (lambda ((a b ))(+ 1.000000 2.000000))) )");
+     EXPECT_EQ(ss.str(),"((assign myfunc (lambda ((a b ))(+ 1 2))) )");
 }
 
 
@@ -80,7 +80,7 @@ TEST(bison_parser_test, time) {
      std::stringstream ss;
      driver.print(ss);
      std::cout << ss.str()<<std::endl;
-     EXPECT_EQ(ss.str(),"((assign a (+ 3.000000 2.000000)@50) )");
+     EXPECT_EQ(ss.str(),"((assign a (+ 3 2)@50) )");
 }
 
 
@@ -90,5 +90,23 @@ TEST(bison_parser_test, fileread) {
      std::stringstream ss;
      driver.print(ss);
      std::cout << ss.str()<<std::endl;
-     EXPECT_EQ(ss.str(),"((assign a (+ 2.000000 3.000000)@128) )");
+     EXPECT_EQ(ss.str(),"((assign a (+ 2 3)@128) )");
+}
+
+TEST(bison_parser_test, func_block) {
+          mmmpsr::MimiumDriver driver;
+     driver.parsefile("testfile_blockfun.mmm");
+     std::stringstream ss;
+     driver.print(ss);
+     std::cout << ss.str()<<std::endl;
+     EXPECT_EQ(ss.str(),"((assign hoge (lambda ((x y ))(( return 1) ))) )");
+}
+
+TEST(bison_parser_test, statements) {
+          mmmpsr::MimiumDriver driver;
+     driver.parsefile("testfile_statements.mmm");
+     std::stringstream ss;
+     driver.print(ss);
+     std::cout << ss.str()<<std::endl;
+     EXPECT_EQ(ss.str(),"((assign hoge (lambda ((x y ))(( return (+ x y)) ))) (assign main (hoge (3 5 ))) )");
 }

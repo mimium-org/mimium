@@ -68,6 +68,15 @@ std::ostream& ArgumentsAST::to_string(std::ostream& ss){
         return ss;
     }
 
+std::ostream& ReturnAST::to_string(std::ostream& ss){
+        ss << "( return ";
+            expr->to_string(ss);
+        ss << ")";
+        if(istimeset()){
+            ss << "@" << std::to_string(get_time());
+        }
+        return ss;
+    }
 
 
 std::ostream& LambdaAST::to_string(std::ostream& ss){
@@ -98,9 +107,9 @@ std::ostream& AssignAST::to_string(std::ostream& ss){
 std::ostream& FcallAST::to_string(std::ostream& ss){
         ss << "(";
         fname->to_string(ss);
-        ss << " (";
+        ss << " ";
         args->to_string(ss);
-        ss <<"))";
+        ss <<")";
         if(istimeset()){
             ss << "@" << std::to_string(get_time());
         }

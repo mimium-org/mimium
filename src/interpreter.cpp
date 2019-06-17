@@ -4,7 +4,7 @@ namespace mimium{
 
 
 AST_Ptr Environment::findVariable(std::string key){
-    if(variables.count(key)){//search dictionary
+    if(variables.size()>0 && variables.count(key)>0){//search dictionary
         return variables.at(key);
     }else if(parent !=nullptr){
         return parent->findVariable(key); //search recursively
@@ -20,32 +20,61 @@ std::shared_ptr<Environment> Environment::createNewChild(std::string newname){
         return children.back();
     };
 
-bool Interpreter::loadAst(AST_Ptr _ast){
-    ast  = std::move(_ast);
+mValue Interpreter::loadAst(AST_Ptr _ast){
+    topast  = _ast;
     return interpretTopAst();
 }
 
-bool Interpreter::interpretTopAst(){
-    for(auto& line: std::dynamic_pointer_cast<ListAST>(ast)->getlist()){
-    bool tmpres=false;
-    switch (line->getid())
-    {
-    case ASSIGN:
-        tmpres=  interpretAssign(line);
+mValue Interpreter::interpretListAst(AST_Ptr ast){
+    mValue res;
+    switch (ast->getid()){
+        case LIST:
+        for(auto& line: std::dynamic_pointer_cast<ListAST>(ast)->getlist()){
+            res = interpretStatementsAst(line);
+            if(line->getid() == RETURN) break;
+        }
         break;
-
-    case FDEF:
-        tmpres=  interpretAssign(line); // currently function definition is converted into lambda function definition
+        default:
+            res = interpretStatementsAst(ast);
         break;
-    default: 
-        break;
-    }
-    res = res | tmpres;
     }
     return res;
 }
 
-bool Interpreter::interpretAssign(AST_Ptr line){
+mValue Interpreter::interpretStatementsAst(AST_Ptr line){
+    mValue tmpres=false;
+
+    switch (line->getid())
+    {
+    case ASSIGN:
+        tmpres =  interpretAssign(line);
+        break;
+    // fdef is directly converted into assign lambda
+    // case FDEF: 
+    //     tmpres=  interpretFdef(line); 
+    //     break;
+    case RETURN:
+        tmpres = interpretReturn(line);
+        goto end;
+    default: 
+        tmpres= interpretExpr(line);
+        break;
+    }
+    end:
+    return tmpres;
+}
+
+mValue Interpreter::interpretReturn(AST_Ptr line){
+   try{
+   auto ret =  std::dynamic_pointer_cast<ReturnAST>(line);
+   return interpretExpr(ret->getExpr());
+   }catch(std::exception e){
+        std::cerr<<e.what()<<std::endl;
+        return false;
+    }
+}
+
+mValue Interpreter::interpretAssign(AST_Ptr line){
     try{
     auto assign  = std::dynamic_pointer_cast<AssignAST>(line);
     std::string varname = assign->getName()->getVal();
@@ -54,8 +83,8 @@ bool Interpreter::interpretAssign(AST_Ptr line){
     }
     auto body  = assign->getBody();
     if(body){
-    currentenv->getVariables()[varname] =  body; //share
-        return true;
+        currentenv->getVariables()[varname] =  body; //share
+        return line; //for print
     }else{
         throw  std::runtime_error("expression not resolved");
     }
@@ -64,13 +93,24 @@ bool Interpreter::interpretAssign(AST_Ptr line){
         return false;
     }
 }
+// mValue Interpreter::interpretFdef(AST_Ptr line){
+//     try{
+//         auto fdef = std::dynamic_pointer_cast<FdefAST>(line);
+//         std::string fname = fdef->getFname()->getVal();
+//         currentenv = currentenv->createNewChild(fname); //switch
+//         mValue interres = interpretStatementsAst(fdef->getFbody());
 
+//     }catch(std::exception e){
+//         std::cerr<<e.what()<<std::endl;
+//         return false;
+//     }
+// }
 
 
 mValue Interpreter::interpretExpr(AST_Ptr expr){
     switch(expr->getid()){
         case SYMBOL:
-            return interpretExpr( interpretVariable(expr) );
+            return interpretStatementsAst( interpretVariable(expr) );
         break;
         case NUMBER:
             return interpretNumber(expr);
@@ -173,7 +213,7 @@ mValue Interpreter::interpretFcall(AST_Ptr expr){
         }
         if(argscond==0){
             auto tmp = lambda->getBody();
-            auto res = interpretExpr(tmp);
+            auto res = interpretListAst(tmp);
             currentenv = currentenv->getParent();//switch back env
             return res;
         }else{
@@ -194,7 +234,17 @@ struct getdouble_visitor{
 };
 double Interpreter::get_as_double(mValue v){
     return std::visit(getdouble_visitor{},v);
-}
-
+};
+struct tostring_visitor{
+    std::string operator()(double v){return std::to_string(v);};
+    std::string operator()(AST_Ptr v){
+        std::stringstream ss;
+        v->to_string(ss);
+        return ss.str();
+        };
+};
+std::string Interpreter::to_string(mValue v){
+    return std::visit(tostring_visitor{},v);
+};
 
 }//mimium ns

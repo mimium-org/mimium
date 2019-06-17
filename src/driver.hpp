@@ -37,15 +37,18 @@ namespace mmmpsr{
 
         AST_Ptr add_fcall(AST_Ptr fname,AST_Ptr args);
 
+        AST_Ptr add_return(AST_Ptr expr);
         AST_Ptr add_assign(AST_Ptr symbol,AST_Ptr expr);
         AST_Ptr add_statements(AST_Ptr statements);
+
+        AST_Ptr add_fdef(AST_Ptr fname,AST_Ptr args,AST_Ptr statements);
 
         AST_Ptr set_time(AST_Ptr elem,int time);
         // void add_line(AST_Ptr in); // final action
         void add_top(AST_Ptr top); // final action
 
         std::ostream& print(std::ostream &stream);
-        AST_Ptr getMainAst(){return std::move(mainast);};
+        AST_Ptr getMainAst(){return mainast;};
         private:
             std::shared_ptr<AST> mainast;    
             std::unique_ptr<AST> temporaryast;    

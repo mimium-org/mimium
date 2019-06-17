@@ -4,7 +4,7 @@
   #define YY_DECL int mmmpsr::MimiumScanner::yylex( mmmpsr::MimiumParser::semantic_type * const lval, mmmpsr::MimiumParser::location_type *loc )
   
   using token = mmmpsr::MimiumParser::token;
-  #define yyterminate() return ( token::END )
+  #define yyterminate() return ( token::ENDFILE )
   #define YY_USER_ACTION loc->step(); loc->columns(yyleng);
 %}
 %option c++ noyywrap nounput noinput nodefault debug
@@ -18,8 +18,9 @@ NUMBER   {FLOAT}{EXPONENT}?
 SYMBOL   [[:alpha:]][[:alnum:]_]*
 DELIMITER "{"|"}"|"("|")"|"["|"]"|","
 WSPACE   [[:blank:]]+
-BREAK  "\r\n" | "\n" | "\r"
+BREAK  "\r\n"|"\n"|"\r"
 NEWLINE {BREAK} | ";"
+END {BREAK}"end"
 %%
 
 %{
@@ -33,16 +34,16 @@ NEWLINE {BREAK} | ";"
 
 {WSPACE} ;
 
+"fun" return token::FUNC;
+{END} return token::END;
+
+"return" return token::RETURN;
+
 {SYMBOL} {
   yylval->emplace<std::string>(yytext);
   return token::SYMBOL;
 };
-{SYMBOL}"(" {
-  std::string res =  yytext;
-  res = res.substr(0,res.size()-1);
-    yylval->emplace<std::string>(res);
-    return token::FNAME;
-}
+
 
 "/"  return token::DIV; 
 "*"  return token::MUL; 
@@ -65,7 +66,7 @@ NEWLINE {BREAK} | ";"
 "=" return token::ASSIGN;
 
 
-\r\n|\r|\n	{ loc->lines(); loc->step(); return token::NEWLINE;}
+{BREAK}	{ loc->lines(); loc->step(); return token::NEWLINE;}
 {DELIMITER} { return yytext[0];};
 . {
 std::cerr << "Lexer: Unrecognized char \"" << yytext[0] << "\"" << std::endl;

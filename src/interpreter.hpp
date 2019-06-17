@@ -38,9 +38,10 @@ class Environment: public std::enable_shared_from_this<Environment>{
 
 
 class Interpreter{
-    AST_Ptr ast;
+    AST_Ptr topast;
     std::shared_ptr<Environment> rootenv;
     std::shared_ptr<Environment> currentenv;
+    std::map<std::string,AST_Ptr> arguments;
     std::string currentNS;
     bool res;
     public:
@@ -49,13 +50,21 @@ class Interpreter{
         currentenv = rootenv; // share
     };
     mValue findVariable(std::string str){ //fortest
-    AST_Ptr tmp = currentenv->findVariable(str);
-        return interpretExpr(tmp);
+    auto it = arguments.find(str);
+    if(it!=arguments.end()){
+        return it->second;
+    }else{
+        AST_Ptr tmp;
+        tmp = currentenv->findVariable(str);
+        return interpretStatementsAst(tmp);
     }
-    bool loadAst(AST_Ptr _ast);
-    bool interpretTopAst();
-    bool interpretAssign(AST_Ptr line);
-    bool interpretFdef(AST_Ptr line);
+    }
+    mValue loadAst(AST_Ptr _ast);
+    mValue interpretListAst(AST_Ptr ast);
+    mValue interpretStatementsAst(AST_Ptr ast);
+    mValue interpretTopAst(){return interpretListAst(topast);};
+    mValue interpretAssign(AST_Ptr line);
+    mValue interpretReturn(AST_Ptr line);
 
     AST_Ptr interpretVariable(AST_Ptr symbol);
 
@@ -68,7 +77,7 @@ class Interpreter{
     mValue interpretFcall(AST_Ptr expr);
 
     static double get_as_double(mValue v);
-
+    static std::string to_string(mValue v);
     // bool genEventGraph();
 };
 

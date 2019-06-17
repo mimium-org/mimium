@@ -15,13 +15,12 @@ int main() {
     std::cout << "start" <<std::endl;
     std::string teststr1 = "main = 1.245";
 
-
+    driver.parsefile("stdin.")
     while (std::getline(std::cin, line)) {
     driver.parsestring(line);
-    interpreter.loadAst(driver.getMainAst());
-    mValue res = interpreter.findVariable("main");
-    double resv = mimium::Interpreter::get_as_double(res);
-    std::cout << resv << std::endl;
+    mValue res = interpreter.loadAst(driver.getMainAst());
+    std::string resstr = mimium::Interpreter::to_string(res);
+    std::cout << resstr << std::endl;
     }
     return 0;
 }
