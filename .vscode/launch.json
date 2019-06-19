@@ -9,15 +9,13 @@
         
         {
             "name": "testdebug",
-            "type": "cppdbg",
+            "type": "lldb",
             "request": "launch",
             "program": "${workspaceFolder}/build/test/Test",
             "args": [],
-            "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build/test",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "lldb"
+            // "externalConsole": false,
+            // "MIMode": "lldb"
         },
         {
             "name": "Main Debug",

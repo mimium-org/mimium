@@ -1,5 +1,9 @@
-fun hoge(x,y)
-    localvar = 2
-    return x*y+localvar
+fun hoge(x)
+    localvar = 0
+    fun fuga(y)
+        localvar= localvar+y
+        return localvar
+    end
+    return fuga(2.5)+x
 end
-main = hoge(5,7)
+main = hoge(1)

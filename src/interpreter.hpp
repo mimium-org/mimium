@@ -7,11 +7,10 @@
 
 #include "ast.hpp"
 
-using mValue = std::variant<double,std::shared_ptr<AST>>;
+
 
 
 namespace mimium{
-
 class Environment: public std::enable_shared_from_this<Environment>{
     std::map<std::string,mValue> variables;
     std::shared_ptr<Environment> parent;
@@ -22,21 +21,29 @@ class Environment: public std::enable_shared_from_this<Environment>{
     Environment(std::string Name,std::shared_ptr<Environment> Parent):parent(Parent),name(Name){
     }
     mValue findVariable(std::string key);
+    bool isVariableSet(std::string key);
+    void setVariable(std::string key,mValue val);
+
     auto& getVariables(){return variables;}
     auto getParent(){return parent;}
+    std::string getName(){return name;};
     std::shared_ptr<Environment> createNewChild(std::string newname);
 };
 
-// struct Closure{
-//     std::shared_ptr<Environment> env;
-//     std::shared_ptr<LambdaAST> fun;
-//     Closure(std::shared_ptr<Environment> Env,std::shared_ptr<LambdaAST> Fun):env(std::move(Env)),fun(std::move(Fun)){};
+struct Closure{
+    std::shared_ptr<Environment> env;
+    std::shared_ptr<LambdaAST> fun;
+    Closure(std::shared_ptr<Environment> Env,std::shared_ptr<LambdaAST> Fun):env(Env),fun(Fun){};
 
-//     std::string to_string();
-// };
+    std::string to_string();
+};
 
+};
 
+using mClosure_ptr = std::shared_ptr<mimium::Closure>;
+using mValue = std::variant<double,std::shared_ptr<AST>,mClosure_ptr>;
 
+namespace mimium{
 class Interpreter{
     AST_Ptr topast;
     std::shared_ptr<Environment> rootenv;

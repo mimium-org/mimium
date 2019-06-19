@@ -47,9 +47,14 @@ namespace mimium{
     //             }
     // };
 };
-class AST;
+class AST;//forward
+namespace mimium{
+struct Closure; //forward
+};
+using mClosure_ptr = std::shared_ptr<mimium::Closure>;
+
 using AST_Ptr = std::shared_ptr<AST>;
-using mValue = std::variant<double,std::shared_ptr<AST>>;
+using mValue = std::variant<double,std::shared_ptr<AST>,mClosure_ptr>;
 
 
 
