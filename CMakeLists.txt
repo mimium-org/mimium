@@ -40,6 +40,10 @@ include_directories(src ${FLEX_INCLUDE_DIRS} libs/rtaudio)
 
 
 add_subdirectory( libs/rtaudio )
+add_subdirectory( libs/builtin_functions )
+
+
 
 add_subdirectory( src )
+
 add_subdirectory( test )
