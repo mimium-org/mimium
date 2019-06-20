@@ -13,5 +13,6 @@ target_include_directories(Main
     )
 target_link_libraries(Main
     PRIVATE
+    builtin_functions
       ${llvm_libs}
     )

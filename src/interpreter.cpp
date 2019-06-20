@@ -111,7 +111,7 @@ mValue Interpreter::interpretAssign(AST_Ptr line){
     auto assign  = std::dynamic_pointer_cast<AssignAST>(line);
     std::string varname = assign->getName()->getVal();
     if(currentenv->isVariableSet(varname)){
-        std::cout<<"Variable "<< varname << " already exists. Overwritten"<<std::endl;
+        // std::cout<<"Variable "<< varname << " already exists. Overwritten"<<std::endl;
     }
     auto body  = assign->getBody();
     if(body){
@@ -250,35 +250,43 @@ mValue Interpreter::interpretFcall(AST_Ptr expr){
     auto fcall  = std::dynamic_pointer_cast<FcallAST>(expr);
     auto name  =  std::dynamic_pointer_cast<SymbolAST>(fcall->getFname())->getVal();
     auto args = fcall->getArgs()->getArgs();
-    mValue var = findVariable(name);
-    mClosure_ptr closure  =std::visit(fcall_visitor{},var);
-    auto lambda = closure->fun;
-    std::shared_ptr<Environment> tmpenv = currentenv; 
-    currentenv = closure->env; //switch to closure context
-    // std::cout << "switched to closure context: " << currentenv->getName()<<std::endl;
-    // std::cout << "localvar"<< to_string(currentenv->findVariable("localvar")) <<std::endl;
+    if(mimium::builtin::isBuiltin(name)){
+        std::stringstream ss;
+        args[0]->to_string(ss);
+        auto fn = mimium::builtin::builtin_fntable.at(name);
+        fn(ss.str()); // currently implemented only for print()
+        return 0.0;
+    }else{
+        mValue var = findVariable(name);
+        mClosure_ptr closure  =std::visit(fcall_visitor{},var);
+        auto lambda = closure->fun;
+        std::shared_ptr<Environment> tmpenv = currentenv; 
+        currentenv = closure->env; //switch to closure context
+        // std::cout << "switched to closure context: " << currentenv->getName()<<std::endl;
+        // std::cout << "localvar"<< to_string(currentenv->findVariable("localvar")) <<std::endl;
 
-    auto lambdaargs = std::dynamic_pointer_cast<ArgumentsAST>(lambda->getArgs())->getArgs();
+        auto lambdaargs = std::dynamic_pointer_cast<ArgumentsAST>(lambda->getArgs())->getArgs();
 
-    auto body  = lambda->getBody();
-    currentenv = currentenv->createNewChild(name); //create arguments
-    int argscond = lambdaargs.size() - args.size();
-    if(argscond<0){
-        throw std::runtime_error("too many arguments");
-    }else {
-        int count = 0;
-        for (auto& larg:lambdaargs ){
-            std::string key = std::dynamic_pointer_cast<SymbolAST>(larg)->getVal();
-            currentenv->getVariables()[key] = std::dynamic_pointer_cast<NumberAST>(args[count])->getVal(); //currently only Number,we need to define LHS
-            count++;
-        }
-        if(argscond==0){
-            auto tmp = lambda->getBody();
-            auto res = interpretListAst(tmp);
-            currentenv = tmpenv;//switch back env
-            return res;
-        }else{
-            throw std::runtime_error("too few arguments"); //ideally we want to return new function like closure
+        auto body  = lambda->getBody();
+        currentenv = currentenv->createNewChild(name); //create arguments
+        int argscond = lambdaargs.size() - args.size();
+        if(argscond<0){
+            throw std::runtime_error("too many arguments");
+        }else {
+            int count = 0;
+            for (auto& larg:lambdaargs ){
+                std::string key = std::dynamic_pointer_cast<SymbolAST>(larg)->getVal();
+                currentenv->getVariables()[key] = std::dynamic_pointer_cast<NumberAST>(args[count])->getVal(); //currently only Number,we need to define LHS
+                count++;
+            }
+            if(argscond==0){
+                auto tmp = lambda->getBody();
+                auto res = interpretListAst(tmp);
+                currentenv = tmpenv;//switch back env
+                return res;
+            }else{
+                throw std::runtime_error("too few arguments"); //ideally we want to return new function like closure
+            }
         }
     }
     }catch(std::exception e){

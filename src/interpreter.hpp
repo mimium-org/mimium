@@ -4,7 +4,7 @@
 #include <unordered_map> 
 #include <string>
 #include <variant>
-
+#include "builtin_functions.hpp"
 #include "ast.hpp"
 
 
@@ -83,6 +83,7 @@ class Interpreter{
 
     static double get_as_double(mValue v);
     static std::string to_string(mValue v);
+    
     // bool genEventGraph();
 };
 
