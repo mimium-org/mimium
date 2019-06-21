@@ -52,6 +52,13 @@ std::string Closure::to_string(){
     return ss.str();
 }
 
+void Interpreter::start(){
+    sch->start();
+}
+
+void Interpreter::stop(){
+    sch->stop();
+}
 mValue Interpreter::loadAst(AST_Ptr _ast){
     topast  = _ast;
     return interpretTopAst();
@@ -248,6 +255,11 @@ struct fcall_visitor{
 mValue Interpreter::interpretFcall(AST_Ptr expr){
     try{
     auto fcall  = std::dynamic_pointer_cast<FcallAST>(expr);
+    int time = fcall->get_time();
+    if(time>0){
+        sch->addTask(time,expr);
+        return 0.0; // temporary
+    }else{
     auto name  =  std::dynamic_pointer_cast<SymbolAST>(fcall->getFname())->getVal();
     auto args = fcall->getArgs()->getArgs();
     if(mimium::builtin::isBuiltin(name)){
@@ -288,6 +300,7 @@ mValue Interpreter::interpretFcall(AST_Ptr expr){
                 throw std::runtime_error("too few arguments"); //ideally we want to return new function like closure
             }
         }
+    }
     }
     }catch(std::exception e){
         std::cerr<< e.what()<<std::endl;

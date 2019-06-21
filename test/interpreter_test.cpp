@@ -4,8 +4,8 @@
 #include "driver.hpp"
 
 #include "interpreter.hpp"
-mmmpsr::MimiumDriver driver;
-mimium::Interpreter interpreter;
+static mmmpsr::MimiumDriver driver;
+static mimium::Interpreter interpreter;
 TEST(interpreter_test, assign) {
      std::string teststr = "a = 1";
      driver.parsestring(teststr);

@@ -10,15 +10,15 @@ AudioDriver::AudioDriver(){
     parameters.firstChannel = 0;
 }
 
-bool AudioDriver::setCallback(RtAudioCallback cb){
-    callback = cb;//conversion lambda into function pointer 
+bool AudioDriver::setCallback(RtAudioCallback cb,mimium::Scheduler* ud){
+    callback = cb;
+    userdata=ud;
     return 1;
 }
 
-
 bool AudioDriver::start(){
     try{
-        rtaudio.openStream(&parameters,NULL,RTAUDIO_FLOAT64,sampleRate,&bufferFrames,callback,(void*)&data);
+        rtaudio.openStream(&parameters,NULL,RTAUDIO_FLOAT64,sampleRate,&bufferFrames,callback,(void*)userdata);
         rtaudio.startStream();
     }catch(RtAudioError& e){
         e.printMessage();

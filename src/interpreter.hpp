@@ -6,7 +6,7 @@
 #include <variant>
 #include "builtin_functions.hpp"
 #include "ast.hpp"
-
+#include "scheduler.hpp"
 
 
 
@@ -44,12 +44,15 @@ using mClosure_ptr = std::shared_ptr<mimium::Closure>;
 using mValue = std::variant<double,std::shared_ptr<AST>,mClosure_ptr>;
 
 namespace mimium{
-class Interpreter{
+class Scheduler; //forward
+class Interpreter: public std::enable_shared_from_this<Interpreter> {
     AST_Ptr topast;
     std::shared_ptr<Environment> rootenv;
     std::shared_ptr<Environment> currentenv;
     std::map<std::string,AST_Ptr> arguments;
     std::string currentNS;
+    std::shared_ptr<Scheduler> sch;
+
     bool res;
     public:
     Interpreter():res(false){
@@ -64,6 +67,9 @@ class Interpreter{
             return currentenv->findVariable(str);
         }
     }
+    void add_scheduler(){sch = std::make_shared<Scheduler>(this);};
+    void start();
+    void stop();
     mValue loadAst(AST_Ptr _ast);
     mValue interpretListAst(AST_Ptr ast);
     mValue interpretStatementsAst(AST_Ptr ast);

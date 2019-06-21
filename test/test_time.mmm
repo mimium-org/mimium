@@ -1,0 +1,2 @@
+main = println(5)@220500
+main2 =  println(7.5)@420500

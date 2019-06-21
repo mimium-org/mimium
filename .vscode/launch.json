@@ -5,7 +5,16 @@
     "version": "0.2.0",
     "configurations": [
 
-
+        {
+            "name": "schedulerdebug",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/test/SchedulerTest",
+            "args": [],
+            "cwd": "${workspaceFolder}/build/test",
+            // "externalConsole": false,
+            // "MIMode": "lldb"
+        },
         
         {
             "name": "testdebug",

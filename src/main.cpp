@@ -14,7 +14,7 @@ int main() {
     std::string line;
     std::cout << "start" <<std::endl;
     std::string teststr1 = "main = 1.245";
-
+    
     while (std::getline(std::cin, line)) {
     driver.parsestring(line);
     mValue res = interpreter.loadAst(driver.getMainAst());
