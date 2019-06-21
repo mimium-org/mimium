@@ -1,9 +1,1 @@
-fun hoge(x)
-    localvar = 0
-    fun fuga(y)
-        localvar= localvar+y
-        return localvar
-    end
-    return fuga(2.5)+x
-end
-main = hoge(1)
+main=print(2.5)@44100
