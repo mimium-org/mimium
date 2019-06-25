@@ -1,4 +1,4 @@
-#define MIMIUM_DEBUG
+// #define MIMIUM_DEBUG 4
 
 #include "gtest/gtest.h"
 #include "driver.hpp"
@@ -55,12 +55,12 @@ TEST(bison_parser_test, lines) {
 
 TEST(bison_parser_test, fdef) {
      mmmpsr::MimiumDriver driver;
-     std::string teststr = "myfunc(a,b) = 1+2";
+     std::string teststr = "fn myfunc(a,b){return 1+2}";
      driver.parsestring(teststr);
      std::stringstream ss;
      driver.print(ss);
      std::cout << ss.str()<<std::endl;
-     EXPECT_EQ(ss.str(),"((assign myfunc (lambda ((a b ))(+ 1 2))) )");
+     EXPECT_EQ(ss.str(),"((assign myfunc (lambda ((a b ))(( return (+ 1 2)) ))) )");
 }
 TEST(bison_parser_test, lambda) {
      mmmpsr::MimiumDriver driver;

@@ -1,4 +1,4 @@
-fun hoge(x,y)
+fn hoge(x,y){
     return x+y
-end
+}
 main = hoge(3,5)

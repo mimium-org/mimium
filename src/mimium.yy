@@ -56,8 +56,14 @@
    ASSIGN "="
    AT "@"
    
+   LBRACE "{"
+   RBRACE "}"
+
    ARROW "->"
-   FUNC "FUNC_token"
+   FUNC "fn"
+   IF "if"
+   ELSE "ELSE"
+
    END "end_token"
    RETURN "return_token"
 
@@ -99,6 +105,7 @@
 
 %type <AST_Ptr> statement "single statement"
 %type <AST_Ptr> statements "statements"
+%type <AST_Ptr> block "block"
 
 
 %type <AST_Ptr> top "top"
@@ -130,25 +137,28 @@
 top :statements ENDFILE {driver.add_top(std::move($1));}
     ;
 
-statements : statement NEWLINE statements {$3->addAST(std::move($1));
+statements :statement NEWLINE statements {$3->addAST(std::move($1));
                                            $$ = std::move($3);  }
-            | statement {  $$ = driver.add_statements(std::move($1));}
+            | statement opt_nl{  $$ = driver.add_statements(std::move($1));}
       ;
+block: LBRACE  statements RBRACE {$$ = $$ = std::move($2);};
+
+opt_nl: {}
+      | NEWLINE {};
 
 statement : assign {$$=std::move($1);} 
          | fdef  {$$=std::move($1);} 
          |RETURN expr {$$ = driver.add_return(std::move($2));}
          ;
 
-fdef : symbol arguments_top ASSIGN expr {$$ = driver.add_assign(std::move($1),driver.add_lambda(std::move($2),std::move($4)));}
-      |FUNC symbol arguments_top NEWLINE statements end
-      {$$ = driver.add_assign(std::move($2),driver.add_lambda(std::move($3),std::move($5)));};
+fdef : FUNC symbol arguments_top block {$$ = driver.add_assign(std::move($2),driver.add_lambda(std::move($3),std::move($4)));};
 
 
 
-end : END;
 
-lambda: arguments_top ARROW '{' expr '}' {$$ = driver.add_lambda(std::move($1),std::move($4));};
+/* end : END; */
+
+lambda: arguments_top ARROW LBRACE expr RBRACE {$$ = driver.add_lambda(std::move($1),std::move($4));};
 
 assign : symbol ASSIGN expr {$$ = driver.add_assign(std::move($1),std::move($3));}
       |  symbol ASSIGN lambda {$$ = driver.add_assign(std::move($1),std::move($3));}
@@ -197,7 +207,6 @@ single : symbol{$$=std::move($1);}
 
 num :NUM {$$ = driver.add_number($1);};
 
-fname : FNAME {$$ = driver.add_symbol($1);}
 
 symbol : SYMBOL {$$ = driver.add_symbol($1);}
 

@@ -32,7 +32,7 @@ project (mimium CXX)
 
 list(APPEND CMAKE_PREFIX_PATH /usr/local/opt/flex)
 list(APPEND CMAKE_PREFIX_PATH /usr/local/opt/bison)
-find_package(BISON 3.2 REQUIRED)
+find_package(BISON 3.2 REQUIRED VERBOSE REPORT_FILE ${CMAKE_CURRENT_BINARY_DIR}/bison.log)
 find_package(Flex REQUIRED)
 
 

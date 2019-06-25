@@ -13,7 +13,7 @@ ADD_FLEX_BISON_DEPENDENCY(MyScanner MyParser)
 
 add_executable(Test
 ${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} ../src/ast.cpp ../src/audiodriver.cpp  ../src/interpreter.cpp ../src/scheduler.cpp ../src/driver.cpp
- flex_bison_test.cpp  interpreter_test.cpp  builtin_test.cpp scheduler_test.cpp)
+ flex_bison_test.cpp  interpreter_test.cpp  builtin_test.cpp )
 
 
 add_executable(AudioTest ../src/audiodriver.cpp audiodriver_test.cpp)

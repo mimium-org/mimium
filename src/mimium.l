@@ -34,10 +34,12 @@ END {BREAK}{WSPACE}*"end"
 
 {WSPACE} ;
 
-"fun" return token::FUNC;
+"fn" return token::FUNC;
 {END} return token::END;
 
 "return" return token::RETURN;
+"if" return token::IF;
+"else" return token::ELSE;
 
 {SYMBOL} {
   yylval->emplace<std::string>(yytext);
@@ -65,6 +67,8 @@ END {BREAK}{WSPACE}*"end"
 
 "=" return token::ASSIGN;
 
+"{"|"{"{BREAK}* return token::LBRACE;
+"}"|{BREAK}*"}" return token::RBRACE;
 
 {BREAK}	{ loc->lines(); loc->step(); return token::NEWLINE;}
 {DELIMITER} { return yytext[0];};

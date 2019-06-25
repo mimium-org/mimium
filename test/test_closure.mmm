@@ -1,11 +1,11 @@
-fun makecounter(x)
+fn makecounter(x){
     localvar = 0
-    fun countup(y)
+    fn countup(y){
         localvar= localvar+x
         return localvar
-    end
+    }
     return countup
-end
+}
 maincounter = makecounter(1)
 main = maincounter(1)
 main = maincounter(1)

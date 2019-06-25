@@ -1,9 +1,9 @@
-fun hoge(x)
+fn hoge(x){
     localvar = x
-    fun fuga(y)
+    fn fuga(y){
         localvar= localvar+y
         return localvar
-    end
+    }
     return fuga(2.5)
-end
+}
 main = hoge(1)

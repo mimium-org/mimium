@@ -30,7 +30,7 @@ TEST(interpreter_test, assignexpr) {
      } 
 
 TEST(interpreter_test, assignfunction) {
-     std::string teststr2 = "hoge(a,b) = a*b+1 \n main = hoge(7,5)";
+     std::string teststr2 = "fn hoge(a,b){return a*b+1} \n main = hoge(7,5)";
      driver.parsestring(teststr2);
      mValue res = interpreter.loadAst(driver.getMainAst());
      mValue main = interpreter.findVariable("main");

@@ -6,7 +6,7 @@
 
 #include "driver.hpp"
 
-#ifndef DEBUG_LEVEL
+#ifndef MIMIUM_DEBUG
 #define DEBUG_LEVEL 0
 #endif
 

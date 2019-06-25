@@ -1,5 +1,5 @@
-fun hoge(x,y)
+fn hoge(x,y){
     localvar = 2
     return x*y+localvar
-end
+}
 main = hoge(5,7)

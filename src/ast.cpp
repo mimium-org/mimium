@@ -92,11 +92,9 @@ std::ostream& FcallAST::to_string(std::ostream& ss){
 }
 
 std::ostream& TimeAST::to_string(std::ostream& ss){
-        ss << "(";
         expr->to_string(ss);
         ss << "@";
         time->to_string(ss);
-        ss <<")";
         return ss;
     
 }

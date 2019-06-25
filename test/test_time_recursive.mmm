@@ -1,2 +1,2 @@
-func recu(x)
+fn recu(x)
     return 
