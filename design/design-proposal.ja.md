@@ -14,7 +14,7 @@
 ### すべての変数宣言に対して時間の位置を付随させられる
 
 ```
-input::int@ 1@100[ms] //これは絶対位置100msに置かれるinputという名前の整数1(@は時間付きであることを明示的に表す)　ブラケットで時間単位の指定(配列とややこしいかな)　時間の単位も自分で定義可能にしたい
+input::int 1@100[ms] //これは絶対位置100msに置かれるinputという名前の整数1(@は時間付きであることを明示的に表す)　ブラケットで時間単位の指定(配列とややこしいかな)　時間の単位も自分で定義可能にしたい
 
 1@[100,200,300,250][ms] 2個以上の時間を付随させることもできる、使うときに基本的には早い順にソートされる？のが良さそう
 
@@ -22,9 +22,9 @@ input::int@ 1@100[ms] //これは絶対位置100msに置かれるinputという�
 1@[1,2,3...][sample] とかで無限数列定義できたらサンプルの扱いも楽な気がする
 ```
 
-#### 時間シフト演算子 <| と |>
+#### 時間シフト演算子 <<< と >>>
 
-`hoge::int@ = 1@100[ms] |> 1[sec] //now hoge is 1@1.1[sec]` 
+`hoge::int@ = 1@100[ms] >> 1[sec] //now hoge is 1@1.1[sec]` 
 
 この辺、みんな何使うのか困ってるぽい
 
@@ -38,12 +38,12 @@ Chronic @+ @-
 変数に2個以上時間をバインドした場合、一回何かの関数で使われると一番頭の時刻だけが消費されて、その関数内で何か別の関数を呼び出すと次の時刻を呼び出せる
 
 ```
-pitch_index::int = produce((x)=>{x+x},5)//[2,4,6,8,10]
- time_index::int@ = produce((x)=>{x*x},5) // [@1,@4,@9,@16,@25]
- end_index = time_index.map((t)=>{ t |> 2[s]}) //[@3,@6,@11,@18,@27]
+pitch_index::int = produce((x)->{x+x},5)//[2,4,6,8,10]
+ time_index::int = produce((x)->{x*x},5) // [@1,@4,@9,@16,@25]
+ end_index = time_index.map((t)->{ t |> 2[s]}) //[@3,@6,@11,@18,@27]
  
  
- pitchevents = pitch_index.tbind((x,i)=>{x@[time_index[i],end_index[i]]}) //[2@[1,3],4@[4,6],6@[9,11],8@[16,18],10@[25,27]]
+ pitchevents = pitch_index.tbind((x,i)->{x@[time_index[i],end_index[i]]}) //[2@[1,3],4@[4,6],6@[9,11],8@[16,18],10@[25,27]]
  
  function noteOn(input_pitch::int,instrument){//input_pitch is like 2@[1,3] and trigger at time 1
  	instrument.pitch = input_pitch
@@ -54,7 +54,7 @@ pitch_index::int = produce((x)=>{x+x},5)//[2,4,6,8,10]
    	instrument.gain = 0.0
   }
  
- pitchevents.map(pitch=>noteOn(pitch)) // bind noteon to all pitchevents elements
+ pitchevents.map(pitch->noteOn(pitch)) // bind noteon to all pitchevents elements
 ```
 
 ### 関数の中の任意の変数呼び出しで、過去/未来の値を参照できる、
@@ -62,9 +62,9 @@ pitch_index::int = produce((x)=>{x+x},5)//[2,4,6,8,10]
 
 ```
  
-delay(input::int@) = input <| 100[ms] //過去の入力を出力する
+delay(input::int@) = input <<< 100[ms] //過去の入力を出力する
 
-future(input::int@) = input |> 100[ms] //未来の入力を出力する(フィルターとか作るときに有効)
+future(input::int@) = input >>> 100[ms] //未来の入力を出力する(フィルターとか作るときに有効)
 
  //VSTプラグインのように全体にオフセットディレイがかかる感じ（CHronicでもやってた） 
 ```
@@ -72,9 +72,9 @@ future(input::int@) = input |> 100[ms] //未来の入力を出力する(フィ�
 ### また、関数は自身の過去の出力をselfキーワードで参照できる
 
 ```
-combfilter(input) = input + 0.999*( self<|1 ) // 出力で未来の参照|>は流石にエラー
+combfilter(input) = input + 0.999*( self<<<1 ) // 出力で未来の参照|>は流石にエラー
 
-combfilter = input+0.999*(self <| 1[sec] ) // //絶対時間で遡ることも補完が効けばできる??無理かも
+combfilter = input+0.999*(self >>> 1[sec] ) // //絶対時間で遡ることも補完が効けばできる??無理かも
  
 ```
 

@@ -27,16 +27,17 @@ maybe,
 
 `hoge::int@ = 1@100[ms] |> 1[sec] //now hoge is 1@1.1[sec]` 
 
-TODO: how can we shift certain number in time sequence?
+*TODO: how can we shift certain number in time sequence?*
 
 `hoge::int@ = 1@[100,200,300][ms] |> [0,1,0][sec]`
 
 Chuck 100 +=> now;
+
 Chronic @+ @-
 
 ### Functions will be triggered at the time bound to input variable
 
-TODO how can we manage multiple arguments of function?
+*TODO how can we manage multiple arguments of function?*
 
 When we input variables into function, the function will be scheduled to be triggerd at the time bound to the variable(if not bound, will not be triggerd) 
 
@@ -45,15 +46,15 @@ When we call some function inside the function, that will be scheduled at next i
 
 
 ```
-pitch_index::int = produce((x)=>{x+x},5)//[2,4,6,8,10]
- time_index::int@ = produce((x)=>{x*x},5) // [@1,@4,@9,@16,@25]
- end_index = time_index.map((t)=>{ t |> 2[s]}) //[@3,@6,@11,@18,@27]
+pitch_index::int = produce((x)->{x+x},5)//[2,4,6,8,10]
+time_index::int@ = produce((x)->{x*x},5) // [@1,@4,@9,@16,@25]
+end_index = time_index.map((t)->{ t |> 2[s]}) //[@3,@6,@11,@18,@27]
  
  
- pitchevents = pitch_index.tbind((x,i)=>{x@[time_index[i],end_index[i]]}) //[2@[1,3],4@[4,6],6@[9,11],8@[16,18],10@[25,27]]
+pitchevents = pitch_index.tbind((x,i)->{x@[time_index[i],end_index[i]]}) //[2@[1,3],4@[4,6],6@[9,11],8@[16,18],10@[25,27]]
 
  
- function noteOn(input_pitch::int,instrument){//input_pitch is like 2@[1,3] and trigger at time 1
+function noteOn(input_pitch::int,instrument){//input_pitch is like 2@[1,3] and trigger at time 1
  	instrument.pitch = input_pitch
  	instrument.gain = 1.0
  	bind(noteOff(input_pitch,instrument)) // now input_pitch is 2@3,will triggerd at time 3
@@ -62,25 +63,25 @@ pitch_index::int = produce((x)=>{x+x},5)//[2,4,6,8,10]
    	instrument.gain = 0.0
   }
  
- pitchevents.map(pitch=>noteOn(pitch)) // bind noteon to all pitchevents elements
+ pitchevents.map(pitch->noteOn(pitch)) // bind noteon to all pitchevents elements
 ```
 
 ### You can refer past/future value of variable in function
 
 ```
  
-delay(input::int@) = input <| 100[ms] //this output the past input of 100ms:delay of 100ms
+delay(input::int) = input <<< 100[ms] //this output the past input of 100ms:delay of 100ms
 
-future(input::int@) = input |> 100::ms //this output the future input of 100ms(this makes global offset delay like vst plugin system, useful when we build filter)
+future(input::int) = input >>> 100::ms //this output the future input of 100ms(this makes global offset delay like vst plugin system, useful when we build filter)
 
 ```
 
 ### Function can refer a past of its own output by calling "self"
 
 ```
-combfilter(input) = input + 0.999*( self<|1 ) // feeding back its output by one index (self cannot refer its future, it will return error)
+combfilter(input) = input + 0.999*( self<<<1 ) // feeding back its output by one index (self cannot refer its future, it will return error)
 
-combfilter = input+0.999*(self <| 1[sec] ) // maybe can we refer past by relative time? if we have built-in interpolation
+combfilter = input+0.999*(self <<< 1[sec] ) // maybe can we refer past by relative time? if we have built-in interpolation
  
 ```
 
