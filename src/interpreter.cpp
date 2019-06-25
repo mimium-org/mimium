@@ -255,11 +255,7 @@ struct fcall_visitor{
 mValue Interpreter::interpretFcall(AST_Ptr expr){
     try{
     auto fcall  = std::dynamic_pointer_cast<FcallAST>(expr);
-    int time = fcall->get_time();
-    if(time>0){
-        sch->addTask(time,expr);
-        return 0.0; // temporary
-    }else{
+
     auto name  =  std::dynamic_pointer_cast<SymbolAST>(fcall->getFname())->getVal();
     auto args = fcall->getArgs()->getArgs();
     if(mimium::builtin::isBuiltin(name)){
@@ -301,7 +297,25 @@ mValue Interpreter::interpretFcall(AST_Ptr expr){
             }
         }
     }
+    }catch(std::exception e){
+        std::cerr<< e.what()<<std::endl;
+        return 0.0;
     }
+}
+
+//helper type for visiting
+template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+
+mValue Interpreter::interpretTime(AST_Ptr expr){
+    try{
+    auto timeexpr = std::dynamic_pointer_cast<TimeAST>(expr);
+    mValue time = interpretExpr(timeexpr->getTime());
+    std::visit(overloaded {
+        [&](double t){sch->addTask(t, timeexpr->getExpr());},
+        [](auto t){throw std::runtime_error("you cannot append value pther than double");}
+    },time);
+
     }catch(std::exception e){
         std::cerr<< e.what()<<std::endl;
         return 0.0;

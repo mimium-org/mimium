@@ -111,8 +111,8 @@ AST_Ptr MimiumDriver::add_statements(AST_Ptr statements){
 
 
 AST_Ptr MimiumDriver::set_time(AST_Ptr elem,int time){
-    elem->set_time(time);
-    return elem;
+   auto timeast = std::make_unique<NumberAST>(std::move(time));
+    return std::make_unique<TimeAST>(std::move(elem),std::move(timeast));
 }
 
 // void MimiumDriver::add_line(AST_Ptr in){

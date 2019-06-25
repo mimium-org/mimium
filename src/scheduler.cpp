@@ -25,7 +25,7 @@ void mimium::Scheduler::incrementTime(){
 }
 
 void mimium::Scheduler::addTask(int time,AST_Ptr fn){
-    fn->set_time(-1); //remove time to execute 
+    // fn->set_time(-1); //remove time to execute 
     tasks.insert(std::make_pair(time,fn));
     if(tasks.size()==1){
         lasttask_index = tasks.begin();

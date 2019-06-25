@@ -26,7 +26,9 @@ enum AST_ID{
     ARRAYINIT,
     LAMBDA,
     OP,
-    LIST
+    LIST,
+    TIME
+
 };
 
 
@@ -68,8 +70,6 @@ class AST{
 
 
     AST_ID getid(){return id;}
-    void set_time(int t){time = t;}
-    int get_time(){return time;}
     bool istimeset(){return (time>=0);}
     protected:
 
@@ -236,9 +236,21 @@ class FcallAST: public AST{
 class ReturnAST: public AST{
     public:
     AST_Ptr expr;
-        ReturnAST(AST_Ptr Expr):expr(std::move(Expr)){
+    ReturnAST(AST_Ptr Expr):expr(std::move(Expr)){
         id = RETURN;
     }
+    auto getExpr(){return expr;}
+    std::ostream& to_string(std::ostream& ss);
+};
+
+class TimeAST : public AST{
+    public:
+    AST_Ptr expr;
+    AST_Ptr time;
+    TimeAST(AST_Ptr Expr,AST_Ptr Time):expr(std::move(Expr)),time(std::move(Time)){
+        id = TIME;
+    }
+    auto getTime(){return time;}
     auto getExpr(){return expr;}
     std::ostream& to_string(std::ostream& ss);
 };

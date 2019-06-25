@@ -7,20 +7,13 @@
 std::ostream& NumberAST::to_string(std::ostream& ss){
     //type matching
     ss << val;
-    if(istimeset()){
-            ss << "@" << std::to_string(get_time());
-        }
+
     return ss;
     
 }
 
-
-
 std::ostream& SymbolAST::to_string(std::ostream& ss){
     ss <<  val;
-    if(istimeset()){
-        ss << "@" << std::to_string(get_time());
-    }
     return ss;
 }
 
@@ -35,9 +28,7 @@ std::ostream& OpAST::to_string(std::ostream& ss){
         ss<< " ";
         rhs->to_string(ss);
         ss<<")";
-        if(istimeset()){
-            ss<< "@" << std::to_string(get_time());
-        }
+
         return ss;
     }
 
@@ -49,9 +40,7 @@ std::ostream& ListAST::to_string(std::ostream& ss){
             ss<< " ";
         }
         ss << ")";
-        if(istimeset()){
-            ss << "@" << std::to_string(get_time());
-        }
+
         return ss;
     }
 
@@ -62,9 +51,6 @@ std::ostream& ArgumentsAST::to_string(std::ostream& ss){
             ss<< " ";
         }
         ss << ")";
-        if(istimeset()){
-            ss << "@" << std::to_string(get_time());
-        }
         return ss;
     }
 
@@ -72,9 +58,7 @@ std::ostream& ReturnAST::to_string(std::ostream& ss){
         ss << "( return ";
             expr->to_string(ss);
         ss << ")";
-        if(istimeset()){
-            ss << "@" << std::to_string(get_time());
-        }
+
         return ss;
     }
 
@@ -85,9 +69,6 @@ std::ostream& LambdaAST::to_string(std::ostream& ss){
         ss <<")";
         body->to_string(ss) ;
         ss << ")";
-        if(istimeset()){
-            ss << "@" << std::to_string(get_time());
-        }
         return ss;
     }
 
@@ -98,9 +79,6 @@ std::ostream& AssignAST::to_string(std::ostream& ss){
         ss << " ";
         expr->to_string(ss);
         ss <<")";
-        if(istimeset()){
-            ss << "@" << std::to_string(get_time());
-        }
         return ss;
 }
 
@@ -110,8 +88,15 @@ std::ostream& FcallAST::to_string(std::ostream& ss){
         ss << " ";
         args->to_string(ss);
         ss <<")";
-        if(istimeset()){
-            ss << "@" << std::to_string(get_time());
-        }
         return ss;
+}
+
+std::ostream& TimeAST::to_string(std::ostream& ss){
+        ss << "(";
+        expr->to_string(ss);
+        ss << "@";
+        time->to_string(ss);
+        ss <<")";
+        return ss;
+    
 }

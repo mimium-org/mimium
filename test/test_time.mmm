@@ -1,2 +1,7 @@
-main = println(5)@220500
-main2 =  println(7.5)@420500
+main = println(1)@220500
+main =  println(2)@230000
+main =  println(3)@330000
+main =  println(4)@360000
+main =  println(5)@360001
+main =  println(6)@460001
+main =  println(7)@760001
