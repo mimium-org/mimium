@@ -53,9 +53,8 @@ class Interpreter: public std::enable_shared_from_this<Interpreter> {
     std::string currentNS;
     std::shared_ptr<Scheduler> sch;
 
-    bool res;
     public:
-    Interpreter():res(false){
+    Interpreter(){
         rootenv = std::make_shared<Environment>("root",nullptr);
         currentenv = rootenv; // share
     };

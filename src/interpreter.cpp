@@ -1,6 +1,10 @@
 
 #include "interpreter.hpp"
+
 namespace mimium{
+//helper type for visiting
+template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 bool Environment::isVariableSet(std::string key){
     if(variables.size()>0 && variables.count(key)>0){//search dictionary
@@ -171,14 +175,9 @@ mValue Interpreter::interpretExpr(AST_Ptr expr){
             return 0.0;
     }
 }
-struct binary_visitor{
-    double operator()(double lhs){return lhs;}
-    double operator()(AST_Ptr lhs){
-        mValue val = (lhs);
-        std::cerr << "invarid binary operation!" << std::endl;
-        return 0.0;
-    }
-    double operator()(mClosure_ptr lhs){
+overloaded binary_visitor{
+    [](double lhs){return lhs;},
+    [](auto lhs){
         mValue val = (lhs);
         std::cerr << "invarid binary operation!" << std::endl;
         return 0.0;
@@ -187,9 +186,9 @@ struct binary_visitor{
 mValue Interpreter::interpretBinaryExpr(AST_Ptr expr){
     auto var  = std::dynamic_pointer_cast<OpAST>(expr);
     mValue lhs = interpretExpr(var->lhs);
-    double lv = std::visit(binary_visitor{},lhs);
+    double lv = std::visit(binary_visitor,lhs);
     mValue rhs = interpretExpr(var->rhs);
-    double rv = std::visit(binary_visitor{},rhs);
+    double rv = std::visit(binary_visitor,rhs);
 
     switch (var->getOpId()){
         case ADD:
@@ -242,18 +241,14 @@ mValue Interpreter::interpretLambda(AST_Ptr expr){
         return 0;
     }
 }
-struct fcall_visitor{
-    mClosure_ptr operator()(double v){
+overloaded fcall_visitor{
+    [](auto v)->mClosure_ptr{
         throw std::runtime_error("reffered variable is not a function");
         return nullptr;
-        };
-    mClosure_ptr operator()(AST_Ptr v){
-        throw std::runtime_error("reffered variable is not a closure");
-        return nullptr;
-    };
-    mClosure_ptr operator()(std::shared_ptr<Closure> v){
+        },
+    [](std::shared_ptr<Closure> v)->mClosure_ptr{
         return v;
-        };
+        }
 };
 mValue Interpreter::interpretFcall(AST_Ptr expr){
     try{
@@ -269,7 +264,7 @@ mValue Interpreter::interpretFcall(AST_Ptr expr){
         return 0.0;
     }else{
         mValue var = findVariable(name);
-        mClosure_ptr closure  =std::visit(fcall_visitor{},var);
+        mClosure_ptr closure  =std::visit(fcall_visitor,var);
         auto lambda = closure->fun;
         std::shared_ptr<Environment> tmpenv = currentenv; 
         currentenv = closure->env; //switch to closure context
@@ -306,9 +301,6 @@ mValue Interpreter::interpretFcall(AST_Ptr expr){
     }
 }
 
-//helper type for visiting
-template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
-template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 mValue Interpreter::interpretTime(AST_Ptr expr){
     try{
@@ -324,33 +316,29 @@ mValue Interpreter::interpretTime(AST_Ptr expr){
         return 0.0;
     }
 }
-struct getdouble_visitor{
-    double operator()(double v){return v;};
-    double operator()(AST_Ptr v){
-        std::cerr<< "invalid value" <<std::endl;
-        return 0;
-    };
-    double operator()(mClosure_ptr v){
-        std::cerr<< "invalid value" <<std::endl;
-        return 0;
-        };
-};
+
 double Interpreter::get_as_double(mValue v){
-    return std::visit(getdouble_visitor{},v);
+    return std::visit(overloaded{
+        [](double v)->double{return v;},
+        [](auto v)->double{
+        std::cerr<< "invalid value" <<std::endl;
+        return 0;
+    }
+    },v);
 };
-struct tostring_visitor{
-    std::string operator()(double v){return std::to_string(v);};
-    std::string operator()(AST_Ptr v){
-        std::stringstream ss;
-        v->to_string(ss);
-        return ss.str();
-        };
-    std::string operator()(mClosure_ptr v){
-        return v->to_string();
-        };
-};
+
 std::string Interpreter::to_string(mValue v){
-    return std::visit(tostring_visitor{},v);
+    return std::visit(overloaded{
+        [](double v){return std::to_string(v);},
+        [](AST_Ptr v){
+            std::stringstream ss;
+            v->to_string(ss);
+            return ss.str();
+        },
+        [](mClosure_ptr v){
+        return v->to_string();
+        }
+    },v);
 };
 
 }//mimium ns
