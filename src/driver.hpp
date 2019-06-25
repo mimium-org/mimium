@@ -43,7 +43,7 @@ namespace mmmpsr{
 
         AST_Ptr add_fdef(AST_Ptr fname,AST_Ptr args,AST_Ptr statements);
 
-        AST_Ptr set_time(AST_Ptr elem,int time);
+        AST_Ptr set_time(AST_Ptr elem,AST_Ptr time);
         // void add_line(AST_Ptr in); // final action
         void add_top(AST_Ptr top); // final action
 

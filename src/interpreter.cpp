@@ -163,6 +163,9 @@ mValue Interpreter::interpretExpr(AST_Ptr expr){
         case FCALL:
             return interpretFcall(expr);
         break;
+        case TIME:
+            return interpretTime(expr);
+        break;
         default:
             std::cerr << "invalid expression" <<std::endl;
             return 0.0;
@@ -315,7 +318,7 @@ mValue Interpreter::interpretTime(AST_Ptr expr){
         [&](double t){sch->addTask(t, timeexpr->getExpr());},
         [](auto t){throw std::runtime_error("you cannot append value pther than double");}
     },time);
-
+    return 0;
     }catch(std::exception e){
         std::cerr<< e.what()<<std::endl;
         return 0.0;

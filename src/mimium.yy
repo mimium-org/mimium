@@ -179,7 +179,7 @@ expr : expr ADD    expr  {$$ = driver.add_op(token::ADD , std::move($1),std::mov
      | expr BITAND expr  {$$ = driver.add_op("&&", std::move($1),std::move($3));}
      | term_time {$$ = std::move($1);};
 
-term_time : term AT NUM {$$ = driver.set_time(std::move($1),std::move($3));}
+term_time : term AT term {$$ = driver.set_time(std::move($1),std::move($3));}
          | term {$$ = std::move($1);}
          ;
 term : single
