@@ -62,6 +62,42 @@ TEST(bison_parser_test, fdef) {
      std::cout << ss.str()<<std::endl;
      EXPECT_EQ(ss.str(),"((assign myfunc (lambda ((a b ))(( return (+ 1 2)) ))) )");
 }
+TEST(bison_parser_test, fdef_multi) {
+     mmmpsr::MimiumDriver driver;
+     std::string teststr = "fn myfunc(a,b){\n return 1+2 \n} \n fn myfuncb(c,d){\nreturn 1+2\n}";
+     driver.parsestring(teststr);
+     std::stringstream ss;
+     driver.print(ss);
+     std::cout << ss.str()<<std::endl;
+     EXPECT_EQ(ss.str(),"((assign myfunc (lambda ((a b ))(( return (+ 1 2)) ))) (assign myfuncb (lambda ((c d ))(( return (+ 1 2)) ))) )");
+}
+TEST(bison_parser_test, fdef_multi2) {
+     mmmpsr::MimiumDriver driver;
+     std::string teststr = \
+     "fn makecounter(x){\n\
+          localvar = 0\n\
+          fn countup(y){\n\
+               localvar= localvar+x\n\
+               return localvar\n\
+          }\n\
+          return countup\n\
+     }\n\
+     ctr = makecounter(1)\n\
+     fn rec(y){\n\
+          myctr = ctr(1)\n\
+          test = println(myctr)@x\n\
+          return rec(x)\n\
+     }\n\
+     main = rec(48000)@0";
+     driver.parsestring(teststr);
+     std::stringstream ss;
+     driver.print(ss);
+     std::cout << ss.str()<<std::endl;
+     EXPECT_EQ(ss.str(),"((assign myfunc (lambda ((a b ))(( return (+ 1 2)) ))) (assign myfuncb (lambda ((c d ))(( return (+ 1 2)) ))) )");
+}
+
+
+
 TEST(bison_parser_test, lambda) {
      mmmpsr::MimiumDriver driver;
      std::string teststr = "myfunc = (a,b)->{1+2}";
