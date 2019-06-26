@@ -282,7 +282,7 @@ mValue Interpreter::interpretFcall(AST_Ptr expr){
             int count = 0;
             for (auto& larg:lambdaargs ){
                 std::string key = std::dynamic_pointer_cast<SymbolAST>(larg)->getVal();
-                currentenv->getVariables()[key] = std::dynamic_pointer_cast<NumberAST>(args[count])->getVal(); //currently only Number,we need to define LHS
+                currentenv->getVariables()[key] = interpretExpr(args[count]);//currently only Number,we need to define LHS
                 count++;
             }
             if(argscond==0){
