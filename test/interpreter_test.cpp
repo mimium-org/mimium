@@ -73,4 +73,16 @@ TEST(interpreter_test, builtin_print) {
      mValue main = interpreter.findVariable("main");
     double resv = mimium::Interpreter::get_as_double(main);
      EXPECT_EQ(resv,0);
-}
+} 
+
+TEST(interpreter_test, ifstatement) {
+     std::string teststr1 = "main = print(1)";
+     driver.parsefile("test_if.mmm");
+     mValue res = interpreter.loadAst(driver.getMainAst());
+     mValue main = interpreter.findVariable("true");
+    double resv = mimium::Interpreter::get_as_double(main);
+     EXPECT_EQ(resv,5);
+     mValue main2 = interpreter.findVariable("false");
+    double resv2 = mimium::Interpreter::get_as_double(main2);
+     EXPECT_EQ(resv2,100);
+} 

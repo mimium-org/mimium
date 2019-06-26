@@ -96,6 +96,9 @@ mValue Interpreter::interpretStatementsAst(AST_Ptr line){
     // case FDEF: 
     //     tmpres=  interpretFdef(line); 
     //     break;
+    case IF:
+        tmpres = interpretIf(line);
+        break;
     case RETURN:
         tmpres = interpretReturn(line);
         goto end;
@@ -299,6 +302,21 @@ mValue Interpreter::interpretFcall(AST_Ptr expr){
         std::cerr<< e.what()<<std::endl;
         return 0.0;
     }
+}
+mValue Interpreter::interpretIf(AST_Ptr expr){
+    try{
+    auto ifexpr = std::dynamic_pointer_cast<IfAST>(expr);
+    mValue cond = interpretExpr(ifexpr->getCond());
+    auto cond_d = get_as_double(cond);
+    if(cond_d!=0){
+                return interpretListAst(ifexpr->getThen());
+            }else{
+                return interpretListAst(ifexpr->getElse());
+    }
+    }catch(std::exception e){
+        std::cerr<< e.what()<<std::endl;
+        return 0.0;
+    } 
 }
 
 

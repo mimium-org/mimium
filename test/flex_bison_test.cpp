@@ -93,7 +93,7 @@ TEST(bison_parser_test, fdef_multi2) {
      std::stringstream ss;
      driver.print(ss);
      std::cout << ss.str()<<std::endl;
-     EXPECT_EQ(ss.str(),"((assign myfunc (lambda ((a b ))(( return (+ 1 2)) ))) (assign myfuncb (lambda ((c d ))(( return (+ 1 2)) ))) )");
+     EXPECT_EQ(ss.str(),"((assign makecounter (lambda ((x ))((assign localvar 0) (assign countup (lambda ((y ))((assign localvar (+ localvar x)) ( return localvar) ))) ( return countup) ))) (assign ctr (makecounter (1 ))) (assign rec (lambda ((y ))((assign myctr (ctr (1 ))) (assign test (println (myctr ))@x) ( return (rec (x ))) ))) (assign main (rec (48000 ))@0) )");
 }
 
 
@@ -153,4 +153,13 @@ TEST(bison_parser_test, nestfunction) {
      driver.print(ss);
      std::cout << ss.str()<<std::endl;
      EXPECT_EQ(ss.str(),"((assign hoge (lambda ((x ))((assign localvar x) (assign fuga (lambda ((y ))((assign localvar (+ localvar y)) ( return localvar) ))) ( return (fuga (2.5 ))) ))) (assign main (hoge (1 ))) )");
+}
+
+TEST(bison_parser_test, ifstatement) {
+     mmmpsr::MimiumDriver driver;
+     driver.parsefile("test_if.mmm");
+     std::stringstream ss;
+     driver.print(ss);
+     std::cout << ss.str()<<std::endl;
+     EXPECT_EQ(ss.str(),"((assign test (lambda ((x y ))(if x ((assign res y) ) ((assign res 100) ) ( return res) ))) (assign true (test (1 5 ))) (assign false (test (0 100 ))) )");
 }

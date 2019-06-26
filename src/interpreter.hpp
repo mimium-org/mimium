@@ -86,6 +86,8 @@ class Interpreter: public std::enable_shared_from_this<Interpreter> {
 
     mValue interpretFcall(AST_Ptr expr);
 
+    mValue interpretIf(AST_Ptr expr);
+
     mValue interpretTime(AST_Ptr expr);
 
     static double get_as_double(mValue v);

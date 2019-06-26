@@ -26,6 +26,7 @@ enum AST_ID{
     ARRAYINIT,
     LAMBDA,
     OP,
+    IF,
     LIST,
     TIME
 
@@ -240,6 +241,17 @@ class ReturnAST: public AST{
         id = RETURN;
     }
     auto getExpr(){return expr;}
+    std::ostream& to_string(std::ostream& ss);
+};
+class IfAST: public AST{
+    public:
+    AST_Ptr condition,thenstatement,elsestatement;
+    IfAST(AST_Ptr Condition,AST_Ptr Thenstatement,AST_Ptr Elsestatement):condition(std::move(Condition)),thenstatement(std::move(Thenstatement)),elsestatement(std::move(Elsestatement)){
+        id = IF;
+    }
+    auto getCond(){return condition;}
+    auto getThen(){return thenstatement;}
+    auto getElse(){return elsestatement;}
     std::ostream& to_string(std::ostream& ss);
 };
 

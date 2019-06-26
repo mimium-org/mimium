@@ -90,6 +90,17 @@ std::ostream& FcallAST::to_string(std::ostream& ss){
         ss <<")";
         return ss;
 }
+std::ostream& IfAST::to_string(std::ostream& ss){
+        ss << "if ";
+        condition->to_string(ss);
+        ss << " ";
+        thenstatement->to_string(ss);
+        ss << " ";
+        elsestatement->to_string(ss);
+        return ss;
+    
+}
+
 
 std::ostream& TimeAST::to_string(std::ostream& ss){
         expr->to_string(ss);

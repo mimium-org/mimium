@@ -75,10 +75,6 @@
 %token  <std::string> FNAME "fname_token"
 
 
-
-
-%type <AST_Ptr> fname "fname"
-
 %type <AST_Ptr> num "number"
 %type <AST_Ptr> symbol "symbol"
 
@@ -102,7 +98,7 @@
 
 %type <AST_Ptr> fcall "fcall"
 
-
+%type <AST_Ptr> ifstatement "if statement"
 %type <AST_Ptr> statement "single statement"
 %type <AST_Ptr> statements "statements"
 %type <AST_Ptr> block "block"
@@ -148,13 +144,15 @@ opt_nl: {}
 
 statement : assign {$$=std::move($1);} 
          | fdef  {$$=std::move($1);} 
+         | ifstatement  {$$=std::move($1);} 
          |RETURN expr {$$ = driver.add_return(std::move($2));}
          ;
 
 fdef : FUNC symbol arguments_top block {$$ = driver.add_assign(std::move($2),driver.add_lambda(std::move($3),std::move($4)));};
 
-
-
+ifstatement: IF term block {$$ = driver.add_if(std::move($2),std::move($3),nullptr);}
+            |IF term block ELSE block {$$ = driver.add_if(std::move($2),std::move($3),std::move($5));}
+;
 
 /* end : END; */
 

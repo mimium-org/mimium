@@ -110,6 +110,11 @@ AST_Ptr MimiumDriver::add_statements(AST_Ptr statements){
 };
 
 
+AST_Ptr MimiumDriver::add_if(AST_Ptr condition,AST_Ptr thenstatement,AST_Ptr elsestatement=nullptr){
+   return std::make_unique<IfAST>(std::move(condition),std::move(thenstatement),std::move(elsestatement));
+};
+
+
 AST_Ptr MimiumDriver::set_time(AST_Ptr elem,AST_Ptr time){
     return std::make_unique<TimeAST>(std::move(elem),std::move(time));
 }
