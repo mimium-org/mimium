@@ -258,7 +258,7 @@ mValue Interpreter::interpretFcall(AST_Ptr expr){
     auto args = fcall->getArgs()->getArgs();
     if(mimium::builtin::isBuiltin(name)){
         std::stringstream ss;
-        args[0]->to_string(ss);
+        ss<<to_string(interpretExpr(args[0]));
         auto fn = mimium::builtin::builtin_fntable.at(name);
         fn(ss.str()); // currently implemented only for print()
         return 0.0;
