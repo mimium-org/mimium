@@ -12,14 +12,14 @@ ADD_FLEX_BISON_DEPENDENCY(MyScanner MyParser)
 
 
 add_executable(Test
-${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} ../src/ast.cpp ../src/audiodriver.cpp  ../src/interpreter.cpp ../src/scheduler.cpp ../src/driver.cpp
+${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} ../src/ast.cpp ../src/audiodriver.cpp  ../src/interpreter.cpp ../src/closure.cpp ../src/environment.cpp ../src/builtin_functions.cpp ../src/scheduler.cpp ../src/driver.cpp
  flex_bison_test.cpp  interpreter_test.cpp  builtin_test.cpp )
 
 
 add_executable(AudioTest ../src/audiodriver.cpp audiodriver_test.cpp)
 
 add_executable(SchedulerTest 
- ${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} ../src/ast.cpp ../src/audiodriver.cpp  ../src/interpreter.cpp ../src/scheduler.cpp ../src/driver.cpp 
+ ${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} ../src/ast.cpp ../src/audiodriver.cpp  ../src/closure.cpp ../src/environment.cpp ../src/builtin_functions.cpp ../src/interpreter.cpp ../src/scheduler.cpp ../src/driver.cpp 
 scheduler_test.cpp)
 
 
@@ -39,7 +39,6 @@ target_link_libraries(Test
     GTest::Main   # GTest::Mainをリンクすると自分でmain関数を書く必要がなくなる
     rtaudio
     ${llvm_libs}
-    builtin_functions
   )
 
 target_link_libraries(AudioTest
@@ -49,7 +48,6 @@ target_link_libraries(AudioTest
 target_link_libraries(SchedulerTest
   PRIVATE
   rtaudio
-  builtin_functions
 )
 
 file(GLOB testsource *.mmm)

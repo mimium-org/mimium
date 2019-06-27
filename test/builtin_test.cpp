@@ -5,7 +5,7 @@
 
 TEST(builtin_test, print) {
     testing::internal::CaptureStdout();
-    mimium::builtin::print("test");
-    ASSERT_STREQ("test", testing::internal::GetCapturedStdout().c_str());
+    mimium::builtin::print(1);
+    EXPECT_STREQ("1", testing::internal::GetCapturedStdout().c_str());
 
 }
