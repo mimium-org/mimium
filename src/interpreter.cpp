@@ -208,12 +208,13 @@ mValue Interpreter::interpretFcall(AST_Ptr expr){
     auto fcall  = std::dynamic_pointer_cast<FcallAST>(expr);
 
     auto name  =  std::dynamic_pointer_cast<SymbolAST>(fcall->getFname())->getVal();
-    auto args = fcall->getArgs()->getElements();
+    auto args = fcall->getArgs();
     if(mimium::builtin::isBuiltin(name)){
         auto fn = mimium::builtin::builtin_fntable.at(name);
-        fn(interpretExpr(args[0])); // currently implemented only for print()
+        fn(args,shared_from_this()); // currently implemented only for print()
         return 0.0;
     }else{
+        auto argsv = args->getElements();
         mValue var = findVariable(name);
         mClosure_ptr closure  =std::visit(fcall_visitor,var);
         auto lambda = closure->fun;
@@ -223,14 +224,14 @@ mValue Interpreter::interpretFcall(AST_Ptr expr){
 
         auto body  = lambda->getBody();
         currentenv = currentenv->createNewChild(name); //create arguments
-        int argscond = lambdaargs.size() - args.size();
+        int argscond = lambdaargs.size() - argsv.size();
         if(argscond<0){
             throw std::runtime_error("too many arguments");
         }else {
             int count = 0;
             for (auto& larg:lambdaargs ){
                 std::string key = std::dynamic_pointer_cast<SymbolAST>(larg)->getVal();
-                currentenv->getVariables()[key] = interpretExpr(args[count]);//currently only Number,we need to define LHS
+                currentenv->getVariables()[key] = interpretExpr(argsv[count]);//currently only Number,we need to define LHS
                 count++;
             }
             if(argscond==0){

@@ -18,24 +18,20 @@
 //         [](auto v)->mValue{return 0;}
 //     },val);
 // }
-mValue mimium::builtin::print(mValue str){
-    std::visit(overloaded{
-        [](double s){std::cout << s;},
-        [](mClosure_ptr c){std::cout <<  c->to_string() ;},
-        [](std::pair<double ,AST_Ptr> v){
-            std::cout << "[ "<< v.first <<",";
-            v.second->to_string(std::cout);
-            std::cout <<" ]"; 
-        },
-        [](auto c){std::cout << "print function not implemented";}
-    },str);
-    return str;
+mValue mimium::builtin::print(std::shared_ptr<ArgumentsAST> argast,std::shared_ptr<Interpreter> interpreter){
+    auto args = argast->getElements();
+    for (auto& elem : args){
+    mValue ev = interpreter->interpretExpr(elem);
+    std::cout << Interpreter::to_string(ev);
+    std::cout <<" ";
+    }
+    return 0.0;
 }
 
-mValue mimium::builtin::println(mValue str){
-    mimium::builtin::print(str);
+mValue mimium::builtin::println(std::shared_ptr<ArgumentsAST> argast,std::shared_ptr<Interpreter> interpreter){
+    mimium::builtin::print(argast,interpreter);
     std::cout << std::endl;
-    return str;
+    return 0.0;
 }
 
 bool mimium::builtin::isBuiltin(std::string str){
