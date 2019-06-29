@@ -100,6 +100,10 @@ AST_Ptr MimiumDriver::add_lambda(AST_Ptr args,AST_Ptr body){
 AST_Ptr MimiumDriver::add_fcall(AST_Ptr fname,AST_Ptr args){
    return std::make_unique<FcallAST>(std::move(fname),std::move(args));
 };
+AST_Ptr MimiumDriver::add_array(AST_Ptr array){
+   return std::make_unique<ArrayAST>(std::move(array));
+};
+
 
 AST_Ptr MimiumDriver::add_return(AST_Ptr expr){
    return std::make_unique<ReturnAST>(std::move(expr));

@@ -205,7 +205,7 @@ mValue Interpreter::interpretFcall(AST_Ptr expr){
     auto fcall  = std::dynamic_pointer_cast<FcallAST>(expr);
 
     auto name  =  std::dynamic_pointer_cast<SymbolAST>(fcall->getFname())->getVal();
-    auto args = fcall->getArgs()->getArgs();
+    auto args = fcall->getArgs()->getElements();
     if(mimium::builtin::isBuiltin(name)){
         auto fn = mimium::builtin::builtin_fntable.at(name);
         fn(interpretExpr(args[0])); // currently implemented only for print()
@@ -216,7 +216,7 @@ mValue Interpreter::interpretFcall(AST_Ptr expr){
         auto lambda = closure->fun;
         std::shared_ptr<Environment> tmpenv = currentenv; 
         currentenv = closure->env; //switch to closure context
-        auto lambdaargs = std::dynamic_pointer_cast<ArgumentsAST>(lambda->getArgs())->getArgs();
+        auto lambdaargs = std::dynamic_pointer_cast<ArgumentsAST>(lambda->getArgs())->getElements();
 
         auto body  = lambda->getBody();
         currentenv = currentenv->createNewChild(name); //create arguments
@@ -297,6 +297,9 @@ std::string Interpreter::to_string(mValue v){
         },
         [](mClosure_ptr v){
         return v->to_string();
+        },
+        [](std::pair<double,AST_Ptr> v){
+            return std::to_string(v.first);
         }
     },v);
 };

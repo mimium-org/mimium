@@ -19,6 +19,7 @@ enum AST_ID{
     SYMBOL,
     ARG,
     ARGS,
+    ARRAY,
     FCALL,
     ASSIGN,
     FDEF,
@@ -57,7 +58,7 @@ struct Closure; //forward
 using mClosure_ptr = std::shared_ptr<mimium::Closure>;
 
 using AST_Ptr = std::shared_ptr<AST>;
-using mValue = std::variant<double,std::shared_ptr<AST>,mClosure_ptr>;
+using mValue = std::variant<double,std::shared_ptr<AST>,mClosure_ptr,std::pair<double,AST_Ptr>>;
 
 
 
@@ -168,21 +169,32 @@ class SymbolAST :  public AST{
     std::ostream& to_string(std::ostream& ss);
 };
 
-class ArgumentsAST : public AST{
+class AbstractListAST : public AST{
     public:
-    std::vector<AST_Ptr> args;
+    std::vector<AST_Ptr> elements;
 
-    ArgumentsAST(AST_Ptr arg){
-        args.insert(args.begin(),std::move(arg));
-        id=ARGS;
+    AbstractListAST(AST_Ptr arg){
+        elements.insert(elements.begin(),std::move(arg));
     }
     void addAST(AST_Ptr arg){
-        args.insert(args.begin(),std::move(arg));
+        elements.insert(elements.begin(),std::move(arg));
     };
-    auto& getArgs(){return args;}
+    auto& getElements(){return elements;}
     std::ostream& to_string(std::ostream& ss);
 };
 
+class ArgumentsAST: public AbstractListAST{
+    public:
+     ArgumentsAST(AST_Ptr arg):AbstractListAST(std::move(arg)){
+            id=ARGS;
+     };
+};
+class ArrayAST: public AbstractListAST{
+    public:
+    ArrayAST(AST_Ptr arg):AbstractListAST(std::move(arg)){
+            id=ARRAY;
+     };
+};
 class LambdaAST: public AST{
     public:
     AST_Ptr args;

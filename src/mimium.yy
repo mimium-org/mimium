@@ -91,6 +91,8 @@
 %type <AST_Ptr> arguments "arguments for fdef"
 %type <AST_Ptr> arguments_fcall "arguments for fcall"
 
+%type <AST_Ptr> array "array"
+%type <AST_Ptr> array_elems "array elements"
 
 
 %type <AST_Ptr> assign "assign"
@@ -192,6 +194,7 @@ term_time : term AT term {$$ = driver.set_time(std::move($1),std::move($3));}
          ;
 term : single
       |fcall
+      | array
       | '(' expr ')' {$$ =std::move($2);};
 
 
@@ -199,6 +202,13 @@ term : single
 
 fcall : symbol '(' arguments_fcall ')' {$$ = driver.add_fcall(std::move($1),std::move($3));}
 ;
+
+array : '[' array_elems ']' {$$ = std::move($2);}
+
+array_elems : single ',' array_elems   {$3->addAST(std::move($1));
+                                    $$ = std::move($3); }
+         |  single {$$ = driver.add_array(std::move($1));}
+         ;
 
 single : symbol{$$=std::move($1);}
       |  num   {$$=std::move($1);};

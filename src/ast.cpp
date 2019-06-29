@@ -44,9 +44,9 @@ std::ostream& ListAST::to_string(std::ostream& ss){
         return ss;
     }
 
-std::ostream& ArgumentsAST::to_string(std::ostream& ss){
+std::ostream& AbstractListAST::to_string(std::ostream& ss){
         ss << "(";
-        for(auto &elem :args){
+        for(auto &elem :elements){
             elem->to_string(ss);
             ss<< " ";
         }

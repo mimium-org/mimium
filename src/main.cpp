@@ -13,7 +13,7 @@
     mimium::Interpreter interpreter;
 int main(int argc,char *argv[]) {
     interpreter.add_scheduler();
-    if(argc==0){
+    if(argc==1){
     std::string line;
     std::cout << "start" <<std::endl;
     std::string teststr1 = "main = 1.245";
