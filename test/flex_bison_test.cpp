@@ -163,6 +163,14 @@ TEST(bison_parser_test, ifstatement) {
      std::cout << ss.str()<<std::endl;
      EXPECT_EQ(ss.str(),"((assign test (lambda ((x y ))(if x ((assign res y) ) ((assign res 100) ) ( return res) ))) (assign true (test (1 5 ))) (assign false (test (0 100 ))) )");
 }
+TEST(bison_parser_test, ifstatement2) {
+     mmmpsr::MimiumDriver driver;
+     driver.parsefile("test_if_nested.mmm");
+     std::stringstream ss;
+     driver.print(ss);
+     std::cout << ss.str()<<std::endl;
+     EXPECT_EQ(ss.str(),"((assign test (lambda ((x y z ))(if x ((assign res 0) ) (if y ((assign res 100) ) ((assign res z) ) ) ( return res) ))) (assign zero (test (1 23 244 ))) (assign hand (test (0 200 400 ))) (assign fivehand (test (0 0 500 ))) )");
+}
 TEST(bison_parser_test, array) {
      mmmpsr::MimiumDriver driver;
      std::string teststr = "main = [1,2,3,4,5]";

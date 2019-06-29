@@ -111,6 +111,7 @@
 
 %locations
 
+
 %left  OR BITOR
 %left  AND BITAND
 %nonassoc  EQ NEQ
@@ -125,7 +126,7 @@
 
 %left ','
 
-%left NEWLINE
+%left NEWLINE 
 
 
 %start top
@@ -139,7 +140,7 @@ statements :statement NEWLINE statements {$3->addAST(std::move($1));
                                            $$ = std::move($3);  }
             | statement opt_nl{  $$ = driver.add_statements(std::move($1));}
       ;
-block: LBRACE  statements RBRACE {$$ = $$ = std::move($2);};
+block: LBRACE  opt_nl statements opt_nl RBRACE {$$ = $$ = std::move($3);};
 
 opt_nl: {}
       | NEWLINE {};
@@ -172,9 +173,9 @@ arguments : symbol ',' arguments   {$3->addAST(std::move($1));
          ;
 
 
-arguments_fcall : single ',' arguments_fcall   {$3->addAST(std::move($1));
+arguments_fcall : expr ',' arguments_fcall   {$3->addAST(std::move($1));
                                           $$ = std::move($3); }
-         | single {$$ = driver.add_arguments(std::move($1));}
+         | expr {$$ = driver.add_arguments(std::move($1));}
          ;
 
 expr : expr ADD    expr  {$$ = driver.add_op(token::ADD , std::move($1),std::move($3));}

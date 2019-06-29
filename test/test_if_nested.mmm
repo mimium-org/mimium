@@ -1,0 +1,15 @@
+fn test(x,y,z){
+    if(x){
+        res = 0
+    }else{
+        if(y){
+        res=100
+        }else{
+        res= z
+        }
+    }
+    return res
+}
+zero = test(1,23,244)
+hand = test(0,200,400)
+fivehand  = test(0,0,500)

@@ -78,7 +78,6 @@ TEST(interpreter_test, builtin_print) {
 } 
 
 TEST(interpreter_test, ifstatement) {
-     std::string teststr1 = "main = print(1)";
      driver.parsefile("test_if.mmm");
      mValue res = interpreter.loadAst(driver.getMainAst());
      mValue main = interpreter.findVariable("true");
@@ -88,6 +87,19 @@ TEST(interpreter_test, ifstatement) {
     double resv2 = mimium::Interpreter::get_as_double(main2);
      EXPECT_EQ(resv2,100);
 } 
+TEST(interpreter_test, ifstatement2) {
+     driver.parsefile("test_if_nested.mmm");
+     mValue res = interpreter.loadAst(driver.getMainAst());
+     mValue main = interpreter.findVariable("zero");
+    double resv = mimium::Interpreter::get_as_double(main);
+     EXPECT_EQ(resv,0);
+     mValue main2 = interpreter.findVariable("hand");
+    double resv2 = mimium::Interpreter::get_as_double(main2);
+     EXPECT_EQ(resv2,100);
+     mValue main3 = interpreter.findVariable("fivehand");
+    double resv3 = mimium::Interpreter::get_as_double(main3);
+     EXPECT_EQ(resv3,500);
+} 
 TEST(interpreter_test, array) {
      std::string teststr1 = "main = [1,2,3,4,5]";
      driver.parsestring(teststr1);
@@ -95,3 +107,10 @@ TEST(interpreter_test, array) {
      mValue main = interpreter.findVariable("main");
     EXPECT_EQ("[1,2,3,4,5]", mimium::Interpreter::to_string(main) );
 } 
+
+TEST(interpreter_test, fibonacchi) {
+     driver.parsefile("fibonacchi.mmm");
+     mValue res = interpreter.loadAst(driver.getMainAst());
+     mValue main = interpreter.findVariable("main");
+    EXPECT_EQ(610, mimium::Interpreter::get_as_double(main));
+}

@@ -67,8 +67,8 @@ END {BREAK}{WSPACE}*"end"
 
 "=" return token::ASSIGN;
 
-"{"|"{"{BREAK}* return token::LBRACE;
-"}"|{BREAK}*"}" return token::RBRACE;
+"{" return token::LBRACE;
+"}" return token::RBRACE;
 
 {BREAK}	{ loc->lines(); loc->step(); return token::NEWLINE;}
 {DELIMITER} { return yytext[0];};

@@ -1,0 +1,12 @@
+fn fibo(num){
+    if(num){
+        if(num-1){
+            return fibo(num-2)+fibo(num-1)
+        }else{
+            return 1
+        }
+    }else{
+        return 0
+    }
+}
+main = fibo(2)

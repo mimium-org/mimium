@@ -231,7 +231,7 @@ mValue Interpreter::interpretFcall(AST_Ptr expr){
             int count = 0;
             for (auto& larg:lambdaargs ){
                 std::string key = std::dynamic_pointer_cast<SymbolAST>(larg)->getVal();
-                currentenv->getVariables()[key] = interpretExpr(argsv[count]);//currently only Number,we need to define LHS
+                currentenv->getVariables()[key] = interpretExpr(argsv[count]);
                 count++;
             }
             if(argscond==0){
@@ -240,7 +240,7 @@ mValue Interpreter::interpretFcall(AST_Ptr expr){
                 currentenv = tmpenv;//switch back env
                 return res;
             }else{
-                throw std::runtime_error("too few arguments"); //ideally we want to return new function like closure
+                throw std::runtime_error("too few arguments"); //ideally we want to return new function (partial application)
             }
         }
     }
