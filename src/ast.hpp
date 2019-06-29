@@ -58,7 +58,7 @@ struct Closure; //forward
 using mClosure_ptr = std::shared_ptr<mimium::Closure>;
 
 using AST_Ptr = std::shared_ptr<AST>;
-using mValue = std::variant<double,std::shared_ptr<AST>,mClosure_ptr,std::pair<double,AST_Ptr>>;
+using mValue = std::variant<double,std::shared_ptr<AST>,mClosure_ptr,std::vector<double> >;
 
 
 

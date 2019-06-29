@@ -57,6 +57,8 @@ class Interpreter: public std::enable_shared_from_this<Interpreter> {
 
     mValue interpretFcall(AST_Ptr expr);
 
+    mValue interpretArray(AST_Ptr array);
+
     mValue interpretIf(AST_Ptr expr);
 
     mValue interpretTime(AST_Ptr expr);

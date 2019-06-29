@@ -117,6 +117,9 @@ mValue Interpreter::interpretExpr(AST_Ptr expr){
         case FCALL:
             return interpretFcall(expr);
         break;
+        case ARRAY:
+            return interpretArray(expr);
+        break;
         case TIME:
             return interpretTime(expr);
         break;
@@ -245,6 +248,20 @@ mValue Interpreter::interpretFcall(AST_Ptr expr){
         return 0.0;
     }
 }
+mValue Interpreter::interpretArray(AST_Ptr array){
+    try{
+    auto arr = std::dynamic_pointer_cast<ArrayAST>(array);
+    std::vector<double> v;
+    for (auto &elem :arr->getElements()){
+        double res = get_as_double(interpretExpr(elem));
+        v.push_back(res);
+    }
+    return std::move(v);
+    }catch(std::exception e){
+        std::cerr<< e.what()<<std::endl;
+        return 0.0;
+    } 
+}
 mValue Interpreter::interpretIf(AST_Ptr expr){
     try{
     auto ifexpr = std::dynamic_pointer_cast<IfAST>(expr);
@@ -298,8 +315,17 @@ std::string Interpreter::to_string(mValue v){
         [](mClosure_ptr v){
         return v->to_string();
         },
-        [](std::pair<double,AST_Ptr> v){
-            return std::to_string(v.first);
+        [](std::vector<double> vec){
+        std::stringstream ss;
+        ss << "[";
+        int count = vec.size();
+        for (auto &elem: vec ){
+            ss<<elem;
+            count--;
+            if (count>0) ss<<",";
+        }
+        ss<<"]";
+        return ss.str();
         }
     },v);
 };

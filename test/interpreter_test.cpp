@@ -1,6 +1,8 @@
 #define MIMIUM_DEBUG
 
 #include "gtest/gtest.h"
+#include "gtest/internal/gtest-port.h"
+
 #include "driver.hpp"
 
 #include "interpreter.hpp"
@@ -85,4 +87,11 @@ TEST(interpreter_test, ifstatement) {
      mValue main2 = interpreter.findVariable("false");
     double resv2 = mimium::Interpreter::get_as_double(main2);
      EXPECT_EQ(resv2,100);
+} 
+TEST(interpreter_test, array) {
+     std::string teststr1 = "main = [1,2,3,4,5]";
+     driver.parsestring(teststr1);
+     mValue res = interpreter.loadAst(driver.getMainAst());
+     mValue main = interpreter.findVariable("main");
+    EXPECT_EQ("[1,2,3,4,5]", mimium::Interpreter::to_string(main) );
 } 

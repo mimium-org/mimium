@@ -3,7 +3,7 @@
 #include "ast.hpp"
 
 using mClosure_ptr = std::shared_ptr<mimium::Closure>;
-using mValue = std::variant<double,std::shared_ptr<AST>,mClosure_ptr>;
+using mValue = std::variant<double,std::shared_ptr<AST>,mClosure_ptr,std::vector<double> >;
 
 namespace mimium{
     class Environment: public std::enable_shared_from_this<Environment>{

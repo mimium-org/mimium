@@ -163,3 +163,12 @@ TEST(bison_parser_test, ifstatement) {
      std::cout << ss.str()<<std::endl;
      EXPECT_EQ(ss.str(),"((assign test (lambda ((x y ))(if x ((assign res y) ) ((assign res 100) ) ( return res) ))) (assign true (test (1 5 ))) (assign false (test (0 100 ))) )");
 }
+TEST(bison_parser_test, array) {
+     mmmpsr::MimiumDriver driver;
+     std::string teststr = "main = [1,2,3,4,5]";
+     driver.parsestring(teststr);
+     std::stringstream ss;
+     driver.print(ss);
+     EXPECT_EQ(ss.str(),"((assign main (1 2 3 4 5 )) )");
+
+}
