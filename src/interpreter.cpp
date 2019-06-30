@@ -206,7 +206,6 @@ overloaded fcall_visitor{
 mValue Interpreter::interpretFcall(AST_Ptr expr){
     try{
     auto fcall  = std::dynamic_pointer_cast<FcallAST>(expr);
-
     auto name  =  std::dynamic_pointer_cast<SymbolAST>(fcall->getFname())->getVal();
     auto args = fcall->getArgs();
     if(mimium::builtin::isBuiltin(name)){
@@ -219,11 +218,10 @@ mValue Interpreter::interpretFcall(AST_Ptr expr){
         mClosure_ptr closure  =std::visit(fcall_visitor,var);
         auto lambda = closure->fun;
         std::shared_ptr<Environment> tmpenv = currentenv; 
-        currentenv = closure->env; //switch to closure context
+        tmpenv = closure->env; //switch to closure context
         auto lambdaargs = std::dynamic_pointer_cast<ArgumentsAST>(lambda->getArgs())->getElements();
-
         auto body  = lambda->getBody();
-        currentenv = currentenv->createNewChild(name); //create arguments
+        tmpenv = tmpenv->createNewChild(name); //create arguments
         int argscond = lambdaargs.size() - argsv.size();
         if(argscond<0){
             throw std::runtime_error("too many arguments");
@@ -231,13 +229,14 @@ mValue Interpreter::interpretFcall(AST_Ptr expr){
             int count = 0;
             for (auto& larg:lambdaargs ){
                 std::string key = std::dynamic_pointer_cast<SymbolAST>(larg)->getVal();
-                currentenv->getVariables()[key] = interpretExpr(argsv[count]);
+                tmpenv->getVariables()[key] = interpretExpr(argsv[count]);
                 count++;
             }
             if(argscond==0){
+                currentenv = tmpenv;//switch back env
                 auto tmp = lambda->getBody();
                 auto res = interpretListAst(tmp);
-                currentenv = tmpenv;//switch back env
+                // currentenv = currentenv->getParent();
                 return res;
             }else{
                 throw std::runtime_error("too few arguments"); //ideally we want to return new function (partial application)
@@ -268,7 +267,7 @@ mValue Interpreter::interpretIf(AST_Ptr expr){
     auto ifexpr = std::dynamic_pointer_cast<IfAST>(expr);
     mValue cond = interpretExpr(ifexpr->getCond());
     auto cond_d = get_as_double(cond);
-    if(cond_d!=0){
+    if(cond_d>0){
                 return interpretListAst(ifexpr->getThen());
             }else{
                 return interpretListAst(ifexpr->getElse());

@@ -1,12 +1,8 @@
-fn fibo(num){
+fn fact(num){
     if(num){
-        if(num-1){
-            return fibo(num-2)+fibo(num-1)
-        }else{
-            return 1
-        }
+        return fact(num-1)+num
     }else{
         return 0
     }
 }
-main = fibo(2)
+main = fact(5)

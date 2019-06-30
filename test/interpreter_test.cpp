@@ -109,8 +109,9 @@ TEST(interpreter_test, array) {
 } 
 
 TEST(interpreter_test, fibonacchi) {
+     mimium::Interpreter interpreter2;
      driver.parsefile("fibonacchi.mmm");
-     mValue res = interpreter.loadAst(driver.getMainAst());
-     mValue main = interpreter.findVariable("main");
+     mValue res = interpreter2.loadAst(driver.getMainAst());
+     mValue main = interpreter2.findVariable("main");
     EXPECT_EQ(610, mimium::Interpreter::get_as_double(main));
 }
