@@ -20,7 +20,7 @@ class Interpreter: public std::enable_shared_from_this<Interpreter> {
     AST_Ptr topast;
     std::shared_ptr<Environment> rootenv;
     std::shared_ptr<Environment> currentenv;
-    std::map<std::string,AST_Ptr> arguments;
+    std::map<std::string,mValue> arguments;
     std::string currentNS;
     std::shared_ptr<Scheduler> sch;
 

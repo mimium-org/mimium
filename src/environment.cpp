@@ -16,8 +16,9 @@ mValue Environment::findVariable(std::string key){
     }else if(parent !=nullptr){
         return parent->findVariable(key); //search recursively
     }else{
-        std::cerr << "Variable" << key << "not found" << std::endl;
-    
+        std::stringstream ss;
+        ss  << "Variable" << key << "not found";
+        throw std::runtime_error(ss.str());    
         return 0;
     }
 }
@@ -28,7 +29,7 @@ void Environment::setVariable(std::string key,mValue val){
     }else if(parent !=nullptr){
         parent->setVariable(key,val); //search recursively
     }else{
-        std::cerr << "Create New Variable" << key << std::endl;
+        std::cout << "Create New Variable" << key << std::endl;
         variables[key]=val;
 
     }

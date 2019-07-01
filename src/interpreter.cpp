@@ -16,6 +16,7 @@ mValue Interpreter::loadAst(AST_Ptr _ast){
 }
 
 mValue Interpreter::interpretListAst(AST_Ptr ast){
+    try{
     mValue res;
     switch (ast->getid()){
         case LIST:
@@ -29,6 +30,10 @@ mValue Interpreter::interpretListAst(AST_Ptr ast){
         break;
     }
     return res;
+        }catch(std::exception e){
+        std::cerr<< e.what()<<std::endl;
+        return 0.0;
+    }
 }
 
 mValue Interpreter::interpretStatementsAst(AST_Ptr line){
@@ -58,17 +63,12 @@ mValue Interpreter::interpretStatementsAst(AST_Ptr line){
 }
 
 mValue Interpreter::interpretReturn(AST_Ptr line){
-   try{
    auto ret =  std::dynamic_pointer_cast<ReturnAST>(line);
-   return interpretExpr(ret->getExpr());
-   }catch(std::exception e){
-        std::cerr<<e.what()<<std::endl;
-        return false;
-    }
+    return interpretExpr(ret->getExpr());
+
 }
 
 mValue Interpreter::interpretAssign(AST_Ptr line){
-    try{
     auto assign  = std::dynamic_pointer_cast<AssignAST>(line);
     std::string varname = assign->getName()->getVal();
     if(currentenv->isVariableSet(varname)){
@@ -76,15 +76,14 @@ mValue Interpreter::interpretAssign(AST_Ptr line){
     }
     auto body  = assign->getBody();
     if(body){
-        currentenv->setVariable(varname, interpretExpr(body)); //share
+        mValue res = interpretExpr(body);
+        currentenv->setVariable(varname,res); //share
+        std::cout<<"Variable "<< varname <<" : "<< Interpreter::to_string(res)<<std::endl;
       return line; //for print
     }else{
         throw  std::runtime_error("expression not resolved");
     }
-    }catch(std::exception e){
-        std::cerr<<e.what()<<std::endl;
-        return false;
-    }
+
 }
 // mValue Interpreter::interpretFdef(AST_Ptr line){
 //     try{
@@ -124,7 +123,7 @@ mValue Interpreter::interpretExpr(AST_Ptr expr){
             return interpretTime(expr);
         break;
         default:
-            std::cerr << "invalid expression" <<std::endl;
+            throw  std::runtime_error("invalid expression");
             return 0.0;
     }
 }
@@ -132,7 +131,7 @@ overloaded binary_visitor{
     [](double lhs){return lhs;},
     [](auto lhs){
         mValue val = (lhs);
-        std::cerr << "invarid binary operation!" << std::endl;
+         throw  std::runtime_error("invalid binary expression");
         return 0.0;
     }
 };
@@ -157,42 +156,26 @@ mValue Interpreter::interpretBinaryExpr(AST_Ptr expr){
             return lv / rv;                             
             break;
         default: 
-            std::cerr << "invalid operator" <<std::endl;
-            return 0.0;        
+            throw  std::runtime_error("invalid binary operator");
+             return 0.0;        
     }
 }
 
 mValue Interpreter::interpretVariable(AST_Ptr symbol){
-    try{
     auto var  = std::dynamic_pointer_cast<SymbolAST>(symbol);
         return currentenv->findVariable(var->getVal());
-    }catch(std::exception e){
-        std::cerr<< "Variable not defined" <<std::endl;
-        return 0;
-    }
 }
 
 mValue Interpreter::interpretNumber(AST_Ptr num){
-    try{
     auto var  = std::dynamic_pointer_cast<NumberAST>(num);
-        return  var->getVal();
-    }catch(std::exception e){
-        std::cerr<< e.what()<<std::endl;
-        return 0.0;
-    }
+    return  var->getVal();
+
 }
 mValue Interpreter::interpretLambda(AST_Ptr expr){
-    try{
         auto lambda = std::dynamic_pointer_cast<LambdaAST>(expr);
         auto closure = std::make_shared<Closure>(currentenv,lambda);
-        // std::cout << "Closure created" << currentenv->getName();
-        
-        // lambda->to_string(std::cout);
         return std::move(closure);
-    }catch(std::exception e){
-        std::cerr<< e.what()<<std::endl;
-        return 0;
-    }
+
 }
 overloaded fcall_visitor{
     [](auto v)->mClosure_ptr{
@@ -204,13 +187,12 @@ overloaded fcall_visitor{
         }
 };
 mValue Interpreter::interpretFcall(AST_Ptr expr){
-    try{
     auto fcall  = std::dynamic_pointer_cast<FcallAST>(expr);
     auto name  =  std::dynamic_pointer_cast<SymbolAST>(fcall->getFname())->getVal();
     auto args = fcall->getArgs();
     if(mimium::builtin::isBuiltin(name)){
         auto fn = mimium::builtin::builtin_fntable.at(name);
-        fn(args,shared_from_this()); // currently implemented only for print()
+        fn(args,this); // currently implemented only for print()
         return 0.0;
     }else{
         auto argsv = args->getElements();
@@ -229,6 +211,7 @@ mValue Interpreter::interpretFcall(AST_Ptr expr){
             int count = 0;
             for (auto& larg:lambdaargs ){
                 std::string key = std::dynamic_pointer_cast<SymbolAST>(larg)->getVal();
+                // arguments[key]=interpretExpr(argsv[count]);
                 tmpenv->getVariables()[key] = interpretExpr(argsv[count]);
                 count++;
             }
@@ -243,13 +226,8 @@ mValue Interpreter::interpretFcall(AST_Ptr expr){
             }
         }
     }
-    }catch(std::exception e){
-        std::cerr<< e.what()<<std::endl;
-        return 0.0;
-    }
 }
 mValue Interpreter::interpretArray(AST_Ptr array){
-    try{
     auto arr = std::dynamic_pointer_cast<ArrayAST>(array);
     std::vector<double> v;
     for (auto &elem :arr->getElements()){
@@ -257,13 +235,9 @@ mValue Interpreter::interpretArray(AST_Ptr array){
         v.push_back(res);
     }
     return std::move(v);
-    }catch(std::exception e){
-        std::cerr<< e.what()<<std::endl;
-        return 0.0;
-    } 
+
 }
 mValue Interpreter::interpretIf(AST_Ptr expr){
-    try{
     auto ifexpr = std::dynamic_pointer_cast<IfAST>(expr);
     mValue cond = interpretExpr(ifexpr->getCond());
     auto cond_d = get_as_double(cond);
@@ -272,33 +246,25 @@ mValue Interpreter::interpretIf(AST_Ptr expr){
             }else{
                 return interpretListAst(ifexpr->getElse());
     }
-    }catch(std::exception e){
-        std::cerr<< e.what()<<std::endl;
-        return 0.0;
-    } 
 }
 
 
 mValue Interpreter::interpretTime(AST_Ptr expr){
-    try{
     auto timeexpr = std::dynamic_pointer_cast<TimeAST>(expr);
     mValue time = interpretExpr(timeexpr->getTime());
     std::visit(overloaded {
         [&](double t){sch->addTask(t, timeexpr->getExpr());},
-        [](auto t){throw std::runtime_error("you cannot append value pther than double");}
+        [](auto t){throw std::runtime_error("you cannot append value other than double");}
     },time);
     return 0;
-    }catch(std::exception e){
-        std::cerr<< e.what()<<std::endl;
-        return 0.0;
-    }
+
 }
 
 double Interpreter::get_as_double(mValue v){
     return std::visit(overloaded{
         [](double v)->double{return v;},
         [](auto v)->double{
-        std::cerr<< "invalid value" <<std::endl;
+        throw std::runtime_error("value is not double");
         return 0;
     }
     },v);
