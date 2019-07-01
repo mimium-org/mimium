@@ -90,13 +90,37 @@ enum OP_ID{
     ADD,
     SUB,
     MUL,
-    DIV
+    DIV,
+    EXP,
+    MOD,
+    AND,
+    OR,
+    BITAND,
+    BITOR,
+    LE,
+    GE,
+    LT,
+    GT,
+    LSHIFT,
+    RSHIFT
 };
 static std::map<std::string, OP_ID> optable={
         {"+",ADD},
         {"-",SUB},
         {"*",MUL},
-        {"/",DIV}
+        {"/",DIV},
+        {"^",EXP},
+        {"%",MOD},
+        {"&",AND},
+        {"|",OR},
+        {"&&",BITAND},
+        {"||",BITOR},
+        {"<",LT},
+        {">",GT},
+        {"<=",LE},
+        {">=",GE},
+        {"<<",LSHIFT},
+        {">>",RSHIFT}
         };
 
 class OpAST : public AST{
@@ -116,18 +140,7 @@ class OpAST : public AST{
 
     // static int getop(std::string op){return mimium::op_map[op];}
 };
-struct AddAST: public OpAST{
-    AddAST(AST_Ptr LHS, AST_Ptr RHS): OpAST("+",std::move(LHS) ,std::move(RHS)){};
-};
-struct SubAST: public OpAST{
-    SubAST(AST_Ptr LHS, AST_Ptr RHS): OpAST("-",std::move(LHS) ,std::move(RHS)){};
-};
-struct MulAST: public OpAST{
-    MulAST(AST_Ptr LHS, AST_Ptr RHS): OpAST("*",std::move(LHS) ,std::move(RHS)){};
-};
-struct DivAST: public OpAST{
-    DivAST(AST_Ptr LHS, AST_Ptr RHS): OpAST("/",std::move(LHS) ,std::move(RHS)){};
-};
+
 class ListAST : public AST{
     public:
     std::vector<AST_Ptr> asts;

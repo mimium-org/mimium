@@ -53,6 +53,13 @@
    NEQ "!="
    EQ "=="
    NOT "!"
+   LT "<"
+   GT ">"
+   LE "<="
+   GE ">="
+   LSHIFT "<<"
+   RSHIFT ">>"
+   
    ASSIGN "="
    AT "@"
    
@@ -178,10 +185,10 @@ arguments_fcall : expr ',' arguments_fcall   {$3->addAST(std::move($1));
          | expr {$$ = driver.add_arguments(std::move($1));}
          ;
 
-expr : expr ADD    expr  {$$ = driver.add_op(token::ADD , std::move($1),std::move($3));}
-     | expr SUB    expr  {$$ = driver.add_op(token::SUB , std::move($1),std::move($3));}
-     | expr MUL    expr  {$$ = driver.add_op(token::MUL , std::move($1),std::move($3));}
-     | expr DIV    expr  {$$ = driver.add_op(token::DIV , std::move($1),std::move($3));}
+expr : expr ADD    expr  {$$ = driver.add_op("+" , std::move($1),std::move($3));}
+     | expr SUB    expr  {$$ = driver.add_op("-" , std::move($1),std::move($3));}
+     | expr MUL    expr  {$$ = driver.add_op("*" , std::move($1),std::move($3));}
+     | expr DIV    expr  {$$ = driver.add_op("/" , std::move($1),std::move($3));}
      | expr MOD    expr  {$$ = driver.add_op("%" , std::move($1),std::move($3));}
      | expr EXPONENT expr{$$ = driver.add_op("^" , std::move($1),std::move($3));}
      | expr OR     expr  {$$ = driver.add_op("|" , std::move($1),std::move($3));}

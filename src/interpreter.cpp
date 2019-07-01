@@ -1,4 +1,4 @@
-
+#include <cmath>
 #include "interpreter.hpp"
 
 namespace mimium{
@@ -144,17 +144,35 @@ mValue Interpreter::interpretBinaryExpr(AST_Ptr expr){
 
     switch (var->getOpId()){
         case ADD:
-            return lv + rv;
-            break;
+            return lv + rv;  break;
         case SUB:
-            return lv - rv;
-            break;
+            return lv - rv;  break;
         case MUL:
-            return lv * rv;
-            break;
+            return lv * rv;  break;
         case DIV:
-            return lv / rv;                             
-            break;
+            return lv / rv;  break;
+        case EXP:
+            return std::pow(lv, rv);   break;
+        case MOD:
+            return std::fmod(lv, rv);   break;
+        case AND:
+        case BITAND:
+            return (double)((bool)lv & (bool)rv);   break;
+        case OR:
+        case BITOR:
+            return (double)((bool)lv | (bool)rv);   break;
+        case LT:
+            return (double)lv<rv;  break;
+        case GT:
+            return (double)lv>rv;  break;
+        case LE:
+            return (double)lv<=rv;  break;
+        case GE:
+            return (double)lv>=rv;  break;
+        case LSHIFT:
+            return (double) ((int)lv<<(int)rv);  break;
+        case RSHIFT:
+            return (double) ((int)lv>>(int)rv);  break;
         default: 
             throw  std::runtime_error("invalid binary operator");
              return 0.0;        

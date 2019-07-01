@@ -46,6 +46,8 @@ END {BREAK}{WSPACE}*"end"
   return token::SYMBOL;
 };
 
+"->" return token::ARROW;
+
 
 "/"  return token::DIV; 
 "*"  return token::MUL; 
@@ -60,8 +62,12 @@ END {BREAK}{WSPACE}*"end"
 "!=" return token::NEQ;
 "==" return token::EQ;
 "!"  return token::NOT;
-
-"->" return token::ARROW;
+"<=" return token::LE;
+">=" return token::GE;
+"<<" return token::LSHIFT;
+">>" return token::RSHIFT;
+">" return token::GT;
+"<" return token::LT;
 
 "@" return token::AT;
 
