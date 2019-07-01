@@ -18,7 +18,7 @@
 //         [](auto v)->mValue{return 0;}
 //     },val);
 // }
-mValue mimium::builtin::print(std::shared_ptr<ArgumentsAST> argast,std::shared_ptr<Interpreter> interpreter){
+mValue mimium::builtin::print(std::shared_ptr<ArgumentsAST> argast,mimium::Interpreter* interpreter){
     auto args = argast->getElements();
     for (auto& elem : args){
     mValue ev = interpreter->interpretExpr(elem);
@@ -28,7 +28,7 @@ mValue mimium::builtin::print(std::shared_ptr<ArgumentsAST> argast,std::shared_p
     return 0.0;
 }
 
-mValue mimium::builtin::println(std::shared_ptr<ArgumentsAST> argast,std::shared_ptr<Interpreter> interpreter){
+mValue mimium::builtin::println(std::shared_ptr<ArgumentsAST> argast,mimium::Interpreter* interpreter){
     mimium::builtin::print(argast,interpreter);
     std::cout << std::endl;
     return 0.0;

@@ -15,11 +15,11 @@ namespace mimium{
     class Interpreter;//forward?
     namespace builtin{
 
-    mValue print(std::shared_ptr<ArgumentsAST> argast,std::shared_ptr<mimium::Interpreter> interpreter);
-    mValue println(std::shared_ptr<ArgumentsAST>  argast,std::shared_ptr<mimium::Interpreter> interpreter);
+    mValue print(std::shared_ptr<ArgumentsAST> argast,mimium::Interpreter* interpreter);
+    mValue println(std::shared_ptr<ArgumentsAST>  argast,mimium::Interpreter* interpreter);
 
     bool isBuiltin(std::string str);
-    const static std::map<std::string,mValue(*)(std::shared_ptr<ArgumentsAST>,std::shared_ptr<mimium::Interpreter>)> builtin_fntable = {
+    const static std::map<std::string,mValue(*)(std::shared_ptr<ArgumentsAST>,mimium::Interpreter*)> builtin_fntable = {
         {"printchar" ,&print},
         {"print", &print},
         {"println",&println}
