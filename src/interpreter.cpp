@@ -199,8 +199,8 @@ mValue Interpreter::interpretFcall(AST_Ptr expr){
         mValue var = findVariable(name);
         mClosure_ptr closure  =std::visit(fcall_visitor,var);
         auto lambda = closure->fun;
-        std::shared_ptr<Environment> tmpenv = currentenv; 
-        tmpenv = closure->env; //switch to closure context
+        std::shared_ptr<Environment> originalenv = currentenv; 
+        std::shared_ptr<Environment> tmpenv=closure->env;         
         auto lambdaargs = std::dynamic_pointer_cast<ArgumentsAST>(lambda->getArgs())->getElements();
         auto body  = lambda->getBody();
         tmpenv = tmpenv->createNewChild(name); //create arguments
@@ -219,7 +219,7 @@ mValue Interpreter::interpretFcall(AST_Ptr expr){
                 currentenv = tmpenv;//switch back env
                 auto tmp = lambda->getBody();
                 auto res = interpretListAst(tmp);
-                // currentenv = currentenv->getParent();
+                currentenv = originalenv;
                 return res;
             }else{
                 throw std::runtime_error("too few arguments"); //ideally we want to return new function (partial application)
