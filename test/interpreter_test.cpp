@@ -108,10 +108,17 @@ TEST(interpreter_test, array) {
     EXPECT_EQ("[1,2,3,4,5]", mimium::Interpreter::to_string(main) );
 } 
 
+TEST(interpreter_test, factorial) {
+     driver.parsefile("factorial.mmm");
+     mValue res = interpreter.loadAst(driver.getMainAst());
+     mValue main = interpreter.findVariable("main");
+    EXPECT_EQ(120, mimium::Interpreter::get_as_double(main));
+}
+
 TEST(interpreter_test, fibonacchi) {
-     mimium::Interpreter interpreter2;
+     mimium::Interpreter intp2;
      driver.parsefile("fibonacchi.mmm");
-     mValue res = interpreter2.loadAst(driver.getMainAst());
-     mValue main = interpreter2.findVariable("main");
+     mValue res = intp2.loadAst(driver.getMainAst());
+     mValue main = intp2.findVariable("main");
     EXPECT_EQ(610, mimium::Interpreter::get_as_double(main));
 }

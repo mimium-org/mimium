@@ -1,8 +1,13 @@
-fn fact(num){
-    if(num){
-        return fact(num-1)+num
+fn fibonacchi(num){
+    if(num-1){
+        res= fibonacchi(num-1)+fibonacchi(num-2)
+        return res
     }else{
-        return 0
+        if(num){
+            return 1
+        }else{
+          return 0
+        }
     }
 }
-main = fact(5)
+main = fibonacchi(15)
