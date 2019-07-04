@@ -36,10 +36,14 @@ find_package(BISON 3.2 REQUIRED VERBOSE REPORT_FILE ${CMAKE_CURRENT_BINARY_DIR}/
 find_package(Flex REQUIRED)
 
 
-include_directories(src ${FLEX_INCLUDE_DIRS} libs/rtaudio)
+include_directories(src ${FLEX_INCLUDE_DIRS} libs/rtaudio libs/rtmidi)
 
-
+set(RTAUDIO_BUILD_TESTING FALSE)
 add_subdirectory( libs/rtaudio )
+
+set(RTMIDI_BUILD_TESTING FALSE)
+set(RTMIDI_TARGETNAME_UNINSTALL "uninstall_rtmidi")
+add_subdirectory( libs/rtmidi )
 
 
 

@@ -1,3 +1,6 @@
 [submodule "libs/rtaudio"]
 	path = libs/rtaudio
 	url = git@github.com:thestk/rtaudio.git
+[submodule "libs/rtmidi"]
+	path = libs/rtmidi
+	url = git@github.com:thestk/rtmidi.git
