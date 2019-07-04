@@ -1,12 +1,11 @@
 fn fibonacchi(num){
     if(num-1){
-        res= fibonacchi(num-1)+fibonacchi(num-2)
-        return res
+        return fibonacchi(num-1)+fibonacchi(num-2)
     }else{
         if(num){
             return 1
         }else{
-          return 0
+            return 0
         }
     }
 }
