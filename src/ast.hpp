@@ -20,6 +20,7 @@ enum AST_ID{
     ARG,
     ARGS,
     ARRAY,
+    ARRAYACCESS,
     FCALL,
     ASSIGN,
     FDEF,
@@ -207,6 +208,17 @@ class ArrayAST: public AbstractListAST{
     ArrayAST(AST_Ptr arg):AbstractListAST(std::move(arg)){
             id=ARRAY;
      };
+};
+class ArrayAccessAST: public AST{
+    public:
+    AST_Ptr name;
+    AST_Ptr index;
+    ArrayAccessAST(AST_Ptr Array,AST_Ptr Index):name(std::move(Array)),index(std::move(Index)){
+        id = ARRAYACCESS;
+    }
+    AST_Ptr getName(){return name;};
+    AST_Ptr getIndex(){return index;};
+    std::ostream& to_string(std::ostream& ss);
 };
 class LambdaAST: public AST{
     public:

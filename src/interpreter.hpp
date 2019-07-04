@@ -58,6 +58,8 @@ class Interpreter: public std::enable_shared_from_this<Interpreter> {
     mValue interpretFcall(AST_Ptr expr);
 
     mValue interpretArray(AST_Ptr array);
+    mValue interpretArrayAccess(AST_Ptr arrayast);
+
 
     mValue interpretIf(AST_Ptr expr);
 

@@ -1,0 +1,10 @@
+
+fn cons(x,xs){
+    car = x
+    cdr = xs
+    return this
+}
+
+fn car(x){
+    return x.car
+}

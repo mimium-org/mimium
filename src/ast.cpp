@@ -53,6 +53,13 @@ std::ostream& AbstractListAST::to_string(std::ostream& ss){
         ss << ")";
         return ss;
     }
+std::ostream& ArrayAccessAST::to_string(std::ostream& ss){
+    ss << "arrayaccess ";
+    name->to_string(ss);
+    ss <<" ";
+    index->to_string(ss);
+    return ss;
+}
 
 std::ostream& ReturnAST::to_string(std::ostream& ss){
         ss << "( return ";

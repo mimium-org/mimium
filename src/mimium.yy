@@ -100,6 +100,7 @@
 
 %type <AST_Ptr> array "array"
 %type <AST_Ptr> array_elems "array elements"
+%type <AST_Ptr> array_access "array access"
 
 
 %type <AST_Ptr> assign "assign"
@@ -202,7 +203,8 @@ term_time : term AT term {$$ = driver.set_time(std::move($1),std::move($3));}
          ;
 term : single
       |fcall
-      | array
+      |array
+      |array_access
       | '(' expr ')' {$$ =std::move($2);};
 
 
@@ -217,6 +219,7 @@ array_elems : single ',' array_elems   {$3->addAST(std::move($1));
                                     $$ = std::move($3); }
          |  single {$$ = driver.add_array(std::move($1));}
          ;
+array_access: symbol '[' term ']' {$$ = driver.add_array_access(std::move($1),std::move($3));}; 
 
 single : symbol{$$=std::move($1);}
       |  num   {$$=std::move($1);};

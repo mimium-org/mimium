@@ -119,6 +119,9 @@ mValue Interpreter::interpretExpr(AST_Ptr expr){
         case ARRAY:
             return interpretArray(expr);
         break;
+        case ARRAYACCESS:
+            return interpretArrayAccess(expr);
+        break;
         case TIME:
             return interpretTime(expr);
         break;
@@ -253,8 +256,19 @@ mValue Interpreter::interpretArray(AST_Ptr array){
         v.push_back(res);
     }
     return std::move(v);
-
 }
+mValue Interpreter::interpretArrayAccess(AST_Ptr arrayast){
+    auto arr = std::dynamic_pointer_cast<ArrayAccessAST>(arrayast);
+    auto array =  interpretVariable(arr->getName());
+    auto index = get_as_double( interpretExpr(arr->getIndex()) );
+    int i = (int)index; //now index is simply casted from double
+    return std::visit(overloaded{
+        [&i](std::vector<double> a)->double{return a[i];},
+        [](auto e)->double{throw std::runtime_error("accessed variable is not an array");
+        return 0;}
+    },array);
+}   
+
 mValue Interpreter::interpretIf(AST_Ptr expr){
     auto ifexpr = std::dynamic_pointer_cast<IfAST>(expr);
     mValue cond = interpretExpr(ifexpr->getCond());

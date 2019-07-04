@@ -34,8 +34,9 @@ namespace mmmpsr{
         AST_Ptr add_lambda(AST_Ptr args,AST_Ptr body);
 
         AST_Ptr add_fcall(AST_Ptr fname,AST_Ptr args);
-        AST_Ptr add_array(AST_Ptr array);
 
+        AST_Ptr add_array(AST_Ptr array);
+        AST_Ptr add_array_access(AST_Ptr array,AST_Ptr index); //todo: is it better to use fcall as syntax sugar?
 
         AST_Ptr add_return(AST_Ptr expr);
         AST_Ptr add_assign(AST_Ptr symbol,AST_Ptr expr);
