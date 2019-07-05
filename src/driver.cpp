@@ -95,6 +95,9 @@ AST_Ptr MimiumDriver::add_if(AST_Ptr condition,AST_Ptr thenstatement,AST_Ptr els
    return std::make_unique<IfAST>(std::move(condition),std::move(thenstatement),std::move(elsestatement));
 };
 
+AST_Ptr MimiumDriver::add_forloop(AST_Ptr var,AST_Ptr iterator,AST_Ptr expression){
+   return std::make_unique<ForAST>(std::move(var),std::move(iterator),std::move(expression));
+}
 
 AST_Ptr MimiumDriver::set_time(AST_Ptr elem,AST_Ptr time){
     return std::make_unique<TimeAST>(std::move(elem),std::move(time));

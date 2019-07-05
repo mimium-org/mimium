@@ -190,3 +190,14 @@ TEST(bison_parser_test, arrayaccess) {
      EXPECT_EQ(ss.str(),"((assign arr (1 2 3 4 5 )) (assign main arrayaccess arr 2) )");
 
 }
+TEST(bison_parser_test, forloop) {
+     mmmpsr::MimiumDriver driver;
+     std::string teststr = "arr = [1,2,3,4,5]\n\
+                         for i in arr {\n\
+                              main = i  \n\
+                         }";
+     driver.parsestring(teststr);
+     std::stringstream ss;
+     driver.print(ss);
+     EXPECT_EQ(ss.str(),"((assign arr (1 2 3 4 5 )) (for i arr ((assign main i) )) )");
+}

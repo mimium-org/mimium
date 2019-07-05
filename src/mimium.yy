@@ -71,6 +71,9 @@
    IF "if"
    ELSE "ELSE"
 
+   FOR "for"
+   IN "in"
+
    END "end_token"
    RETURN "return_token"
 
@@ -113,6 +116,7 @@
 %type <AST_Ptr> statements "statements"
 %type <AST_Ptr> block "block"
 
+%type <AST_Ptr> forloop "forloop"
 
 %type <AST_Ptr> top "top"
 
@@ -156,6 +160,7 @@ opt_nl: {}
 statement : assign {$$=std::move($1);} 
          | fdef  {$$=std::move($1);} 
          | ifstatement  {$$=std::move($1);} 
+         | forloop {$$=std::move($1);}
          |RETURN expr {$$ = driver.add_return(std::move($2));}
          ;
 
@@ -164,6 +169,8 @@ fdef : FUNC symbol arguments_top block {$$ = driver.add_assign(std::move($2),dri
 ifstatement: IF term block {$$ = driver.add_if(std::move($2),std::move($3),nullptr);}
             |IF term block ELSE block {$$ = driver.add_if(std::move($2),std::move($3),std::move($5));}
 ;
+
+forloop: FOR symbol IN expr block {$$ = driver.add_forloop(std::move($2),std::move($4),std::move($5));};
 
 /* end : END; */
 

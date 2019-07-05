@@ -51,6 +51,9 @@ mValue Interpreter::interpretStatementsAst(AST_Ptr line){
     case IF:
         tmpres = interpretIf(line);
         break;
+    case FOR:
+        tmpres = interpretFor(line);
+        break;
     case RETURN:
         tmpres = interpretReturn(line);
         goto end;
@@ -280,6 +283,31 @@ mValue Interpreter::interpretIf(AST_Ptr expr){
     }
 }
 
+mValue Interpreter::interpretFor(AST_Ptr expr){
+    auto forexpr = std::dynamic_pointer_cast<ForAST>(expr);
+    std::string loopname =  "for" + std::to_string(rand()); // temporary,,
+    currentenv = currentenv->createNewChild(loopname);
+    std::string varname = std::dynamic_pointer_cast<SymbolAST>(forexpr->getVar())->getVal();
+    AST_Ptr expression = forexpr->getExpression();
+    mValue iterator = interpretExpr(forexpr->getIterator());
+    std::visit(overloaded{
+        [&](std::vector<double> v){
+            auto it = v.begin();
+            while(it!=v.end()){
+            currentenv->setVariable(varname,*it);
+            interpretListAst(expression);
+            it++;
+            }
+            },
+        [&](double v){
+            currentenv->setVariable(varname,v);
+            interpretListAst(expression);
+        },
+        [](auto v){throw std::runtime_error("iterator is invalid");}
+    },iterator);
+    currentenv = currentenv->getParent();
+   return 0.0; //forloop does not return value 
+}
 
 mValue Interpreter::interpretTime(AST_Ptr expr){
     auto timeexpr = std::dynamic_pointer_cast<TimeAST>(expr);

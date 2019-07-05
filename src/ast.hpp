@@ -29,6 +29,7 @@ enum AST_ID{
     LAMBDA,
     OP,
     IF,
+    FOR,
     LIST,
     TIME
 
@@ -289,6 +290,18 @@ class IfAST: public AST{
     auto getCond(){return condition;}
     auto getThen(){return thenstatement;}
     auto getElse(){return elsestatement;}
+    std::ostream& to_string(std::ostream& ss);
+};
+
+class ForAST: public AST{
+    public:
+    AST_Ptr var,iterator,expression;
+    ForAST(AST_Ptr Var,AST_Ptr Iterator,AST_Ptr Expression):var(std::move(Var)),iterator(std::move(Iterator)),expression(std::move(Expression)){
+        id=FOR;
+    }
+    auto getVar(){return var;};
+    auto getIterator(){return iterator;};
+    auto getExpression(){return expression;};
     std::ostream& to_string(std::ostream& ss);
 };
 

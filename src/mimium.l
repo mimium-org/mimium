@@ -36,6 +36,8 @@ END {BREAK}{WSPACE}*"end"
 
 "fn" return token::FUNC;
 {END} return token::END;
+"for" return token::FOR;
+"in" return token::IN;
 
 "return" return token::RETURN;
 "if" return token::IF;

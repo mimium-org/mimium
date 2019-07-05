@@ -115,6 +115,18 @@ TEST(interpreter_test, arrayaccess) {
      mValue main = interpreter.findVariable("main");
     EXPECT_EQ(3, mimium::Interpreter::get_as_double(main));
 } 
+TEST(interpreter_test, forloop) {
+     std::string teststr1 = "arr = [1,2,3,4,5]\n\
+                         main=0\n\
+                         for i in arr {\n\
+                              main = main+i  \n\
+                         }";
+     driver.parsestring(teststr1);
+     mValue res = interpreter.loadAst(driver.getMainAst());
+     mValue main = interpreter.findVariable("main");
+    EXPECT_EQ(15, mimium::Interpreter::get_as_double(main));
+} 
+
 
 TEST(interpreter_test, factorial) {
      driver.parsefile("factorial.mmm");

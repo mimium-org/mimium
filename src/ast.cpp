@@ -107,6 +107,16 @@ std::ostream& IfAST::to_string(std::ostream& ss){
         return ss;
     
 }
+std::ostream& ForAST::to_string(std::ostream& ss){
+    ss<<"(for ";
+    var->to_string(ss);
+    ss<< " ";
+    iterator->to_string(ss);
+    ss << " ";
+    expression->to_string(ss);
+    ss<<")";
+    return ss;
+}
 
 
 std::ostream& TimeAST::to_string(std::ostream& ss){
