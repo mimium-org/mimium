@@ -18,6 +18,10 @@ ${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} ../src/ast.cpp ../src/audiod
 
 add_executable(AudioTest ../src/audiodriver.cpp audiodriver_test.cpp)
 
+add_executable(MidiTest 
+${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} ../src/ast.cpp ../src/audiodriver.cpp  ../src/closure.cpp ../src/environment.cpp ../src/builtin_functions.cpp ../src/interpreter.cpp ../src/scheduler.cpp ../src/driver.cpp  ../src/mididriver.cpp rtmidi_test.cpp)
+
+
 add_executable(SchedulerTest 
  ${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} ../src/ast.cpp ../src/audiodriver.cpp  ../src/closure.cpp ../src/environment.cpp ../src/builtin_functions.cpp ../src/interpreter.cpp ../src/scheduler.cpp ../src/driver.cpp 
 scheduler_test.cpp)
@@ -33,6 +37,11 @@ target_include_directories(SchedulerTest
     .
     ${CMAKE_CURRENT_BINARY_DIR}
   )
+target_include_directories(MidiTest
+  PRIVATE
+  .
+  ${CMAKE_CURRENT_BINARY_DIR}
+)
 target_link_libraries(Test
   PRIVATE
     GTest::GTest
@@ -44,6 +53,11 @@ target_link_libraries(Test
 target_link_libraries(AudioTest
   PRIVATE
   rtaudio
+)
+target_link_libraries(MidiTest
+  PRIVATE
+  rtaudio
+  rtmidi
 )
 target_link_libraries(SchedulerTest
   PRIVATE

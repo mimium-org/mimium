@@ -5,6 +5,14 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "MidiDebug",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/test/MidiTest",
+            "args": [],
+            "cwd": "${workspaceFolder}/build/test",
+        },
+        {
             "name": "(lldb) Launch with arg", 
             "type": "lldb",
             "request": "launch",
