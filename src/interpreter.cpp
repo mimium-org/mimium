@@ -110,12 +110,15 @@ mValue Interpreter::interpretAssign(AST_Ptr line) {
 mValue Interpreter::interpretDeclaration(AST_Ptr line) {
   auto fcall = std::dynamic_pointer_cast<DeclarationAST>(line);
   auto name = std::dynamic_pointer_cast<SymbolAST>(fcall->getFname())->getVal();
-  auto args = fcall->getArgs()->getElements();
+  auto argsast = fcall->getArgs();
+  auto args = argsast->getElements();
   if (name == "include") {
     assertArgumentsLength(args, 1);
     if (args[0]->getid() == SYMBOL) {
       auto filename = std::dynamic_pointer_cast<SymbolAST>(args[0])->getVal();
-      loadSourceFile(filename);
+      auto temporary_driver = std::make_unique<mmmpsr::MimiumDriver>(current_working_directory);
+      temporary_driver->parsefile(filename);
+      loadAst(temporary_driver->getMainAst());
       return 0;
     } else {
       throw std::runtime_error("given argument is not a string");
