@@ -73,7 +73,9 @@
         "typeinfo": "cpp",
         "unordered_map": "cpp",
         "variant": "cpp",
-        "vector": "cpp"
+        "vector": "cpp",
+        "filesystem": "cpp",
+        "__functional_03": "cpp"
     },
     "C_Cpp.configurationWarnings": "Disabled",
     "git.ignoreLimitWarning": true
