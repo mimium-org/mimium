@@ -20,8 +20,7 @@ class Scheduler; //forward
 class Interpreter: public std::enable_shared_from_this<Interpreter> {
     public:
     Interpreter(){
-        rootenv = std::make_shared<Environment>("root",nullptr);
-        currentenv = rootenv; // share
+        init();
     };
     mValue findVariable(std::string str){ //fortest
         auto it = arguments.find(str);
@@ -32,11 +31,16 @@ class Interpreter: public std::enable_shared_from_this<Interpreter> {
         }
     }
     void add_scheduler(){sch = std::make_shared<Scheduler>(this);};
+    void init();
+    void clear();
     void start();
     void stop();
     void loadSource(const std::string src);
     void loadSourceFile(const std::string filename);
 
+    void setWorkingDirectory(const std::string path){
+        driver.setWorkingDirectory(path);
+    }
     mValue loadAst(AST_Ptr _ast);
     mValue interpretListAst(AST_Ptr ast);
     mValue interpretStatementsAst(AST_Ptr ast);

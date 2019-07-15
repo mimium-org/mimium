@@ -3,6 +3,17 @@
 
 namespace mimium {
 
+void Interpreter::init(){
+      rootenv = std::make_shared<Environment>("root",nullptr);
+      currentenv = rootenv; // share
+}
+void Interpreter::clear() { 
+      rootenv.reset();
+      currentenv.reset();
+      driver.clear();
+      init();
+} 
+
 void Interpreter::start() { sch->start(); }
 
 void Interpreter::stop() { sch->stop(); }
