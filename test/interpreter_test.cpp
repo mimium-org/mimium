@@ -133,3 +133,9 @@ TEST(interpreter_test, fibonacchi) {
      mValue main = interpreter.findVariable("main");
      EXPECT_EQ(610, mimium::Interpreter::get_as_double(main));
 }
+TEST(interpreter_test, include) {
+     interpreter.clear();
+     interpreter.loadSourceFile("test_include.mmm");
+     mValue main = interpreter.findVariable("main");
+     EXPECT_EQ(25+128, mimium::Interpreter::get_as_double(main));
+}

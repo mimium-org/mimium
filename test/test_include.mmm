@@ -1,0 +1,2 @@
+include("test_included.mmm")
+main = included + 128
