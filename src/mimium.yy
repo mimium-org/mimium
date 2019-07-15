@@ -74,6 +74,8 @@
    FOR "for"
    IN "in"
 
+   INCLUDE "include_token"
+
    END "end_token"
    RETURN "return_token"
 
@@ -87,6 +89,7 @@
 
 %type <AST_Ptr> num "number"
 %type <AST_Ptr> symbol "symbol"
+%type <AST_Ptr> string "string"
 
 %type <AST_Ptr> single "symbol or number"
 
@@ -95,6 +98,9 @@
 %type <AST_Ptr> term "primary"
 
 %type <AST_Ptr> lambda "lambda"
+
+%type <AST_Ptr> declaration "declaration"
+%type <AST_Ptr> include "include declaration"
 
 %type <AST_Ptr> arguments_top "arguments top"
 
@@ -161,6 +167,7 @@ statement : assign {$$=std::move($1);}
          | fdef  {$$=std::move($1);} 
          | ifstatement  {$$=std::move($1);} 
          | forloop {$$=std::move($1);}
+         | declaration {$$=std::move($1);} 
          |RETURN expr {$$ = driver.add_return(std::move($2));}
          ;
 
@@ -214,8 +221,11 @@ term : single
       |array_access
       | '(' expr ')' {$$ =std::move($2);};
 
+declaration : include {$$=std::move($1);} 
+;
 
-
+include : INCLUDE '(' string ')' {$$ = driver.add_declaration("include",std::move($3)); }
+;
 
 fcall : symbol '(' arguments_fcall ')' {$$ = driver.add_fcall(std::move($1),std::move($3));}
 ;
@@ -230,6 +240,9 @@ array_access: symbol '[' term ']' {$$ = driver.add_array_access(std::move($1),st
 
 single : symbol{$$=std::move($1);}
       |  num   {$$=std::move($1);};
+
+string : '"' symbol '"' {$$ = std::move($2);}
+;
 
 num :NUM {$$ = driver.add_number($1);};
 

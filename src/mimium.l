@@ -34,6 +34,8 @@ END {BREAK}{WSPACE}*"end"
 
 {WSPACE} ;
 
+"include" return token::INCLUDE;
+
 "fn" return token::FUNC;
 {END} return token::END;
 "for" return token::FOR;

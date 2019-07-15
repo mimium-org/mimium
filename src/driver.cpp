@@ -90,6 +90,11 @@ AST_Ptr MimiumDriver::add_statements(AST_Ptr statements){
    return std::make_unique<ListAST>(std::move(statements));
 };
 
+AST_Ptr MimiumDriver::add_declaration( std::string fname,AST_Ptr args){
+   auto fnameast = std::make_unique<SymbolAST>(std::move(fname));
+   return std::make_unique<DeclarationAST>(std::move(fnameast) ,std::move(args));
+};
+
 
 AST_Ptr MimiumDriver::add_if(AST_Ptr condition,AST_Ptr thenstatement,AST_Ptr elsestatement=nullptr){
    return std::make_unique<IfAST>(std::move(condition),std::move(thenstatement),std::move(elsestatement));

@@ -46,6 +46,8 @@ class Interpreter: public std::enable_shared_from_this<Interpreter> {
     mValue interpretTopAst(){return interpretListAst(topast);};
     mValue interpretAssign(AST_Ptr line);
     mValue interpretReturn(AST_Ptr line);
+    mValue interpretDeclaration(AST_Ptr expr);
+
 
     mValue interpretVariable(AST_Ptr symbol);
 
@@ -70,7 +72,7 @@ class Interpreter: public std::enable_shared_from_this<Interpreter> {
     static double get_as_double(mValue v);
     static std::string to_string(mValue v);
     
-    // bool genEventGraph();
+    bool assertArgumentsLength(std::vector<AST_Ptr>& args, int length);
 };
 
 

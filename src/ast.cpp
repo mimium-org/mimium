@@ -95,12 +95,20 @@ std::ostream& AssignAST::to_string(std::ostream& ss) {
   return ss;
 }
 
-std::ostream& FcallAST::to_string(std::ostream& ss){
+std::ostream& FcallAST::to_string(std::ostream& ss) {
   ss << "(";
   fname->to_string(ss);
   ss << " ";
   args->to_string(ss);
-        ss <<")";
+  ss << ")";
+  return ss;
+}
+std::ostream& DeclarationAST::to_string(std::ostream& ss) {
+  ss << "(";
+  fname->to_string(ss);
+  ss << " ";
+  args->to_string(ss);
+  ss << ")";
   return ss;
 }
 std::ostream& IfAST::to_string(std::ostream& ss) {

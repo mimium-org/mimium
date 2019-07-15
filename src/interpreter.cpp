@@ -20,9 +20,8 @@ mValue Interpreter::interpretListAst(AST_Ptr ast){
     mValue res;
     switch (ast->getid()){
         case LIST:
-        for(auto& line: std::dynamic_pointer_cast<ListAST>(ast)->getlist()){
-            res = interpretStatementsAst(line);
-            if(line->getid() == RETURN) break;
+          res = interpretListAst(line);
+          if (line->getid() == RETURN) break;
         }
         break;
         default:
@@ -54,6 +53,9 @@ mValue Interpreter::interpretStatementsAst(AST_Ptr line){
     case FOR:
         tmpres = interpretFor(line);
         break;
+    case DECLARATION:
+      tmpres = interpretDeclaration(line);
+      break;
     case RETURN:
         tmpres = interpretReturn(line);
         goto end;
@@ -88,6 +90,25 @@ mValue Interpreter::interpretAssign(AST_Ptr line){
     }
 
 }
+mValue Interpreter::interpretDeclaration(AST_Ptr line) {
+  auto fcall = std::dynamic_pointer_cast<DeclarationAST>(line);
+  auto name = std::dynamic_pointer_cast<SymbolAST>(fcall->getFname())->getVal();
+  auto args = fcall->getArgs()->getElements();
+  if (name == "include") {
+    assertArgumentsLength(args, 1);
+    if (args[0]->getid() == SYMBOL) {
+      auto filename = std::dynamic_pointer_cast<SymbolAST>(args[0])->getVal();
+      loadSourceFile(filename);
+      return 0;
+    } else {
+      throw std::runtime_error("given argument is not a string");
+      return 1;
+    }
+  } else {
+    throw std::runtime_error("specified declaration is not defined: " + name);
+    return 1;
+  }
+};
 // mValue Interpreter::interpretFdef(AST_Ptr line){
 //     try{
 //         auto fdef = std::dynamic_pointer_cast<FdefAST>(line);
@@ -352,8 +373,17 @@ std::string Interpreter::to_string(mValue v){
         }
         ss<<"]";
         return ss.str();
+bool Interpreter::assertArgumentsLength(std::vector<AST_Ptr>& args,
+                                        int length) {
+  int size = args.size();
+  if (size == length) {
+    return true;
+  } else {
+    throw std::runtime_error(
+        "Argument length is invalid. Expected: " + std::to_string(length) +
+        " given: " + std::to_string(size));
+    return false;
+  };
         }
-    },v);
-};
 
 }//mimium ns

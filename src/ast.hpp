@@ -22,6 +22,7 @@ enum AST_ID{
     ARRAY,
     ARRAYACCESS,
     FCALL,
+    DECLARATION,
     ASSIGN,
     FDEF,
     RETURN,
@@ -272,6 +273,18 @@ class FcallAST: public AST{
     auto getFname(){return std::dynamic_pointer_cast<SymbolAST>(fname);};
     std::ostream& to_string(std::ostream& ss);
 };
+class DeclarationAST: public AST{
+    public:
+    AST_Ptr fname;
+    AST_Ptr args;
+    DeclarationAST(AST_Ptr Fname, AST_Ptr Args): fname(std::move(Fname)),args(std::move(Args)){
+        id = DECLARATION;
+    }
+    auto getArgs(){return std::dynamic_pointer_cast<ArgumentsAST>(args); };
+    auto getFname(){return std::dynamic_pointer_cast<SymbolAST>(fname);};
+    std::ostream& to_string(std::ostream& ss);
+};
+
 class ReturnAST: public AST{
     public:
     AST_Ptr expr;
