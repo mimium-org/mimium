@@ -12,7 +12,7 @@ ADD_FLEX_BISON_DEPENDENCY(MyScanner MyParser)
 
 
 add_executable(Test
-${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} ../src/ast.cpp ../src/audiodriver.cpp  ../src/interpreter.cpp ../src/closure.cpp ../src/environment.cpp ../src/builtin_functions.cpp ../src/scheduler.cpp ../src/driver.cpp
+${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} ../src/ast.cpp ../src/audiodriver.cpp  ../src/interpreter.cpp ../src/closure.cpp ../src/environment.cpp ../src/builtin_functions.cpp ../src/scheduler.cpp ../src/driver.cpp ../src/mididriver.cpp
  flex_bison_test.cpp  interpreter_test.cpp  builtin_test.cpp )
 
 
@@ -23,7 +23,7 @@ ${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} ../src/ast.cpp ../src/audiod
 
 
 add_executable(SchedulerTest 
- ${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} ../src/ast.cpp ../src/audiodriver.cpp  ../src/closure.cpp ../src/environment.cpp ../src/builtin_functions.cpp ../src/interpreter.cpp ../src/scheduler.cpp ../src/driver.cpp 
+ ${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} ../src/ast.cpp ../src/audiodriver.cpp  ../src/closure.cpp ../src/environment.cpp ../src/builtin_functions.cpp ../src/interpreter.cpp ../src/scheduler.cpp ../src/driver.cpp ../src/mididriver.cpp
 scheduler_test.cpp)
 
 
@@ -47,6 +47,7 @@ target_link_libraries(Test
     GTest::GTest
     GTest::Main   # GTest::Mainをリンクすると自分でmain関数を書く必要がなくなる
     rtaudio
+    rtmidi
     ${llvm_libs}
   )
 
@@ -62,6 +63,7 @@ target_link_libraries(MidiTest
 target_link_libraries(SchedulerTest
   PRIVATE
   rtaudio
+  rtmidi
 )
 
 file(GLOB testsource *.mmm)
