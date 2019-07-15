@@ -84,6 +84,7 @@
 ;
 %token <double> NUM "number_token"
 %token  <std::string> SYMBOL "symbol_token"
+%token  <std::string> STRING "string_token"
 %token  <std::string> FNAME "fname_token"
 
 
@@ -224,7 +225,7 @@ term : single
 declaration : include {$$=std::move($1);} 
 ;
 
-include : INCLUDE '(' string ')' {$$ = driver.add_declaration("include",std::move($3)); }
+include : INCLUDE '(' arguments_fcall ')' {$$ = driver.add_declaration("include",std::move($3)); }
 ;
 
 fcall : symbol '(' arguments_fcall ')' {$$ = driver.add_fcall(std::move($1),std::move($3));}
@@ -239,9 +240,10 @@ array_elems : single ',' array_elems   {$3->addAST(std::move($1));
 array_access: symbol '[' term ']' {$$ = driver.add_array_access(std::move($1),std::move($3));}; 
 
 single : symbol{$$=std::move($1);}
+      | string{$$=std::move($1);}
       |  num   {$$=std::move($1);};
 
-string : '"' symbol '"' {$$ = std::move($2);}
+string : STRING {$$ = driver.add_symbol($1);}
 ;
 
 num :NUM {$$ = driver.add_number($1);};

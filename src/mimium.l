@@ -16,7 +16,8 @@ FLOAT    ({NONZERO}{DIGIT}*\.?|0\.|\.{DIGIT}){DIGIT}*|0
 EXPONENT [eE](-|\+?){DIGIT}+
 NUMBER   {FLOAT}{EXPONENT}?
 SYMBOL   [[:alpha:]][[:alnum:]_]*
-DELIMITER "{"|"}"|"("|")"|"["|"]"|","
+STRING  "\""[[:alnum:][:graph:]]+"\""
+DELIMITER "{"|"}"|"("|")"|"["|"]"|","|"\""|"\."
 WSPACE   [[:blank:]]+
 BREAK  "\r\n"|"\n"|"\r"
 NEWLINE {BREAK}* | ";"
@@ -44,6 +45,15 @@ END {BREAK}{WSPACE}*"end"
 "return" return token::RETURN;
 "if" return token::IF;
 "else" return token::ELSE;
+
+{STRING} {
+  std::string str = yytext;
+  //remove quotation
+  str.erase(0,1);
+  str.erase(str.end()-1,str.end());
+  yylval->emplace<std::string>(str);
+  return token::STRING;
+};
 
 {SYMBOL} {
   yylval->emplace<std::string>(yytext);
