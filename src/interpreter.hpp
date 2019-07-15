@@ -39,6 +39,7 @@ class Interpreter: public std::enable_shared_from_this<Interpreter> {
     void loadSourceFile(const std::string filename);
 
     void setWorkingDirectory(const std::string path){
+        current_working_directory = path;
         driver.setWorkingDirectory(path);
     }
     mValue loadAst(AST_Ptr _ast);
@@ -82,7 +83,7 @@ class Interpreter: public std::enable_shared_from_this<Interpreter> {
     std::string currentNS;
     std::shared_ptr<Scheduler> sch;
     mmmpsr::MimiumDriver driver;
-
+    std::string current_working_directory="";
     bool assertArgumentsLength(std::vector<AST_Ptr>& args, int length);
 };
 

@@ -17,6 +17,10 @@ namespace mmmpsr {
 class MimiumDriver {
  public:
   MimiumDriver() { mainast = std::make_shared<ListAST>(); };
+  MimiumDriver(std::string cwd) :  working_directory(cwd) { 
+    mainast = std::make_shared<ListAST>(); 
+    };
+
   virtual ~MimiumDriver();
   void parse(std::istream &is);
   void parsestring(const std::string str);
