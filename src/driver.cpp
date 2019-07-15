@@ -37,7 +37,7 @@ void MimiumDriver::parsefile(const std::string filename){
    ifs.exceptions(std::fstream::failbit | std::fstream::badbit);
 
    try{
-      ifs.open(filename);
+      ifs.open(working_directory + filename);
       parse(ifs);
    }catch( std::ios_base::failure e){
         std::cerr << "File read error" << std::endl;
@@ -47,6 +47,13 @@ void MimiumDriver::parsefile(const std::string filename){
    }
 }
 
+void MimiumDriver::clear(){
+   mainast.reset(new ListAST());
+}
+
+void MimiumDriver::setWorkingDirectory(const std::string str){
+   working_directory = str;
+}
 
 AST_Ptr MimiumDriver::add_number(double num){
    return std::make_unique<NumberAST>(std::move(num));

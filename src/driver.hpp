@@ -21,9 +21,8 @@ class MimiumDriver {
   void parse(std::istream &is);
   void parsestring(const std::string str);
   void parsefile(const std::string filename);
-        void parsestring(std::string& str);
-        void parsefile(std::string filename);
-
+  void clear();
+  void setWorkingDirectory(const std::string cwd);
 
   AST_Ptr add_number(double num);
   AST_Ptr add_symbol(std::string str);
