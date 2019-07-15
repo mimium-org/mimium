@@ -4,6 +4,7 @@
 #include <unordered_map> 
 #include <string>
 #include <variant>
+#include "driver.hpp"
 #include "ast.hpp"
 #include "scheduler.hpp"
 //helper type for visiting
@@ -17,13 +18,6 @@ template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 namespace mimium{
 class Scheduler; //forward
 class Interpreter: public std::enable_shared_from_this<Interpreter> {
-    AST_Ptr topast;
-    std::shared_ptr<Environment> rootenv;
-    std::shared_ptr<Environment> currentenv;
-    std::map<std::string,mValue> arguments;
-    std::string currentNS;
-    std::shared_ptr<Scheduler> sch;
-
     public:
     Interpreter(){
         rootenv = std::make_shared<Environment>("root",nullptr);
@@ -40,6 +34,9 @@ class Interpreter: public std::enable_shared_from_this<Interpreter> {
     void add_scheduler(){sch = std::make_shared<Scheduler>(this);};
     void start();
     void stop();
+    void loadSource(const std::string src);
+    void loadSourceFile(const std::string filename);
+
     mValue loadAst(AST_Ptr _ast);
     mValue interpretListAst(AST_Ptr ast);
     mValue interpretStatementsAst(AST_Ptr ast);
@@ -71,7 +68,17 @@ class Interpreter: public std::enable_shared_from_this<Interpreter> {
 
     static double get_as_double(mValue v);
     static std::string to_string(mValue v);
-    
+    AST_Ptr getMainAst(){return driver.getMainAst(); };
+    // bool genEventGraph();
+    private:
+    AST_Ptr topast;
+    std::shared_ptr<Environment> rootenv;
+    std::shared_ptr<Environment> currentenv;
+    std::map<std::string,mValue> arguments;
+    std::string currentNS;
+    std::shared_ptr<Scheduler> sch;
+    mmmpsr::MimiumDriver driver;
+
     bool assertArgumentsLength(std::vector<AST_Ptr>& args, int length);
 };
 

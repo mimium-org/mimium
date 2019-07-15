@@ -26,13 +26,13 @@ void MimiumDriver::parse(std::istream &is){
       std::cerr << "Parse failed!!\n";
    }
 }
-void MimiumDriver::parsestring(std::string &str){
+void MimiumDriver::parsestring(const std::string str){
    std::stringbuf strBuf( str.c_str() );
    std::istream instream( &strBuf );
    parse(instream);
 }
 
-void MimiumDriver::parsefile(std::string filename){
+void MimiumDriver::parsefile(const std::string filename){
    std::ifstream ifs;
    ifs.exceptions(std::fstream::failbit | std::fstream::badbit);
 
@@ -47,6 +47,7 @@ void MimiumDriver::parsefile(std::string filename){
    }
 }
 
+
 AST_Ptr MimiumDriver::add_number(double num){
    return std::make_unique<NumberAST>(std::move(num));
 }
@@ -55,7 +56,7 @@ AST_Ptr MimiumDriver::add_symbol(std::string str){
    return std::make_unique<SymbolAST>(std::move(str));
 }
 
-AST_Ptr MimiumDriver::add_op(std::string op,AST_Ptr lhs,AST_Ptr rhs){
+AST_Ptr MimiumDriver::add_op( std::string op,AST_Ptr lhs,AST_Ptr rhs){
    return std::make_unique<OpAST>(op,std::move(lhs),std::move(rhs));
 }
 
@@ -112,7 +113,7 @@ AST_Ptr MimiumDriver::set_time(AST_Ptr elem,AST_Ptr time){
 //    mainast->addAST(std::move(in));
 // }
 void MimiumDriver::add_top(AST_Ptr top){
-     mainast = std::move(top);
+     mainast->addAST(std::move(top));
 }
 
 std::ostream&  MimiumDriver::print( std::ostream &stream )
