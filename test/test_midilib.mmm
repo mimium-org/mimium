@@ -1,0 +1,23 @@
+include("/Users/tomoya/codes/mimium/mimium-core/core.mmm")
+dummy= setMidiOut(0)@0
+notes =[60,62,64,65,67,69,71,72]
+fn makecounter(x){
+    localvar = 0
+    fn countup(y){
+        localvar= (localvar+x) % 8
+        return localvar
+}
+    return countup
+}
+ctr=makecounter(1)
+fn loop(time){
+    idx = ctr(1)
+    dummy2 = println(time)
+    n = notes[idx]
+    dummy= noteOn(n, 127, 0)
+    dummy2 = noteOff(n, 127, 0)@(time+22100)
+    newtime = time+33100
+    return loop(newtime)@newtime
+}
+pre = sendMidiMessage([0,0,0])@0
+main = loop(120)@1
