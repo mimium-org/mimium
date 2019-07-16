@@ -37,7 +37,11 @@ void MimiumDriver::parsefile(const std::string filename){
    ifs.exceptions(std::fstream::failbit | std::fstream::badbit);
 
    try{
-      ifs.open(working_directory + filename);
+      if(filename[0] == '/'){ // check if absolute path or not
+         ifs.open(filename);
+      }else{
+         ifs.open(working_directory + filename);
+      }
       parse(ifs);
    }catch( std::ios_base::failure e){
         std::cerr << "File read error" << std::endl;
