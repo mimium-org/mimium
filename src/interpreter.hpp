@@ -33,10 +33,11 @@ class Interpreter: public std::enable_shared_from_this<Interpreter> {
     void add_scheduler(){sch = std::make_shared<Scheduler>(this);};
     void init();
     void clear();
+    inline void clearDriver(){driver.clear();};
     void start();
     void stop();
-    void loadSource(const std::string src);
-    void loadSourceFile(const std::string filename);
+    mValue loadSource(const std::string src);
+    mValue loadSourceFile(const std::string filename);
 
     void setWorkingDirectory(const std::string path){
         current_working_directory = path;

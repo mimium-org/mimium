@@ -10,7 +10,7 @@ void Interpreter::init(){
 void Interpreter::clear() { 
       rootenv.reset();
       currentenv.reset();
-      driver.clear();
+      clearDriver();
       init();
 } 
 
@@ -18,13 +18,13 @@ void Interpreter::start() { sch->start(); }
 
 void Interpreter::stop() { sch->stop(); }
 
-void Interpreter::loadSource(const std::string src) {
+mValue Interpreter::loadSource(const std::string src) {
   driver.parsestring(src);
-  loadAst(driver.getMainAst());
+  return loadAst(driver.getMainAst());
 }
-void Interpreter::loadSourceFile(const std::string filename) {
+mValue Interpreter::loadSourceFile(const std::string filename) {
   driver.parsefile(filename);
-  loadAst(driver.getMainAst());
+  return loadAst(driver.getMainAst());
 }
 
 mValue Interpreter::loadAst(AST_Ptr _ast) {
