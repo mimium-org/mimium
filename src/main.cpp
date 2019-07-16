@@ -16,19 +16,18 @@ int main(int argc,char *argv[]) {
     if(argc==1){
     std::string line;
     std::cout << "start" <<std::endl;
-    std::string teststr1 = "main = 1.245";
     
-    while (std::getline(std::cin, line)) {
-    driver.parsestring(line);
-    mValue res = interpreter.loadAst(driver.getMainAst());
+    while (std::getline(std::cin, line)) {  
+    interpreter.clearDriver();  
+    mValue res = interpreter.loadSource(line);
     std::string resstr = mimium::Interpreter::to_string(res);
     std::cout << resstr << std::endl;
     }
-    }else{
+    }
+    else{
         std::cout << argv[1]<<std::endl;
-        driver.parsefile(argv[1]);
+        mValue res = interpreter.loadSourceFile(argv[1]);
         interpreter.start();
-        mValue res = interpreter.loadAst(driver.getMainAst());
         sleep(20);
         interpreter.stop();
     }
