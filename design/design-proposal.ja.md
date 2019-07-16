@@ -24,11 +24,12 @@ input::int 1@100[ms] //これは絶対位置100msに置かれるinputという�
 
 #### 時間シフト演算子 <<< と >>>
 
-`hoge::int@ = 1@100[ms] >> 1[sec] //now hoge is 1@1.1[sec]` 
+`hoge::int@ = 1@100[ms] >>> 1[sec] //now hoge is 1@1.1[sec]` 
 
 この辺、みんな何使うのか困ってるぽい
 
 Chuck 100 +=> now;
+
 Chronic @+ @-
 
 ### 関数は入力に付随した時間のタイミングで発動する
@@ -39,20 +40,20 @@ Chronic @+ @-
 
 ```
 pitch_index::int = produce((x)->{x+x},5)//[2,4,6,8,10]
- time_index::int = produce((x)->{x*x},5) // [@1,@4,@9,@16,@25]
- end_index = time_index.map((t)->{ t |> 2[s]}) //[@3,@6,@11,@18,@27]
+time_index::int = produce((x)->{x*x},5) // [@1,@4,@9,@16,@25]
+end_index = time_index.map((t)->{ t |> 2[s]}) //[@3,@6,@11,@18,@27]
  
  
- pitchevents = pitch_index.tbind((x,i)->{x@[time_index[i],end_index[i]]}) //[2@[1,3],4@[4,6],6@[9,11],8@[16,18],10@[25,27]]
+pitchevents = pitch_index.tbind((x,i)->{x@[time_index[i],end_index[i]]}) //[2@[1,3],4@[4,6],6@[9,11],8@[16,18],10@[25,27]]
  
- function noteOn(input_pitch::int,instrument){//input_pitch is like 2@[1,3] and trigger at time 1
+function noteOn(input_pitch::int,instrument){//input_pitch is like 2@[1,3] and trigger at time 1
  	instrument.pitch = input_pitch
  	instrument.gain = 1.0
  	bind(noteOff(input_pitch,instrument)) // now input_pitch is 2@3,will triggerd at time 3
- }
-  function noteOff(input_pitch::int,instrument){
+}
+function noteOff(input_pitch::int,instrument){
    	instrument.gain = 0.0
-  }
+}
  
  pitchevents.map(pitch->noteOn(pitch)) // bind noteon to all pitchevents elements
 ```
@@ -66,15 +67,15 @@ delay(input::int@) = input <<< 100[ms] //過去の入力を出力する
 
 future(input::int@) = input >>> 100[ms] //未来の入力を出力する(フィルターとか作るときに有効)
 
- //VSTプラグインのように全体にオフセットディレイがかかる感じ（CHronicでもやってた） 
+ //VSTプラグインのように全体にオフセットディレイがかかる感じ（Chronicでもやってた） 
 ```
 
 ### また、関数は自身の過去の出力をselfキーワードで参照できる
 
 ```
-combfilter(input) = input + 0.999*( self<<<1 ) // 出力で未来の参照|>は流石にエラー
+combfilter(input) = input + 0.999*( self<<<1 ) // 出力で未来の参照>>>は流石にエラー
 
-combfilter = input+0.999*(self >>> 1[sec] ) // //絶対時間で遡ることも補完が効けばできる??無理かも
+combfilter = input+0.999*(self >>> 1[sec] ) // //絶対時間で遡ることもビルトイン機能で配列の補完が効けばできる??無理かも
  
 ```
 
