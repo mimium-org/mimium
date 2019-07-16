@@ -1,7 +1,19 @@
 #include "builtin_functions.hpp"
 
 namespace mimium {
-mValue builtin::print(std::shared_ptr<ArgumentsAST> argast,
+
+Builtin::Builtin()
+{
+  midi.init();
+  builtin_fntable["printchar"] = &Builtin::print;
+  builtin_fntable["print"] = &Builtin::print;
+  builtin_fntable["println"] = &Builtin::println;
+  builtin_fntable["setMidiOut"] = &Builtin::setMidiOut;
+  builtin_fntable["sendMidiMessage"] = &Builtin::sendMidiMessage;
+
+}
+
+mValue Builtin::print(std::shared_ptr<ArgumentsAST> argast,
                       Interpreter *interpreter) {
   auto args = argast->getElements();
   for (auto &elem : args) {
@@ -12,14 +24,14 @@ mValue builtin::print(std::shared_ptr<ArgumentsAST> argast,
   return 0.0;
 }
 
-mValue builtin::println(std::shared_ptr<ArgumentsAST> argast,
+mValue Builtin::println(std::shared_ptr<ArgumentsAST> argast,
                         Interpreter *interpreter) {
-  mimium::builtin::print(argast, interpreter);
+  print(argast, interpreter);
   std::cout << std::endl;
   return 0.0;
 }
 
-mValue builtin::setMidiOut(std::shared_ptr<ArgumentsAST> argast,
+mValue Builtin::setMidiOut(std::shared_ptr<ArgumentsAST> argast,
                            Interpreter *interpreter) {
   auto args = argast->getElements();
   double port = Interpreter::get_as_double(
@@ -29,32 +41,34 @@ mValue builtin::setMidiOut(std::shared_ptr<ArgumentsAST> argast,
   return 0.0;
 }
 
-mValue builtin::sendMidiMessage(std::shared_ptr<ArgumentsAST> argast,
+mValue Builtin::sendMidiMessage(std::shared_ptr<ArgumentsAST> argast,
                                 Interpreter *interpreter) {
   auto args = argast->getElements();
   mValue val = interpreter->interpretExpr(args[0]);
-  std::visit(overloaded{
-    [](std::vector<double> vec) {
+  auto message = std::visit(overloaded{
+    [](std::vector<double> vec)->std::vector<unsigned char> {
                           std::vector<unsigned char> outvec;
                           outvec.resize(vec.size());
                           for (int i = 0; i < vec.size(); i++) {
                             outvec[i] = (unsigned char)vec[i];
                           }
-                          midi.sendMessage(outvec);
+                          return outvec;
                         },
-    [](double d) {
+    [](double d)->std::vector<unsigned char> {
                           std::vector<unsigned char> outvec;
                           outvec.push_back((unsigned char)d);
-                          midi.sendMessage(outvec);
+                          return outvec;
                         },
-    [](auto v) {
+    [](auto v)->std::vector<unsigned char>{
                           throw std::runtime_error("invalid midi message");
+                          return std::vector<unsigned char>{};
                         }},
              val);
+  midi.sendMessage(message);    
   return 0.0;
 }
 
-bool builtin::isBuiltin(std::string str) {
+bool Builtin::isBuiltin(std::string str) {
   return builtin_fntable.count(str) > 0;
 }
 

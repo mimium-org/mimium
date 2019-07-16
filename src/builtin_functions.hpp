@@ -12,25 +12,25 @@ using mValue = std::variant<double,std::shared_ptr<AST>,mClosure_ptr,std::vector
 // template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 // template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
+
 namespace mimium{
     class Interpreter;//forward?
-    namespace builtin{
 
-    mValue print(std::shared_ptr<ArgumentsAST> argast,Interpreter* interpreter);
-    mValue println(std::shared_ptr<ArgumentsAST>  argast,Interpreter* interpreter);
+    class Builtin{
+    public:
+        Builtin();
+        mValue print(std::shared_ptr<ArgumentsAST> argast,Interpreter* interpreter);
+        mValue println(std::shared_ptr<ArgumentsAST>  argast,Interpreter* interpreter);
 
-    bool isBuiltin(std::string str);
+        mValue setMidiOut(std::shared_ptr<ArgumentsAST>argast ,Interpreter* interpreter);
+        mValue sendMidiMessage(std::shared_ptr<ArgumentsAST>argast,Interpreter* interpreter);
 
-    static Mididriver midi; //todo: need to split extensions nicely
-    mValue setMidiOut(std::shared_ptr<ArgumentsAST>,Interpreter* interpreter);
-    mValue sendMidiMessage(std::shared_ptr<ArgumentsAST>,Interpreter* interpreter);
+        bool isBuiltin(std::string str);
+        std::map<std::string,mValue(Builtin::*)(std::shared_ptr<ArgumentsAST>,Interpreter*)>  builtin_fntable; //todo change to use std::function, not a function pointer
+        
+        private:
+        Mididriver midi; //todo: need to split extensions nicely
 
-    const static std::map<std::string,mValue(*)(std::shared_ptr<ArgumentsAST>,Interpreter*)> builtin_fntable = {
-        {"printchar" ,&print},
-        {"print", &print},
-        {"println",&println},
-        {"setMidiOut",&setMidiOut},
-        {"sendMidiMessage",&sendMidiMessage}
-    };
-}
-}
+
+    }; // class Builtin
+} //namespace mimium

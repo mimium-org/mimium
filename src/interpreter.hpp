@@ -17,11 +17,11 @@ template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 namespace mimium{
 class Scheduler; //forward
+class Builtin; //forward
 class Interpreter: public std::enable_shared_from_this<Interpreter> {
     public:
-    Interpreter(){
-        init();
-    };
+    Interpreter();
+    virtual ~Interpreter();
     mValue findVariable(std::string str){ //fortest
         auto it = arguments.find(str);
         if(it!=arguments.end()){
@@ -84,7 +84,9 @@ class Interpreter: public std::enable_shared_from_this<Interpreter> {
     std::string currentNS;
     std::shared_ptr<Scheduler> sch;
     mmmpsr::MimiumDriver driver;
+    Builtin* builtin_functions;
     std::string current_working_directory="";
+
     bool assertArgumentsLength(std::vector<AST_Ptr>& args, int length);
 };
 
