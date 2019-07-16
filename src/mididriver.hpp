@@ -8,7 +8,8 @@ class Mididriver {
 
  public:
   Mididriver();
-  void setPort(unsigned int portnumber);
+  void setPort(int portnumber);
   void sendMessage(std::vector<unsigned char>& m);
+  void printCurrentPort(int portnumber);
 };
 }  // namespace mimium
