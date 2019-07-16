@@ -2,8 +2,10 @@
 
 namespace mimium {
 Mididriver::Mididriver() {
-  midiout = std::make_shared<RtMidiOut>();
   message.resize(6);
+}
+void Mididriver::init(){
+    midiout = std::make_unique<RtMidiOut>(RtMidi::Api::UNSPECIFIED,"mimium-interpreter");
 }
 void Mididriver::setPort(int portnumber) {
   if(midiout->isPortOpen()){

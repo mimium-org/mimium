@@ -16,9 +16,8 @@ mValue Environment::findVariable(std::string key){
     }else if(parent !=nullptr){
         return parent->findVariable(key); //search recursively
     }else{
-        std::stringstream ss;
-        ss  << "Variable" << key << "not found";
-        throw std::runtime_error(ss.str());    
+
+        throw std::runtime_error("Variable " + key  +" not found");    
         return 0;
     }
 }
