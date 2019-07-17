@@ -12,6 +12,9 @@ Builtin::Builtin()
   builtin_fntable["sendMidiMessage"] = &Builtin::sendMidiMessage;
 
 }
+Builtin::~Builtin(){
+  
+}
 
 mValue Builtin::print(std::shared_ptr<ArgumentsAST> argast,
                       Interpreter *interpreter) {

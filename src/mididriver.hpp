@@ -8,6 +8,8 @@ class Mididriver {
 
  public:
   Mididriver();
+  ~Mididriver();
+
   void init();
   void setPort(int portnumber);
   void sendMessage(std::vector<unsigned char>& m);

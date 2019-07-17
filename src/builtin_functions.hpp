@@ -19,6 +19,7 @@ namespace mimium{
     class Builtin{
     public:
         Builtin();
+        ~Builtin();
         mValue print(std::shared_ptr<ArgumentsAST> argast,Interpreter* interpreter);
         mValue println(std::shared_ptr<ArgumentsAST>  argast,Interpreter* interpreter);
 

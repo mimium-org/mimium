@@ -4,6 +4,9 @@ namespace mimium {
 Mididriver::Mididriver() {
   message.resize(6);
 }
+Mididriver::~Mididriver(){
+  midiout->closePort();
+}
 void Mididriver::init(){
     midiout = std::make_unique<RtMidiOut>(RtMidi::Api::UNSPECIFIED,"mimium-interpreter");
 }

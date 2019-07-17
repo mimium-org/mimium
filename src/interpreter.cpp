@@ -5,6 +5,7 @@ namespace mimium {
 
 Interpreter::Interpreter(){}
 Interpreter::~Interpreter(){
+  
   delete builtin_functions;
 }
 
@@ -271,7 +272,7 @@ mValue Interpreter::interpretFcall(AST_Ptr expr) {
   auto args = fcall->getArgs();
   if (builtin_functions->isBuiltin(name)) {
     auto fn = builtin_functions->builtin_fntable.at(name);
-    (builtin_functions->*fn) (args, this);  // currently implemented only for print()
+    (builtin_functions->*fn)(args, this);  // currently implemented only for print()
     return 0.0;
   } else {
     auto argsv = args->getElements();
