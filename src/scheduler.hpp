@@ -6,7 +6,7 @@
 #include "ast.hpp"
 #include "interpreter.hpp"
 #include "audiodriver.hpp"
-
+#include "helper_functions.hpp"
 
 namespace mimium{
 class Interpreter; //forward

@@ -26,6 +26,6 @@ void Mididriver::sendMessage(std::vector<unsigned char>& m) {
   midiout->sendMessage(&m);
 }
 void Mididriver::printCurrentPort(int portnumber){
-  std::cout << "Current MIDI Port: " << midiout->getPortName(portnumber) << std::endl;
+    Logger::debug_log("Current MIDI Port: " + midiout->getPortName(portnumber) ,Logger::DEBUG);
 }
 }  // namespace mimium

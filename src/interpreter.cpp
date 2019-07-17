@@ -100,15 +100,13 @@ mValue Interpreter::interpretAssign(AST_Ptr line) {
   auto assign = std::dynamic_pointer_cast<AssignAST>(line);
   std::string varname = assign->getName()->getVal();
   if (currentenv->isVariableSet(varname)) {
-    // std::cout<<"Variable "<< varname << " already exists.
-    // Overwritten"<<std::endl;
+    Logger::debug_log("Variable "+varname+" already exists. Overwritten" ,Logger::DEBUG);
   }
   auto body = assign->getBody();
   if (body) {
     mValue res = interpretExpr(body);
     currentenv->setVariable(varname, res);  // share
-    std::cout << "Variable " << varname << " : " << Interpreter::to_string(res)
-              << std::endl;
+    Logger::debug_log("Variable "+varname+" : "+Interpreter::to_string(res) ,Logger::DEBUG);
     return line;  // for print
   } else {
     throw std::runtime_error("expression not resolved");

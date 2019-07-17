@@ -1,4 +1,5 @@
 #pragma once
+#include "helper_functions.hpp"
 #include "RtAudio.h"
 
 
@@ -13,7 +14,7 @@ class AudioDriver{
     unsigned int sampleRate = 44100;
     unsigned int bufferFrames = 512; // 256 sample frames
     Scheduler* userdata;
-    double data[2];
+    // double data[2];
     public:
     AudioDriver();
     ~AudioDriver(){};

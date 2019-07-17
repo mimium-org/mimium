@@ -36,7 +36,7 @@ int mimium::Scheduler::audioCallback(void *outputBuffer, void *inputBuffer, unsi
         auto sch= (mimium::Scheduler*) userData;
         double* outputBuffer_d[nBufferFrames];
         if ( status )
-            std::cout << "Stream underflow detected!" << std::endl;
+            Logger::debug_log("Stream underflow detected!",Logger::WARNING);
             // Write interleaved audio data.
         for (int i=0; i<nBufferFrames; i++ ) {
             sch->incrementTime();

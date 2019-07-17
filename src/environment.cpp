@@ -28,7 +28,7 @@ void Environment::setVariable(std::string key,mValue val){
     }else if(parent !=nullptr){
         parent->setVariable(key,val); //search recursively
     }else{
-        std::cout << "Create New Variable" << key << std::endl;
+        Logger::debug_log( "Create New Variable " + key  ,Logger::DEBUG);
         variables[key]=val;
 
     }

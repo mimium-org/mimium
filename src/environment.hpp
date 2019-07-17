@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include "helper_functions.hpp"
 #include "ast.hpp"
 
 using mClosure_ptr = std::shared_ptr<mimium::Closure>;

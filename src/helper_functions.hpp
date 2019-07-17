@@ -17,6 +17,7 @@ class Logger {
   Logger(std::ostream& out);
   virtual ~Logger() {}
   typedef enum { FATAL = 1, ERROR, WARNING, INFO, DEBUG, TRACE } REPORT_LEVEL;
+  /// @callgraph
   static void debug_log(const std::string& str, REPORT_LEVEL report_level);
   inline void setoutput(std::ostream& out) { Logger::output = &out; }
   static REPORT_LEVEL current_report_level;

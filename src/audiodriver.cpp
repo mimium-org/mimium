@@ -3,7 +3,8 @@
 namespace mimium{
 AudioDriver::AudioDriver(){
     if ( rtaudio.getDeviceCount() < 1 ) {
-    std::cout << "\nNo audio devices found!\n";
+    Logger::debug_log("No audio devices found!" ,Logger::WARNING);
+
   }
     parameters.deviceId = rtaudio.getDefaultOutputDevice();
     parameters.nChannels = 2;

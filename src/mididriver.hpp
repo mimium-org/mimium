@@ -1,6 +1,8 @@
 #include <memory>
 #include <vector>
 #include "RtMidi.h"
+#include "helper_functions.hpp"
+
 namespace mimium {
 class Mididriver {
   std::unique_ptr<RtMidiOut> midiout;
