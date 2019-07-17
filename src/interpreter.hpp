@@ -36,6 +36,8 @@ class Interpreter: public std::enable_shared_from_this<Interpreter> {
     void clear();
     inline void clearDriver(){driver.clear();};
     void start();
+    inline bool isrunning(){return running_status;};
+
     void stop();
     mValue loadSource(const std::string src);
     mValue loadSourceFile(const std::string filename);
@@ -88,7 +90,7 @@ class Interpreter: public std::enable_shared_from_this<Interpreter> {
     Builtin* builtin_functions;
     // Logger logger;
     std::string current_working_directory="";
-
+    bool running_status=false;
     bool assertArgumentsLength(std::vector<AST_Ptr>& args, int length);
 };
 

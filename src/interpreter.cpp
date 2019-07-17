@@ -3,27 +3,30 @@
 
 namespace mimium {
 
-Interpreter::Interpreter(){}
-Interpreter::~Interpreter(){
-  
-  delete builtin_functions;
+Interpreter::Interpreter() {}
+Interpreter::~Interpreter() { delete builtin_functions; }
+
+void Interpreter::init() {
+  rootenv = std::make_shared<Environment>("root", nullptr);
+  currentenv = rootenv;  // share
+  builtin_functions = new Builtin();
+}
+void Interpreter::clear() {
+  rootenv.reset();
+  currentenv.reset();
+  clearDriver();
+  init();
 }
 
-void Interpreter::init(){
-      rootenv = std::make_shared<Environment>("root",nullptr);
-      currentenv = rootenv; // share
-      builtin_functions = new Builtin();
+void Interpreter::start() {
+  sch->start();
+  running_status = true;
 }
-void Interpreter::clear() { 
-      rootenv.reset();
-      currentenv.reset();
-      clearDriver();
-      init();
-} 
 
-void Interpreter::start() { sch->start(); }
-
-void Interpreter::stop() { sch->stop(); }
+void Interpreter::stop() {
+  sch->stop();
+  running_status = false;
+}
 
 mValue Interpreter::loadSource(const std::string src) {
   driver.parsestring(src);
@@ -121,7 +124,8 @@ mValue Interpreter::interpretDeclaration(AST_Ptr line) {
     assertArgumentsLength(args, 1);
     if (args[0]->getid() == SYMBOL) {
       auto filename = std::dynamic_pointer_cast<SymbolAST>(args[0])->getVal();
-      auto temporary_driver = std::make_unique<mmmpsr::MimiumDriver>(current_working_directory);
+      auto temporary_driver =
+          std::make_unique<mmmpsr::MimiumDriver>(current_working_directory);
       temporary_driver->parsefile(filename);
       loadAst(temporary_driver->getMainAst());
       return 0;
@@ -270,7 +274,8 @@ mValue Interpreter::interpretFcall(AST_Ptr expr) {
   auto args = fcall->getArgs();
   if (builtin_functions->isBuiltin(name)) {
     auto fn = builtin_functions->builtin_fntable.at(name);
-    (builtin_functions->*fn)(args, this);  // currently implemented only for print()
+    (builtin_functions->*fn)(args,
+                             this);  // currently implemented only for print()
     return 0.0;
   } else {
     auto argsv = args->getElements();
