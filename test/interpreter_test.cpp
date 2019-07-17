@@ -9,6 +9,7 @@
 static mmmpsr::MimiumDriver driver;
 static mimium::Interpreter interpreter;
 TEST(interpreter_test, assign) {
+     interpreter.init();
      interpreter.loadSource("a = 1");
      EXPECT_EQ(mimium::Interpreter::to_string(interpreter.getMainAst()),"(assign a 1)") ;
 }
