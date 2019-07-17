@@ -5,7 +5,7 @@ Mididriver::Mididriver() {
   message.resize(6);
 }
 Mididriver::~Mididriver(){
-  midiout->closePort();
+  if(midiout->isPortOpen()) midiout->closePort();
 }
 void Mididriver::init(){
     midiout = std::make_unique<RtMidiOut>(RtMidi::Api::UNSPECIFIED,"mimium-interpreter");
@@ -19,7 +19,7 @@ void Mididriver::setPort(int portnumber) {
   }else if(portnumber > midiout->getPortCount()){
     std::cout<< "port number out of range"<< std::endl;
   }else{
-  midiout->openPort(portnumber);
+  midiout->openVirtualPort("Mimium-Midi");
   }
 }
 void Mididriver::sendMessage(std::vector<unsigned char>& m) {
