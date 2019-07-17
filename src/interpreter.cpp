@@ -58,7 +58,7 @@ mValue Interpreter::interpretListAst(AST_Ptr ast) {
     }
     return res;
   } catch (const std::exception& e) {
-    std::cerr << e.what() << std::endl;
+    Logger::debug_log(e.what(), Logger::ERROR);
     return 0.0;
   }
 }
@@ -103,13 +103,16 @@ mValue Interpreter::interpretAssign(AST_Ptr line) {
   auto assign = std::dynamic_pointer_cast<AssignAST>(line);
   std::string varname = assign->getName()->getVal();
   if (currentenv->isVariableSet(varname)) {
-    Logger::debug_log("Variable "+varname+" already exists. Overwritten" ,Logger::DEBUG);
+    Logger::debug_log("Variable " + varname + " already exists. Overwritten",
+                      Logger::WARNING);
   }
   auto body = assign->getBody();
   if (body) {
     mValue res = interpretExpr(body);
     currentenv->setVariable(varname, res);  // share
-    Logger::debug_log("Variable "+varname+" : "+Interpreter::to_string(res) ,Logger::DEBUG);
+    Logger::debug_log(
+        "Variable " + varname + " : " + Interpreter::to_string(res),
+        Logger::DEBUG);
     return line;  // for print
   } else {
     throw std::runtime_error("expression not resolved");
