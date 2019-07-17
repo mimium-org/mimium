@@ -90,7 +90,7 @@ END {BREAK}{WSPACE}*"end"
 "{" return token::LBRACE;
 "}" return token::RBRACE;
 
-{BREAK}	{ loc->lines(); loc->step(); return token::NEWLINE;}
+{BREAK}+	{ loc->lines(yyleng); return token::NEWLINE;}
 {DELIMITER} { return yytext[0];};
 . {
 std::cerr << "Lexer: Unrecognized char \"" << yytext[0] << "\"" << std::endl;
