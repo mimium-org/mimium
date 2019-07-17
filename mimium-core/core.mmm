@@ -3,6 +3,6 @@ fn noteOn(pitch,velocity,channel){
     return sendMidiMessage([ch_byte,pitch,velocity])
 }
 fn noteOff(pitch,velocity,channel){
-　ch_byte = (9 * 16) + channel
+　ch_byte = (8 * 16) + channel
     return sendMidiMessage([ch_byte,pitch,0])
 }
