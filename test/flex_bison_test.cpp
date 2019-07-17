@@ -1,5 +1,5 @@
 // #define MIMIUM_DEBUG 4
-
+#include "helper_functions.hpp"
 #include "driver.hpp"
 #include "gtest/gtest.h"
 

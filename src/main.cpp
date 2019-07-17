@@ -5,12 +5,14 @@
  */
 #include <string>
 #include <unistd.h>
+#include "helper_functions.hpp"
 #include "driver.hpp"
 
 #include "interpreter.hpp"
 
 
 int main(int argc,char *argv[]) {
+    mimium::Logger::current_report_level = mimium::Logger::DEBUG;
     auto interpreter =  std::make_unique<mimium::Interpreter>();
     interpreter->init();
     interpreter->add_scheduler();

@@ -4,6 +4,7 @@
 #include <unordered_map> 
 #include <string>
 #include <variant>
+#include "helper_functions.hpp"
 #include "driver.hpp"
 #include "ast.hpp"
 #include "scheduler.hpp"
@@ -85,6 +86,7 @@ class Interpreter: public std::enable_shared_from_this<Interpreter> {
     std::shared_ptr<Scheduler> sch;
     mmmpsr::MimiumDriver driver;
     Builtin* builtin_functions;
+    // Logger logger;
     std::string current_working_directory="";
 
     bool assertArgumentsLength(std::vector<AST_Ptr>& args, int length);

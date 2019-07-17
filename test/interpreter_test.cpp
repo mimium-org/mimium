@@ -2,9 +2,7 @@
 
 #include "gtest/gtest.h"
 #include "gtest/internal/gtest-port.h"
-
-#include "driver.hpp"
-
+#include "helper_functions.hpp"
 #include "interpreter.hpp"
 static mmmpsr::MimiumDriver driver;
 static mimium::Interpreter interpreter;

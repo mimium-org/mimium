@@ -12,18 +12,18 @@ ADD_FLEX_BISON_DEPENDENCY(MyScanner MyParser)
 
 
 add_executable(Test
-${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} ../src/ast.cpp ../src/audiodriver.cpp  ../src/interpreter.cpp ../src/closure.cpp ../src/environment.cpp ../src/builtin_functions.cpp ../src/scheduler.cpp ../src/driver.cpp ../src/mididriver.cpp
+${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} ../src/helper_functions.cpp ../src/ast.cpp ../src/audiodriver.cpp  ../src/interpreter.cpp ../src/closure.cpp ../src/environment.cpp ../src/builtin_functions.cpp ../src/scheduler.cpp ../src/driver.cpp ../src/mididriver.cpp
  flex_bison_test.cpp  interpreter_test.cpp  builtin_test.cpp )
 
 
 add_executable(AudioTest ../src/audiodriver.cpp audiodriver_test.cpp)
 
 add_executable(MidiTest 
-${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} ../src/ast.cpp ../src/audiodriver.cpp  ../src/closure.cpp ../src/environment.cpp ../src/builtin_functions.cpp ../src/interpreter.cpp ../src/scheduler.cpp ../src/driver.cpp  ../src/mididriver.cpp rtmidi_test.cpp)
+${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} ../src/helper_functions.cpp ../src/ast.cpp ../src/audiodriver.cpp  ../src/closure.cpp ../src/environment.cpp ../src/builtin_functions.cpp ../src/interpreter.cpp ../src/scheduler.cpp ../src/driver.cpp  ../src/mididriver.cpp rtmidi_test.cpp)
 
 
 add_executable(SchedulerTest 
- ${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} ../src/ast.cpp ../src/audiodriver.cpp  ../src/closure.cpp ../src/environment.cpp ../src/builtin_functions.cpp ../src/interpreter.cpp ../src/scheduler.cpp ../src/driver.cpp ../src/mididriver.cpp
+ ${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} ../src/helper_functions.cpp ../src/ast.cpp ../src/audiodriver.cpp  ../src/closure.cpp ../src/environment.cpp ../src/builtin_functions.cpp ../src/interpreter.cpp ../src/scheduler.cpp ../src/driver.cpp ../src/mididriver.cpp
 scheduler_test.cpp)
 
 
