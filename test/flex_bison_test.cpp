@@ -206,3 +206,11 @@ TEST(bison_parser_test, forloop) {
   EXPECT_EQ(ss.str(),
             "((assign arr (1 2 3 4 5)) (for i arr (assign main i)))");
 }
+TEST(bison_parser_test, comment) {
+    driver.clear();
+  driver.parsefile("test_comment.mmm");
+  std::stringstream ss;
+  driver.print(ss);
+  EXPECT_EQ(ss.str(),
+            "(assign main 1)");
+}

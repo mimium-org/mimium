@@ -9,6 +9,9 @@
 %}
 %option c++ noyywrap nounput noinput nodefault debug
 %option yyclass="mmmpsr::MimiumParser"
+%x comment
+%x inlinecomment
+
 
 NONZERO  [1-9]
 DIGIT    [[:digit:]]
@@ -28,12 +31,26 @@ END {BREAK}{WSPACE}*"end"
    yylval = lval;
 %}
 
+
+"/*"		BEGIN(comment);
+<comment>{
+[^*\n\r]*			/* eat anything that's not a '*' 		*/
+"*"+[^*/\n\r]*		/* eat up '*'s not followed by '/'s 	*/
+{BREAK}+			{loc->lines(yyleng);}
+"*"+"/"{BREAK}*				{BEGIN(INITIAL);}
+}
+
+"//" BEGIN(inlinecomment);
+<inlinecomment>{
+{BREAK}+ {BEGIN(INITIAL); loc->lines(yyleng);};
+[^\n\r]*
+}
+
 {NUMBER} {
     yylval->emplace<double>(std::stod(yytext));
     return token::NUM;
 };
 
-{WSPACE} ;
 
 "include" return token::INCLUDE;
 
@@ -91,7 +108,11 @@ END {BREAK}{WSPACE}*"end"
 "}" return token::RBRACE;
 
 {BREAK}+	{ loc->lines(yyleng); return token::NEWLINE;}
+
 {DELIMITER} { return yytext[0];};
+
+{WSPACE} 
+
 . {
 std::cerr << "Lexer: Unrecognized char \"" << yytext[0] << "\"" << std::endl;
 		loc->step();

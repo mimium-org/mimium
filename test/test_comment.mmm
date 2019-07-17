@@ -1,0 +1,11 @@
+// this is inline comment
+
+/* this is multiline comment */
+
+/****
+
+you can do like this
+
+***/
+
+main = 1
