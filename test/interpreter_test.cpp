@@ -1,5 +1,5 @@
 #define MIMIUM_DEBUG
-
+#include <cmath>
 #include "gtest/gtest.h"
 #include "gtest/internal/gtest-port.h"
 #include "helper_functions.hpp"
@@ -138,3 +138,10 @@ TEST(interpreter_test, include) {
      mValue main = interpreter.findVariable("main");
      EXPECT_EQ(25+128, mimium::Interpreter::get_as_double(main));
 }
+TEST(interpreter_test, mathtest) {
+     interpreter.clear();
+     interpreter.loadSource("main=sin(3.14)");
+     mValue main = interpreter.findVariable("main");
+     EXPECT_EQ(std::sin(3.14), mimium::Interpreter::get_as_double(main));
+}
+

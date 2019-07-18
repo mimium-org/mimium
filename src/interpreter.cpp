@@ -3,13 +3,14 @@
 
 namespace mimium {
 
-Interpreter::Interpreter() {}
-Interpreter::~Interpreter() { delete builtin_functions; }
+Interpreter::Interpreter() {
+    midi.init();
+}
+Interpreter::~Interpreter() {}
 
 void Interpreter::init() {
   rootenv = std::make_shared<Environment>("root", nullptr);
   currentenv = rootenv;  // share
-  builtin_functions = new Builtin();
 }
 void Interpreter::clear() {
   rootenv.reset();
@@ -275,11 +276,9 @@ mValue Interpreter::interpretFcall(AST_Ptr expr) {
   auto fcall = std::dynamic_pointer_cast<FcallAST>(expr);
   auto name = std::dynamic_pointer_cast<SymbolAST>(fcall->getFname())->getVal();
   auto args = fcall->getArgs();
-  if (builtin_functions->isBuiltin(name)) {
-    auto fn = builtin_functions->builtin_fntable.at(name);
-    (builtin_functions->*fn)(args,
-                             this);  // currently implemented only for print()
-    return 0.0;
+  if (Builtin::isBuiltin(name)) {
+    auto fn = Builtin::builtin_fntable.at(name);
+    return fn(args, this);
   } else {
     auto argsv = args->getElements();
     mValue var = findVariable(name);

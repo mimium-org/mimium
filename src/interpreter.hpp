@@ -4,6 +4,7 @@
 #include <unordered_map> 
 #include <string>
 #include <variant>
+#include "mididriver.hpp"
 #include "helper_functions.hpp"
 #include "driver.hpp"
 #include "ast.hpp"
@@ -18,7 +19,6 @@ template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 namespace mimium{
 class Scheduler; //forward
-class Builtin; //forward
 class Interpreter: public std::enable_shared_from_this<Interpreter> {
     public:
     Interpreter();
@@ -78,6 +78,7 @@ class Interpreter: public std::enable_shared_from_this<Interpreter> {
     static double get_as_double(mValue v);
     static std::string to_string(mValue v);
     AST_Ptr getMainAst(){return driver.getMainAst(); };
+    inline Mididriver& getMidiInstance(){return midi;};
     // bool genEventGraph();
     private:
     AST_Ptr topast;
@@ -87,7 +88,8 @@ class Interpreter: public std::enable_shared_from_this<Interpreter> {
     std::string currentNS;
     std::shared_ptr<Scheduler> sch;
     mmmpsr::MimiumDriver driver;
-    Builtin* builtin_functions;
+    Mididriver midi;
+    // Builtin* builtin_functions;
     // Logger logger;
     std::string current_working_directory="";
     bool running_status=false;
