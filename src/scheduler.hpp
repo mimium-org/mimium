@@ -14,7 +14,7 @@ class Scheduler :public std::enable_shared_from_this<Scheduler>{
     int64_t time;
     int nexttask_time;
     std::multimap<int, AST_Ptr> tasks;
-    std::multimap<int, AST_Ptr>::iterator lasttask_index;
+    std::multimap<int, AST_Ptr>::iterator current_task_index;
     std::shared_ptr<Interpreter> interpreter;
     AudioDriver audio;
     public:
@@ -25,6 +25,7 @@ class Scheduler :public std::enable_shared_from_this<Scheduler>{
     void start();
     void stop();
     void incrementTime();
+    void executeTask();
     void addTask(int time,AST_Ptr fn);
     static int audioCallback(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,double streamTime, RtAudioStreamStatus status, void* userdata);
 };
