@@ -15,7 +15,8 @@ class Mididriver {
 
   void init();
   void setPort(int portnumber);
+  void createVirtualPort();
   void sendMessage(std::vector<unsigned char>& m);
-  void printCurrentPort(int portnumber);
+  void printCurrentPort(int portnumber=0);
 };
 }  // namespace mimium

@@ -23,6 +23,7 @@ namespace mimium{
         static mValue print(std::shared_ptr<ArgumentsAST>argast ,Interpreter* interpreter );
         static mValue println(std::shared_ptr<ArgumentsAST>argast ,Interpreter* interpreter );
         static mValue setMidiOut(std::shared_ptr<ArgumentsAST>argast ,Interpreter* interpreter );
+        static mValue setVirtualMidiOut(std::shared_ptr<ArgumentsAST>argast ,Interpreter* interpreter );
         static mValue sendMidiMessage(std::shared_ptr<ArgumentsAST>argast ,Interpreter* interpreter );
         static mValue cmath(std::function<double(double)> fn,
                       std::shared_ptr<ArgumentsAST> argast,

@@ -19,13 +19,16 @@ void Mididriver::setPort(int portnumber) {
   }else if(portnumber > midiout->getPortCount()){
     std::cout<< "port number out of range"<< std::endl;
   }else{
-  midiout->openVirtualPort("Mimium-Midi");
+  midiout->openPort(portnumber);
   }
+}
+void Mididriver::createVirtualPort() {
+  midiout->openVirtualPort("mimium-midi");
 }
 void Mididriver::sendMessage(std::vector<unsigned char>& m) {
   midiout->sendMessage(&m);
 }
 void Mididriver::printCurrentPort(int portnumber){
-    Logger::debug_log("Current MIDI Port: " + midiout->getPortName(portnumber) ,Logger::DEBUG);
+    Logger::debug_log("Current MIDI Port: " + midiout->getPortName(portnumber) ,Logger::INFO);
 }
 }  // namespace mimium

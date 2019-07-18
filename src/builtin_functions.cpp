@@ -7,11 +7,11 @@ const std::map<std::string, mmmfn> Builtin::builtin_fntable = {
     {"print", &Builtin::print},
     {"println", &Builtin::println},
     {"setMidiOut", &Builtin::setMidiOut},
+    {"setVirtualMidiOut", &Builtin::setVirtualMidiOut},
     {"sendMidiMessage", &Builtin::sendMidiMessage},
     {"sin", &Builtin::sin},
     {"cos", &Builtin::cos},
 };
-
 
 mValue Builtin::print(std::shared_ptr<ArgumentsAST> argast,
                       Interpreter *interpreter) {
@@ -40,7 +40,12 @@ mValue Builtin::setMidiOut(std::shared_ptr<ArgumentsAST> argast,
   interpreter->getMidiInstance().printCurrentPort((int)port);
   return 0.0;
 };
-
+mValue Builtin::setVirtualMidiOut(std::shared_ptr<ArgumentsAST> argast,
+                                  Interpreter *interpreter) {
+  // ignore arguments
+  interpreter->getMidiInstance().createVirtualPort();
+  return 0.0;
+};
 mValue Builtin::sendMidiMessage(std::shared_ptr<ArgumentsAST> argast,
                                 Interpreter *interpreter) {
   auto args = argast->getElements();
