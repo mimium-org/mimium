@@ -8,7 +8,7 @@ using mValue = std::variant<double,std::shared_ptr<AST>,mClosure_ptr,std::vector
 
 namespace mimium{
     class Environment: public std::enable_shared_from_this<Environment>{
-    std::map<std::string,mValue> variables;
+    std::map<std::string,mValue,std::less<>> variables;
     std::shared_ptr<Environment> parent;
     std::vector<std::shared_ptr<Environment>> children;
     std::string name;
@@ -24,5 +24,6 @@ namespace mimium{
     auto getParent(){return parent;}
     std::string getName(){return name;};
     std::shared_ptr<Environment> createNewChild(std::string newname);
+    void deleteLastChild();
 };
 };

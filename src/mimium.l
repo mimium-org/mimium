@@ -20,7 +20,7 @@ EXPONENT [eE](-|\+?){DIGIT}+
 NUMBER   {FLOAT}{EXPONENT}?
 SYMBOL   [[:alpha:]][[:alnum:]_]*
 STRING  "\""[[:alnum:][:graph:]]+"\""
-DELIMITER "{"|"}"|"("|")"|"["|"]"|","|"\""|"\."
+DELIMITER "{"|"}"|"("|")"|"["|"]"|","|"\""|"\."|"/"
 WSPACE   [[:blank:]]+
 BREAK  "\r\n"|"\n"|"\r"
 NEWLINE {BREAK}* | ";"

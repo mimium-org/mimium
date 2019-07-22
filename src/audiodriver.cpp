@@ -17,7 +17,7 @@ AudioDriver::AudioDriver(){
     parameters.firstChannel = 0;
 }
 
-bool AudioDriver::setCallback(RtAudioCallback cb,mimium::Scheduler* ud){
+bool AudioDriver::setCallback(RtAudioCallback cb,void* ud){
     callback = cb;
     userdata= ud;
     return 1;

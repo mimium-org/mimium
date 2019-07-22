@@ -1,7 +1,10 @@
-#include "scheduler.hpp"
+#define _USE_MATH_DEFINES
+#include <cmath>
 
+#include "scheduler.hpp"
+#include <cstdlib>
 void mimium::Scheduler::start() {
-  audio.setCallback(mimium::Scheduler::audioCallback, this);
+  audio.setCallback(mimium::Scheduler::audioCallback,&userdata );
   audio.start();
 }
 
@@ -36,14 +39,20 @@ int mimium::Scheduler::audioCallback(void* outputBuffer, void* inputBuffer,
                                      double streamTime,
                                      RtAudioStreamStatus status,
                                      void* userData) {
-  auto sch = (mimium::Scheduler*)userData;
-  double* outputBuffer_d[nBufferFrames];
+  auto data = (Scheduler::CallbackData*)userData;
+  auto sch = data->scheduler;
+  auto interpreter = data->interpreter;
+  double* outputBuffer_d =(double*)outputBuffer;
   if (status) Logger::debug_log("Stream underflow detected!", Logger::WARNING);
   // Write interleaved audio data.
+  double d =0;
+  double d2=0;
   for (int i = 0; i < nBufferFrames; i++) {
     sch->incrementTime();
-    outputBuffer_d[i] = 0;
+
+    outputBuffer_d[i*2] = Interpreter::get_as_double(interpreter->findVariable("dacL"));
+    outputBuffer_d[i*2+1] =Interpreter::get_as_double(interpreter->findVariable("dacR"));
+
   }
-  outputBuffer = outputBuffer_d;
   return 0;
 }

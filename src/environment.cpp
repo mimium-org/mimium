@@ -24,13 +24,14 @@ mValue Environment::findVariable(std::string key){
 
 void Environment::setVariable(std::string key,mValue val){
     if(variables.size()>0 && variables.count(key)>0){//search dictionary
-        variables[key]=val; //overwrite exsisting value
+        variables[key] = val; //overwrite exsisting value
+        Logger::debug_log("Variable " + key + " already exists. Overwritten",
+                      Logger::INFO);
     }else if(parent !=nullptr){
         parent->setVariable(key,val); //search recursively
     }else{
         Logger::debug_log( "Create New Variable " + key  ,Logger::DEBUG);
-        variables[key]=val;
-
+        variables.emplace(key,val);
     }
 }
 
@@ -40,5 +41,12 @@ std::shared_ptr<Environment> Environment::createNewChild(std::string newname){
         auto child = std::make_shared<Environment>(newname,shared_from_this());
         children.push_back(child);
         return children.back();
-    };
+}
+
+void Environment::deleteLastChild(){
+    children.pop_back();
 };
+
+}//namespace mimium
+
+

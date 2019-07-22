@@ -12,7 +12,7 @@ class AudioDriver{
     RtAudio* rtaudio;
     RtAudio::StreamParameters parameters;
     unsigned int sampleRate = 44100;
-    unsigned int bufferFrames = 512; // 256 sample per frames
+    unsigned int bufferFrames =4096; // 256 sample per frames
     int channels=2;
     double tcount[2] ={0,0};
     void* userdata;
@@ -22,7 +22,7 @@ class AudioDriver{
     ~AudioDriver(){};
     RtAudioCallback callback=nullptr;
 
-    bool setCallback(RtAudioCallback cb,mimium::Scheduler* userdata);
+    bool setCallback(RtAudioCallback cb,void* userdata);
 
     bool start();
     bool stop();

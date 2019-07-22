@@ -20,7 +20,7 @@ void signal_handler(int signo){
 
 int main(int argc,char *argv[]) {
     signal(SIGINT,signal_handler);
-    mimium::Logger::current_report_level = mimium::Logger::DEBUG;
+    mimium::Logger::current_report_level = mimium::Logger::WARNING;
     auto interpreter =  std::make_unique<mimium::Interpreter>();
     shutdown_handler = [&interpreter](int signal){
         if(interpreter->isrunning()){

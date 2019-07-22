@@ -11,6 +11,8 @@ Interpreter::~Interpreter() {}
 void Interpreter::init() {
   rootenv = std::make_shared<Environment>("root", nullptr);
   currentenv = rootenv;  // share
+  currentenv->setVariable("dacL",0);
+  currentenv->setVariable("dacR",0);
 }
 void Interpreter::clear() {
   rootenv.reset();
@@ -103,10 +105,6 @@ mValue Interpreter::interpretReturn(AST_Ptr line) {
 mValue Interpreter::interpretAssign(AST_Ptr line) {
   auto assign = std::dynamic_pointer_cast<AssignAST>(line);
   std::string varname = assign->getName()->getVal();
-  if (currentenv->isVariableSet(varname)) {
-    Logger::debug_log("Variable " + varname + " already exists. Overwritten",
-                      Logger::WARNING);
-  }
   auto body = assign->getBody();
   if (body) {
     mValue res = interpretExpr(body);
@@ -281,15 +279,12 @@ mValue Interpreter::interpretFcall(AST_Ptr expr) {
     return fn(args, this);
   } else {
     auto argsv = args->getElements();
-    mValue var = findVariable(name);
-    mClosure_ptr closure = std::visit(fcall_visitor, var);
+    mClosure_ptr closure = std::visit(fcall_visitor, findVariable(name));
     auto lambda = closure->fun;
-    std::shared_ptr<Environment> originalenv = currentenv;
-    std::shared_ptr<Environment> tmpenv = closure->env;
+    auto originalenv = currentenv;
     auto lambdaargs = std::dynamic_pointer_cast<ArgumentsAST>(lambda->getArgs())
                           ->getElements();
-    auto body = lambda->getBody();
-    tmpenv = tmpenv->createNewChild(name);  // create arguments
+    auto tmpenv = closure->env->createNewChild(name);  // create arguments
     int argscond = lambdaargs.size() - argsv.size();
     if (argscond < 0) {
       throw std::runtime_error("too many arguments");
@@ -298,13 +293,13 @@ mValue Interpreter::interpretFcall(AST_Ptr expr) {
       for (auto& larg : lambdaargs) {
         std::string key = std::dynamic_pointer_cast<SymbolAST>(larg)->getVal();
         // arguments[key]=interpretExpr(argsv[count]);
-        tmpenv->getVariables()[key] = interpretExpr(argsv[count]);
+        tmpenv->setVariable(key, interpretExpr(argsv[count]));
         count++;
       }
       if (argscond == 0) {
         currentenv = tmpenv;  // switch back env
-        auto tmp = lambda->getBody();
-        auto res = interpretListAst(tmp);
+        auto res = interpretListAst(lambda->getBody());
+        currentenv->getParent()->deleteLastChild();
         currentenv = originalenv;
         return res;
       } else {
@@ -381,12 +376,8 @@ mValue Interpreter::interpretFor(AST_Ptr expr) {
 mValue Interpreter::interpretTime(AST_Ptr expr) {
   auto timeexpr = std::dynamic_pointer_cast<TimeAST>(expr);
   mValue time = interpretExpr(timeexpr->getTime());
-  std::visit(overloaded{[&](double t) { sch->addTask(t, timeexpr->getExpr()); },
-                        [](auto t) {
-                          throw std::runtime_error(
-                              "you cannot append value other than double");
-                        }},
-             time);
+  sch->addTask(get_as_double(time),timeexpr->getExpr());
+
   return 0;
 }
 

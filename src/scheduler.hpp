@@ -18,7 +18,15 @@ class Scheduler :public std::enable_shared_from_this<Scheduler>{
     std::shared_ptr<Interpreter> interpreter;
     AudioDriver audio;
     public:
+    struct CallbackData{
+        Scheduler* scheduler;
+        std::shared_ptr<Interpreter> interpreter;
+        CallbackData():scheduler(),interpreter(){};
+    };
+    CallbackData userdata;
     Scheduler(Interpreter* itp): time(0),interpreter(itp),audio(){
+        userdata.scheduler=this;
+        userdata.interpreter=interpreter;
     };
     virtual ~Scheduler(){};
 
@@ -27,6 +35,7 @@ class Scheduler :public std::enable_shared_from_this<Scheduler>{
     void incrementTime();
     void executeTask();
     void addTask(int time,AST_Ptr fn);
+    inline int64_t getTime(){return time;}
     static int audioCallback(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,double streamTime, RtAudioStreamStatus status, void* userdata);
 };
 
