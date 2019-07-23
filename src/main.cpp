@@ -5,7 +5,7 @@
  */
 #include <string>
 #include <unistd.h>
-#include <signal.h>
+#include <csignal>
 #include "helper_functions.hpp"
 #include "driver.hpp"
 
@@ -18,7 +18,7 @@ void signal_handler(int signo){
 }
 
 
-int main(int argc,char *argv[]) {
+int main(int argc,char** argv) {
     signal(SIGINT,signal_handler);
     mimium::Logger::current_report_level = mimium::Logger::WARNING;
     auto interpreter =  std::make_unique<mimium::Interpreter>();
@@ -45,7 +45,7 @@ int main(int argc,char *argv[]) {
     }
     else{
         try{
-        std::cout << argv[1]<<std::endl;
+        std::cout << argv[1] <<std::endl;
         mValue res = interpreter->loadSourceFile(argv[1]);
         interpreter->start();
         while(true){sleep(20);}; //todo : what is best way to wait infinitely? thread?

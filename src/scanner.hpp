@@ -15,13 +15,12 @@ namespace mmmpsr{
 class MimiumScanner : public yyFlexLexer{
 public:
    
-   MimiumScanner(std::istream &in) : yyFlexLexer(in,std::cout)
+   explicit MimiumScanner(std::istream &in) : yyFlexLexer(in,std::cout)
    {
       loc = std::make_unique<mmmpsr::MimiumParser::location_type>();
    };
 
-   virtual ~MimiumScanner() {
-   };
+   virtual ~MimiumScanner()=default;
 
    //get rid of override virtual function warning
    using FlexLexer::yylex;

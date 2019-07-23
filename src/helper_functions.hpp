@@ -14,9 +14,9 @@ namespace mimium {
 class Logger {
  public:
   Logger();
-  Logger(std::ostream& out);
-  virtual ~Logger() {}
-  typedef enum { FATAL = 1, ERROR, WARNING, INFO, DEBUG, TRACE } REPORT_LEVEL;
+  explicit Logger(std::ostream& out);
+  virtual ~Logger()=default;
+  using REPORT_LEVEL = enum{ FATAL = 1, ERROR, WARNING, INFO, DEBUG, TRACE } ;
   /// @callgraph
   static void debug_log(const std::string& str, REPORT_LEVEL report_level);
   inline void setoutput(std::ostream& out) { Logger::output = &out; }

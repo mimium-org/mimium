@@ -67,7 +67,6 @@ using mValue = std::variant<double,std::shared_ptr<AST>,mClosure_ptr,std::vector
 
 class AST{
     public:
-    AST_ID id;
     virtual ~AST()=default;
     virtual std::ostream& to_string(std::ostream &ss) = 0;
     virtual void addAST(AST_Ptr ast){};//for list/argument ast
@@ -82,6 +81,7 @@ class AST{
         std::cerr<< "Error: " << Str << std::endl;
         return nullptr;
     }
+    AST_ID id=BASE;
 
     private:
     int time = -1;
@@ -137,7 +137,7 @@ class OpAST : public AST{
         id=OP;
     }
 
-    std::ostream& to_string(std::ostream& ss);
+    std::ostream& to_string(std::ostream& ss) override;
     OP_ID getOpId(){return op_id;};
     protected:
 
@@ -151,63 +151,63 @@ class ListAST : public AST{
         id=LIST;
     }
 
-    ListAST(AST_Ptr _asts){
+    explicit ListAST(AST_Ptr _asts){
         asts.push_back(std::move(_asts)); //push_front
         id = LIST;
     }
-    void addAST(AST_Ptr ast) {
+    void addAST(AST_Ptr ast) override{
         asts.insert(asts.begin(),std::move(ast));
     }
     std::vector<AST_Ptr>& getlist(){return asts;};
-    std::ostream& to_string(std::ostream& ss);
+    std::ostream& to_string(std::ostream& ss) override;
 
 };
 class NumberAST :  public AST{
     public:
     double val;
-    NumberAST(double input){
+    explicit NumberAST(double input){
         val=input;
         id=NUMBER;
     }
     double getVal(){return val;};
 
-    std::ostream& to_string(std::ostream& ss);
+    std::ostream& to_string(std::ostream& ss) override;
 };
 
 class SymbolAST :  public AST{
     public:
     std::string val;
-    SymbolAST(std::string input): val(input){
+    explicit SymbolAST(std::string input): val(std::move(input)){
         id=SYMBOL;
     }
     std::string& getVal(){return val;};
 
-    std::ostream& to_string(std::ostream& ss);
+    std::ostream& to_string(std::ostream& ss) override;
 };
 
 class AbstractListAST : public AST{
     public:
     std::vector<AST_Ptr> elements;
 
-    AbstractListAST(AST_Ptr arg){
+    explicit AbstractListAST(AST_Ptr arg){
         elements.insert(elements.begin(),std::move(arg));
     }
-    void addAST(AST_Ptr arg){
+    void addAST(AST_Ptr arg) override{
         elements.insert(elements.begin(),std::move(arg));
     };
     auto& getElements(){return elements;}
-    std::ostream& to_string(std::ostream& ss);
+    std::ostream& to_string(std::ostream& ss) override;
 };
 
 class ArgumentsAST: public AbstractListAST{
     public:
-     ArgumentsAST(AST_Ptr arg):AbstractListAST(std::move(arg)){
+    explicit ArgumentsAST(AST_Ptr arg):AbstractListAST(std::move(arg)){
             id=ARGS;
      };
 };
 class ArrayAST: public AbstractListAST{
     public:
-    ArrayAST(AST_Ptr arg):AbstractListAST(std::move(arg)){
+    explicit ArrayAST(AST_Ptr arg):AbstractListAST(std::move(arg)){
             id=ARRAY;
      };
 };
@@ -220,7 +220,7 @@ class ArrayAccessAST: public AST{
     }
     AST_Ptr getName(){return name;};
     AST_Ptr getIndex(){return index;};
-    std::ostream& to_string(std::ostream& ss);
+    std::ostream& to_string(std::ostream& ss) override;
 };
 class LambdaAST: public AST{
     public:
@@ -231,7 +231,7 @@ class LambdaAST: public AST{
     }
     auto getArgs(){return std::dynamic_pointer_cast<ArgumentsAST>(args);};
     AST_Ptr getBody(){return body;};
-    std::ostream& to_string(std::ostream& ss);
+    std::ostream& to_string(std::ostream& ss) override;
 };
 
 class AssignAST :  public AST{
@@ -244,7 +244,7 @@ class AssignAST :  public AST{
     auto getName(){return std::dynamic_pointer_cast<SymbolAST>(symbol);};
     AST_Ptr getBody(){return expr;};
 
-    std::ostream& to_string(std::ostream& ss);
+    std::ostream& to_string(std::ostream& ss) override;
 };
 
 // class FdefAST :  public AST{
@@ -259,7 +259,7 @@ class AssignAST :  public AST{
 //     auto getArguments(){return arguments;};
 //     auto getFbody(){return statements;};
 
-//     std::ostream& to_string(std::ostream& ss);
+//     std::ostream& to_string(std::ostream& ss) override;
 // };
 
 class FcallAST: public AST{
@@ -271,7 +271,7 @@ class FcallAST: public AST{
     }
     auto getArgs(){return std::dynamic_pointer_cast<ArgumentsAST>(args); };
     auto getFname(){return std::dynamic_pointer_cast<SymbolAST>(fname);};
-    std::ostream& to_string(std::ostream& ss);
+    std::ostream& to_string(std::ostream& ss) override;
 };
 class DeclarationAST: public AST{
     public:
@@ -282,17 +282,17 @@ class DeclarationAST: public AST{
     }
     auto getArgs(){return std::dynamic_pointer_cast<ArgumentsAST>(args); };
     auto getFname(){return std::dynamic_pointer_cast<SymbolAST>(fname);};
-    std::ostream& to_string(std::ostream& ss);
+    std::ostream& to_string(std::ostream& ss) override;
 };
 
 class ReturnAST: public AST{
     public:
     AST_Ptr expr;
-    ReturnAST(AST_Ptr Expr):expr(std::move(Expr)){
+    explicit ReturnAST(AST_Ptr Expr):expr(std::move(Expr)){
         id = RETURN;
     }
     auto getExpr(){return expr;}
-    std::ostream& to_string(std::ostream& ss);
+    std::ostream& to_string(std::ostream& ss) override;
 };
 class IfAST: public AST{
     public:
@@ -303,7 +303,7 @@ class IfAST: public AST{
     auto getCond(){return condition;}
     auto getThen(){return thenstatement;}
     auto getElse(){return elsestatement;}
-    std::ostream& to_string(std::ostream& ss);
+    std::ostream& to_string(std::ostream& ss) override;
 };
 
 class ForAST: public AST{
@@ -315,7 +315,7 @@ class ForAST: public AST{
     auto getVar(){return var;};
     auto getIterator(){return iterator;};
     auto getExpression(){return expression;};
-    std::ostream& to_string(std::ostream& ss);
+    std::ostream& to_string(std::ostream& ss) override;
 };
 
 class TimeAST : public AST{
@@ -327,5 +327,5 @@ class TimeAST : public AST{
     }
     auto getTime(){return time;}
     auto getExpr(){return expr;}
-    std::ostream& to_string(std::ostream& ss);
+    std::ostream& to_string(std::ostream& ss) override;
 };

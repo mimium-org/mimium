@@ -6,7 +6,6 @@ namespace mimium {
 Interpreter::Interpreter() {
     midi.init();
 }
-Interpreter::~Interpreter() {}
 
 void Interpreter::init() {
   rootenv = std::make_shared<Environment>("root", nullptr);

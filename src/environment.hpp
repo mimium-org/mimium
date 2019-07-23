@@ -14,7 +14,7 @@ namespace mimium{
     std::string name;
     public:
     Environment():parent(nullptr),name(""){}
-    Environment(std::string Name,std::shared_ptr<Environment> Parent):parent(Parent),name(Name){
+    Environment(std::string Name,std::shared_ptr<Environment> Parent):parent(std::move(Parent)),name(std::move(Name)){
     }
     mValue findVariable(std::string key);
     bool isVariableSet(std::string key);

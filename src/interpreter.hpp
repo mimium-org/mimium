@@ -22,7 +22,7 @@ class Scheduler; //forward
 class Interpreter: public std::enable_shared_from_this<Interpreter> {
     public:
     Interpreter();
-    virtual ~Interpreter();
+    virtual ~Interpreter() = default;
     mValue findVariable(std::string str){ //fortest
         auto it = arguments.find(str);
         if(it!=arguments.end()){
