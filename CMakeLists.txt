@@ -30,6 +30,9 @@ project(dummy NONE)
   endif()
 project (mimium CXX)
 
+# Including custom cmake rules for clang-tidy and clang-format
+include(cmake/clang-cxx-dev-tools.cmake)
+
 list(APPEND CMAKE_PREFIX_PATH /usr/local/opt/flex)
 list(APPEND CMAKE_PREFIX_PATH /usr/local/opt/bison)
 find_package(BISON 3.2 REQUIRED VERBOSE REPORT_FILE ${CMAKE_CURRENT_BINARY_DIR}/bison.log)
