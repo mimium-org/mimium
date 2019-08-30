@@ -211,6 +211,13 @@ expr : expr ADD    expr  {$$ = driver.add_op("+" , std::move($1),std::move($3));
      | expr AND    expr  {$$ = driver.add_op("&" , std::move($1),std::move($3));}
      | expr BITOR  expr  {$$ = driver.add_op("||", std::move($1),std::move($3));}
      | expr BITAND expr  {$$ = driver.add_op("&&", std::move($1),std::move($3));}
+     | expr GT expr  {$$ = driver.add_op(">", std::move($1),std::move($3));}
+     | expr LT expr  {$$ = driver.add_op("<", std::move($1),std::move($3));}
+     | expr GE expr  {$$ = driver.add_op(">=", std::move($1),std::move($3));}
+     | expr LE expr  {$$ = driver.add_op("<=", std::move($1),std::move($3));}
+     | expr LSHIFT expr  {$$ = driver.add_op("<<", std::move($1),std::move($3));}
+     | expr RSHIFT expr  {$$ = driver.add_op(">>", std::move($1),std::move($3));}
+     | expr NOT expr  {$$ = driver.add_op("!", std::move($1),std::move($3));}
      | term_time {$$ = std::move($1);};
 
 term_time : term AT term {$$ = driver.set_time(std::move($1),std::move($3));}
