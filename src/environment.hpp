@@ -3,6 +3,10 @@
 #include "helper_functions.hpp"
 #include "ast.hpp"
 
+//helper type for visiting
+template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+
 using mClosure_ptr = std::shared_ptr<mimium::Closure>;
 using mValue = std::variant<double,std::shared_ptr<AST>,mClosure_ptr,std::vector<double> >;
 
@@ -25,5 +29,15 @@ namespace mimium{
     std::string getName(){return name;};
     std::shared_ptr<Environment> createNewChild(std::string newname);
     void deleteLastChild();
+
+    static double get_as_double(mValue v) {//duplicating function,,,
+    return std::visit(
+      overloaded{[](double v) -> double { return v; },
+                 [](auto v) -> double {
+                   throw std::runtime_error("value is not double");
+                   return 0;
+                 }},
+      v);
+};
 };
 };
