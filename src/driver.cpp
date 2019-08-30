@@ -129,7 +129,7 @@ void MimiumDriver::add_top(AST_Ptr top){
 
 std::ostream&  MimiumDriver::print( std::ostream &stream )
 {
-  mainast->to_string(stream);
+  stream << mainast->toString();
    return(stream);
 }
 
