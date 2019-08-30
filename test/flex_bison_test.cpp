@@ -1,4 +1,3 @@
-// #define MIMIUM_DEBUG 4
 #include "helper_functions.hpp"
 #include "driver.hpp"
 #include "gtest/gtest.h"
@@ -159,7 +158,7 @@ TEST(bison_parser_test, ifstatement) {
   driver.print(ss);
   std::cout << ss.str() << std::endl;
   EXPECT_EQ(ss.str(),
-            "((assign test (lambda (x y) (if x (assign res y) (assign res 100) (return res)))) (assign true (test (1 5))) (assign false (test (0 100))))");
+            "((assign test (lambda (x y) ((if x (assign res y) (assign res 100)) (return res)))) (assign true (test (1 5))) (assign false (test (0 100))))");
 }
 TEST(bison_parser_test, ifstatement2) {
   driver.clear();
@@ -169,7 +168,7 @@ TEST(bison_parser_test, ifstatement2) {
   driver.print(ss);
   std::cout << ss.str() << std::endl;
   EXPECT_EQ(ss.str(),
-            "((assign test (lambda (x y z) (if x (assign res 0) if y (assign res 100) (assign res z) (return res)))) (assign zero (test (1 23 244))) (assign hand (test (0 200 400))) (assign fivehand (test (0 0 500))))");
+            "((assign test (lambda (x y z) ((if x (assign res 0) (if y (assign res 100) (assign res z))) (return res)))) (assign zero (test (1 23 244))) (assign hand (test (0 200 400))) (assign fivehand (test (0 0 500))))");
 }
 TEST(bison_parser_test, array) {
   driver.clear();
@@ -213,4 +212,13 @@ TEST(bison_parser_test, comment) {
   driver.print(ss);
   EXPECT_EQ(ss.str(),
             "(assign main 1)");
+}
+TEST(JSON_test, basictest) {
+  driver.clear();
+
+  driver.parsefile("test_if_nested.mmm");
+  std::stringstream ss;
+  driver.printJson(ss);
+  EXPECT_EQ(ss.str(),
+            "[[[ 'assign' ,'test', [ 'lambda' ,['x' , 'y' , 'z'], [['if' ,'x', [[ 'assign' ,'res', 0]], [['if' ,'y', [[ 'assign' ,'res', 100]], [[ 'assign' ,'res', 'z']]]]] , [ 'return' ,'res']]]] , [ 'assign' ,'zero', ['test', [1 , 23 , 244]]] , [ 'assign' ,'hand', ['test', [0 , 200 , 400]]] , [ 'assign' ,'fivehand', ['test', [0 , 0 , 500]]]]]");
 }

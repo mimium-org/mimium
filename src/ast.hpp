@@ -69,7 +69,7 @@ class AST{
     public:
     virtual ~AST()=default;
     virtual std::string toString()=0;
-    // virtual std::ostream& toJson(std::ostream &ss) = 0;
+    virtual std::string toJson() = 0;
 
     virtual void addAST(AST_Ptr ast){};//for list/argument ast
 
@@ -140,6 +140,7 @@ class OpAST : public AST{
     }
 
     std::string toString() override;
+    std::string toJson() override;
     OP_ID getOpId(){return op_id;};
     protected:
 
@@ -162,6 +163,7 @@ class ListAST : public AST{
     }
     std::vector<AST_Ptr>& getlist(){return asts;};
     std::string toString() override;
+    std::string toJson() override;
 
 
 };
@@ -174,6 +176,7 @@ class NumberAST :  public AST{
     }
     double getVal(){return val;};
     std::string toString() override;
+    std::string toJson() override;
 
 };
 
@@ -185,6 +188,7 @@ class SymbolAST :  public AST{
     }
     std::string& getVal(){return val;};
     std::string toString() override;
+    std::string toJson() override;
 
 };
 
@@ -200,6 +204,7 @@ class AbstractListAST : public AST{
     };
     auto& getElements(){return elements;}
     std::string toString() override;
+    std::string toJson() override;
 
 };
 
@@ -225,6 +230,7 @@ class ArrayAccessAST: public AST{
     AST_Ptr getName(){return name;};
     AST_Ptr getIndex(){return index;};
     std::string toString() override;
+    std::string toJson() override;
 
 };
 class LambdaAST: public AST{
@@ -237,6 +243,7 @@ class LambdaAST: public AST{
     auto getArgs(){return std::dynamic_pointer_cast<ArgumentsAST>(args);};
     AST_Ptr getBody(){return body;};
     std::string toString() override;
+    std::string toJson() override;
 
 };
 
@@ -250,6 +257,7 @@ class AssignAST :  public AST{
     auto getName(){return std::dynamic_pointer_cast<SymbolAST>(symbol);};
     AST_Ptr getBody(){return expr;};
     std::string toString() override;
+    std::string toJson() override;
 
 };
 
@@ -278,6 +286,7 @@ class FcallAST: public AST{
     auto getArgs(){return std::dynamic_pointer_cast<ArgumentsAST>(args); };
     auto getFname(){return std::dynamic_pointer_cast<SymbolAST>(fname);};
     std::string toString() override;
+    std::string toJson() override;
 
 };
 class DeclarationAST: public AST{
@@ -290,6 +299,7 @@ class DeclarationAST: public AST{
     auto getArgs(){return std::dynamic_pointer_cast<ArgumentsAST>(args); };
     auto getFname(){return std::dynamic_pointer_cast<SymbolAST>(fname);};
     std::string toString() override;
+    std::string toJson() override;
 
 };
 
@@ -301,6 +311,7 @@ class ReturnAST: public AST{
     }
     auto getExpr(){return expr;}
     std::string toString() override;
+    std::string toJson() override;
 
 };
 class IfAST: public AST{
@@ -313,6 +324,7 @@ class IfAST: public AST{
     auto getThen(){return thenstatement;}
     auto getElse(){return elsestatement;}
     std::string toString() override;
+    std::string toJson() override;
 
 };
 
@@ -326,6 +338,8 @@ class ForAST: public AST{
     auto getIterator(){return iterator;};
     auto getExpression(){return expression;};
     std::string toString() override;
+    std::string toJson() override;
+
 };
 
 class TimeAST : public AST{
@@ -338,4 +352,6 @@ class TimeAST : public AST{
     auto getTime(){return time;}
     auto getExpr(){return expr;}
     std::string toString() override;
+    std::string toJson() override;
+
 };

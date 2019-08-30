@@ -60,6 +60,7 @@ class MimiumDriver {
   void add_top(AST_Ptr top);  // final action
 
   std::ostream &print(std::ostream &stream);
+  std::ostream& printJson(std::ostream &stream);
   AST_Ptr getMainAst() { return mainast; };
 
  private:

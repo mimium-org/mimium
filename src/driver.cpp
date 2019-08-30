@@ -133,4 +133,10 @@ std::ostream&  MimiumDriver::print( std::ostream &stream )
    return(stream);
 }
 
+std::ostream&  MimiumDriver::printJson( std::ostream &stream )
+{
+  stream << mainast->toJson();
+   return(stream);
+}
+
 } // namespace mmmpsr
