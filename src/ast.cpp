@@ -1,23 +1,15 @@
 
 #include "ast.hpp"
 
-
 std::string NumberAST::toString() {
   std::stringstream ss;
-  ss<<val;
+  ss << val;
   return ss.str();
 }
-std::string NumberAST::toJson(){
-  return toString();
-}
+std::string NumberAST::toJson() { return toString(); }
 
-
-std::string SymbolAST::toString() {
-  return val;
-}
-std::string SymbolAST::toJson(){
-  return "'" + toString() + "'";
-}
+std::string SymbolAST::toString() { return val; }
+std::string SymbolAST::toJson() { return "'" + toString() + "'"; }
 
 OpAST::OpAST(std::string Op, AST_Ptr LHS, AST_Ptr RHS)
     : op(Op), lhs(std::move(LHS)), rhs(std::move(RHS)) {
@@ -28,15 +20,15 @@ OpAST::OpAST(std::string Op, AST_Ptr LHS, AST_Ptr RHS)
 std::string OpAST::toString() {
   return "(" + op + " " + lhs->toString() + " " + rhs->toString() + ")";
 }
-std::string OpAST::toJson(){
+std::string OpAST::toJson() {
   return "[ '" + op + "', " + lhs->toJson() + ", " + rhs->toJson() + "]";
 }
 
 std::string ListAST::toString() {
   std::stringstream ss;
-    int size = asts.size();
+  int size = asts.size();
   if (size == 1) {
-    ss  << asts[0]->toString();
+    ss << asts[0]->toString();
   } else {
     int count = 1;
     ss << "(";
@@ -49,13 +41,13 @@ std::string ListAST::toString() {
   }
   return ss.str();
 }
-std::string ListAST::toJson(){
+std::string ListAST::toJson() {
   std::string str = "";
   int size = asts.size();
   int count = 1;
-  for(auto& elem:asts){
+  for (auto& elem : asts) {
     str += elem->toJson();
-    if(size != count) str+= " , ";
+    if (size != count) str += " , ";
     count++;
   }
   return "[" + str + "]";
@@ -66,18 +58,18 @@ std::string AbstractListAST::toString() {
   int count = 1;
   for (auto& elem : elements) {
     ss << elem->toString();
-    if(count != elements.size()) ss << " ";
+    if (count != elements.size()) ss << " ";
     count++;
   }
   ss << ")";
   return ss.str();
 }
-std::string AbstractListAST::toJson(){
+std::string AbstractListAST::toJson() {
   std::string str = "";
   int count = 1;
-  for(auto& elem:elements){
+  for (auto& elem : elements) {
     str += elem->toJson();
-    if(count != elements.size()) str+= " , ";
+    if (count != elements.size()) str += " , ";
     count++;
   }
   return "[" + str + "]";
@@ -86,67 +78,66 @@ std::string AbstractListAST::toJson(){
 std::string ArrayAccessAST::toString() {
   return "arrayaccess " + name->toString() + " " + index->toString();
 }
-std::string ArrayAccessAST::toJson(){
-    return "[ 'arrayaccess' ," + name->toJson() + ", " + index->toJson() + "]";
+std::string ArrayAccessAST::toJson() {
+  return "[ 'arrayaccess' ," + name->toJson() + ", " + index->toJson() + "]";
 }
 
 std::string ReturnAST::toString() {
   return "(return " + expr->toString() + ")";
 }
 
-std::string ReturnAST::toJson(){
-    return "[ 'return' ," + expr->toJson() + "]";
+std::string ReturnAST::toJson() {
+  return "[ 'return' ," + expr->toJson() + "]";
 }
 
 std::string LambdaAST::toString() {
   return "(lambda " + args->toString() + " " + body->toString() + ")";
 }
 
-std::string LambdaAST::toJson(){
-    return "[ 'lambda' ," + args->toJson() + ", " + body->toJson() + "]";
+std::string LambdaAST::toJson() {
+  return "[ 'lambda' ," + args->toJson() + ", " + body->toJson() + "]";
 }
-
 
 std::string AssignAST::toString() {
   return "(assign " + symbol->toString() + " " + expr->toString() + ")";
 }
 
-std::string AssignAST::toJson(){
-    return "[ 'assign' ," + symbol->toJson() + ", " + expr->toJson() + "]";
+std::string AssignAST::toJson() {
+  return "[ 'assign' ," + symbol->toJson() + ", " + expr->toJson() + "]";
 }
-
 
 std::string FcallAST::toString() {
   return "(" + fname->toString() + " " + args->toString() + ")";
 }
-std::string FcallAST::toJson(){
-    return "[" + fname->toJson() + ", " + args->toJson() + "]";
+std::string FcallAST::toJson() {
+  return "[" + fname->toJson() + ", " + args->toJson() + "]";
 }
-
 
 std::string DeclarationAST::toString() {
   return "(" + fname->toString() + " " + args->toString() + ")";
 }
 
-std::string DeclarationAST::toJson(){
-    return "[" + fname->toJson() + ", " + args->toJson() + "]";
+std::string DeclarationAST::toJson() {
+  return "[" + fname->toJson() + ", " + args->toJson() + "]";
 }
-
 
 std::string IfAST::toString() {
-  return "(if " + condition->toString() + " " + thenstatement->toString() + " " + elsestatement->toString() +")";
+  return "(if " + condition->toString() + " " + thenstatement->toString() +
+         " " + elsestatement->toString() + ")";
 }
-std::string IfAST::toJson(){
-  return "['if' ," + condition->toJson() + ", " + thenstatement->toJson() + ", " + elsestatement->toJson() +"]";}
-
+std::string IfAST::toJson() {
+  return "['if' ," + condition->toJson() + ", " + thenstatement->toJson() +
+         ", " + elsestatement->toJson() + "]";
+}
 
 std::string ForAST::toString() {
-  return "(for " + var->toString() + " " + iterator->toString() + " " + expression->toString() + ")";
+  return "(for " + var->toString() + " " + iterator->toString() + " " +
+         expression->toString() + ")";
 }
-std::string ForAST::toJson(){
-  return "['for' ," + var->toJson() + ", " + iterator->toJson() + ", " + expression->toJson() + "]";
+std::string ForAST::toJson() {
+  return "['for' ," + var->toJson() + ", " + iterator->toJson() + ", " +
+         expression->toJson() + "]";
 }
-
 
 std::string TimeAST::toString() {
   return expr->toString() + "@" + time->toString();
