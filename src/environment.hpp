@@ -23,6 +23,8 @@ namespace mimium{
     mValue findVariable(std::string key);
     bool isVariableSet(std::string key);
     void setVariable(std::string key,mValue val);
+    void setVariableRaw(std::string key,mValue val);
+
 
     auto& getVariables(){return variables;}
     auto getParent(){return parent;}

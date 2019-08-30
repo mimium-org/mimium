@@ -283,20 +283,19 @@ mValue Interpreter::interpretFcall(AST_Ptr expr) {
     auto originalenv = currentenv;
     auto lambdaargs = std::dynamic_pointer_cast<ArgumentsAST>(lambda->getArgs())
                           ->getElements();
-    auto tmpenv = closure->env->createNewChild(name);  // create arguments
+    auto tmpenv = closure->env->createNewChild("arg"+name);  // create arguments
     int argscond = lambdaargs.size() - argsv.size();
     if (argscond < 0) {
       throw std::runtime_error("too many arguments");
-    } else {
+    }else {
       int count = 0;
       for (auto& larg : lambdaargs) {
         std::string key = std::dynamic_pointer_cast<SymbolAST>(larg)->getVal();
-        // arguments[key]=interpretExpr(argsv[count]);
-        tmpenv->setVariable(key, interpretExpr(argsv[count]));
+        tmpenv->setVariableRaw(key, interpretExpr(argsv[count]));
         count++;
       }
       if (argscond == 0) {
-        currentenv = tmpenv;  // switch back env
+        currentenv = tmpenv;  // switch env
         auto res = interpretListAst(lambda->getBody());
         currentenv->getParent()->deleteLastChild();
         currentenv = originalenv;
