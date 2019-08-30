@@ -393,9 +393,7 @@ double Interpreter::get_as_double(mValue v) {
 std::string Interpreter::to_string(mValue v) {
   return std::visit(overloaded{[](double v) { return std::to_string(v); },
                                [](AST_Ptr v) {
-                                 std::stringstream ss;
-                                 v->to_string(ss);
-                                 return ss.str();
+                                 return v->toString();
                                },
                                [](mClosure_ptr v) { return v->to_string(); },
                                [](std::vector<double> vec) {

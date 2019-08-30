@@ -68,7 +68,9 @@ using mValue = std::variant<double,std::shared_ptr<AST>,mClosure_ptr,std::vector
 class AST{
     public:
     virtual ~AST()=default;
-    virtual std::ostream& to_string(std::ostream &ss) = 0;
+    virtual std::string toString()=0;
+    // virtual std::ostream& toJson(std::ostream &ss) = 0;
+
     virtual void addAST(AST_Ptr ast){};//for list/argument ast
 
 
@@ -137,7 +139,7 @@ class OpAST : public AST{
         id=OP;
     }
 
-    std::ostream& to_string(std::ostream& ss) override;
+    std::string toString() override;
     OP_ID getOpId(){return op_id;};
     protected:
 
@@ -159,7 +161,8 @@ class ListAST : public AST{
         asts.insert(asts.begin(),std::move(ast));
     }
     std::vector<AST_Ptr>& getlist(){return asts;};
-    std::ostream& to_string(std::ostream& ss) override;
+    std::string toString() override;
+
 
 };
 class NumberAST :  public AST{
@@ -170,8 +173,8 @@ class NumberAST :  public AST{
         id=NUMBER;
     }
     double getVal(){return val;};
+    std::string toString() override;
 
-    std::ostream& to_string(std::ostream& ss) override;
 };
 
 class SymbolAST :  public AST{
@@ -181,8 +184,8 @@ class SymbolAST :  public AST{
         id=SYMBOL;
     }
     std::string& getVal(){return val;};
+    std::string toString() override;
 
-    std::ostream& to_string(std::ostream& ss) override;
 };
 
 class AbstractListAST : public AST{
@@ -196,7 +199,8 @@ class AbstractListAST : public AST{
         elements.insert(elements.begin(),std::move(arg));
     };
     auto& getElements(){return elements;}
-    std::ostream& to_string(std::ostream& ss) override;
+    std::string toString() override;
+
 };
 
 class ArgumentsAST: public AbstractListAST{
@@ -220,7 +224,8 @@ class ArrayAccessAST: public AST{
     }
     AST_Ptr getName(){return name;};
     AST_Ptr getIndex(){return index;};
-    std::ostream& to_string(std::ostream& ss) override;
+    std::string toString() override;
+
 };
 class LambdaAST: public AST{
     public:
@@ -231,7 +236,8 @@ class LambdaAST: public AST{
     }
     auto getArgs(){return std::dynamic_pointer_cast<ArgumentsAST>(args);};
     AST_Ptr getBody(){return body;};
-    std::ostream& to_string(std::ostream& ss) override;
+    std::string toString() override;
+
 };
 
 class AssignAST :  public AST{
@@ -243,8 +249,8 @@ class AssignAST :  public AST{
     }
     auto getName(){return std::dynamic_pointer_cast<SymbolAST>(symbol);};
     AST_Ptr getBody(){return expr;};
+    std::string toString() override;
 
-    std::ostream& to_string(std::ostream& ss) override;
 };
 
 // class FdefAST :  public AST{
@@ -271,7 +277,8 @@ class FcallAST: public AST{
     }
     auto getArgs(){return std::dynamic_pointer_cast<ArgumentsAST>(args); };
     auto getFname(){return std::dynamic_pointer_cast<SymbolAST>(fname);};
-    std::ostream& to_string(std::ostream& ss) override;
+    std::string toString() override;
+
 };
 class DeclarationAST: public AST{
     public:
@@ -282,7 +289,8 @@ class DeclarationAST: public AST{
     }
     auto getArgs(){return std::dynamic_pointer_cast<ArgumentsAST>(args); };
     auto getFname(){return std::dynamic_pointer_cast<SymbolAST>(fname);};
-    std::ostream& to_string(std::ostream& ss) override;
+    std::string toString() override;
+
 };
 
 class ReturnAST: public AST{
@@ -292,7 +300,8 @@ class ReturnAST: public AST{
         id = RETURN;
     }
     auto getExpr(){return expr;}
-    std::ostream& to_string(std::ostream& ss) override;
+    std::string toString() override;
+
 };
 class IfAST: public AST{
     public:
@@ -303,7 +312,8 @@ class IfAST: public AST{
     auto getCond(){return condition;}
     auto getThen(){return thenstatement;}
     auto getElse(){return elsestatement;}
-    std::ostream& to_string(std::ostream& ss) override;
+    std::string toString() override;
+
 };
 
 class ForAST: public AST{
@@ -315,7 +325,7 @@ class ForAST: public AST{
     auto getVar(){return var;};
     auto getIterator(){return iterator;};
     auto getExpression(){return expression;};
-    std::ostream& to_string(std::ostream& ss) override;
+    std::string toString() override;
 };
 
 class TimeAST : public AST{
@@ -327,5 +337,5 @@ class TimeAST : public AST{
     }
     auto getTime(){return time;}
     auto getExpr(){return expr;}
-    std::ostream& to_string(std::ostream& ss) override;
+    std::string toString() override;
 };

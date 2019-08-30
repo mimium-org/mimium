@@ -1,16 +1,16 @@
 
 #include "ast.hpp"
 
-std::ostream& NumberAST::to_string(std::ostream& ss) {
-  // type matching
-  ss << val;
 
-  return ss;
+std::string NumberAST::toString() {
+  std::stringstream ss;
+  ss<<val;
+  return ss.str();
 }
 
-std::ostream& SymbolAST::to_string(std::ostream& ss) {
-  ss << val;
-  return ss;
+
+std::string SymbolAST::toString() {
+  return val;
 }
 
 OpAST::OpAST(std::string Op, AST_Ptr LHS, AST_Ptr RHS)
@@ -19,121 +19,79 @@ OpAST::OpAST(std::string Op, AST_Ptr LHS, AST_Ptr RHS)
   op_id = optable[Op];
 }
 
-std::ostream& OpAST::to_string(std::ostream& ss) {
-  ss << "(" << op << " ";
-  lhs->to_string(ss);
-  ss << " ";
-  rhs->to_string(ss);
-  ss << ")";
-
-  return ss;
+std::string OpAST::toString() {
+  return "(" + op + " " + lhs->toString() + " " + rhs->toString() + ")";
 }
 
-std::ostream& ListAST::to_string(std::ostream& ss) {
-  int size = asts.size();
+
+std::string ListAST::toString() {
+  std::stringstream ss;
+    int size = asts.size();
   if (size == 1) {
-    asts[0]->to_string(ss);
+    ss  << asts[0]->toString();
   } else {
     int count = 1;
     ss << "(";
     for (auto& elem : asts) {
-      elem->to_string(ss);
-      if (size != count) {
-        ss << " ";
-      }
+      ss << elem->toString();
+      if (size != count) ss << " ";
       count++;
     }
     ss << ")";
   }
-  return ss;
+  return ss.str();
 }
 
-std::ostream& AbstractListAST::to_string(std::ostream& ss) {
+std::string AbstractListAST::toString() {
+  std::stringstream ss;
   ss << "(";
   int count = 1;
   for (auto& elem : elements) {
-    elem->to_string(ss);
+    ss << elem->toString();
     if(count != elements.size()) ss << " ";
     count++;
   }
   ss << ")";
-  return ss;
-}
-std::ostream& ArrayAccessAST::to_string(std::ostream& ss) {
-  ss << "arrayaccess ";
-  name->to_string(ss);
-  ss << " ";
-  index->to_string(ss);
-  return ss;
+  return ss.str();
 }
 
-std::ostream& ReturnAST::to_string(std::ostream& ss) {
-  ss << "(return ";
-  expr->to_string(ss);
-  ss << ")";
 
-  return ss;
+std::string ArrayAccessAST::toString() {
+  return "arrayaccess " + name->toString() + " " + index->toString();
 }
 
-std::ostream& LambdaAST::to_string(std::ostream& ss) {
-  ss << "(lambda ";
-  args->to_string(ss);
-  ss << " ";
-  body->to_string(ss);
-  ss << ")";
-  return ss;
+
+std::string ReturnAST::toString() {
+  return "(return " + expr->toString() + ")";
 }
 
-std::ostream& AssignAST::to_string(std::ostream& ss) {
-  ss << "("
-     << "assign"
-     << " ";
-  symbol->to_string(ss);
-  ss << " ";
-  expr->to_string(ss);
-  ss << ")";
-  return ss;
+
+std::string LambdaAST::toString() {
+  return "(lambda " + args->toString() + " " + body->toString() + ")";
 }
 
-std::ostream& FcallAST::to_string(std::ostream& ss) {
-  ss << "(";
-  fname->to_string(ss);
-  ss << " ";
-  args->to_string(ss);
-  ss << ")";
-  return ss;
-}
-std::ostream& DeclarationAST::to_string(std::ostream& ss) {
-  ss << "(";
-  fname->to_string(ss);
-  ss << " ";
-  args->to_string(ss);
-  ss << ")";
-  return ss;
-}
-std::ostream& IfAST::to_string(std::ostream& ss) {
-  ss << "if ";
-  condition->to_string(ss);
-  ss << " ";
-  thenstatement->to_string(ss);
-  ss << " ";
-  elsestatement->to_string(ss);
-  return ss;
-}
-std::ostream& ForAST::to_string(std::ostream& ss) {
-  ss << "(for ";
-  var->to_string(ss);
-  ss << " ";
-  iterator->to_string(ss);
-  ss << " ";
-  expression->to_string(ss);
-  ss << ")";
-  return ss;
+std::string AssignAST::toString() {
+  return "(assign " + symbol->toString() + " " + expr->toString() + ")";
 }
 
-std::ostream& TimeAST::to_string(std::ostream& ss) {
-  expr->to_string(ss);
-  ss << "@";
-  time->to_string(ss);
-  return ss;
+std::string FcallAST::toString() {
+  return "(" + fname->toString() + " " + args->toString() + ")";
+}
+
+
+std::string DeclarationAST::toString() {
+  return "(" + fname->toString() + " " + args->toString() + ")";
+}
+
+std::string IfAST::toString() {
+  return "if " + condition->toString() + " " + thenstatement->toString() + " " + elsestatement->toString();
+}
+
+
+std::string ForAST::toString() {
+  return "(for " + var->toString() + " " + iterator->toString() + " " + expression->toString() + ")";
+}
+
+std::string TimeAST::toString() {
+  return expr->toString() + "@" + time->toString();
 }
