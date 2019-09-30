@@ -6,7 +6,11 @@
 #include <string>
 #include <unistd.h>
 #include <csignal>
+#include <fstream>
 #include "helper_functions.hpp"
+// #include "cli_tools.cpp"
+#include "llvm/Support/CommandLine.h"
+namespace cl = llvm::cl;
 #include "driver.hpp"
 
 #include "interpreter.hpp"
@@ -19,6 +23,10 @@ void signal_handler(int signo){
 
 
 int main(int argc,char** argv) {
+    cl::opt<std::string> InputFilename(cl::Positional, cl::desc("<input file>"), cl::init("-"));
+    cl::ParseCommandLineOptions(argc, argv);//launch cli helper
+
+    std::ifstream Input(InputFilename.c_str());
     signal(SIGINT,signal_handler);
     mimium::Logger::current_report_level = mimium::Logger::WARNING;
     auto interpreter =  std::make_unique<mimium::Interpreter>();
@@ -32,7 +40,7 @@ int main(int argc,char** argv) {
 
     interpreter->init();
     interpreter->add_scheduler();
-    if(argc==1){
+    if(!Input.good()){// filename is empty
     std::string line;
     std::cout << "start" <<std::endl;
     

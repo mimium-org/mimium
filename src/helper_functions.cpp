@@ -1,7 +1,7 @@
 #include "helper_functions.hpp"
 namespace mimium{
 
-Logger::REPORT_LEVEL Logger::current_report_level = Logger::DEBUG;
+Logger::REPORT_LEVEL Logger::current_report_level = Logger::WARNING;
 std::ostream* Logger::output = &std::cout;
 
 Logger::Logger(){
