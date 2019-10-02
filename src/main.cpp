@@ -12,8 +12,8 @@
 #include "llvm/Support/CommandLine.h"
 namespace cl = llvm::cl;
 #include "driver.hpp"
-
 #include "interpreter.hpp"
+#include "interpreter_visitor.hpp"
 
 
 std::function<void(int)> shutdown_handler;
@@ -28,7 +28,7 @@ int main(int argc,char** argv) {
 
     std::ifstream Input(InputFilename.c_str());
     signal(SIGINT,signal_handler);
-    mimium::Logger::current_report_level = mimium::Logger::WARNING;
+    mimium::Logger::current_report_level = mimium::Logger::DEBUG;
     auto interpreter =  std::make_unique<mimium::Interpreter>();
     shutdown_handler = [&interpreter](int signal){
         if(interpreter->isrunning()){

@@ -3,12 +3,14 @@
 
 namespace mimium {
 
-Interpreter::Interpreter() {
+Interpreter::Interpreter(){
     midi.init();
 }
 
 void Interpreter::init() {
   rootenv = std::make_shared<Environment>("root", nullptr);
+  ivisitor = std::make_shared<InterpreterVisitor>(this);
+
   currentenv = rootenv;  // share
   currentenv->setVariable("dacL",0);
   currentenv->setVariable("dacR",0);
@@ -40,8 +42,8 @@ mValue Interpreter::loadSourceFile(const std::string filename) {
 }
 
 mValue Interpreter::loadAst(AST_Ptr _ast) {
-  topast = _ast;
-  return interpretTopAst();
+  auto ast = std::dynamic_pointer_cast<ListAST>(_ast);
+  return ast->accept<mValue,InterpreterVisitor>(ivisitor.get());
 }
 
 mValue Interpreter::interpretListAst(AST_Ptr ast) {

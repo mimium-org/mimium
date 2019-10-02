@@ -16,9 +16,10 @@
 #include "closure.hpp"
 
 #include "builtin_functions.hpp"
-
+#include "interpreter_visitor.hpp"
 namespace mimium{
 class Scheduler; //forward
+class InterpreterVisitor;
 class Interpreter: public std::enable_shared_from_this<Interpreter> {
     public:
     Interpreter();
@@ -79,6 +80,7 @@ class Interpreter: public std::enable_shared_from_this<Interpreter> {
     static std::string to_string(mValue v);
     AST_Ptr getMainAst(){return driver.getMainAst(); };
     inline Mididriver& getMidiInstance(){return midi;};
+    inline std::shared_ptr<Environment> getCurrentEnv(){return currentenv;};
     // bool genEventGraph();
     private:
     AST_Ptr topast;
@@ -89,6 +91,8 @@ class Interpreter: public std::enable_shared_from_this<Interpreter> {
     std::shared_ptr<Scheduler> sch;
     mmmpsr::MimiumDriver driver;
     Mididriver midi;
+
+    std::shared_ptr<InterpreterVisitor> ivisitor;
     // Builtin* builtin_functions;
     // Logger logger;
     std::string current_working_directory="";
