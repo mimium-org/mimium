@@ -9,7 +9,7 @@
 #include "ast.hpp"
 #include "interpreter_visitor.hpp"
 #include "mididriver.hpp"
-using mValue = std::variant<double,std::shared_ptr<AST>,mClosure_ptr,std::vector<double> >;
+// using mValue = std::variant<double,std::shared_ptr<AST>,mClosure_ptr,std::vector<double> >;
 // template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 // template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 

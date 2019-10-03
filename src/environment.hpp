@@ -8,7 +8,7 @@ template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 using mClosure_ptr = std::shared_ptr<mimium::Closure>;
-using mValue = std::variant<double,std::shared_ptr<AST>,mClosure_ptr,std::vector<double> >;
+using mValue = std::variant<double,std::shared_ptr<AST>,mClosure_ptr,std::vector<double>,std::string >;
 
 namespace mimium{
     class Environment: public std::enable_shared_from_this<Environment>{

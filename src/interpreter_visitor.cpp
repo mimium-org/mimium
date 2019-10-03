@@ -48,7 +48,7 @@ mValue InterpreterVisitor::visit(ListAST& ast) {
   return res;
 }
 mValue InterpreterVisitor::visit(NumberAST& ast) { return ast.getVal(); };
-mValue InterpreterVisitor::visit(SymbolAST& ast) { return 0; };
+mValue InterpreterVisitor::visit(SymbolAST& ast) { return ast.getVal(); };
 mValue InterpreterVisitor::visit(OpAST& ast) {
   double lv = std::get<double>(ast.lhs->accept(*this));
   double rv = std::get<double>(ast.rhs->accept(*this));
@@ -117,9 +117,29 @@ mValue InterpreterVisitor::visit(AssignAST& ast) {
     throw std::runtime_error("expression not resolved");
   }
 }
-mValue InterpreterVisitor::visit(AbstractListAST& ast) { return 0; };
-mValue InterpreterVisitor::visit(ArrayAST& ast) { return 0; };
-mValue InterpreterVisitor::visit(ArrayAccessAST& ast) { return 0; };
+mValue InterpreterVisitor::visit(AbstractListAST& ast) {
+  throw std::runtime_error("expression not resolved");
+  return 0;
+};
+mValue InterpreterVisitor::visit(ArrayAST& ast) {
+  std::vector<double> v;
+  for (auto& elem : ast.getElements()) {
+    v.push_back(std::get<double>(elem->accept(*this)));
+  }
+  return std::move(v);
+};
+mValue InterpreterVisitor::visit(ArrayAccessAST& ast) {
+  auto array = findVariable(std::get<std::string>(ast.getName()->accept(*this)));
+  auto index = (int) std::get<double>(ast.getIndex()->accept(*this));
+  return std::visit(
+      overloaded{[&index](std::vector<double> a) -> double { return a[index]; },
+                 [](auto e) -> double {
+                   throw std::runtime_error(
+                       "accessed variable is not an array");
+                   return 0;
+                 }},
+      array);
+};
 mValue InterpreterVisitor::visit(FcallAST& ast) { return 0; };
 mValue InterpreterVisitor::visit(LambdaAST& ast) { return 0; };
 mValue InterpreterVisitor::visit(IfAST& ast) { return 0; };
@@ -147,12 +167,13 @@ std::string InterpreterVisitor::to_string(mValue v) {
                                  ss << "]";
                                  return ss.str();
                                },
-                               [](auto v) { return v->toString(); } },
+                               [](std::string s){return s;},
+                               [](auto v) { return v->toString(); }},
                     v);
 };
 
 bool InterpreterVisitor::assertArgumentsLength(std::vector<AST_Ptr>& args,
-                                        int length) {
+                                               int length) {
   int size = args.size();
   if (size == length) {
     return true;

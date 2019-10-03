@@ -73,7 +73,7 @@ using mClosure_ptr = std::shared_ptr<mimium::Closure>;
 
 using AST_Ptr = std::shared_ptr<AST>;
 using mValue = std::variant<double, std::shared_ptr<AST>, mClosure_ptr,
-                            std::vector<double> >;
+                            std::vector<double>,std::string>;
 
 class ASTVisitor{
   public:
@@ -102,7 +102,6 @@ class AST {
   virtual std::string toString() = 0;
   virtual std::string toJson() = 0;
   virtual mValue accept(ASTVisitor &visitor)=0;
-
   virtual void addAST(AST_Ptr ast){};  // for list/argument ast
 
   AST_ID getid() { return id; }
