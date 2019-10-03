@@ -32,14 +32,5 @@ namespace mimium{
     std::shared_ptr<Environment> createNewChild(std::string newname);
     void deleteLastChild();
 
-    static double get_as_double(mValue v) {//duplicating function,,,
-    return std::visit(
-      overloaded{[](double v) -> double { return v; },
-                 [](auto v) -> double {
-                   throw std::runtime_error("value is not double");
-                   return 0;
-                 }},
-      v);
-};
 };
 };

@@ -121,7 +121,7 @@ TEST(bison_parser_test, fileread) {
   driver.parsefile("testfile1.mmm");
   std::stringstream ss;
   driver.print(ss);
-  EXPECT_EQ(ss.str(), "(assign a (+ 2 3)@128)");
+  EXPECT_EQ(ss.str(), "((assign main (+ 2 3)) (assign main2 (1 2 3)) (assign main3 arrayaccess main2 1))");
 }
 
 TEST(bison_parser_test, func_block) {

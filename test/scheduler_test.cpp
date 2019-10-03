@@ -2,7 +2,7 @@
 
 #include "driver.hpp"
 
-#include "interpreter.hpp"
+#include "interpreter_visitor.hpp"
 static mmmpsr::MimiumDriver driver;
 static mimium::InterpreterVisitor interpreter;
 int main() {

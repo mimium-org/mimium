@@ -44,7 +44,7 @@ class InterpreterVisitor
   mValue visit(NumberAST& ast);
   mValue visit(SymbolAST& ast);
   mValue visit(AssignAST& ast);
-  mValue visit(AbstractListAST& ast);
+  mValue visit(ArgumentsAST& ast);
   mValue visit(ArrayAST& ast);
   mValue visit(ArrayAccessAST& ast);
   mValue visit(FcallAST& ast);
@@ -56,11 +56,15 @@ class InterpreterVisitor
   mValue visit(TimeAST& ast);
   inline Mididriver& getMidiInstance() { return midi; };
   inline std::shared_ptr<Environment> getCurrentEnv() { return currentenv; };
+  inline AST_Ptr getMainAst() { return driver.getMainAst(); };
+
   static std::string to_string(mValue v);
   void setWorkingDirectory(const std::string path) {
     current_working_directory = path;
     driver.setWorkingDirectory(path);
   }
+  double get_as_double(mValue v);
+  void doForVisitor(mValue v, std::string iname, AST_Ptr expression);
 
  private:
   std::shared_ptr<Environment> rootenv;

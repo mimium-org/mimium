@@ -3,13 +3,15 @@
 #include "gtest/gtest.h"
 #include "gtest/internal/gtest-port.h"
 #include "helper_functions.hpp"
-#include "interpreter.hpp"
+#include "interpreter_visitor.hpp"
 static mmmpsr::MimiumDriver driver;
 static mimium::InterpreterVisitor interpreter;
 TEST(interpreter_test, assign) {
+     mimium::Logger::current_report_level = mimium::Logger::DEBUG;
+
      interpreter.init();
      interpreter.loadSource("a = 1");
-     EXPECT_EQ(mimium::Interpreter::to_string(interpreter.getMainAst()),"(assign a 1)") ;
+     EXPECT_EQ(mimium::InterpreterVisitor::to_string(interpreter.getMainAst()),"(assign a 1)") ;
 }
 TEST(interpreter_test, assign2) {
      interpreter.clear();
@@ -98,7 +100,7 @@ TEST(interpreter_test, array) {
      interpreter.clear();
      interpreter.loadSource("main = [1,2,3,4,5]");   
      mValue main = interpreter.findVariable("main");
-     EXPECT_EQ("[1,2,3,4,5]", mimium::Interpreter::to_string(main) );
+     EXPECT_EQ("[1,2,3,4,5]", mimium::InterpreterVisitor::to_string(main) );
 } 
 TEST(interpreter_test, arrayaccess) {
      interpreter.clear();

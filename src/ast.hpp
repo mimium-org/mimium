@@ -57,6 +57,7 @@ class SymbolAST;
 class AssignAST;
 class LambdaAST;
 class AbstractListAST;
+class ArgumentsAST;
 class ArrayAST;
 class ArrayAccessAST;
 class TimeAST;
@@ -83,8 +84,9 @@ class ASTVisitor{
       virtual mValue visit(NumberAST& ast)=0;
       virtual mValue visit(SymbolAST& ast)=0;
       virtual mValue visit(AssignAST& ast)=0;
-      virtual mValue visit(AbstractListAST& ast)=0;
       virtual mValue visit(ArrayAST& ast)=0;
+      virtual mValue visit(ArgumentsAST& ast)=0;
+
       virtual mValue visit(ArrayAccessAST& ast)=0;
       virtual mValue visit(FcallAST& ast)=0;
       virtual mValue visit(LambdaAST& ast)=0;
@@ -221,9 +223,7 @@ class AbstractListAST : public AST {
   void addAST(AST_Ptr arg) override {
     elements.insert(elements.begin(), std::move(arg));
   };
-    mValue accept(ASTVisitor& visitor) override{
-      return visitor.visit(*this);
-  };
+    
   auto& getElements() { return elements; }
   std::string toString() override;
   std::string toJson() override;

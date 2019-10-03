@@ -23,16 +23,22 @@ mValue Environment::findVariable(std::string key){
 }
 
 void Environment::setVariable(std::string key,mValue val){
+    mValue newval=0;
+    if(auto pval = std::get_if<std::string>(&val)){ 
+        newval = findVariable(*pval);
+    }else{
+        newval = val;
+    }
     if(variables.size()>0 && variables.count(key)>0){//search dictionary
-        Logger::debug_log("Variable " + key + " already exists as " + std::to_string(get_as_double(variables[key])) + ". Overwritten to " + std::to_string(get_as_double(val)),
+        Logger::debug_log("Variable " + key + " already exists as " + std::to_string(std::get<double>(variables[key])) + ". Overwritten to " + std::to_string(std::get<double>(newval)),
                       Logger::INFO);
-        variables[key] = val; //overwrite exsisting value
+        variables[key] = newval; //overwrite exsisting value
 
     }else if(parent !=nullptr){
-        parent->setVariable(key,val); //search recursively
+        parent->setVariable(key,newval); //search recursively
     }else{
         Logger::debug_log( "Create New Variable " + key  ,Logger::DEBUG);
-        variables.emplace(key,val);
+        variables.emplace(key,newval);
     }
 }
 void Environment::setVariableRaw(std::string key,mValue val){
