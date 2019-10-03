@@ -43,7 +43,7 @@ mValue Interpreter::loadSourceFile(const std::string filename) {
 
 mValue Interpreter::loadAst(AST_Ptr _ast) {
   auto ast = std::dynamic_pointer_cast<ListAST>(_ast);
-  return ast->accept<mValue,InterpreterVisitor>(ivisitor.get());
+  return ast->accept(*ivisitor);
 }
 
 mValue Interpreter::interpretListAst(AST_Ptr ast) {

@@ -50,6 +50,22 @@ const std::map<std::string, AST_ID> ast_id = {{"fcall", FCALL},
 // };
 };          // namespace mimium
 class AST;  // forward
+class ListAST;
+class OpAST;
+class NumberAST;
+class SymbolAST;
+class AssignAST;
+class LambdaAST;
+class AbstractListAST;
+class ArrayAST;
+class ArrayAccessAST;
+class TimeAST;
+class ReturnAST;
+class DeclarationAST;
+class ForAST;
+class IfAST;
+class FcallAST;
+
 namespace mimium {
 struct Closure;  // forward
 };
@@ -61,9 +77,23 @@ using mValue = std::variant<double, std::shared_ptr<AST>, mClosure_ptr,
 
 class ASTVisitor{
   public:
-    virtual ~ASTVisitor() = default;
-    template <class Rv, class ASTs>
-      Rv visit(ASTs* ast){return NULL;};
+      virtual ~ASTVisitor() = default;
+      virtual mValue visit(ListAST& ast)=0;
+      virtual mValue visit(OpAST& ast)=0;
+      virtual mValue visit(NumberAST& ast)=0;
+      virtual mValue visit(SymbolAST& ast)=0;
+      virtual mValue visit(AssignAST& ast)=0;
+      virtual mValue visit(AbstractListAST& ast)=0;
+      virtual mValue visit(ArrayAST& ast)=0;
+      virtual mValue visit(ArrayAccessAST& ast)=0;
+      virtual mValue visit(FcallAST& ast)=0;
+      virtual mValue visit(LambdaAST& ast)=0;
+      virtual mValue visit(IfAST& ast)=0;
+      virtual mValue visit(ReturnAST& ast)=0;
+      virtual mValue visit(ForAST& ast)=0;
+      virtual mValue visit(DeclarationAST& ast)=0;
+      virtual mValue visit(TimeAST& ast)=0;
+
 };
 
 class AST {
@@ -71,14 +101,8 @@ class AST {
   virtual ~AST() = default;
   virtual std::string toString() = 0;
   virtual std::string toJson() = 0;
-  template <class Rv, class VISITOR>
-    Rv accept(VISITOR* visitor){
-      return visitor->visit(this);
-    };
-  // template<mValue,class ASTs>
-  // mValue accept(ASTVisitor visitor){
-  //   return visitor.visit<mValue,ASTs>(this);
-  // }
+  virtual mValue accept(ASTVisitor &visitor)=0;
+
   virtual void addAST(AST_Ptr ast){};  // for list/argument ast
 
   AST_ID getid() { return id; }
@@ -130,10 +154,9 @@ class OpAST : public AST {
       : op_id(Op_id), lhs(std::move(LHS)), rhs(std::move(RHS)) {
     id = OP;
   }
-  template <class Rv, class VISITOR>
-    Rv accept(VISITOR* visitor){
-      return visitor->visit(this);
-    };
+  mValue accept(ASTVisitor& visitor) override{
+      return visitor.visit(*this);
+  };
   std::string toString() override;
   std::string toJson() override;
   OP_ID getOpId() { return op_id; };
@@ -148,10 +171,9 @@ class ListAST : public AST {
   ListAST() {  // empty constructor
     id = LIST;
   }
-  template <class Rv, class VISITOR>
-    Rv accept(VISITOR* visitor){
-      return visitor->visit(this);
-    };
+  mValue accept(ASTVisitor& visitor) override{
+      return visitor.visit(*this);
+  };
   explicit ListAST(AST_Ptr _asts) {
     asts.push_back(std::move(_asts));  // push_front
     id = LIST;
@@ -170,10 +192,9 @@ class NumberAST : public AST {
     val = input;
     id = NUMBER;
   }
-  template <class Rv, class VISITOR>
-    Rv accept(VISITOR* visitor){
-      return visitor->visit(this);
-    };
+  mValue accept(ASTVisitor& visitor) override{
+      return visitor.visit(*this);
+  };
   double getVal() { return val; };
   std::string toString() override;
   std::string toJson() override;
@@ -183,10 +204,9 @@ class SymbolAST : public AST {
  public:
   std::string val;
   explicit SymbolAST(std::string input) : val(std::move(input)) { id = SYMBOL; }
-  template <class Rv, class VISITOR>
-    Rv accept(VISITOR* visitor){
-      return visitor->visit(this);
-    };
+  mValue accept(ASTVisitor& visitor) override{
+      return visitor.visit(*this);
+  };
   std::string& getVal() { return val; };
   std::string toString() override;
   std::string toJson() override;
@@ -202,6 +222,9 @@ class AbstractListAST : public AST {
   void addAST(AST_Ptr arg) override {
     elements.insert(elements.begin(), std::move(arg));
   };
+    mValue accept(ASTVisitor& visitor) override{
+      return visitor.visit(*this);
+  };
   auto& getElements() { return elements; }
   std::string toString() override;
   std::string toJson() override;
@@ -212,11 +235,17 @@ class ArgumentsAST : public AbstractListAST {
   explicit ArgumentsAST(AST_Ptr arg) : AbstractListAST(std::move(arg)) {
     id = ARGS;
   };
+  mValue accept(ASTVisitor& visitor) override{
+      return visitor.visit(*this);
+  };
 };
 class ArrayAST : public AbstractListAST {
  public:
   explicit ArrayAST(AST_Ptr arg) : AbstractListAST(std::move(arg)) {
     id = ARRAY;
+  };
+    mValue accept(ASTVisitor& visitor) override{
+      return visitor.visit(*this);
   };
 };
 class ArrayAccessAST : public AST {
@@ -227,6 +256,9 @@ class ArrayAccessAST : public AST {
       : name(std::move(Array)), index(std::move(Index)) {
     id = ARRAYACCESS;
   }
+    mValue accept(ASTVisitor& visitor) override{
+      return visitor.visit(*this);
+  };
   AST_Ptr getName() { return name; };
   AST_Ptr getIndex() { return index; };
   std::string toString() override;
@@ -240,6 +272,9 @@ class LambdaAST : public AST {
       : args(std::move(Args)), body(std::move(Body)) {
     id = LAMBDA;
   }
+    mValue accept(ASTVisitor& visitor) override{
+      return visitor.visit(*this);
+  };
   auto getArgs() { return std::dynamic_pointer_cast<ArgumentsAST>(args); };
   AST_Ptr getBody() { return body; };
   std::string toString() override;
@@ -254,10 +289,9 @@ class AssignAST : public AST {
       : symbol(std::move(Symbol)), expr(std::move(Expr)) {
     id = ASSIGN;
   }
-  template <class Rv, class VISITOR>
-    Rv accept(VISITOR* visitor){
-      return visitor->visit(this);
-    };
+  mValue accept(ASTVisitor& visitor) override{
+      return visitor.visit(*this);
+  };
   auto getName() { return std::dynamic_pointer_cast<SymbolAST>(symbol); };
   AST_Ptr getBody() { return expr; };
   std::string toString() override;
@@ -288,6 +322,9 @@ class FcallAST : public AST {
       : fname(std::move(Fname)), args(std::move(Args)) {
     id = FCALL;
   }
+  mValue accept(ASTVisitor& visitor) override{
+      return visitor.visit(*this);
+  };
   auto getArgs() { return std::dynamic_pointer_cast<ArgumentsAST>(args); };
   auto getFname() { return std::dynamic_pointer_cast<SymbolAST>(fname); };
   std::string toString() override;
@@ -301,6 +338,9 @@ class DeclarationAST : public AST {
       : fname(std::move(Fname)), args(std::move(Args)) {
     id = DECLARATION;
   }
+  mValue accept(ASTVisitor& visitor) override{
+      return visitor.visit(*this);
+  };
   auto getArgs() { return std::dynamic_pointer_cast<ArgumentsAST>(args); };
   auto getFname() { return std::dynamic_pointer_cast<SymbolAST>(fname); };
   std::string toString() override;
@@ -312,6 +352,9 @@ class ReturnAST : public AST {
   AST_Ptr expr;
   explicit ReturnAST(AST_Ptr Expr) : expr(std::move(Expr)) { id = RETURN; }
   auto getExpr() { return expr; }
+  mValue accept(ASTVisitor& visitor) override{
+      return visitor.visit(*this);
+  };
   std::string toString() override;
   std::string toJson() override;
 };
@@ -324,6 +367,9 @@ class IfAST : public AST {
         elsestatement(std::move(Elsestatement)) {
     id = IF;
   }
+  mValue accept(ASTVisitor& visitor) override{
+      return visitor.visit(*this);
+  };
   auto getCond() { return condition; }
   auto getThen() { return thenstatement; }
   auto getElse() { return elsestatement; }
@@ -340,6 +386,9 @@ class ForAST : public AST {
         expression(std::move(Expression)) {
     id = FOR;
   }
+  mValue accept(ASTVisitor& visitor) override{
+      return visitor.visit(*this);
+  };
   auto getVar() { return var; };
   auto getIterator() { return iterator; };
   auto getExpression() { return expression; };
@@ -355,6 +404,9 @@ class TimeAST : public AST {
       : expr(std::move(Expr)), time(std::move(Time)) {
     id = TIME;
   }
+  mValue accept(ASTVisitor& visitor) override{
+      return visitor.visit(*this);
+  };
   auto getTime() { return time; }
   auto getExpr() { return expr; }
   std::string toString() override;
