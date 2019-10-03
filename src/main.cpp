@@ -12,7 +12,6 @@
 #include "llvm/Support/CommandLine.h"
 namespace cl = llvm::cl;
 #include "driver.hpp"
-#include "interpreter.hpp"
 #include "interpreter_visitor.hpp"
 
 
@@ -29,7 +28,7 @@ int main(int argc,char** argv) {
     std::ifstream Input(InputFilename.c_str());
     signal(SIGINT,signal_handler);
     mimium::Logger::current_report_level = mimium::Logger::DEBUG;
-    auto interpreter =  std::make_unique<mimium::Interpreter>();
+    auto interpreter =  std::make_unique<mimium::InterpreterVisitor>();
     shutdown_handler = [&interpreter](int signal){
         if(interpreter->isrunning()){
         interpreter->stop();
@@ -47,7 +46,7 @@ int main(int argc,char** argv) {
     while (std::getline(std::cin, line)) {  
     interpreter->clearDriver();  
     mValue res = interpreter->loadSource(line);
-    std::string resstr = mimium::Interpreter::to_string(res);
+    std::string resstr = mimium::InterpreterVisitor::to_string(res);
     // std::cout << resstr << std::endl;
     }
     }

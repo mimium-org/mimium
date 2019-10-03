@@ -4,7 +4,7 @@
 
 #include "interpreter.hpp"
 static mmmpsr::MimiumDriver driver;
-static mimium::Interpreter interpreter;
+static mimium::InterpreterVisitor interpreter;
 int main() {
     interpreter.add_scheduler();
      driver.parsefile("test_time.mmm");

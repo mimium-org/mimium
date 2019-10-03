@@ -16,7 +16,7 @@ void mimium::Scheduler::incrementTime() {
   }
 }
 void mimium::Scheduler::executeTask() {
-  interpreter->interpretListAst(current_task_index->second);
+  current_task_index->second->accept(*interpreter);
   const auto deleteitr = current_task_index;
   current_task_index++;
   tasks.erase(deleteitr);
@@ -50,8 +50,8 @@ int mimium::Scheduler::audioCallback(void* outputBuffer, void* inputBuffer,
   for (int i = 0; i < nBufferFrames; i++) {
     sch->incrementTime();
 
-    outputBuffer_d[i*2] = Interpreter::get_as_double(interpreter->findVariable("dacL"));
-    outputBuffer_d[i*2+1] =Interpreter::get_as_double(interpreter->findVariable("dacR"));
+    outputBuffer_d[i*2] = std::get<double>(interpreter->findVariable("dacL"));
+    outputBuffer_d[i*2+1] =std::get<double>(interpreter->findVariable("dacR"));
 
   }
   return 0;

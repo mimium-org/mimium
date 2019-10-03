@@ -14,42 +14,41 @@ const std::map<std::string, mmmfn> Builtin::builtin_fntable = {
 };
 
 mValue Builtin::print(std::shared_ptr<ArgumentsAST> argast,
-                      Interpreter *interpreter) {
+                      InterpreterVisitor *interpreter) {
   auto args = argast->getElements();
   for (auto &elem : args) {
-    mValue ev = interpreter->interpretExpr(elem);
-    std::cout << Interpreter::to_string(ev);
+    mValue ev = elem->accept(*interpreter);
+    std::cout << InterpreterVisitor::to_string(ev);
     std::cout << " ";
   }
   return 0.0;
 }
 
 mValue Builtin::println(std::shared_ptr<ArgumentsAST> argast,
-                        Interpreter *interpreter) {
+                        InterpreterVisitor *interpreter) {
   print(argast, interpreter);
   std::cout << std::endl;
   return 0.0;
 }
 
 mValue Builtin::setMidiOut(std::shared_ptr<ArgumentsAST> argast,
-                           Interpreter *interpreter) {
+                           InterpreterVisitor *interpreter) {
   auto args = argast->getElements();
-  double port = Interpreter::get_as_double(
-      interpreter->interpretExpr(args[0]));  // ignore multiple arguments
+  double port = std::get<double>(args[0]->accept(*interpreter));
   interpreter->getMidiInstance().setPort((int)port);
   interpreter->getMidiInstance().printCurrentPort((int)port);
   return 0.0;
 };
 mValue Builtin::setVirtualMidiOut(std::shared_ptr<ArgumentsAST> argast,
-                                  Interpreter *interpreter) {
+                                  InterpreterVisitor *interpreter) {
   // ignore arguments
   interpreter->getMidiInstance().createVirtualPort();
   return 0.0;
 };
 mValue Builtin::sendMidiMessage(std::shared_ptr<ArgumentsAST> argast,
-                                Interpreter *interpreter) {
+                                InterpreterVisitor *interpreter) {
   auto args = argast->getElements();
-  mValue val = interpreter->interpretExpr(args[0]);
+  mValue val = args[0]->accept(*interpreter);
   auto message = std::visit(
       overloaded{[](std::vector<double> vec) -> std::vector<unsigned char> {
                    std::vector<unsigned char> outvec;
@@ -75,29 +74,29 @@ mValue Builtin::sendMidiMessage(std::shared_ptr<ArgumentsAST> argast,
 
 mValue Builtin::cmath(std::function<double(double)> fn,
                       std::shared_ptr<ArgumentsAST> argast,
-                      Interpreter *interpreter) {
+                      InterpreterVisitor* interpreter) {
   auto args = argast->getElements();
-  auto val = Interpreter::get_as_double(interpreter->interpretExpr(args[0]));
+  auto val = std::get<double>(args[0]->accept(*interpreter));
   return fn(val);
 }
 
 mValue Builtin::sin(std::shared_ptr<ArgumentsAST> argast,
-                    Interpreter *interpreter) {
+                    InterpreterVisitor *interpreter) {
   return cmath([](double d) -> double { return std::sin(d); }, argast,
                interpreter);
 }
 mValue Builtin::cos(std::shared_ptr<ArgumentsAST> argast,
-                    Interpreter *interpreter) {
+                    InterpreterVisitor *interpreter) {
   return cmath([](double d) -> double { return std::cos(d); }, argast,
                interpreter);
 }
 // const mmmfn Builtin::createMathFn(std::function<double(double)> fn,
 //                                   std::shared_ptr<ArgumentsAST> argast,
-//                                   Interpreter *interpreter) {
+//                                   InterpreterVisitor *interpreter) {
 //     auto args = argast->getElements();
 //     auto val =
-//     Interpreter::get_as_double(interpreter->interpretExpr(args[0])); return
-//     fn(val);
+//     InterpreterVisitor::get_as_double(interpreter->interpretExpr(args[0]));
+//     return fn(val);
 // }
 
 const bool Builtin::isBuiltin(std::string str) {
