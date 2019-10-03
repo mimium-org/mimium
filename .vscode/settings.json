@@ -75,8 +75,15 @@
         "variant": "cpp",
         "vector": "cpp",
         "filesystem": "cpp",
-        "__functional_03": "cpp"
+        "__functional_03": "cpp",
+        "*.tcc": "cpp",
+        "codecvt": "cpp",
+        "condition_variable": "cpp",
+        "csignal": "cpp",
+        "memory_resource": "cpp",
+        "queue": "cpp"
     },
     "C_Cpp.configurationWarnings": "Disabled",
+    "C_Cpp.clang_format_style": "{ BasedOnStyle: Google}",
     "git.ignoreLimitWarning": true
 }
