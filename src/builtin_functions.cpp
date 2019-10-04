@@ -17,7 +17,9 @@ mValue Builtin::print(std::shared_ptr<ArgumentsAST> argast,
                       InterpreterVisitor *interpreter) {
   auto args = argast->getElements();
   for (auto &elem : args) {
-    mValue ev = elem->accept(*interpreter);
+    elem->accept(*interpreter);
+    mValue ev = interpreter->getVstack().top();
+    interpreter->getVstack().pop();
     std::cout << InterpreterVisitor::to_string(ev);
     std::cout << " ";
   }
@@ -34,7 +36,9 @@ mValue Builtin::println(std::shared_ptr<ArgumentsAST> argast,
 mValue Builtin::setMidiOut(std::shared_ptr<ArgumentsAST> argast,
                            InterpreterVisitor *interpreter) {
   auto args = argast->getElements();
-  double port = std::get<double>(args[0]->accept(*interpreter));
+  args[0]->accept(*interpreter);
+  double port = std::get<double>(interpreter->getVstack().top());
+  interpreter->getVstack().pop();
   interpreter->getMidiInstance().setPort((int)port);
   interpreter->getMidiInstance().printCurrentPort((int)port);
   return 0.0;
@@ -48,7 +52,9 @@ mValue Builtin::setVirtualMidiOut(std::shared_ptr<ArgumentsAST> argast,
 mValue Builtin::sendMidiMessage(std::shared_ptr<ArgumentsAST> argast,
                                 InterpreterVisitor *interpreter) {
   auto args = argast->getElements();
-  mValue val = args[0]->accept(*interpreter);
+  args[0]->accept(*interpreter);
+  mValue val = interpreter->getVstack().top();
+  interpreter->getVstack().pop();
   auto message = std::visit(
       overloaded{[](std::vector<double> vec) -> std::vector<unsigned char> {
                    std::vector<unsigned char> outvec;
@@ -76,7 +82,9 @@ mValue Builtin::cmath(std::function<double(double)> fn,
                       std::shared_ptr<ArgumentsAST> argast,
                       InterpreterVisitor* interpreter) {
   auto args = argast->getElements();
-  auto val = std::get<double>(args[0]->accept(*interpreter));
+  args[0]->accept(*interpreter);
+  auto val = std::get<double>(interpreter->getVstack().top());
+  interpreter->getVstack().pop();
   return fn(val);
 }
 

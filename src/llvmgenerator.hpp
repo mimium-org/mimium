@@ -13,7 +13,7 @@
 #include <memory>
 #include "ast.hpp"
 
-class LLVMGenerator{
+class LLVMVisitor:public ASTVisitor{
     private: 
         llvm::LLVMContext ctx;
         std::unique_ptr<llvm::Function> curfunc;

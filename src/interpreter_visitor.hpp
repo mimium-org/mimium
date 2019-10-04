@@ -2,6 +2,7 @@
 #include <cmath>
 #include <memory>
 #include <string>
+#include <stack>
 #include <unordered_map>
 #include <variant>
 #include "ast.hpp"
@@ -35,25 +36,25 @@ class InterpreterVisitor
   void start();
   inline bool isrunning() { return running_status; };
   void stop();
-  mValue loadSource(const std::string src);
-  mValue loadSourceFile(const std::string filename);
-  mValue loadAst(AST_Ptr _ast);
+  void loadSource(const std::string src);
+  void loadSourceFile(const std::string filename);
+  void loadAst(AST_Ptr _ast);
 
-  mValue visit(OpAST& ast);
-  mValue visit(ListAST& ast);
-  mValue visit(NumberAST& ast);
-  mValue visit(SymbolAST& ast);
-  mValue visit(AssignAST& ast);
-  mValue visit(ArgumentsAST& ast);
-  mValue visit(ArrayAST& ast);
-  mValue visit(ArrayAccessAST& ast);
-  mValue visit(FcallAST& ast);
-  mValue visit(LambdaAST& ast);
-  mValue visit(IfAST& ast);
-  mValue visit(ReturnAST& ast);
-  mValue visit(ForAST& ast);
-  mValue visit(DeclarationAST& ast);
-  mValue visit(TimeAST& ast);
+  void visit(OpAST& ast);
+  void visit(ListAST& ast);
+  void visit(NumberAST& ast);
+  void visit(SymbolAST& ast);
+  void visit(AssignAST& ast);
+  void visit(ArgumentsAST& ast);
+  void visit(ArrayAST& ast);
+  void visit(ArrayAccessAST& ast);
+  void visit(FcallAST& ast);
+  void visit(LambdaAST& ast);
+  void visit(IfAST& ast);
+  void visit(ReturnAST& ast);
+  void visit(ForAST& ast);
+  void visit(DeclarationAST& ast);
+  void visit(TimeAST& ast);
   inline Mididriver& getMidiInstance() { return midi; };
   inline std::shared_ptr<Environment> getCurrentEnv() { return currentenv; };
   inline AST_Ptr getMainAst() { return driver.getMainAst(); };
@@ -65,13 +66,14 @@ class InterpreterVisitor
   }
   double get_as_double(mValue v);
   void doForVisitor(mValue v, std::string iname, AST_Ptr expression);
-
+  auto& getVstack(){return vstack;};
  private:
   std::shared_ptr<Environment> rootenv;
   std::shared_ptr<Environment> currentenv;
   std::map<std::string, mValue> arguments;
   std::string currentNS;
   std::shared_ptr<Scheduler> sch;
+  std::stack<mValue> vstack;
   mmmpsr::MimiumDriver driver;
   Mididriver midi;
   // Builtin* builtin_functions;

@@ -37,114 +37,122 @@ void InterpreterVisitor::stop() {
   running_status = false;
 }
 
-mValue InterpreterVisitor::loadSource(const std::string src) {
+void InterpreterVisitor::loadSource(const std::string src) {
   driver.parsestring(src);
-  return loadAst(driver.getMainAst());
+  loadAst(driver.getMainAst());
 }
-mValue InterpreterVisitor::loadSourceFile(const std::string filename) {
+void InterpreterVisitor::loadSourceFile(const std::string filename) {
   driver.parsefile(filename);
-  return loadAst(driver.getMainAst());
+  loadAst(driver.getMainAst());
 }
 
-mValue InterpreterVisitor::loadAst(AST_Ptr _ast) {
+void InterpreterVisitor::loadAst(AST_Ptr _ast) {
   auto ast = std::dynamic_pointer_cast<ListAST>(_ast);
-  return ast->accept(*this);
+  ast->accept(*this);
 }
 
-mValue InterpreterVisitor::visit(ListAST& ast) {
-  mValue res;
+void InterpreterVisitor::visit(ListAST& ast) {
   for (auto& line : ast.getlist()) {
-    res = line->accept(*this);
+    line->accept(*this);
   }
-  return res;
 }
-mValue InterpreterVisitor::visit(NumberAST& ast) { return ast.getVal(); };
-mValue InterpreterVisitor::visit(SymbolAST& ast) { return ast.getVal(); };
-mValue InterpreterVisitor::visit(OpAST& ast) {
-  double lv = get_as_double(ast.lhs->accept(*this));
-  double rv = get_as_double(ast.rhs->accept(*this));
+void InterpreterVisitor::visit(NumberAST& ast) { vstack.push(ast.getVal()); };
+void InterpreterVisitor::visit(SymbolAST& ast) { vstack.push(ast.getVal()); };
+void InterpreterVisitor::visit(OpAST& ast) {
+  ast.lhs->accept(*this);
+  double lv = get_as_double(vstack.top());
+  vstack.pop();
+  ast.rhs->accept(*this);
+  double rv = get_as_double(vstack.top());
+  vstack.pop();
+  double res;
   switch (ast.getOpId()) {
     case ADD:
-      return lv + rv;
+      res = lv + rv;
       break;
     case SUB:
-      return lv - rv;
+      res = lv - rv;
       break;
     case MUL:
-      return lv * rv;
+      res = lv * rv;
       break;
     case DIV:
-      return lv / rv;
+      res = lv / rv;
       break;
     case EXP:
-      return std::pow(lv, rv);
+      res = std::pow(lv, rv);
       break;
     case MOD:
-      return std::fmod(lv, rv);
+      res = std::fmod(lv, rv);
       break;
     case AND:
     case BITAND:
-      return (double)((bool)lv & (bool)rv);
+      res = (double)((bool)lv & (bool)rv);
       break;
     case OR:
     case BITOR:
-      return (double)((bool)lv | (bool)rv);
+      res = (double)((bool)lv | (bool)rv);
       break;
     case LT:
-      return (double)lv < rv;
+      res = (double)lv < rv;
       break;
     case GT:
-      return (double)lv > rv;
+      res = (double)lv > rv;
       break;
     case LE:
-      return (double)lv <= rv;
+      res = (double)lv <= rv;
       break;
     case GE:
-      return (double)lv >= rv;
+      res = (double)lv >= rv;
       break;
     case LSHIFT:
-      return (double)((int)lv << (int)rv);
+      res = (double)((int)lv << (int)rv);
       break;
     case RSHIFT:
-      return (double)((int)lv >> (int)rv);
+      res = (double)((int)lv >> (int)rv);
       break;
     default:
       throw std::runtime_error("invalid binary operator");
-      return 0.0;
+      res = 0.0;
   }
+  vstack.push(res);
 }
-mValue InterpreterVisitor::visit(AssignAST& ast) {
+void InterpreterVisitor::visit(AssignAST& ast) {
   std::string varname = ast.getName()->getVal();  // assuming name as symbolast
   auto body = ast.getBody();
 
   if (body) {
-    mValue res = body->accept(*this);
-    currentenv->setVariable(varname, res);  // share
+    body->accept(*this);
+    currentenv->setVariable(varname, vstack.top());
     Logger::debug_log(
-        "Variable " + varname + " : " + InterpreterVisitor::to_string(res),
+        "Variable " + varname + " : " + InterpreterVisitor::to_string(vstack.top()),
         Logger::DEBUG);
-    return res;  // for print
+    vstack.pop();  
+
   } else {
     throw std::runtime_error("expression not resolved");
   }
 }
 
-mValue InterpreterVisitor::visit(ArgumentsAST& ast) {
-  auto ptr = std::make_shared<ArgumentsAST>(ast);
-  return std::move(ptr);  // this is stupid
+void InterpreterVisitor::visit(ArgumentsAST& ast) {
+  // args = ast;//this visitor is not needed?
 }
-mValue InterpreterVisitor::visit(ArrayAST& ast) {
+void InterpreterVisitor::visit(ArrayAST& ast) {
   std::vector<double> v;
   for (auto& elem : ast.getElements()) {
-    v.push_back(std::get<double>(elem->accept(*this)));
+    elem->accept(*this);
+    v.push_back(get_as_double(vstack.top()));
+    vstack.pop();
   }
-  return std::move(v);
+  vstack.push(std::move(v));
 };
-mValue InterpreterVisitor::visit(ArrayAccessAST& ast) {
+void InterpreterVisitor::visit(ArrayAccessAST& ast) {
   auto array =
-      findVariable(std::get<std::string>(ast.getName()->accept(*this)));
-  auto index = (int)std::get<double>(ast.getIndex()->accept(*this));
-  return std::visit(
+      findVariable(ast.getName()->getVal());
+  ast.getIndex()->accept(*this);
+  auto index = (int)std::get<double>(vstack.top());
+  vstack.pop();
+  auto res=  std::visit(
       overloaded{[&index](std::vector<double> a) -> double { return a[index]; },
                  [](auto e) -> double {
                    throw std::runtime_error(
@@ -152,6 +160,7 @@ mValue InterpreterVisitor::visit(ArrayAccessAST& ast) {
                    return 0;
                  }},
       array);
+  vstack.push(res);
 };
 overloaded fcall_visitor{
     [](auto v) -> mClosure_ptr {
@@ -159,20 +168,18 @@ overloaded fcall_visitor{
       return nullptr;
     },
     [](std::shared_ptr<Closure> v) -> mClosure_ptr { return v; }};
-mValue InterpreterVisitor::visit(FcallAST& ast) {
-  auto name = std::get<std::string>(ast.getFname()->accept(*this));
+void InterpreterVisitor::visit(FcallAST& ast) {
+  std::string name = ast.getFname()->getVal();
   auto args = ast.getArgs();
   if (Builtin::isBuiltin(name)) {
     auto fn = Builtin::builtin_fntable.at(name);
-    return fn(args, this);
+    vstack.push( fn(args, this) );
   } else {
     auto argsv = args->getElements();
     mClosure_ptr closure = std::visit(fcall_visitor, findVariable(name));
     auto lambda = closure->fun;
     auto originalenv = currentenv;
-    auto lambdaargs = std::dynamic_pointer_cast<ArgumentsAST>(
-                          std::get<AST_Ptr>(lambda.getArgs()->accept(*this)))
-                          ->getElements();
+    auto lambdaargs = lambda.getArgs()->getElements();
     auto tmpenv =
         closure->env->createNewChild("arg" + name);  // create arguments
     int argscond = lambdaargs.size() - argsv.size();
@@ -181,16 +188,17 @@ mValue InterpreterVisitor::visit(FcallAST& ast) {
     } else {
       int count = 0;
       for (auto& larg : lambdaargs) {
-        auto key = std::get<std::string>(larg->accept(*this));
-        tmpenv->setVariableRaw(key, argsv[count]->accept(*this));
+        auto key = std::dynamic_pointer_cast<SymbolAST>(larg)->getVal();
+        argsv[count]->accept(*this);
+        tmpenv->setVariableRaw(key,vstack.top());
+        vstack.pop();
         count++;
       }
       if (argscond == 0) {
         currentenv = tmpenv;  // switch env
-        auto res = lambda.getBody()->accept(*this);
+        lambda.getBody()->accept(*this);
         currentenv->getParent()->deleteLastChild();
         currentenv = originalenv;
-        return res;
       } else {
         throw std::runtime_error(
             "too few arguments");  // ideally we want to return new function
@@ -199,21 +207,22 @@ mValue InterpreterVisitor::visit(FcallAST& ast) {
     }
   }
 };
-mValue InterpreterVisitor::visit(LambdaAST& ast) {
-  auto closure = std::make_shared<Closure>(currentenv, ast);
-  return std::move(closure);
+void InterpreterVisitor::visit(LambdaAST& ast) {
+  vstack.push( std::make_shared<Closure>(currentenv, ast) );
 };
-mValue InterpreterVisitor::visit(IfAST& ast) {
-  mValue cond = ast.getCond()->accept(*this);
+void InterpreterVisitor::visit(IfAST& ast) {
+  ast.getCond()->accept(*this);
+  mValue cond = vstack.top();
+  vstack.pop();
   auto cond_d = get_as_double(cond);
   if (cond_d > 0) {
-    return ast.getThen()->accept(*this);
+    ast.getThen()->accept(*this);
   } else {
-    return ast.getElse()->accept(*this);
+    ast.getElse()->accept(*this);
   }
 };
-mValue InterpreterVisitor::visit(ReturnAST& ast) {
-  return ast.getExpr()->accept(*this);
+void InterpreterVisitor::visit(ReturnAST& ast) {
+  ast.getExpr()->accept(*this);
 };
 void InterpreterVisitor::doForVisitor(mValue v, std::string iname,
                                       AST_Ptr expression) {
@@ -236,44 +245,45 @@ void InterpreterVisitor::doForVisitor(mValue v, std::string iname,
       v);
 }
 
-mValue InterpreterVisitor::visit(ForAST& ast) {
+void InterpreterVisitor::visit(ForAST& ast) {
   std::string loopname = "for" + std::to_string(rand());  // temporary,,
   currentenv = currentenv->createNewChild(loopname);
-  auto varname = std::get<std::string>(ast.getVar()->accept(*this));
+  ast.getVar()->accept(*this);
+  auto varname = std::get<std::string>(vstack.top());
+  vstack.pop();
   auto expression = ast.getExpression();
-  mValue iterator = ast.getIterator()->accept(*this);
+  ast.getIterator()->accept(*this);
+  mValue iterator = vstack.top();
+  vstack.pop();
   doForVisitor(iterator,varname,expression);
   currentenv = currentenv->getParent();
-  return 0.0;  // forloop does not return value
 };
-mValue InterpreterVisitor::visit(DeclarationAST& ast) { 
-  std::string name = std::get<std::string> (ast.getFname()->accept(*this));
+void InterpreterVisitor::visit(DeclarationAST& ast) { 
+  std::string name = ast.getFname()->getVal();
   auto argsast = ast.getArgs();
   auto args = argsast->getElements();
   if (name == "include") {
     assertArgumentsLength(args, 1);
     if (args[0]->getid() == SYMBOL) {//this is not smart
-      std::string filename = std::get<std::string>(args[0]->accept(*this));
+      args[0]->accept(*this);
+      std::string filename = std::get<std::string>(vstack.top());
+      vstack.pop();
       auto temporary_driver =
           std::make_unique<mmmpsr::MimiumDriver>(current_working_directory);
       temporary_driver->parsefile(filename);
       loadAst(temporary_driver->getMainAst());
-      return 0;
     } else {
       throw std::runtime_error("given argument is not a string");
-      return 1;
     }
   } else {
     throw std::runtime_error("specified declaration is not defined: " + name);
-    return 1;
   }
 
  };
-mValue InterpreterVisitor::visit(TimeAST& ast) {
-  mValue time = ast.getTime()->accept(*this);
-  sch->addTask(std::get<double>(time), ast.getExpr());
-
-  return 0;
+void InterpreterVisitor::visit(TimeAST& ast) {
+  ast.getTime()->accept(*this);
+  sch->addTask(get_as_double(vstack.top()), ast.getExpr());
+  vstack.pop();
 };
 
 std::string InterpreterVisitor::to_string(mValue v) {

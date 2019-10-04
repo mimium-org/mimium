@@ -45,15 +45,15 @@ int main(int argc,char** argv) {
     
     while (std::getline(std::cin, line)) {  
     interpreter->clearDriver();  
-    mValue res = interpreter->loadSource(line);
-    std::string resstr = mimium::InterpreterVisitor::to_string(res);
+    interpreter->loadSource(line);
+    // now load source is void function, how to debug print?
     // std::cout << resstr << std::endl;
     }
     }
     else{
         try{
         std::cout << argv[1] <<std::endl;
-        mValue res = interpreter->loadSourceFile(argv[1]);
+        interpreter->loadSourceFile(argv[1]);
         interpreter->start();
         while(true){sleep(20);}; //todo : what is best way to wait infinitely? thread?
         }catch(std::exception& e){
