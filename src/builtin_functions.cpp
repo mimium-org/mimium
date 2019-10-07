@@ -39,14 +39,14 @@ mValue Builtin::setMidiOut(std::shared_ptr<ArgumentsAST> argast,
   args[0]->accept(*interpreter);
   double port = std::get<double>(interpreter->getVstack().top());
   interpreter->getVstack().pop();
-  interpreter->getMidiInstance().setPort((int)port);
-  interpreter->getMidiInstance().printCurrentPort((int)port);
+  interpreter->getRuntime().getMidiInstance().setPort((int)port);
+  interpreter->getRuntime().getMidiInstance().printCurrentPort((int)port);
   return 0.0;
 };
 mValue Builtin::setVirtualMidiOut(std::shared_ptr<ArgumentsAST> argast,
                                   InterpreterVisitor *interpreter) {
   // ignore arguments
-  interpreter->getMidiInstance().createVirtualPort();
+  interpreter->getRuntime().getMidiInstance().createVirtualPort();
   return 0.0;
 };
 mValue Builtin::sendMidiMessage(std::shared_ptr<ArgumentsAST> argast,
@@ -74,7 +74,7 @@ mValue Builtin::sendMidiMessage(std::shared_ptr<ArgumentsAST> argast,
                    return std::vector<unsigned char>{};
                  }},
       val);
-  interpreter->getMidiInstance().sendMessage(message);
+  interpreter->getRuntime().getMidiInstance().sendMessage(message);
   return 0.0;
 };
 

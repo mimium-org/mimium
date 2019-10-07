@@ -28,24 +28,25 @@ int main(int argc,char** argv) {
     std::ifstream Input(InputFilename.c_str());
     signal(SIGINT,signal_handler);
     mimium::Logger::current_report_level = mimium::Logger::DEBUG;
-    auto interpreter =  std::make_unique<mimium::InterpreterVisitor>();
-    shutdown_handler = [&interpreter](int signal){
-        if(interpreter->isrunning()){
-        interpreter->stop();
+    auto interpreter =  std::make_shared<mimium::InterpreterVisitor>();
+    interpreter->init();
+    auto& runtime = interpreter->getRuntime();
+    shutdown_handler = [&runtime](int signal){
+        if(runtime.isrunning()){
+        runtime.stop();
         }
         std::cerr << std::endl << "Interuppted by key" << std::endl;
         exit(0);
     };
 
-    interpreter->init();
-    interpreter->add_scheduler();
+    runtime.add_scheduler();
     if(!Input.good()){// filename is empty
     std::string line;
     std::cout << "start" <<std::endl;
     
     while (std::getline(std::cin, line)) {  
-    interpreter->clearDriver();  
-    interpreter->loadSource(line);
+    runtime.clearDriver();  
+    runtime.loadSource(line);
     // now load source is void function, how to debug print?
     // std::cout << resstr << std::endl;
     }
@@ -53,13 +54,12 @@ int main(int argc,char** argv) {
     else{
         try{
         std::cout << argv[1] <<std::endl;
-        interpreter->loadSourceFile(argv[1]);
-        interpreter->start();
+        runtime.loadSourceFile(argv[1]);
+        runtime.start();
         while(true){sleep(20);}; //todo : what is best way to wait infinitely? thread?
         }catch(std::exception& e){
         std::cerr << e.what()<<std::endl;
-        interpreter->stop();
-        interpreter.reset();
+        runtime.stop();
         }
     }
     return 0;

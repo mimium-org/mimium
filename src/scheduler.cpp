@@ -16,7 +16,8 @@ void mimium::Scheduler::incrementTime() {
   }
 }
 void mimium::Scheduler::executeTask() {
-  current_task_index->second->accept(*interpreter);
+  auto spt_itp = interpreter.lock();
+  current_task_index->second->accept(*spt_itp);
   const auto deleteitr = current_task_index;
   current_task_index++;
   tasks.erase(deleteitr);
@@ -41,7 +42,7 @@ int mimium::Scheduler::audioCallback(void* outputBuffer, void* inputBuffer,
                                      void* userData) {
   auto data = (Scheduler::CallbackData*)userData;
   auto sch = data->scheduler;
-  auto interpreter = data->interpreter;
+  auto interpreter = data->interpreter.lock();
   double* outputBuffer_d =(double*)outputBuffer;
   if (status) Logger::debug_log("Stream underflow detected!", Logger::WARNING);
   // Write interleaved audio data.

@@ -6,6 +6,7 @@
 static mmmpsr::MimiumDriver driver;
 static mimium::InterpreterVisitor interpreter;
 int main() {
+    interpreter.init();
     interpreter.add_scheduler();
      driver.parsefile("test_time.mmm");
      interpreter.start();

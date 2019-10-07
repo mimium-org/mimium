@@ -4,21 +4,19 @@
 #include <utility>
 
 #include "ast.hpp"
-#include "interpreter_visitor.hpp"
 #include "audiodriver.hpp"
 #include "helper_functions.hpp"
 
 namespace mimium{
-class InterpreterVisitor; //forward
-class Scheduler :public std::enable_shared_from_this<Scheduler>{
+class Scheduler{
 
     public:
     struct CallbackData{
         Scheduler* scheduler;
-        std::shared_ptr<InterpreterVisitor> interpreter;
+        std::weak_ptr<ASTVisitor> interpreter;
         CallbackData():scheduler(),interpreter(){};
     };
-    explicit Scheduler(InterpreterVisitor* itp): time(0),nexttask_time(0),interpreter(itp),audio(){
+    explicit Scheduler(std::weak_ptr<ASTVisitor> itp): time(0),nexttask_time(0),interpreter(itp),audio(){
         userdata.scheduler=this;
         userdata.interpreter=interpreter;
     };
@@ -40,7 +38,7 @@ class Scheduler :public std::enable_shared_from_this<Scheduler>{
     int nexttask_time;
     std::multimap<int, AST_Ptr> tasks;
     std::multimap<int, AST_Ptr>::iterator current_task_index;
-    std::shared_ptr<InterpreterVisitor> interpreter;
+    std::weak_ptr<ASTVisitor> interpreter;//weak for cross reference
     AudioDriver audio;
     CallbackData userdata;
     void executeTask();

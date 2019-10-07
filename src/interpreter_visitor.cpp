@@ -1,11 +1,14 @@
 #include "interpreter_visitor.hpp"
 
 namespace mimium {
+void InterpreterVisitor::init(){
+  runtime.init(shared_from_this());
+}
 double InterpreterVisitor::get_as_double(mValue v) {
   return std::visit(
       overloaded{[](double d) { return d; },
                  [this](std::string s) {
-                   return get_as_double(this->findVariable(s));
+                   return get_as_double(this->getRuntime().findVariable(s));
                  },  // recursive!!
                  [](auto a) {
                    throw std::runtime_error("refered variable is not number");
@@ -13,43 +16,45 @@ double InterpreterVisitor::get_as_double(mValue v) {
                  }},
       v);
 }
-void InterpreterVisitor::init() {
-  rootenv = std::make_shared<Environment>("root", nullptr);
+Runtime& InterpreterVisitor::getRuntime(){
+  return runtime;
+}
+mValue InterpreterVisitor::findVariable(std::string str){
+  return runtime.findVariable(str);
+};
 
-  currentenv = rootenv;  // share
-  currentenv->setVariable("dacL", 0);
-  currentenv->setVariable("dacR", 0);
-}
-void InterpreterVisitor::clear() {
-  rootenv.reset();
-  currentenv.reset();
-  clearDriver();
-  init();
-}
+// void InterpreterVisitor::init() {
+//   rootenv = std::make_shared<Environment>("root", nullptr);
 
-void InterpreterVisitor::start() {
-  sch->start();
-  running_status = true;
-}
+//   currentenv = rootenv;  // share
+//   RuntimesetVariable("dacL", 0);
+//   RuntimesetVariable("dacR", 0);
+// }
+// void InterpreterVisitor::clear() {
+//   rootenv.reset();
+//   currentenv.reset();
+//   clearDriver();
+//   init();
+// }
 
-void InterpreterVisitor::stop() {
-  sch->stop();
-  running_status = false;
-}
+// void InterpreterVisitor::start() {
+//   sch->start();
+//   running_status = true;
+// }
 
-void InterpreterVisitor::loadSource(const std::string src) {
-  driver.parsestring(src);
-  loadAst(driver.getMainAst());
-}
-void InterpreterVisitor::loadSourceFile(const std::string filename) {
-  driver.parsefile(filename);
-  loadAst(driver.getMainAst());
-}
+// void InterpreterVisitor::stop() {
+//   sch->stop();
+//   running_status = false;
+// }
 
-void InterpreterVisitor::loadAst(AST_Ptr _ast) {
-  auto ast = std::dynamic_pointer_cast<ListAST>(_ast);
-  ast->accept(*this);
-}
+// void InterpreterVisitor::loadSource(const std::string src) {
+//   driver.parsestring(src);
+//   loadAst(driver.getMainAst());
+// }
+// void InterpreterVisitor::loadSourceFile(const std::string filename) {
+//   driver.parsefile(filename);
+//   loadAst(driver.getMainAst());
+// }
 
 void InterpreterVisitor::visit(ListAST& ast) {
   for (auto& line : ast.getlist()) {
@@ -123,7 +128,7 @@ void InterpreterVisitor::visit(AssignAST& ast) {
 
   if (body) {
     body->accept(*this);
-    currentenv->setVariable(varname, vstack.top());
+    runtime.getCurrentEnv()->setVariable(varname, vstack.top());
     Logger::debug_log(
         "Variable " + varname + " : " + InterpreterVisitor::to_string(vstack.top()),
         Logger::DEBUG);
@@ -148,7 +153,7 @@ void InterpreterVisitor::visit(ArrayAST& ast) {
 };
 void InterpreterVisitor::visit(ArrayAccessAST& ast) {
   auto array =
-      findVariable(ast.getName()->getVal());
+      runtime.findVariable(ast.getName()->getVal());
   ast.getIndex()->accept(*this);
   auto index = (int)std::get<double>(vstack.top());
   vstack.pop();
@@ -176,9 +181,9 @@ void InterpreterVisitor::visit(FcallAST& ast) {
     vstack.push( fn(args, this) );
   } else {
     auto argsv = args->getElements();
-    mClosure_ptr closure = std::visit(fcall_visitor, findVariable(name));
+    mClosure_ptr closure = std::visit(fcall_visitor, runtime.findVariable(name));
     auto lambda = closure->fun;
-    auto originalenv = currentenv;
+    auto originalenv = runtime.getCurrentEnv();
     auto lambdaargs = lambda.getArgs()->getElements();
     auto tmpenv =
         closure->env->createNewChild("arg" + name);  // create arguments
@@ -195,10 +200,10 @@ void InterpreterVisitor::visit(FcallAST& ast) {
         count++;
       }
       if (argscond == 0) {
-        currentenv = tmpenv;  // switch env
+        runtime.setCurrentEnv(tmpenv);  // switch env
         lambda.getBody()->accept(*this);
-        currentenv->getParent()->deleteLastChild();
-        currentenv = originalenv;
+        runtime.getCurrentEnv()->getParent()->deleteLastChild();
+        runtime.setCurrentEnv(originalenv);
       } else {
         throw std::runtime_error(
             "too few arguments");  // ideally we want to return new function
@@ -208,7 +213,7 @@ void InterpreterVisitor::visit(FcallAST& ast) {
   }
 };
 void InterpreterVisitor::visit(LambdaAST& ast) {
-  vstack.push( std::make_shared<Closure>(currentenv, ast) );
+  vstack.push( std::make_shared<Closure>(runtime.getCurrentEnv(), ast) );
 };
 void InterpreterVisitor::visit(IfAST& ast) {
   ast.getCond()->accept(*this);
@@ -231,23 +236,23 @@ void InterpreterVisitor::doForVisitor(mValue v, std::string iname,
           [&](std::vector<double> v) {
             auto it = v.begin();
             while (it != v.end()) {
-              currentenv->setVariable(iname, *it);
+              runtime.getCurrentEnv()->setVariable(iname, *it);
               expression->accept(*this);
               it++;
             }
           },
           [&](double v) {
-            currentenv->setVariable(iname, v);
+            runtime.getCurrentEnv()->setVariable(iname, v);
             expression->accept(*this);
           },
-          [&](std::string s) { doForVisitor(findVariable(s),iname,expression); },
+          [&](std::string s) { doForVisitor(runtime.findVariable(s),iname,expression); },
           [](auto v) { throw std::runtime_error("iterator is invalid"); }},
       v);
 }
 
 void InterpreterVisitor::visit(ForAST& ast) {
   std::string loopname = "for" + std::to_string(rand());  // temporary,,
-  currentenv = currentenv->createNewChild(loopname);
+  runtime.getCurrentEnv() = runtime.getCurrentEnv()->createNewChild(loopname);
   ast.getVar()->accept(*this);
   auto varname = std::get<std::string>(vstack.top());
   vstack.pop();
@@ -256,7 +261,7 @@ void InterpreterVisitor::visit(ForAST& ast) {
   mValue iterator = vstack.top();
   vstack.pop();
   doForVisitor(iterator,varname,expression);
-  currentenv = currentenv->getParent();
+  runtime.getCurrentEnv() = runtime.getCurrentEnv()->getParent();
 };
 void InterpreterVisitor::visit(DeclarationAST& ast) { 
   std::string name = ast.getFname()->getVal();
@@ -269,9 +274,9 @@ void InterpreterVisitor::visit(DeclarationAST& ast) {
       std::string filename = std::get<std::string>(vstack.top());
       vstack.pop();
       auto temporary_driver =
-          std::make_unique<mmmpsr::MimiumDriver>(current_working_directory);
+          std::make_unique<mmmpsr::MimiumDriver>(runtime.current_working_directory);
       temporary_driver->parsefile(filename);
-      loadAst(temporary_driver->getMainAst());
+      runtime.loadAst(temporary_driver->getMainAst());
     } else {
       throw std::runtime_error("given argument is not a string");
     }
@@ -282,7 +287,7 @@ void InterpreterVisitor::visit(DeclarationAST& ast) {
  };
 void InterpreterVisitor::visit(TimeAST& ast) {
   ast.getTime()->accept(*this);
-  sch->addTask(get_as_double(vstack.top()), ast.getExpr());
+  runtime.getScheduler()->addTask(get_as_double(vstack.top()), ast.getExpr());
   vstack.pop();
 };
 
