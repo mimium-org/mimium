@@ -16,7 +16,7 @@ class Scheduler{
         std::weak_ptr<ASTVisitor> interpreter;
         CallbackData():scheduler(),interpreter(){};
     };
-    explicit Scheduler(std::weak_ptr<ASTVisitor> itp): time(0),nexttask_time(0),interpreter(itp),audio(){
+    explicit Scheduler(std::shared_ptr<ASTVisitor> itp): time(0),nexttask_time(0),interpreter(itp),audio(){
         userdata.scheduler=this;
         userdata.interpreter=interpreter;
     };
@@ -38,7 +38,7 @@ class Scheduler{
     int nexttask_time;
     std::multimap<int, AST_Ptr> tasks;
     std::multimap<int, AST_Ptr>::iterator current_task_index;
-    std::weak_ptr<ASTVisitor> interpreter;//weak for cross reference
+    std::shared_ptr<ASTVisitor> interpreter;//weak for cross reference
     AudioDriver audio;
     CallbackData userdata;
     void executeTask();

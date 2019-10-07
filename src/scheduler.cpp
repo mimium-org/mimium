@@ -16,8 +16,7 @@ void mimium::Scheduler::incrementTime() {
   }
 }
 void mimium::Scheduler::executeTask() {
-  auto spt_itp = interpreter.lock();
-  current_task_index->second->accept(*spt_itp);
+  current_task_index->second->accept(*interpreter);
   const auto deleteitr = current_task_index;
   current_task_index++;
   tasks.erase(deleteitr);
