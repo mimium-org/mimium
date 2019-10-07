@@ -39,14 +39,14 @@ int mimium::Scheduler::audioCallback(void* outputBuffer, void* inputBuffer,
                                      double streamTime,
                                      RtAudioStreamStatus status,
                                      void* userData) {
-  auto data = (Scheduler::CallbackData*)userData;
+  auto data = static_cast<Scheduler::CallbackData*>(userData);
   auto sch = data->scheduler;
   auto interpreter = data->interpreter.lock();
   double* outputBuffer_d =(double*)outputBuffer;
   if (status) Logger::debug_log("Stream underflow detected!", Logger::WARNING);
   // Write interleaved audio data.
-  double d =0;
-  double d2=0;
+  // double d =0;
+  // double d2=0;
   for (int i = 0; i < nBufferFrames; i++) {
     sch->incrementTime();
 
