@@ -1,5 +1,8 @@
 #include "environment.hpp"
 namespace mimium{
+
+
+
 bool Environment::isVariableSet(std::string key){
     if(variables.size()>0 && variables.count(key)>0){//search dictionary
         return true;
@@ -30,8 +33,9 @@ void Environment::setVariable(std::string key,mValue val){
         newval = val;
     }
     if(variables.size()>0 && variables.count(key)>0){//search dictionary
-        Logger::debug_log("Variable " + key + " already exists as " + std::to_string(std::get<double>(variables[key])) + ". Overwritten to " + std::to_string(std::get<double>(newval)),
-                      Logger::INFO);
+        // Logger::debug_log("Variable " + key + " already exists as " + variables[key] + ". Overwritten to " + Runtime::to_string(newval),
+        //               Logger::INFO);
+        Logger::debug_log("overwritten",Logger::DEBUG);
         variables[key] = newval; //overwrite exsisting value
 
     }else if(parent !=nullptr){

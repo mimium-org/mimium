@@ -130,7 +130,7 @@ void InterpreterVisitor::visit(AssignAST& ast) {
     body->accept(*this);
     runtime.getCurrentEnv()->setVariable(varname, vstack.top());
     Logger::debug_log(
-        "Variable " + varname + " : " + InterpreterVisitor::to_string(vstack.top()),
+        "Variable " + varname + " : " + Runtime::to_string(vstack.top()),
         Logger::DEBUG);
     vstack.pop();  
 
@@ -155,7 +155,7 @@ void InterpreterVisitor::visit(ArrayAccessAST& ast) {
   auto array =
       runtime.findVariable(ast.getName()->getVal());
   ast.getIndex()->accept(*this);
-  auto index = (int)std::get<double>(vstack.top());
+  auto index = (int)get_as_double(vstack.top());
   vstack.pop();
   auto res=  std::visit(
       overloaded{[&index](std::vector<double> a) -> double { return a[index]; },
@@ -178,11 +178,12 @@ void InterpreterVisitor::visit(FcallAST& ast) {
   auto args = ast.getArgs();
   if (Builtin::isBuiltin(name)) {
     auto fn = Builtin::builtin_fntable.at(name);
-    vstack.push( fn(args, this) );
+    mValue res = fn(args, this);
+    vstack.push(res);
   } else {
     auto argsv = args->getElements();
     mClosure_ptr closure = std::visit(fcall_visitor, runtime.findVariable(name));
-    auto lambda = closure->fun;
+    auto& lambda = closure->fun;
     auto originalenv = runtime.getCurrentEnv();
     auto lambdaargs = lambda.getArgs()->getElements();
     auto tmpenv =
@@ -289,25 +290,7 @@ void InterpreterVisitor::visit(TimeAST& ast) {
   ast.getTime()->accept(*this);
   runtime.getScheduler()->addTask(get_as_double(vstack.top()), ast.getExpr());
   vstack.pop();
-};
-
-std::string InterpreterVisitor::to_string(mValue v) {
-  return std::visit(overloaded{[](double v) { return std::to_string(v); },
-                               [](std::vector<double> vec) {
-                                 std::stringstream ss;
-                                 ss << "[";
-                                 int count = vec.size();
-                                 for (auto& elem : vec) {
-                                   ss << elem;
-                                   count--;
-                                   if (count > 0) ss << ",";
-                                 }
-                                 ss << "]";
-                                 return ss.str();
-                               },
-                               [](std::string s) { return s; },
-                               [](auto v) { return v->toString(); }},
-                    v);
+  vstack.push(ast.getExpr());//for print??
 };
 
 bool InterpreterVisitor::assertArgumentsLength(std::vector<AST_Ptr>& args,

@@ -1,5 +1,25 @@
 #include "runtime.hpp"
 namespace mimium{
+std::string Runtime::to_string(mValue v) {// where to place this
+  return std::visit(overloaded{[](double v) { return std::to_string(v); },
+                               [](std::vector<double> vec) {
+                                 std::stringstream ss;
+                                 ss << "[";
+                                 int count = vec.size();
+                                 for (auto& elem : vec) {
+                                   ss << elem;
+                                   count--;
+                                   if (count > 0) ss << ",";
+                                 }
+                                 ss << "]";
+                                 return ss.str();
+                               },
+                               [](std::string s) { return s; },
+                               [](std::shared_ptr<AST> v) { return v->toString(); },
+                               [](mClosure_ptr m){return m->toString();}},
+                    v);
+};
+
 void Runtime::init(std::shared_ptr<ASTVisitor> _visitor) {
   visitor = _visitor;
   setupEnv();

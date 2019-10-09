@@ -44,7 +44,7 @@ class Runtime {
   inline void setCurrentEnv(std::shared_ptr<Environment> env){currentenv = env;};
   inline AST_Ptr getMainAst() { return driver.getMainAst(); };
   inline auto getScheduler(){return sch;};
-  static std::string to_string(mValue v){return "";};
+  static std::string to_string(mValue v);
   void setWorkingDirectory(const std::string path) {
     current_working_directory = path;
     driver.setWorkingDirectory(path);
