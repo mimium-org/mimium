@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <unordered_map>
 #include "helper_functions.hpp"
 #include "ast.hpp"
 
@@ -12,7 +13,7 @@ using mValue = std::variant<double,std::shared_ptr<AST>,mClosure_ptr,std::vector
 
 namespace mimium{
     class Environment: public std::enable_shared_from_this<Environment>{
-    std::map<std::string,mValue,std::less<>> variables;
+    std::unordered_map<std::string,mValue> variables;
     std::shared_ptr<Environment> parent;
     std::vector<std::shared_ptr<Environment>> children;
     std::string name;
@@ -31,6 +32,7 @@ namespace mimium{
     std::string getName(){return name;};
     std::shared_ptr<Environment> createNewChild(std::string newname);
     void deleteLastChild();
+    static std::string to_string(mValue m);
 
 };
 };
