@@ -11,16 +11,18 @@ void mimium::Scheduler::start() {
 void mimium::Scheduler::stop() { audio.stop(); }
 void mimium::Scheduler::incrementTime() {
   time++;
-  if (time > current_task_index->first) {
+  if (!tasks.empty() && time > tasks.top().first) {
     executeTask();
   }
 }
 void mimium::Scheduler::executeTask() {
-  current_task_index->second->accept(*interpreter);
-  const auto deleteitr = current_task_index;
-  current_task_index++;
-  tasks.erase(deleteitr);
-  if (time > current_task_index->first) {
+  tasks.top().second->accept(*interpreter);
+  // current_task_index->second->accept(*interpreter);
+  // const auto deleteitr = current_task_index;
+  // current_task_index++;
+  tasks.pop();
+  // tasks.erase(deleteitr);
+  if (time > tasks.top().first) {
     executeTask();  // recursively execute if multiple tasks exist at the same
                     // time
   }
@@ -28,11 +30,12 @@ void mimium::Scheduler::executeTask() {
 
 void mimium::Scheduler::addTask(int time, AST_Ptr fn) {
   // fn->set_time(-1); //remove time to execute
-  tasks.insert(std::make_pair(time, fn));
-  if (tasks.size() == 1) {
-    current_task_index = tasks.begin();
-    nexttask_time = time;
-  }
+  tasks.push(std::make_pair(time,fn));
+  // tasks.insert(std::make_pair(time, fn));
+  // if (tasks.size() == 1) {
+  //   current_task_index = tasks.begin();
+  //   nexttask_time = time;
+  // }
 }
 int mimium::Scheduler::audioCallback(void* outputBuffer, void* inputBuffer,
                                      unsigned int nBufferFrames,
@@ -41,8 +44,8 @@ int mimium::Scheduler::audioCallback(void* outputBuffer, void* inputBuffer,
                                      void* userData) {
   auto data = static_cast<Scheduler::CallbackData*>(userData);
   auto sch = data->scheduler;
-  auto interpreter = data->interpreter.lock();
-  double* outputBuffer_d =(double*)outputBuffer;
+  auto interpreter = data->interpreter;
+  double* outputBuffer_d =static_cast<double*>(outputBuffer);
   if (status) Logger::debug_log("Stream underflow detected!", Logger::WARNING);
   // Write interleaved audio data.
   // double d =0;

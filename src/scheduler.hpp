@@ -2,7 +2,7 @@
 #include <map>
 #include <memory>
 #include <utility>
-
+#include <queue>
 #include "ast.hpp"
 #include "audiodriver.hpp"
 #include "helper_functions.hpp"
@@ -13,7 +13,7 @@ class Scheduler{
     public:
     struct CallbackData{
         Scheduler* scheduler;
-        std::weak_ptr<ASTVisitor> interpreter;
+        std::shared_ptr<ASTVisitor> interpreter;
         CallbackData():scheduler(),interpreter(){};
     };
     explicit Scheduler(std::shared_ptr<ASTVisitor> itp): time(0),nexttask_time(0),interpreter(itp),audio(){
@@ -34,10 +34,12 @@ class Scheduler{
     inline int64_t getTime(){return time;}
     static int audioCallback(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,double streamTime, RtAudioStreamStatus status, void* userdata);
     private:
+    typedef std::pair<int64_t,AST_Ptr> key_type;
+    typedef std::priority_queue<key_type,std::vector<key_type>,std::greater<key_type>> queue_type;
     int64_t time;
     int nexttask_time;
-    std::multimap<int, AST_Ptr> tasks;
-    std::multimap<int, AST_Ptr>::iterator current_task_index;
+    queue_type tasks;
+    // std::multimap<int, AST_Ptr>::iterator current_task_index;
     std::shared_ptr<ASTVisitor> interpreter;//weak for cross reference
     AudioDriver audio;
     CallbackData userdata;
