@@ -12,7 +12,7 @@ TEST(interpreter_test, assign) {
      mimium::Logger::current_report_level = mimium::Logger::DEBUG;
      interpreter->init();
      interpreter->getRuntime().loadSource("a = 1");
-     EXPECT_EQ(mimium::InterpreterVisitor::to_string(interpreter->getRuntime().getMainAst()),"(assign a 1)") ;
+     EXPECT_EQ(mimium::Runtime::to_string(interpreter->getRuntime().getMainAst()),"(assign a 1)") ;
 }
 TEST(interpreter_test, assign2) {
      interpreter->getRuntime().clear();
@@ -101,7 +101,7 @@ TEST(interpreter_test, array) {
      interpreter->getRuntime().clear();
      interpreter->getRuntime().loadSource("main = [1,2,3,4,5]");   
      mValue main = interpreter->getRuntime().findVariable("main");
-     EXPECT_EQ("[1,2,3,4,5]", mimium::InterpreterVisitor::to_string(main) );
+     EXPECT_EQ("[1,2,3,4,5]", mimium::Runtime::to_string(main) );
 } 
 TEST(interpreter_test, arrayaccess) {
      interpreter->getRuntime().clear();
