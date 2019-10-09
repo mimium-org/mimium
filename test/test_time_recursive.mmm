@@ -10,7 +10,7 @@ ctr=makecounter(1)
 fn rec(z){
     test = ctr(1)
     dummy =  println(test)
-    newx=z+4800
+    newx=z+48000
     return rec(newx)@z
 }
 main = rec(48000)@0

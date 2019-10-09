@@ -1,10 +1,9 @@
-t = 0
+phase = 0
 fn updateAudio(time){
-    t= (t+0.5)%6.28318531
-    dacL = sin(t)
-    dacR = dacL
+    phase = (phase+0.5)%6.28318531
+    dacL = sin(phase)
     newtime = time+1
-    return updateAudio(newtime)@newtime
+    return updateAudio(newtime)@(newtime)
 }
 
 main = updateAudio(10)@0
