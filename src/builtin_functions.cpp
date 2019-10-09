@@ -20,7 +20,7 @@ mValue Builtin::print(std::shared_ptr<ArgumentsAST> argast,
     elem->accept(*interpreter);
     mValue ev = interpreter->getVstack().top();
     interpreter->getVstack().pop();
-    std::cout << InterpreterVisitor::to_string(ev);
+    std::cout << Runtime::to_string(ev);
     std::cout << " ";
   }
   return 0.0;
@@ -49,41 +49,52 @@ mValue Builtin::setVirtualMidiOut(std::shared_ptr<ArgumentsAST> argast,
   interpreter->getRuntime().getMidiInstance().createVirtualPort();
   return 0.0;
 };
+std::vector<unsigned char> Builtin::midiSendVisitor(
+    mValue v, InterpreterVisitor *interpreter) {
+  return std::visit(
+      overloaded{
+          [](std::vector<double> vec) -> std::vector<unsigned char> {
+            std::vector<unsigned char> outvec;
+            outvec.resize(vec.size());
+            for (int i = 0; i < vec.size(); i++) {
+              outvec[i] = (unsigned char)vec[i];
+            }
+            return outvec;
+          },
+          [](double d) -> std::vector<unsigned char> {
+            std::vector<unsigned char> outvec;
+            outvec.push_back((unsigned char)d);
+            return outvec;
+          },
+          [&interpreter](std::string s) -> std::vector<unsigned char> {
+            mValue res = interpreter->getRuntime().findVariable(s);
+            return midiSendVisitor(res, interpreter);
+          },
+          [](auto v) -> std::vector<unsigned char> {
+            throw std::runtime_error("invalid midi message");
+            return std::vector<unsigned char>{};
+          }},
+      v);
+}
+
 mValue Builtin::sendMidiMessage(std::shared_ptr<ArgumentsAST> argast,
                                 InterpreterVisitor *interpreter) {
   auto args = argast->getElements();
   args[0]->accept(*interpreter);
   mValue val = interpreter->getVstack().top();
+  auto message = midiSendVisitor(val, interpreter);
   interpreter->getVstack().pop();
-  auto message = std::visit(
-      overloaded{[](std::vector<double> vec) -> std::vector<unsigned char> {
-                   std::vector<unsigned char> outvec;
-                   outvec.resize(vec.size());
-                   for (int i = 0; i < vec.size(); i++) {
-                     outvec[i] = (unsigned char)vec[i];
-                   }
-                   return outvec;
-                 },
-                 [](double d) -> std::vector<unsigned char> {
-                   std::vector<unsigned char> outvec;
-                   outvec.push_back((unsigned char)d);
-                   return outvec;
-                 },
-                 [](auto v) -> std::vector<unsigned char> {
-                   throw std::runtime_error("invalid midi message");
-                   return std::vector<unsigned char>{};
-                 }},
-      val);
   interpreter->getRuntime().getMidiInstance().sendMessage(message);
+  interpreter->getVstack().push(0);  // dummy
   return 0.0;
 };
 
 mValue Builtin::cmath(std::function<double(double)> fn,
                       std::shared_ptr<ArgumentsAST> argast,
-                      InterpreterVisitor* interpreter) {
+                      InterpreterVisitor *interpreter) {
   auto args = argast->getElements();
   args[0]->accept(*interpreter);
-  auto val = std::get<double>(interpreter->getVstack().top());
+  auto val = interpreter->get_as_double(interpreter->getVstack().top());
   interpreter->getVstack().pop();
   return fn(val);
 }

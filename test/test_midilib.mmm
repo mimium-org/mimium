@@ -1,5 +1,5 @@
 include("/Users/tomoya/codes/mimium/mimium-core/core.mmm")
-dummy= setMidiOut(0)@0
+dummy= setMidiOut(0)
 notes =[60,62,64,65,67,69,71,72]
 fn makecounter(x){
     localvar = 0

@@ -39,6 +39,6 @@ namespace mimium{
         private:
         Builtin(){}
         ~Builtin(){}
-
+        static std::vector<unsigned char> midiSendVisitor(mValue v,InterpreterVisitor* interpreter);
     }; // namespace Builtin
 } //namespace mimium

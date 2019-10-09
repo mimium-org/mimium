@@ -1,15 +1,15 @@
 #include <unistd.h>
 
 #include "driver.hpp"
-#include "interpreter.hpp"
+#include "interpreter_visitor.hpp"
 static mmmpsr::MimiumDriver driver;
-static mimium::InterpreterVisitor interpreter;
+static std::shared_ptr<mimium::InterpreterVisitor> interpreter;
 int main() {
-    interpreter.add_scheduler();
-     driver.parsefile("test_midi.mmm");
-     interpreter.start();
-     mValue res = interpreter.loadAst(driver.getMainAst());
+    interpreter=std::make_shared<mimium::InterpreterVisitor>();
+    auto& runtime = interpreter->getRuntime();
+   runtime.loadSourceFile("test_midi.mmm");
+     runtime.start();
      sleep(30);
-    interpreter.stop();
+    runtime.stop();
     return 0;
 }
