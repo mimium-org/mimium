@@ -4,9 +4,6 @@
 [submodule "libs/rtmidi"]
 	path = libs/rtmidi
 	url = git@github.com:thestk/rtmidi.git
-[submodule "libsndfile"]
-	path = libsndfile
-	url = git://github.com/erikd/libsndfile.git
 [submodule "libs/libsndfile"]
 	path = libs/libsndfile
 	url = git://github.com/erikd/libsndfile.git

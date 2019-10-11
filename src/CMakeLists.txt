@@ -15,5 +15,6 @@ target_link_libraries(Main
     PRIVATE
     rtaudio
     rtmidi
+    sndfile
       ${llvm_libs}
     )
