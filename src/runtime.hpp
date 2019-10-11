@@ -28,7 +28,7 @@ class Runtime {
       return currentenv->findVariable(str);
     }
   }
-  void add_scheduler() { sch = std::make_shared<Scheduler>(visitor);};
+  void add_scheduler() { sch = std::make_shared<SchedulerRT>(visitor);};
   void init(std::shared_ptr<ASTVisitor> _visitor);
   void setupEnv();
   void clear();
