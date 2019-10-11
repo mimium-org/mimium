@@ -7,6 +7,8 @@
 #include "audiodriver.hpp"
 #include "helper_functions.hpp"
 
+#include "sndfile.h"
+
 namespace mimium{
 
 class Scheduler{//scheduler interface
@@ -55,6 +57,19 @@ class SchedulerRT :public Scheduler{
     // std::multimap<int, AST_Ptr>::iterator current_task_index;
     AudioDriver audio;
     CallbackData userdata;
+};
+
+class SchedulerSndFile :public Scheduler{
+    public:
+    explicit SchedulerSndFile(std::shared_ptr<ASTVisitor> itp);
+    ~SchedulerSndFile();
+
+    void start() override;
+    void stop() override;
+    private:
+    SNDFILE* fp;
+    SF_INFO sfinfo;
+    double* buffer;
 };
 
 }//namespace mimium

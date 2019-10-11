@@ -12,8 +12,8 @@
 
 #include <memory>
 #include "ast.hpp"
-
-class LLVMVisitor:public ASTVisitor{
+namespace mimium{
+class LLVMVisitor:public ASTVisitor,public std::enable_shared_from_this<LLVMVisitor> {
     private: 
         llvm::LLVMContext ctx;
         std::unique_ptr<llvm::Function> curfunc;
@@ -26,8 +26,22 @@ class LLVMVisitor:public ASTVisitor{
         ~LLVMGenerator();
         std::shared_ptr<llvm::Module> getModule();
 
-        bool generateCode(std::unique_ptr<ListAST> listast,std::string name);
+        bool generateCode(ListAST& listast, std::string name);
 
-        llvm::Value* generateNumber(AST_Ptr num);
-        llvm::Value* generateOpExpr(AST_Ptr expr);
+        void visit(OpAST& ast);
+        void visit(ListAST& ast);
+        void visit(NumberAST& ast);
+        void visit(SymbolAST& ast);
+        void visit(AssignAST& ast);
+        void visit(ArgumentsAST& ast);
+        void visit(ArrayAST& ast);
+        void visit(ArrayAccessAST& ast);
+        void visit(FcallAST& ast);
+        void visit(LambdaAST& ast);
+        void visit(IfAST& ast);
+        void visit(ReturnAST& ast);
+        void visit(ForAST& ast);
+        void visit(DeclarationAST& ast);
+        void visit(TimeAST& ast);
 };
+}//namespace mimium

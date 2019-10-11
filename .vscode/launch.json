@@ -17,7 +17,7 @@
             "type": "lldb",
             "request": "launch",
             "program": "${workspaceFolder}/build/src/Main",
-            "args": ["/Users/tomoya/codes/mimium/test/testfile1.mmm"], 
+            "args": ["-sndfile","/Users/tomoya/codes/mimium/test/test_audioout.mmm"], 
             "cwd": "${workspaceFolder}/build", 
         },
 

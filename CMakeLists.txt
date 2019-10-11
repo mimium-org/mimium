@@ -39,7 +39,7 @@ find_package(BISON 3.2 REQUIRED VERBOSE REPORT_FILE ${CMAKE_CURRENT_BINARY_DIR}/
 find_package(Flex REQUIRED)
 
 
-include_directories(src ${FLEX_INCLUDE_DIRS} libs/rtaudio libs/rtmidi libs/libsndfile)
+include_directories(src ${FLEX_INCLUDE_DIRS} libs/rtaudio libs/rtmidi libs/libsndfile/src)
 
 set(RTAUDIO_BUILD_TESTING FALSE)
 add_subdirectory( libs/rtaudio )
@@ -51,9 +51,6 @@ add_subdirectory( libs/rtmidi )
 
 set(SNDFILE_BUILD_SHARED_LIBS TRUE)
 add_subdirectory( libs/libsndfile )
-
-
-link_directories(${EXT_DEPS_CXX_FLAGS}/lib)
 
 add_subdirectory( src )
 

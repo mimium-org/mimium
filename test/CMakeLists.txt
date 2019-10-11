@@ -3,8 +3,6 @@ project(mytest CXX)
 
 find_package(GTest REQUIRED)
 
-find_package(RtAudio REQUIRED)
-
 BISON_TARGET(MyParser ../src/mimium.yy ${CMAKE_CURRENT_BINARY_DIR}/mimium_parser.cpp)
 FLEX_TARGET(MyScanner ../src/mimium.l ${CMAKE_CURRENT_BINARY_DIR}/tokens.cpp)
 ADD_FLEX_BISON_DEPENDENCY(MyScanner MyParser)

@@ -65,4 +65,48 @@ int SchedulerRT::audioCallback(void* outputBuffer, void* inputBuffer,
   return 0;
 }
 
+SchedulerSndFile::SchedulerSndFile(std::shared_ptr<ASTVisitor> itp): Scheduler(itp){
+        sfinfo.channels=2;
+        sfinfo.format= (SF_FORMAT_WAV | SF_FORMAT_PCM_16);
+        sfinfo.samplerate = 48000;
+        sfinfo.frames = 20*48000;//temporary 20sec
+        buffer = new double[sfinfo.channels*sfinfo.frames];
+
+}
+
+SchedulerSndFile::~SchedulerSndFile(){
+        delete buffer;
+}
+
+void SchedulerSndFile::start() {
+  if(fp = sf_open("temp.wav",SFM_WRITE,&sfinfo)){
+    std::runtime_error("opening file failed");
+  };
+    for(int i=0;i<20*48000;i++){
+      incrementTime();
+      for(int chan=0;chan<sfinfo.channels;chan++){
+        if(chan%2){
+                buffer[sfinfo.channels*i+chan] = 
+std::get<double>(interpreter->findVariable("dacL"));
+        }else {
+           buffer[sfinfo.channels*i+ chan] = 
+std::get<double>(interpreter->findVariable("dacR"));
+        }
+    }
+  }
+  auto res = sf_writef_double(fp,buffer,20*48000);
+  std::cout << res <<std::endl;
+  stop();
+}
+
+void SchedulerSndFile::stop() { 
+  if(sf_close(fp)){
+        throw std::runtime_error("File is not correctly closed");
+  }else{
+        Logger::debug_log("File is closed",Logger::INFO);
+        std::exit(0);
+  }
+ }
+
+
 }//namespace mimium

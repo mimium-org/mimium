@@ -1,4 +1,5 @@
 #include "llvmgenerator.hpp"
+namespace mimium{
 LLVMGenerator::LLVMGenerator(){
     builder = std::make_unique<llvm::IRBuilder<>>(ctx);
     module =nullptr;
@@ -36,43 +37,50 @@ bool LLVMGenerator::generateCode(std::unique_ptr<ListAST> listast,std::string na
     return res;
 }
 
-llvm::Value* LLVMGenerator::generateNumber(AST_Ptr num){
-    if(num->getid()!=NUMBER){
-        std::cerr<<"invalid AST id,expected NUMBER but: " << num->getid() << std::endl;
-        return nullptr;
-    }else{
-        return llvm::ConstantFP::get(ctx, APFloat((float)num->val));
-    }
-}
+void LLVMVisitor::visit(OpAST& ast){
+    
+};
+void LLVMVisitor::visit(ListAST& ast){
+    
+};
+void LLVMVisitor::visit(NumberAST& ast){
+    
+};
+void LLVMVisitor::visit(SymbolAST& ast){
+    
+};
+void LLVMVisitor::visit(AssignAST& ast){
+    
+};
+void LLVMVisitor::visit(ArgumentsAST& ast){
+    
+};
+void LLVMVisitor::visit(ArrayAST& ast){
+    
+};
+void LLVMVisitor::visit(ArrayAccessAST& ast){
+    
+};
+void LLVMVisitor::visit(FcallAST& ast){
+    
+};
+void LLVMVisitor::visit(LambdaAST& ast){
+    
+};
+void LLVMVisitor::visit(IfAST& ast){
+    
+};
+void LLVMVisitor::visit(ReturnAST& ast){
+    
+};
+void LLVMVisitor::visit(ForAST& ast){
+    
+};
+void LLVMVisitor::visit(DeclarationAST& ast){
+    
+};
+void LLVMVisitor::visit(TimeAST& ast){
+    
+};
 
-llvm::Value* LLVMGenerator::generateOpExpr(AST_Ptr expr){
-    llvm::Value* L
-    llvm::Value* R 
-    switch(expr->getid()){
-        case OP:
-            L = generateOpExpr(expr->lhs);
-            R = generateOpExpr(expr->rhs);
-            if (!L || !R)
-                return nullptr;
-            switch(expr->op_id){
-                case ADD:
-                    return Builder.CreateFAdd(L, R, "addtmp");
-                case SUB:
-                    return Builder.CreateFSub(L, R, "subtmp");
-                case MUL:
-                    return Builder.CreateFMul(L, R, "multmp");
-                case DIV:
-                    return Builder.CreateFDiv(L, R, "divtmp");
-                default:
-                std::cerr<<"invalid Binary Operator: " << num->getid() << std::endl;
-                    return nullptr;
-            }
-            break;
-        case NUMBER:
-            return generateNumber(expr);//fall back to number
-            break;
-        default:
-        std::cerr<<"invalid AST id,expected OP but: " << num->getid() << std::endl;
-        return nullptr;
-    }
 }

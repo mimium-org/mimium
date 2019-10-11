@@ -1,5 +1,6 @@
 #include "runtime.hpp"
 namespace mimium{
+
 std::string Runtime::to_string(mValue v) {// where to place this
   return std::visit(overloaded{[](double v) { return std::to_string(v); },
                                [](std::vector<double> vec) {
@@ -19,6 +20,14 @@ std::string Runtime::to_string(mValue v) {// where to place this
                                [](mClosure_ptr m){return m->toString();}},
                     v);
 };
+
+void Runtime::add_scheduler(bool issoundfile=false){
+  if(issoundfile){
+   sch = std::make_shared<SchedulerSndFile>(visitor);
+  }else{
+   sch = std::make_shared<SchedulerRT>(visitor);
+  }
+}
 
 void Runtime::init(std::shared_ptr<ASTVisitor> _visitor) {
   visitor = _visitor;
