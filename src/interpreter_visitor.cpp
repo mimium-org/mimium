@@ -23,39 +23,6 @@ mValue InterpreterVisitor::findVariable(std::string str){
   return runtime.findVariable(str);
 };
 
-// void InterpreterVisitor::init() {
-//   rootenv = std::make_shared<Environment>("root", nullptr);
-
-//   currentenv = rootenv;  // share
-//   RuntimesetVariable("dacL", 0);
-//   RuntimesetVariable("dacR", 0);
-// }
-// void InterpreterVisitor::clear() {
-//   rootenv.reset();
-//   currentenv.reset();
-//   clearDriver();
-//   init();
-// }
-
-// void InterpreterVisitor::start() {
-//   sch->start();
-//   running_status = true;
-// }
-
-// void InterpreterVisitor::stop() {
-//   sch->stop();
-//   running_status = false;
-// }
-
-// void InterpreterVisitor::loadSource(const std::string src) {
-//   driver.parsestring(src);
-//   loadAst(driver.getMainAst());
-// }
-// void InterpreterVisitor::loadSourceFile(const std::string filename) {
-//   driver.parsefile(filename);
-//   loadAst(driver.getMainAst());
-// }
-
 void InterpreterVisitor::visit(ListAST& ast) {
   for (auto& line : ast.getlist()) {
     line->accept(*this);
