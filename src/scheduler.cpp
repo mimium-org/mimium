@@ -3,19 +3,15 @@
 
 #include "scheduler.hpp"
 #include <cstdlib>
-void mimium::Scheduler::start() {
-  audio.setCallback(mimium::Scheduler::audioCallback,&userdata );
-  audio.start();
-}
+namespace mimium{
 
-void mimium::Scheduler::stop() { audio.stop(); }
-void mimium::Scheduler::incrementTime() {
+void Scheduler::incrementTime() {
   time++;
   if (!tasks.empty() && time > tasks.top().first) {
     executeTask();
   }
 }
-void mimium::Scheduler::executeTask() {
+void Scheduler::executeTask() {
   tasks.top().second->accept(*interpreter);
   // current_task_index->second->accept(*interpreter);
   // const auto deleteitr = current_task_index;
@@ -28,7 +24,7 @@ void mimium::Scheduler::executeTask() {
   }
 }
 
-void mimium::Scheduler::addTask(int time, AST_Ptr fn) {
+void Scheduler::addTask(int time, AST_Ptr fn) {
   // fn->set_time(-1); //remove time to execute
   tasks.push(std::make_pair(time,fn));
   // tasks.insert(std::make_pair(time, fn));
@@ -37,12 +33,21 @@ void mimium::Scheduler::addTask(int time, AST_Ptr fn) {
   //   nexttask_time = time;
   // }
 }
-int mimium::Scheduler::audioCallback(void* outputBuffer, void* inputBuffer,
+
+
+void SchedulerRT::start() {
+  audio.setCallback(SchedulerRT::audioCallback,&userdata );
+  audio.start();
+}
+
+void SchedulerRT::stop() { audio.stop(); }
+
+int SchedulerRT::audioCallback(void* outputBuffer, void* inputBuffer,
                                      unsigned int nBufferFrames,
                                      double streamTime,
                                      RtAudioStreamStatus status,
                                      void* userData) {
-  auto data = static_cast<Scheduler::CallbackData*>(userData);
+  auto data = static_cast<CallbackData*>(userData);
   auto sch = data->scheduler;
   auto interpreter = data->interpreter;
   double* outputBuffer_d =static_cast<double*>(outputBuffer);
@@ -59,3 +64,5 @@ int mimium::Scheduler::audioCallback(void* outputBuffer, void* inputBuffer,
   }
   return 0;
 }
+
+}//namespace mimium
