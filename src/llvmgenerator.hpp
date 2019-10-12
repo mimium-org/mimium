@@ -12,13 +12,19 @@
 
 #include <memory>
 #include "ast.hpp"
+#include "alphaconvert_visitor.hpp"
+#include "knormalize_visitor.hpp"
+#include "closureconvert_visitor.hpp"
 namespace mimium{
 class LLVMVisitor:public ASTVisitor,public std::enable_shared_from_this<LLVMVisitor> {
     private: 
         llvm::LLVMContext ctx;
         std::unique_ptr<llvm::Function> curfunc;
         std::shared_ptr<llvm::Module> module;
-        std::unique_ptr<llvm::IRBuilder<>> builder; 
+        std::unique_ptr<llvm::IRBuilder<>> builder;
+        AlphaConvertVisitor alphavisitor;
+        KNormalizeVisitor knormvisitor;
+        ClosureFlattenVisitor closurevisitor;
     public:
         LLVMGenerator();
         LLVMGenerator(llvm::LLVMContext& _cts);

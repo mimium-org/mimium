@@ -19,22 +19,11 @@ std::shared_ptr<llvm::Module> LLVMGenerator::getModule(){
     }
 }
 
-bool LLVMGenerator::generateCode(std::unique_ptr<ListAST> listast,std::string name){
-    bool res = false;
-    for (auto& statements : listast->getlist()){
-        switch(statements.id){
-            case FDEF:
-                res  = generateFdef(std::move(statements));
-                break;
-            case ASSIGN:
-                res =  generateAssign(std::move(statements));
-                break;
-            default:
-                std::cerr<<"invalid AST id: " << statements.id << std::endl;
-                break; 
-        }
-    }
-    return res;
+bool LLVMGenerator::generateCode(ListAST& listast,std::string name){
+    listast.accept(alphavisitor);
+    alphavisitor.getResult().accept(knormvisitor);
+    knormvisitor.getResult().accept(closurevisitor);
+    closurevisitor.getResult().accept(this);
 }
 
 void LLVMVisitor::visit(OpAST& ast){
