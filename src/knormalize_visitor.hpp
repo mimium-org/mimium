@@ -21,6 +21,22 @@ class KNormalizeVisitor : public ASTVisitor{
         void visit(ForAST& ast);
         void visit(DeclarationAST& ast);
         void visit(TimeAST& ast);
+
+ 
+        ListAST& getResult();
+        private:
+        int var_counter;
+        std::stack<AST_Ptr> res_stack;
+        AST_Ptr stack_pop();//helper
+        std::unique_ptr<ListAST> current_context;
+        AST_Ptr insert_assign();
+        template <class EXPR>
+        void KNormalize::exprVisit(EXPR& ast){
+            auto res = std::make_shared<EXPR>(ast);
+            res_stack.push(std::move(res));  // send result
+        } 
+
+
 };
 
 }//namespace mimium
