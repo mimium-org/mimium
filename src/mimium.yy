@@ -182,7 +182,7 @@ forloop: FOR symbol IN expr block {$$ = driver.add_forloop(std::move($2),std::mo
 
 /* end : END; */
 
-lambda: arguments_top ARROW LBRACE expr RBRACE {$$ = driver.add_lambda(std::move($1),std::move($4));};
+lambda: arguments_top ARROW LBRACE block RBRACE {$$ = driver.add_lambda(std::move($1),std::move($4));};
 
 assign : symbol ASSIGN expr {$$ = driver.add_assign(std::move($1),std::move($3));}
       |  symbol ASSIGN lambda {$$ = driver.add_assign(std::move($1),std::move($3));}
