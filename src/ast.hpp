@@ -181,6 +181,9 @@ class ListAST : public AST {
   void addAST(AST_Ptr ast) override {
     asts.insert(asts.begin(), std::move(ast));
   }
+  void appendAST(AST_Ptr ast){//for knorm
+    asts.push_back(std::move(ast));
+  }
   std::vector<AST_Ptr>& getlist() { return asts; };
   std::string toString() override;
   std::string toJson() override;
