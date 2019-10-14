@@ -29,7 +29,9 @@ class MimiumDriver {
   void setWorkingDirectory(const std::string cwd);
 
   AST_Ptr add_number(double num);
-  AST_Ptr add_symbol(std::string str);
+  AST_Ptr add_lvar(std::string str);
+  AST_Ptr add_rvar(std::string str);
+
 
   AST_Ptr add_op(std::string op, AST_Ptr lhs, AST_Ptr rhs);
 

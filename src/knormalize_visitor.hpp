@@ -1,6 +1,5 @@
 #pragma once
 #include "ast.hpp"
-#include <stack>
 namespace mimium{
 class KNormalizeVisitor : public ASTVisitor{
         public:
@@ -11,7 +10,8 @@ class KNormalizeVisitor : public ASTVisitor{
         void visit(OpAST& ast) override;
         void visit(ListAST& ast) override;
         void visit(NumberAST& ast) override;
-        void visit(SymbolAST& ast) override;
+        void visit(LvarAST& ast) override;
+        void visit(RvarAST& ast) override;
         void visit(AssignAST& ast) override;
         void visit(ArgumentsAST& ast) override;
         void visit(ArrayAST& ast) override;
@@ -29,8 +29,6 @@ class KNormalizeVisitor : public ASTVisitor{
         std::shared_ptr<ListAST> getResult();
         private:
         int var_counter;
-        std::stack<AST_Ptr> res_stack;
-        AST_Ptr stack_pop();//helper
         std::shared_ptr<ListAST> current_context;
         AST_Ptr insertAssign(AST_Ptr ast);
         template <class EXPR>

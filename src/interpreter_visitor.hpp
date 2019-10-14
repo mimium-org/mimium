@@ -1,8 +1,5 @@
 #pragma once
 #include <cmath>
-#include <memory>
-#include <stack>
-#include <string>
 #include <unordered_map>
 #include <variant>
 #include "ast.hpp"
@@ -31,7 +28,8 @@ class InterpreterVisitor
   void visit(OpAST& ast) override;
   void visit(ListAST& ast) override;
   void visit(NumberAST& ast) override;
-  void visit(SymbolAST& ast) override;
+  void visit(LvarAST& ast) override;
+  void visit(RvarAST& ast) override;
   void visit(AssignAST& ast) override;
   void visit(ArgumentsAST& ast) override;
   void visit(ArrayAST& ast) override;
@@ -49,10 +47,9 @@ class InterpreterVisitor
   void init();
   double get_as_double(mValue v);
   void doForVisitor(mValue v, std::string iname, AST_Ptr expression);
-  inline auto& getVstack() { return vstack; };
+  inline auto& getVstack() { return res_stack; };
   mimium::Runtime& getRuntime();
  private:
-  std::stack<mValue> vstack;
   mimium::Runtime runtime;
   bool assertArgumentsLength(std::vector<AST_Ptr>& args, int length);
 };

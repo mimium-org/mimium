@@ -89,7 +89,8 @@
 
 
 %type <AST_Ptr> num "number"
-%type <AST_Ptr> symbol "symbol"
+%type <AST_Ptr> lvar "left value"
+%type <AST_Ptr> rvar "right value"
 %type <AST_Ptr> string "string"
 
 %type <AST_Ptr> single "symbol or number"
@@ -172,27 +173,27 @@ statement : assign {$$=std::move($1);}
          |RETURN expr {$$ = driver.add_return(std::move($2));}
          ;
 
-fdef : FUNC symbol arguments_top block {$$ = driver.add_assign(std::move($2),driver.add_lambda(std::move($3),std::move($4)));};
+fdef : FUNC lvar arguments_top block {$$ = driver.add_assign(std::move($2),driver.add_lambda(std::move($3),std::move($4)));};
 
 ifstatement: IF term block {$$ = driver.add_if(std::move($2),std::move($3),nullptr);}
             |IF term block ELSE block {$$ = driver.add_if(std::move($2),std::move($3),std::move($5));}
 ;
 
-forloop: FOR symbol IN expr block {$$ = driver.add_forloop(std::move($2),std::move($4),std::move($5));};
+forloop: FOR lvar IN expr block {$$ = driver.add_forloop(std::move($2),std::move($4),std::move($5));};
 
 /* end : END; */
 
 lambda: arguments_top ARROW block {$$ = driver.add_lambda(std::move($1),std::move($3));};
 
-assign : symbol ASSIGN expr {$$ = driver.add_assign(std::move($1),std::move($3));}
-      |  symbol ASSIGN lambda {$$ = driver.add_assign(std::move($1),std::move($3));}
+assign : lvar ASSIGN expr {$$ = driver.add_assign(std::move($1),std::move($3));}
+      |  lvar ASSIGN lambda {$$ = driver.add_assign(std::move($1),std::move($3));}
 ;
 
 arguments_top: '(' arguments ')' {$$=std::move($2);};
 
-arguments : symbol ',' arguments   {$3->addAST(std::move($1));
+arguments : lvar ',' arguments   {$3->addAST(std::move($1));
                                     $$ = std::move($3); }
-         |  symbol {$$ = driver.add_arguments(std::move($1));}
+         |  lvar {$$ = driver.add_arguments(std::move($1));}
          ;
 
 
@@ -235,7 +236,7 @@ declaration : include {$$=std::move($1);}
 include : INCLUDE '(' arguments_fcall ')' {$$ = driver.add_declaration("include",std::move($3)); }
 ;
 
-fcall : symbol '(' arguments_fcall ')' {$$ = driver.add_fcall(std::move($1),std::move($3));}
+fcall : rvar '(' arguments_fcall ')' {$$ = driver.add_fcall(std::move($1),std::move($3));}
 ;
 
 array : '[' array_elems ']' {$$ = std::move($2);}
@@ -244,19 +245,20 @@ array_elems : single ',' array_elems   {$3->addAST(std::move($1));
                                     $$ = std::move($3); }
          |  single {$$ = driver.add_array(std::move($1));}
          ;
-array_access: symbol '[' term ']' {$$ = driver.add_array_access(std::move($1),std::move($3));}; 
+array_access: rvar '[' term ']' {$$ = driver.add_array_access(std::move($1),std::move($3));}; 
 
-single : symbol{$$=std::move($1);}
+single : rvar{$$=std::move($1);}
       | string{$$=std::move($1);}
       |  num   {$$=std::move($1);};
 
-string : STRING {$$ = driver.add_symbol($1);}
+string : STRING {$$ = driver.add_lvar($1);}
 ;
 
 num :NUM {$$ = driver.add_number($1);};
 
 
-symbol : SYMBOL {$$ = driver.add_symbol($1);}
+lvar : SYMBOL {$$ = driver.add_lvar($1);}
+rvar : SYMBOL {$$ = driver.add_rvar($1);}
 
 
 %%

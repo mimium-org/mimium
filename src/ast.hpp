@@ -2,7 +2,7 @@
 
 #include <map>
 #include <utility>  //pair
-
+#include <stack>
 #include <iostream>
 #include <list>
 #include <memory>
@@ -54,6 +54,8 @@ class ListAST;
 class OpAST;
 class NumberAST;
 class SymbolAST;
+class LvarAST;
+class RvarAST;
 class AssignAST;
 class LambdaAST;
 class AbstractListAST;
@@ -82,7 +84,8 @@ using mValue = std::variant<double, std::shared_ptr<AST>, mClosure_ptr,
       virtual void visit(ListAST& ast)=0;
       virtual void visit(OpAST& ast)=0;
       virtual void visit(NumberAST& ast)=0;
-      virtual void visit(SymbolAST& ast)=0;
+      virtual void visit(LvarAST& ast)=0;
+      virtual void visit(RvarAST& ast)=0;
       virtual void visit(AssignAST& ast)=0;
       virtual void visit(ArrayAST& ast)=0;
       virtual void visit(ArgumentsAST& ast)=0;
@@ -95,6 +98,13 @@ using mValue = std::variant<double, std::shared_ptr<AST>, mClosure_ptr,
       virtual void visit(DeclarationAST& ast)=0;
       virtual void visit(TimeAST& ast)=0;
       virtual mValue findVariable(std::string str)=0;
+      mValue stack_pop() {//helper
+        auto res = res_stack.top();
+        res_stack.pop();
+        return res;
+      }
+    protected:
+      std::stack<mValue> res_stack;
 };
 
 class AST {
@@ -207,12 +217,26 @@ class SymbolAST : public AST {
  public:
   std::string val;
   explicit SymbolAST(std::string input) : val(std::move(input)) { id = SYMBOL; }
-  void accept(ASTVisitor& visitor) override{
-      visitor.visit(*this);
-  };
+  // void accept(ASTVisitor& visitor) override{
+  //     visitor.visit(*this);
+  // };
   std::string& getVal() { return val; };
   std::string toString() override;
   std::string toJson() override;
+};
+class LvarAST : public SymbolAST{
+  public:
+    explicit LvarAST(std::string input):SymbolAST(input){};
+    void accept(ASTVisitor& visitor) override{
+      visitor.visit(*this);
+  }
+};
+class RvarAST : public SymbolAST{
+  public:
+    explicit RvarAST(std::string input):SymbolAST(input){};
+    void accept(ASTVisitor& visitor) override{
+      visitor.visit(*this);
+  }
 };
 
 class AbstractListAST : public AST {
@@ -293,7 +317,7 @@ class AssignAST : public AST {
   void accept(ASTVisitor& visitor) override{
       visitor.visit(*this);
   };
-  auto getName() { return std::dynamic_pointer_cast<SymbolAST>(symbol); };
+  auto getName() { return std::dynamic_pointer_cast<LvarAST>(symbol); };
   AST_Ptr getBody() { return expr; };
   std::string toString() override;
   std::string toJson() override;

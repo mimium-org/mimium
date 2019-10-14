@@ -63,8 +63,11 @@ AST_Ptr MimiumDriver::add_number(double num){
    return std::make_unique<NumberAST>(std::move(num));
 }
 
-AST_Ptr MimiumDriver::add_symbol(std::string str){
-   return std::make_unique<SymbolAST>(std::move(str));
+AST_Ptr MimiumDriver::add_lvar(std::string str){
+   return std::make_unique<LvarAST>(std::move(str));
+}
+AST_Ptr MimiumDriver::add_rvar(std::string str){
+   return std::make_unique<RvarAST>(std::move(str));
 }
 
 AST_Ptr MimiumDriver::add_op( std::string op,AST_Ptr lhs,AST_Ptr rhs){
@@ -103,7 +106,7 @@ AST_Ptr MimiumDriver::add_statements(AST_Ptr statements){
 };
 
 AST_Ptr MimiumDriver::add_declaration( std::string fname,AST_Ptr args){
-   auto fnameast = std::make_unique<SymbolAST>(std::move(fname));
+   auto fnameast = std::make_unique<LvarAST>(std::move(fname));
    return std::make_unique<DeclarationAST>(std::move(fnameast) ,std::move(args));
 };
 

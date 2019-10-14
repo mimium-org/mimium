@@ -19,7 +19,7 @@ void KNormalizeVisitor::init(){
 AST_Ptr KNormalizeVisitor::insertAssign(AST_Ptr ast) {
   if (ast->getid() == OP) {
     auto tmpsymbol =
-        std::make_shared<SymbolAST>("tmp" + std::to_string(var_counter));
+        std::make_shared<LvarAST>("tmp" + std::to_string(var_counter));
     auto assign = std::make_unique<AssignAST>(tmpsymbol, ast);  // recursive!!
     var_counter++;
     current_context->appendAST(std::move(assign));
@@ -42,17 +42,21 @@ void KNormalizeVisitor::visit(ListAST& ast) {
 }
 
 void KNormalizeVisitor::visit(OpAST& ast) {
-  auto newrhs = insertAssign(ast.rhs);
   auto newlhs = insertAssign(ast.lhs);
-  newrhs->accept(*this);
   newlhs->accept(*this);  // recursively visit
-  auto res = std::make_unique<OpAST>(ast.op, stack_pop(), stack_pop()); //getting op string in dirty way
+  auto nextlhs = std::get<AST_Ptr>(stack_pop());
+
+  auto newrhs = insertAssign(ast.rhs);
+  newrhs->accept(*this);
+  auto nextrhs = std::get<AST_Ptr>(stack_pop());
+
+  auto res = std::make_unique<OpAST>(ast.op, nextlhs,nextrhs); //getting op string in dirty way
   res_stack.push(std::move(res));
 }
 
 void KNormalizeVisitor::visit(AssignAST& ast) {
   ast.getBody()->accept(*this);  // result is stored into res_stack
-  auto newast = std::make_unique<AssignAST>(ast.getName(), stack_pop());  // copy
+  auto newast = std::make_unique<AssignAST>(ast.symbol, std::get<AST_Ptr>(stack_pop()));  // copy
   current_context->appendAST(std::move(newast));
 }
 
@@ -60,13 +64,16 @@ void KNormalizeVisitor::visit(AssignAST& ast) {
 void KNormalizeVisitor::visit(NumberAST& ast){
     exprVisit(ast);
 }
-void KNormalizeVisitor::visit(SymbolAST& ast){
+void KNormalizeVisitor::visit(LvarAST& ast){
+    exprVisit(ast);
+}
+void KNormalizeVisitor::visit(RvarAST& ast){
     exprVisit(ast);
 }
 void KNormalizeVisitor::visit(LambdaAST& ast){
     ast.getBody()->accept(*this);  // result is stored into tmp_ptr;
-    auto newbody = stack_pop();
-    auto newast = std::make_unique<LambdaAST>( ast.getArgs(),std::move(newbody));  res_stack.push(std::move(newast));
+    auto newbody = std::get<AST_Ptr>(stack_pop());
+    auto newast = std::make_unique<LambdaAST>( ast.args,std::move(newbody));  res_stack.push(std::move(newast));
 }
 void KNormalizeVisitor::visit(FcallAST& ast){
     exprVisit(ast);
@@ -79,23 +86,23 @@ void KNormalizeVisitor::visit(ArrayAST& ast){
 }
 void KNormalizeVisitor::visit(ArrayAccessAST& ast){//access index may be expr
     ast.getIndex()->accept(*this);
-    auto newast = std::make_unique<ArrayAccessAST>(ast.getName(),stack_pop());
+    auto newast = std::make_unique<ArrayAccessAST>(ast.getName(),std::get<AST_Ptr>(stack_pop()));
     res_stack.push(std::move(newast));
 }
 void KNormalizeVisitor::visit(IfAST& ast){
     ast.getElse()->accept(*this);
     ast.getThen()->accept(*this);
-    auto newast = std::make_unique<IfAST>(ast.getCond(),stack_pop(),stack_pop());
+    auto newast = std::make_unique<IfAST>(ast.getCond(),std::get<AST_Ptr>(stack_pop()),std::get<AST_Ptr>(stack_pop()));
     current_context->appendAST(std::move(newast));
 }
 void KNormalizeVisitor::visit(ReturnAST& ast){
     ast.getExpr()->accept(*this);
-    auto newast  = std::make_unique<ReturnAST>(stack_pop());
+    auto newast  = std::make_unique<ReturnAST>(std::get<AST_Ptr>(stack_pop()));
     current_context->appendAST(std::move(newast));
 }
 void KNormalizeVisitor::visit(ForAST& ast){
     ast.getExpression()->accept(*this);
-    auto newast = std::make_unique<ForAST>(ast.getVar(),ast.getIterator(),stack_pop());
+    auto newast = std::make_unique<ForAST>(ast.getVar(),ast.getIterator(),std::get<AST_Ptr>(stack_pop()));
     current_context->appendAST(std::move(newast));
 }
 void KNormalizeVisitor::visit(DeclarationAST& ast){
@@ -104,7 +111,7 @@ void KNormalizeVisitor::visit(DeclarationAST& ast){
 void KNormalizeVisitor::visit(TimeAST& ast){
     ast.getTime()->accept(*this);
     ast.getExpr()->accept(*this);
-    auto newast = std::make_unique<TimeAST>(stack_pop(),stack_pop());
+    auto newast = std::make_unique<TimeAST>(std::get<AST_Ptr>(stack_pop()),std::get<AST_Ptr>(stack_pop()));
     res_stack.push(std::move(newast));
 }
 
@@ -112,10 +119,6 @@ std::shared_ptr<ListAST> KNormalizeVisitor::getResult(){
   return current_context;
 }
 
-AST_Ptr KNormalizeVisitor::stack_pop() {//helper
-  auto res = res_stack.top();
-  res_stack.pop();
-  return res;
-}
+
 
 }  // namespace mimium
