@@ -100,11 +100,11 @@ TEST(bison_parser_test, fdef_multi2) {
 TEST(bison_parser_test, lambda) {
   driver.clear();
 
-  std::string teststr = "myfunc = (a,b)->{1+2}";
+  std::string teststr = "myfunc = (a,b)->{return 1+2}";
   driver.parsestring(teststr);
   std::stringstream ss;
   driver.print(ss);
-  EXPECT_EQ(ss.str(), "(assign myfunc (lambda (a b) (+ 1 2)))");
+  EXPECT_EQ(ss.str(), "(assign myfunc (lambda (a b) (return (+ 1 2))))");
 }
 
 TEST(bison_parser_test, time) {
