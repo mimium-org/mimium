@@ -4,11 +4,11 @@
 #include <utility>  //pair
 #include <stack>
 #include <iostream>
-#include <list>
 #include <memory>
 #include <sstream>
 #include <string>
 #include <variant>
+#include <vector>
 #include <deque>
 
 enum AST_ID {
