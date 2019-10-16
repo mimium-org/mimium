@@ -32,7 +32,7 @@ AST_Ptr KNormalizeVisitor::insertAssign(AST_Ptr ast) {
 void KNormalizeVisitor::visit(ListAST& ast) {
     auto tempctx = current_context;
   current_context = std::make_shared<ListAST>();
-  for (auto& elem : ast.getlist()) {
+  for (auto& elem : ast.getElements()) {
     elem->accept(*this);
   }
   // //res_stack.push(current_context);

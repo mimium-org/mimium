@@ -1,25 +1,50 @@
+#pragma once
 #include "ast.hpp"
+#include "environment.hpp"
+
 namespace mimium {
 
 class AlphaConvertVisitor : public ASTVisitor {
  public:
   AlphaConvertVisitor();
   ~AlphaConvertVisitor();
-  void visit(OpAST& ast);
-  void visit(ListAST& ast);
-  void visit(NumberAST& ast);
-  void visit(SymbolAST& ast);
-  void visit(AssignAST& ast);
-  void visit(ArgumentsAST& ast);
-  void visit(ArrayAST& ast);
-  void visit(ArrayAccessAST& ast);
-  void visit(FcallAST& ast);
-  void visit(LambdaAST& ast);
-  void visit(IfAST& ast);
-  void visit(ReturnAST& ast);
-  void visit(ForAST& ast);
-  void visit(DeclarationAST& ast);
-  void visit(TimeAST& ast);
+  void visit(OpAST& ast) override;
+  void visit(ListAST& ast) override;
+  void visit(NumberAST& ast) override;
+  void visit(LvarAST& ast) override;
+  void visit(RvarAST& ast) override;
+  void visit(AssignAST& ast) override;
+  void visit(ArgumentsAST& ast) override;
+  void visit(ArrayAST& ast) override;
+  void visit(ArrayAccessAST& ast) override;
+  void visit(FcallAST& ast) override;
+  void visit(LambdaAST& ast) override;
+  void visit(IfAST& ast) override;
+  void visit(ReturnAST& ast) override;
+  void visit(ForAST& ast) override;
+  void visit(DeclarationAST& ast) override;
+  void visit(TimeAST& ast) override;
+
+  std::shared_ptr<ListAST> getResult();
+  mValue findVariable(std::string str)override{return 0;};
+ private:
+  template <class T>
+  void defaultvisit(T& ast) {
+    res_stack.push(std::make_unique<T>(ast));  // move by copy constructor;
+  };
+  template <class MYAST>
+  void listastvisit(MYAST& ast) {
+    auto newast = std::make_shared<MYAST>();  // make empty args
+    for (auto& elem : ast.getElements()) {
+      elem->accept(* this);
+      newast->appendAST(std::move(stack_pop_ptr()));
+    }
+    res_stack.push(std::move(newast));
+  };
+  std::shared_ptr<Environment> env;
+  int namecount;
+  int envcount;
+  AST_Ptr stack_pop_ptr() { return std::get<AST_Ptr>(stack_pop()); }
 };
 
 }  // namespace mimium

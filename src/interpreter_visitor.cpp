@@ -24,7 +24,7 @@ mValue InterpreterVisitor::findVariable(std::string str){
 };
 
 void InterpreterVisitor::visit(ListAST& ast) {
-  for (auto& line : ast.getlist()) {
+  for (auto& line : ast.getElements()) {
     line->accept(*this);
   }
 }
@@ -254,7 +254,7 @@ void InterpreterVisitor::visit(TimeAST& ast) {
   res_stack.push(ast.getExpr());//for print??
 };
 
-bool InterpreterVisitor::assertArgumentsLength(std::vector<AST_Ptr>& args,
+bool InterpreterVisitor::assertArgumentsLength(std::deque<AST_Ptr>& args,
                                                int length) {
   int size = args.size();
   if (size == length) {

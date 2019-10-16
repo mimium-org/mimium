@@ -9,7 +9,7 @@
 #include <sstream>
 #include <string>
 #include <variant>
-#include <vector>
+#include <deque>
 
 enum AST_ID {
   BASE,
@@ -177,7 +177,7 @@ class OpAST : public AST {
 
 class ListAST : public AST {
  public:
-  std::vector<AST_Ptr> asts;
+  std::deque<AST_Ptr> asts;
   ListAST() {  // empty constructor
     id = LIST;
   }
@@ -189,12 +189,12 @@ class ListAST : public AST {
     id = LIST;
   }
   void addAST(AST_Ptr ast) override {
-    asts.insert(asts.begin(), std::move(ast));
+    asts.push_front(std::move(ast));
   }
   void appendAST(AST_Ptr ast){//for knorm
     asts.push_back(std::move(ast));
   }
-  std::vector<AST_Ptr>& getlist() { return asts; };
+  auto& getElements() { return asts; };
   std::string toString() override;
   std::string toJson() override;
 };
@@ -241,15 +241,17 @@ class RvarAST : public SymbolAST{
 
 class AbstractListAST : public AST {
  public:
-  std::vector<AST_Ptr> elements;
-
-  explicit AbstractListAST(AST_Ptr arg) {
-    elements.insert(elements.begin(), std::move(arg));
+  std::deque<AST_Ptr> elements;
+  AbstractListAST(){}//do nothing
+  AbstractListAST(AST_Ptr arg) {
+    elements.push_front(std::move(arg));
   }
   void addAST(AST_Ptr arg) override {
-    elements.insert(elements.begin(), std::move(arg));
+    elements.push_front(std::move(arg));
   };
-    
+  void appendAST(AST_Ptr arg) {
+    elements.push_back(std::move(arg));
+  };   
   auto& getElements() { return elements; }
   std::string toString() override;
   std::string toJson() override;
@@ -257,7 +259,8 @@ class AbstractListAST : public AST {
 
 class ArgumentsAST : public AbstractListAST {
  public:
-  explicit ArgumentsAST(AST_Ptr arg) : AbstractListAST(std::move(arg)) {
+  ArgumentsAST(){}//do nothing
+  ArgumentsAST(AST_Ptr arg) : AbstractListAST(std::static_pointer_cast<LvarAST>(std::move(arg))) {
     id = ARGS;
   };
   void accept(ASTVisitor& visitor) override{
@@ -266,7 +269,8 @@ class ArgumentsAST : public AbstractListAST {
 };
 class ArrayAST : public AbstractListAST {
  public:
-  explicit ArrayAST(AST_Ptr arg) : AbstractListAST(std::move(arg)) {
+  ArrayAST(){}//do nothing
+  ArrayAST(AST_Ptr arg) : AbstractListAST(std::move(arg)) {
     id = ARRAY;
   };
     void accept(ASTVisitor& visitor) override{
@@ -284,7 +288,7 @@ class ArrayAccessAST : public AST {
     void accept(ASTVisitor& visitor) override{
       visitor.visit(*this);
   };
-  auto getName() { return std::dynamic_pointer_cast<SymbolAST>(name); };
+  auto getName() { return std::static_pointer_cast<RvarAST>(name); };
   AST_Ptr getIndex() { return index; };
   std::string toString() override;
   std::string toJson() override;

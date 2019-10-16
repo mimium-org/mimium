@@ -51,6 +51,6 @@ class InterpreterVisitor
   mimium::Runtime& getRuntime();
  private:
   mimium::Runtime runtime;
-  bool assertArgumentsLength(std::vector<AST_Ptr>& args, int length);
+  bool assertArgumentsLength(std::deque<AST_Ptr>& args, int length);
 };
 }  // namespace mimium
