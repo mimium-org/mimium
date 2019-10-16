@@ -16,9 +16,10 @@ Tomoya Matsuura 松浦知也
 
 <https://matsuuratomoya.com/en>
 
-# License
+# [License](LICENSE.md)
 
-MIT
+The source code is lisenced under [Mozilla Puclic License 2.0](https://www.mozilla.org/en-US/MPL/2.0/).
+
 
 # Acknowledgements
 
