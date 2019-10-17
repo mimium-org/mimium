@@ -41,6 +41,8 @@ class InterpreterVisitor
   void visit(ForAST& ast) override;
   void visit(DeclarationAST& ast) override;
   void visit(TimeAST& ast) override;
+  void visit(StructAST& ast)override;
+  void visit(StructAccessAST& ast)override;
   mValue findVariable(std::string str) override;
   void loadAst(AST_Ptr _ast);
   static std::string to_string(mValue v);

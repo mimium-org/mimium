@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <unordered_map>
 #include <utility>  //pair
 #include <stack>
 #include <iostream>
@@ -84,6 +85,8 @@ using mValue = std::variant<double, std::shared_ptr<AST>, mClosure_ptr,
       virtual void visit(ForAST& ast)=0;
       virtual void visit(DeclarationAST& ast)=0;
       virtual void visit(TimeAST& ast)=0;
+      virtual void visit(StructAST& ast)=0;
+      virtual void visit(StructAccessAST& ast)=0;
       virtual mValue findVariable(std::string str)=0;
       mValue stack_pop() {//helper
         auto res = res_stack.top();
@@ -408,6 +411,8 @@ class TimeAST : public AST {
 class StructAST : public AST{
   public :
   std::unordered_map<AST_Ptr,AST_Ptr> map;
+  StructAST(){
+  }
   explicit StructAST(AST_Ptr key,AST_Ptr val){
     map.emplace(std::move(key),std::move(val));
   }
@@ -424,9 +429,13 @@ class StructAccessAST:public AST{
   public :
   AST_Ptr key;
   AST_Ptr val;
-  explicit StructAccessAST(AST_Ptr _key,AST_Ptr _val):key(std::move(_key),val(std::move(_val)){
+
+  explicit StructAccessAST(AST_Ptr _key,AST_Ptr _val):key(std::move(_key)),val(std::move(_val)){
   }
-  auto getkey(){return key;};
+  void accept(ASTVisitor& visitor) override{
+      visitor.visit(*this);
+  };
+  auto getKey(){return key;};
   auto getVal(){return val;};
   std::string toString() override;
   std::string toJson() override;

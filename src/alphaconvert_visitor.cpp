@@ -115,4 +115,21 @@ void AlphaConvertVisitor::visit(TimeAST& ast) {
     auto newast = std::make_unique<TimeAST>(std::move(newexpr),std::move(newtime));
     res_stack.push(std::move(newast));
 }
+
+void AlphaConvertVisitor::visit(StructAST& ast){
+  auto newast = std::make_unique<StructAST>();//make empty
+  for(auto& [key,val]: ast.map){
+      val->accept(*this);
+      key->accept(*this);
+      newast->addPair(stack_pop_ptr(),stack_pop_ptr());
+  }
+  res_stack.push(std::move(newast));
+}
+void AlphaConvertVisitor::visit(StructAccessAST& ast){
+  ast.getVal()->accept(*this);
+  ast.getKey()->accept(*this);
+  auto newast = std::make_unique<StructAccessAST>(stack_pop_ptr(),stack_pop_ptr());
+  res_stack.push(std::move(newast));
+}
+
 }  // namespace mimium

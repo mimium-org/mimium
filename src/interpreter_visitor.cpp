@@ -254,6 +254,14 @@ void InterpreterVisitor::visit(TimeAST& ast) {
   res_stack.push(ast.getExpr());//for print??
 };
 
+void InterpreterVisitor::visit(StructAST& ast){
+//todo implement
+}
+void InterpreterVisitor::visit(StructAccessAST& ast){
+
+}
+
+
 bool InterpreterVisitor::assertArgumentsLength(std::deque<AST_Ptr>& args,
                                                int length) {
   int size = args.size();

@@ -115,6 +115,18 @@ void KNormalizeVisitor::visit(TimeAST& ast){
     res_stack.push(std::move(newast));
 }
 
+void KNormalizeVisitor::visit(StructAST& ast){
+  auto newast = std::make_unique<StructAST>();//make empty
+  newast->map = ast.map;//copy it in dirty way
+  res_stack.push(std::move(newast));
+}
+void KNormalizeVisitor::visit(StructAccessAST& ast){
+  ast.getVal()->accept(*this);
+  ast.getKey()->accept(*this);
+  auto newast = std::make_unique<StructAccessAST>(std::get<AST_Ptr>(stack_pop()),std::get<AST_Ptr>(stack_pop()));
+  res_stack.push(std::move(newast));
+}
+
 std::shared_ptr<ListAST> KNormalizeVisitor::getResult(){
   return current_context;
 }
