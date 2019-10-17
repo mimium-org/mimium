@@ -1,4 +1,5 @@
 #include "ast.hpp"
+#include "environment.hpp"
 namespace mimium {
 
 class ClosureConvertVisitor : public ASTVisitor {
@@ -21,6 +22,17 @@ class ClosureConvertVisitor : public ASTVisitor {
   void visit(ForAST& ast) override;
   void visit(DeclarationAST& ast) override;
   void visit(TimeAST& ast) override;
+  mValue findVariable(std::string str) override;
+  private:
+  bool isFreeVariable(std::string str);
+  void movetoTopLevel_Closure();
+
+  bool is_closed_function;
+  std::unordered_map<std::string,std::string> lambdaname_map;
+  std::shared_ptr<Environment> env;
+  std::shared_ptr<ArgumentsAST> args;
+  ListAST& toplevel;
+  int closurecount;
 };
 
 }  // namespace mimium
