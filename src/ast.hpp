@@ -53,6 +53,8 @@ class DeclarationAST;
 class ForAST;
 class IfAST;
 class FcallAST;
+class StructAST; //currently internally used for closure conversion;
+class StructAccessAST;
 
 namespace mimium {
 struct Closure;  // forward
@@ -390,7 +392,7 @@ class TimeAST : public AST {
  public:
   AST_Ptr expr;
   AST_Ptr time;
-  TimeAST(AST_Ptr Expr, AST_Ptr Time)
+  explicit TimeAST(AST_Ptr Expr, AST_Ptr Time)
       : expr(std::move(Expr)), time(std::move(Time)) {
     id = TIME;
   }
@@ -399,6 +401,33 @@ class TimeAST : public AST {
   };
   auto getTime() { return time; }
   auto getExpr() { return expr; }
+  std::string toString() override;
+  std::string toJson() override;
+};
+
+class StructAST : public AST{
+  public :
+  std::unordered_map<AST_Ptr,AST_Ptr> map;
+  explicit StructAST(AST_Ptr key,AST_Ptr val){
+    map.emplace(std::move(key),std::move(val));
+  }
+  void accept(ASTVisitor& visitor) override{
+      visitor.visit(*this);
+  };
+  void addPair(AST_Ptr key,AST_Ptr val){
+    map.emplace(std::move(key),std::move(val));
+  }
+  std::string toString() override;
+  std::string toJson() override;
+};
+class StructAccessAST:public AST{
+  public :
+  AST_Ptr key;
+  AST_Ptr val;
+  explicit StructAccessAST(AST_Ptr _key,AST_Ptr _val):key(std::move(_key),val(std::move(_val)){
+  }
+  auto getkey(){return key;};
+  auto getVal(){return val;};
   std::string toString() override;
   std::string toJson() override;
 };

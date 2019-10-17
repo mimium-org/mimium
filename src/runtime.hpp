@@ -11,14 +11,7 @@ class Runtime {
  public:
   explicit Runtime(){ 
     midi.init(); }
-//   mValue findVariable(std::string str) {  // fortest
-//     auto it = arguments.find(str);
-//     if (it != arguments.end()) {
-//       return it->second;
-//     } else {
-//       return currentenv->findVariable(str);
-//     }
-//   }
+
   virtual ~Runtime(){};
   mValue findVariable(std::string str) {  // fortest
     auto it = arguments.find(str);

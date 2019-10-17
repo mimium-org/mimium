@@ -146,3 +146,25 @@ std::string TimeAST::toString() {
 std::string TimeAST::toJson() {
   return "[ 'time', " + expr->toJson() + ", " + time->toJson() + "]";
 }
+
+std::string StructAST::toString() {//this is not lisp like style,,
+  std::stringstream ss;
+  int count=0;
+  ss<< "{";
+  for(auto& [k,v] : map){
+    ss << k->toString() << " : " << v->toString();
+    count++;
+    if (map.size() < count) ss<<",\n";
+  }
+  ss<<"}";
+  return ss.str();
+}
+std::string StructAST::toJson() {
+  return this->toString();
+}
+std::string StructAccessAST::toString() {
+    return "structaccess " + key->toString() + " " + val->toString();
+}
+std::string StructAccessAST::toJson() {
+    return "[structaccess , " + key->toString() + " , " + val->toString()+"]";
+}
