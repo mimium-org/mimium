@@ -1,16 +1,16 @@
 #pragma once
 
-#include <map>
-#include <unordered_map>
-#include <utility>  //pair
-#include <stack>
+#include <deque>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <sstream>
+#include <stack>
 #include <string>
+#include <unordered_map>
+#include <utility>  //pair
 #include <variant>
 #include <vector>
-#include <deque>
 
 enum AST_ID {
   BASE,
@@ -54,7 +54,7 @@ class DeclarationAST;
 class ForAST;
 class IfAST;
 class FcallAST;
-class StructAST; //currently internally used for closure conversion;
+class StructAST;  // currently internally used for closure conversion;
 class StructAccessAST;
 
 namespace mimium {
@@ -64,37 +64,38 @@ using mClosure_ptr = std::shared_ptr<mimium::Closure>;
 
 using AST_Ptr = std::shared_ptr<AST>;
 using mValue = std::variant<double, std::shared_ptr<AST>, mClosure_ptr,
-                            std::vector<double>,std::string>;
-                        
-  class ASTVisitor{
-    public:
-      virtual ~ASTVisitor() = default;
-      virtual void visit(ListAST& ast)=0;
-      virtual void visit(OpAST& ast)=0;
-      virtual void visit(NumberAST& ast)=0;
-      virtual void visit(LvarAST& ast)=0;
-      virtual void visit(RvarAST& ast)=0;
-      virtual void visit(AssignAST& ast)=0;
-      virtual void visit(ArrayAST& ast)=0;
-      virtual void visit(ArgumentsAST& ast)=0;
-      virtual void visit(ArrayAccessAST& ast)=0;
-      virtual void visit(FcallAST& ast)=0;
-      virtual void visit(LambdaAST& ast)=0;
-      virtual void visit(IfAST& ast)=0;
-      virtual void visit(ReturnAST& ast)=0;
-      virtual void visit(ForAST& ast)=0;
-      virtual void visit(DeclarationAST& ast)=0;
-      virtual void visit(TimeAST& ast)=0;
-      virtual void visit(StructAST& ast)=0;
-      virtual void visit(StructAccessAST& ast)=0;
-      virtual mValue findVariable(std::string str)=0;
-      mValue stack_pop() {//helper
-        auto res = res_stack.top();
-        res_stack.pop();
-        return res;
-      }
-    protected:
-      std::stack<mValue> res_stack;
+                            std::vector<double>, std::string>;
+
+class ASTVisitor {
+ public:
+  virtual ~ASTVisitor() = default;
+  virtual void visit(ListAST& ast) = 0;
+  virtual void visit(OpAST& ast) = 0;
+  virtual void visit(NumberAST& ast) = 0;
+  virtual void visit(LvarAST& ast) = 0;
+  virtual void visit(RvarAST& ast) = 0;
+  virtual void visit(AssignAST& ast) = 0;
+  virtual void visit(ArrayAST& ast) = 0;
+  virtual void visit(ArgumentsAST& ast) = 0;
+  virtual void visit(ArrayAccessAST& ast) = 0;
+  virtual void visit(FcallAST& ast) = 0;
+  virtual void visit(LambdaAST& ast) = 0;
+  virtual void visit(IfAST& ast) = 0;
+  virtual void visit(ReturnAST& ast) = 0;
+  virtual void visit(ForAST& ast) = 0;
+  virtual void visit(DeclarationAST& ast) = 0;
+  virtual void visit(TimeAST& ast) = 0;
+  virtual void visit(StructAST& ast) = 0;
+  virtual void visit(StructAccessAST& ast) = 0;
+  virtual mValue findVariable(std::string str) = 0;
+  mValue stack_pop() {  // helper
+    auto res = res_stack.top();
+    res_stack.pop();
+    return res;
+  }
+
+ protected:
+  std::stack<mValue> res_stack;
 };
 
 class AST {
@@ -102,14 +103,13 @@ class AST {
   virtual ~AST() = default;
   virtual std::string toString() = 0;
   virtual std::string toJson() = 0;
-  virtual void accept(ASTVisitor& visitor)=0;
+  virtual void accept(ASTVisitor& visitor) = 0;
   virtual void addAST(AST_Ptr ast){};  // for list/argument ast
 
   AST_ID getid() { return id; }
+
  protected:
-
   AST_ID id = BASE;
-
 };
 
 enum OP_ID {
@@ -147,13 +147,10 @@ class OpAST : public AST {
       : op_id(Op_id), lhs(std::move(LHS)), rhs(std::move(RHS)) {
     id = OP;
   }
-  void accept(ASTVisitor& visitor) override{
-      visitor.visit(*this);
-  };
+  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
   std::string toString() override;
   std::string toJson() override;
   OP_ID getOpId() { return op_id; };
-
 };
 
 class ListAST : public AST {
@@ -167,13 +164,9 @@ class ListAST : public AST {
     asts.push_back(std::move(_asts));  // push_front
     id = LIST;
   }
-  void accept(ASTVisitor& visitor) override{
-      visitor.visit(*this);
-  };
-  void addAST(AST_Ptr ast) override {
-    asts.push_front(std::move(ast));
-  }
-  void appendAST(AST_Ptr ast){//for knorm
+  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
+  void addAST(AST_Ptr ast) override { asts.push_front(std::move(ast)); }
+  void appendAST(AST_Ptr ast) {  // for knorm
     asts.push_back(std::move(ast));
   }
   inline auto& getElements() { return asts; };
@@ -187,9 +180,7 @@ class NumberAST : public AST {
     val = input;
     id = NUMBER;
   }
-  void accept(ASTVisitor& visitor) override{
-      visitor.visit(*this);
-  };
+  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
   double getVal() { return val; };
   std::string toString() override;
   std::string toJson() override;
@@ -206,34 +197,24 @@ class SymbolAST : public AST {
   std::string toString() override;
   std::string toJson() override;
 };
-class LvarAST : public SymbolAST{
-  public:
-    explicit LvarAST(std::string input):SymbolAST(input){};
-    void accept(ASTVisitor& visitor) override{
-      visitor.visit(*this);
-  }
+class LvarAST : public SymbolAST {
+ public:
+  explicit LvarAST(std::string input) : SymbolAST(input){};
+  void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
 };
-class RvarAST : public SymbolAST{
-  public:
-    explicit RvarAST(std::string input):SymbolAST(input){};
-    void accept(ASTVisitor& visitor) override{
-      visitor.visit(*this);
-  }
+class RvarAST : public SymbolAST {
+ public:
+  explicit RvarAST(std::string input) : SymbolAST(input){};
+  void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
 };
 
 class AbstractListAST : public AST {
  public:
   std::deque<AST_Ptr> elements;
-  AbstractListAST(){}//do nothing
-  explicit AbstractListAST(AST_Ptr arg) {
-    elements.push_front(std::move(arg));
-  }
-  void addAST(AST_Ptr arg) override {
-    elements.push_front(std::move(arg));
-  };
-  void appendAST(AST_Ptr arg) {
-    elements.push_back(std::move(arg));
-  };   
+  AbstractListAST() {}  // do nothing
+  explicit AbstractListAST(AST_Ptr arg) { elements.push_front(std::move(arg)); }
+  void addAST(AST_Ptr arg) override { elements.push_front(std::move(arg)); };
+  void appendAST(AST_Ptr arg) { elements.push_back(std::move(arg)); };
   auto& getElements() { return elements; }
   std::string toString() override;
   std::string toJson() override;
@@ -241,23 +222,20 @@ class AbstractListAST : public AST {
 
 class ArgumentsAST : public AbstractListAST {
  public:
-  ArgumentsAST(){}//do nothing
-  explicit ArgumentsAST(AST_Ptr arg) : AbstractListAST(std::static_pointer_cast<LvarAST>(std::move(arg))) {
+  ArgumentsAST() {}  // do nothing
+  explicit ArgumentsAST(AST_Ptr arg)
+      : AbstractListAST(std::static_pointer_cast<LvarAST>(std::move(arg))) {
     id = ARGS;
   };
-  void accept(ASTVisitor& visitor) override{
-      visitor.visit(*this);
-  };
+  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
 };
 class ArrayAST : public AbstractListAST {
  public:
-  ArrayAST(){}//do nothing
+  ArrayAST() {}  // do nothing
   explicit ArrayAST(AST_Ptr arg) : AbstractListAST(std::move(arg)) {
     id = ARRAY;
   };
-    void accept(ASTVisitor& visitor) override{
-      visitor.visit(*this);
-  };
+  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
 };
 class ArrayAccessAST : public AST {
  public:
@@ -267,9 +245,7 @@ class ArrayAccessAST : public AST {
       : name(std::move(Array)), index(std::move(Index)) {
     id = ARRAYACCESS;
   }
-    void accept(ASTVisitor& visitor) override{
-      visitor.visit(*this);
-  };
+  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
   auto getName() { return std::static_pointer_cast<RvarAST>(name); };
   AST_Ptr getIndex() { return index; };
   std::string toString() override;
@@ -283,9 +259,7 @@ class LambdaAST : public AST {
       : args(std::move(Args)), body(std::move(Body)) {
     id = LAMBDA;
   }
-    void accept(ASTVisitor& visitor) override{
-      visitor.visit(*this);
-  };
+  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
   auto getArgs() { return std::static_pointer_cast<ArgumentsAST>(args); };
   AST_Ptr getBody() { return body; };
   std::string toString() override;
@@ -300,9 +274,7 @@ class AssignAST : public AST {
       : symbol(std::move(Symbol)), expr(std::move(Expr)) {
     id = ASSIGN;
   }
-  void accept(ASTVisitor& visitor) override{
-      visitor.visit(*this);
-  };
+  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
   auto getName() { return std::static_pointer_cast<LvarAST>(symbol); };
   AST_Ptr getBody() { return expr; };
   std::string toString() override;
@@ -317,9 +289,7 @@ class FcallAST : public AST {
       : fname(std::move(Fname)), args(std::move(Args)) {
     id = FCALL;
   }
-  void accept(ASTVisitor& visitor) override{
-      visitor.visit(*this);
-  };
+  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
   auto getArgs() { return std::static_pointer_cast<ArgumentsAST>(args); };
   auto getFname() { return std::static_pointer_cast<SymbolAST>(fname); };
   std::string toString() override;
@@ -333,9 +303,7 @@ class DeclarationAST : public AST {
       : fname(std::move(Fname)), args(std::move(Args)) {
     id = DECLARATION;
   }
-  void accept(ASTVisitor& visitor) override{
-      visitor.visit(*this);
-  };
+  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
   auto getArgs() { return std::static_pointer_cast<ArgumentsAST>(args); };
   auto getFname() { return std::static_pointer_cast<SymbolAST>(fname); };
   std::string toString() override;
@@ -347,9 +315,7 @@ class ReturnAST : public AST {
   AST_Ptr expr;
   explicit ReturnAST(AST_Ptr Expr) : expr(std::move(Expr)) { id = RETURN; }
   auto getExpr() { return expr; }
-  void accept(ASTVisitor& visitor) override{
-      visitor.visit(*this);
-  };
+  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
   std::string toString() override;
   std::string toJson() override;
 };
@@ -362,9 +328,7 @@ class IfAST : public AST {
         elsestatement(std::move(Elsestatement)) {
     id = IF;
   }
-  void accept(ASTVisitor& visitor) override{
-      visitor.visit(*this);
-  };
+  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
   auto getCond() { return condition; }
   auto getThen() { return thenstatement; }
   auto getElse() { return elsestatement; }
@@ -381,9 +345,7 @@ class ForAST : public AST {
         expression(std::move(Expression)) {
     id = FOR;
   }
-  void accept(ASTVisitor& visitor) override{
-      visitor.visit(*this);
-  };
+  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
   auto getVar() { return var; };
   auto getIterator() { return iterator; };
   auto getExpression() { return expression; };
@@ -399,44 +361,37 @@ class TimeAST : public AST {
       : expr(std::move(Expr)), time(std::move(Time)) {
     id = TIME;
   }
-  void accept(ASTVisitor& visitor) override{
-      visitor.visit(*this);
-  };
+  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
   auto getTime() { return time; }
   auto getExpr() { return expr; }
   std::string toString() override;
   std::string toJson() override;
 };
 
-class StructAST : public AST{
-  public :
-  std::unordered_map<AST_Ptr,AST_Ptr> map;
-  StructAST(){
+class StructAST : public AST {
+ public:
+  std::unordered_map<AST_Ptr, AST_Ptr> map;
+  StructAST() {}
+  explicit StructAST(AST_Ptr key, AST_Ptr val) {
+    map.emplace(std::move(key), std::move(val));
   }
-  explicit StructAST(AST_Ptr key,AST_Ptr val){
-    map.emplace(std::move(key),std::move(val));
-  }
-  void accept(ASTVisitor& visitor) override{
-      visitor.visit(*this);
-  };
-  void addPair(AST_Ptr key,AST_Ptr val){
-    map.emplace(std::move(key),std::move(val));
+  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
+  void addPair(AST_Ptr key, AST_Ptr val) {
+    map.emplace(std::move(key), std::move(val));
   }
   std::string toString() override;
   std::string toJson() override;
 };
-class StructAccessAST:public AST{
-  public :
+class StructAccessAST : public AST {
+ public:
   AST_Ptr key;
   AST_Ptr val;
 
-  explicit StructAccessAST(AST_Ptr _key,AST_Ptr _val):key(std::move(_key)),val(std::move(_val)){
-  }
-  void accept(ASTVisitor& visitor) override{
-      visitor.visit(*this);
-  };
-  auto getKey(){return key;};
-  auto getVal(){return val;};
+  explicit StructAccessAST(AST_Ptr _key, AST_Ptr _val)
+      : key(std::move(_key)), val(std::move(_val)) {}
+  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
+  auto getKey() { return key; };
+  auto getVal() { return val; };
   std::string toString() override;
   std::string toJson() override;
 };
