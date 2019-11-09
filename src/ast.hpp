@@ -143,14 +143,16 @@ class OpAST : public AST {
   AST_Ptr lhs, rhs;
 
   OpAST(std::string Op, AST_Ptr LHS, AST_Ptr RHS);
-  OpAST(OP_ID Op_id, AST_Ptr LHS, AST_Ptr RHS)
-      : op_id(Op_id), lhs(std::move(LHS)), rhs(std::move(RHS)) {
-    id = OP;
-  }
+  // OpAST(OP_ID Op_id, AST_Ptr LHS, AST_Ptr RHS)
+  //     : op_id(Op_id), lhs(std::move(LHS)), rhs(std::move(RHS)) {
+  //   id = OP;
+  
+  // }
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
   std::string toString() override;
   std::string toJson() override;
   OP_ID getOpId() { return op_id; };
+  std::string getOpStr(){ return op;};
 };
 
 class ListAST : public AST {

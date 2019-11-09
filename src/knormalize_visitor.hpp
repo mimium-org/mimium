@@ -1,5 +1,7 @@
 #pragma once
 #include "ast.hpp"
+#include "mir.hpp"
+
 namespace mimium{
 class KNormalizeVisitor : public ASTVisitor{
         public:
@@ -27,16 +29,23 @@ class KNormalizeVisitor : public ASTVisitor{
         void visit(StructAccessAST& ast)override;
         mValue findVariable(std::string str) override{return 0;}//??
 
-        std::shared_ptr<ListAST> getResult();
+        std::shared_ptr<MIRblock> getResult();
         private:
+        std::shared_ptr<MIRblock> rootblock;
+        std::shared_ptr<MIRblock> currentblock;
         int var_counter;
+        std::string makeNewName();
+        std::string getVarName();
+        std::string tmpname;
         std::shared_ptr<ListAST> current_context;
         AST_Ptr insertAssign(AST_Ptr ast);
-        template <class EXPR>
-        void exprVisit(EXPR& ast){
-            auto res = std::make_shared<EXPR>(ast);
-            res_stack.push(std::move(res));  // send result
-        } 
+        std::stack<std::string> res_stack_str;
+        std::string stack_pop_str(){
+            auto ret = res_stack_str.top();
+            res_stack_str.pop();
+            return ret;
+        }
+
 
 
 };
