@@ -45,22 +45,23 @@ TEST(knormalizetest, multiline) {
             "  k6 = k7*k8\n"
             "  b = k5-k6\n");
 }
-TEST(knormalizetest, if_nested) {
-    runtime.clear();
+TEST(knormalizetest, localvar) {
+  runtime.clear();
   knormvisitor->init();
   runtime.init(knormvisitor);
-  runtime.loadSourceFile("test_if_nested.mmm");
+  runtime.loadSourceFile("test_localvar.mmm");
   auto mainast = knormvisitor->getResult();
   EXPECT_EQ(mainast->toString(),
             "main:\n"
-            "  k2 = 1.000000\n"
-            "  k3 = 2.000000\n"
-            "  k1 = k2+k3\n"
-            "  k4 = 3.000000\n"
-            "  a = k1+k4\n"
-            "  k5 = 4.000000\n"
-            "  k7 = 150.000000\n"
-            "  k8 = 20.000000\n"
-            "  k6 = k7*k8\n"
-            "  b = k5-k6\n");
+            "  hoge = fun x , y\n"
+            "    hoge:\n"
+            "      localvar = 2.000000\n"
+            "      k2 = x*y\n"
+            "      k1 = k2+localvar\n"
+            "      k3 = return k1\n"
+            "\n"
+            "  main = 5.000000\n"
+            "  k4 = 7.000000\n"
+            "  k5 = app  hogemain , k4\n"
+            );
 }

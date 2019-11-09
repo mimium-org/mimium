@@ -99,6 +99,7 @@ void KNormalizeVisitor::visit(LambdaAST& ast){
       newargs.push_back(stack_pop_str());
     }
     auto newfun = std::make_shared<FunInst>(name,std::move(newargs));
+    currentblock->addInst(newfun);
     currentblock = newfun->body;//move context
     ast.getBody()->accept(*this);
     currentblock = tmpcontext;//switch back context
@@ -137,7 +138,7 @@ void KNormalizeVisitor::visit(IfAST& ast){
     ast.getCond()->accept(*this);
     auto newname = getVarName();
     auto newinst =std::make_shared<IfInst>(newname,stack_pop_str());
-    currentblock->addInst(std::move(newinst));
+    currentblock->addInst(newinst);
     currentblock = newinst->thenblock;
     ast.getThen()->accept(*this);
     currentblock = newinst->elseblock;

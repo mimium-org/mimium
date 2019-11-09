@@ -5,13 +5,18 @@ static std::string join(std::deque<std::string> vec,std::string delim){
     std::string s;
     for (auto& elem : vec) {
     s += elem;
-    if (elem != *vec.cend()) s += delim;
+    auto endstr =vec.back();
+    if (elem !=  endstr) s += delim;
   }
   return s;
 };
 std::string MIRblock::toString(){
   std::string str;
+  for(int i=0;i< indent_level;i++){
+      str+= "  ";//indent
+  }
   str+= label+":\n";
+
   indent_level++;
   for(auto& inst : instructions){
     for(int i=0;i< indent_level;i++){
@@ -34,8 +39,11 @@ std::string OpInst::toString() {
 }
 std::string FunInst::toString() {
   std::string s;
-  s += lv_name + " = fun " + join(args," , ");
+  s += lv_name + " = fun " + join(args," , ")+"\n";
+  MIRblock::indent_level++;
   s += body->toString();
+  MIRblock::indent_level--;
+
   return s;
 }
 std::string MakeClosureInst::toString(){
@@ -46,7 +54,7 @@ std::string s;
 }
 std::string FcallInst::toString(){
     std::string s;
-    return lv_name + " = app" +fcalltype_str[type] + " " + fname + join(args," , ") ;
+    return lv_name + " = app " +fcalltype_str[type] + " " + fname + join(args," , ") ;
 }
 
 std::string ArrayInst::toString(){
