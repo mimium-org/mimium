@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 project(mytest CXX)
+find_package(SndFile REQUIRED)
 
 find_package(GTest REQUIRED)
 
@@ -10,7 +11,7 @@ ADD_FLEX_BISON_DEPENDENCY(MyScanner MyParser)
 
 
 add_executable(Test
-${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} ../src/helper_functions.cpp ../src/ast.cpp ../src/runtime.cpp ../src/audiodriver.cpp  ../src/interpreter_visitor.cpp ../src/closure.cpp ../src/environment.cpp ../src/builtin_functions.cpp ../src/scheduler.cpp ../src/driver.cpp ../src/mididriver.cpp ../src/knormalize_visitor.cpp ../src/alphaconvert_visitor.cpp
+${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} ../src/helper_functions.cpp ../src/ast.cpp ../src/runtime.cpp ../src/audiodriver.cpp  ../src/interpreter_visitor.cpp ../src/closure.cpp ../src/environment.cpp ../src/builtin_functions.cpp ../src/scheduler.cpp ../src/driver.cpp ../src/mididriver.cpp ../src/knormalize_visitor.cpp ../src/alphaconvert_visitor.cpp ../src/mir.cpp
  flex_bison_test.cpp  interpreter_test.cpp  builtin_test.cpp knormalize_test.cpp alphaconv_test.cpp )
 
 
@@ -44,7 +45,7 @@ target_link_libraries(Test
   PRIVATE
     GTest::GTest
     GTest::Main   # GTest::Mainをリンクすると自分でmain関数を書く必要がなくなる
-    sndfile
+    ${SNDFILE_LIBRARIES}
     rtaudio
     rtmidi
     ${llvm_libs}

@@ -9,12 +9,13 @@ add_executable(Main ${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} main.cpp
 
 target_include_directories(Main
     PRIVATE
+    ${libsndfile_inc_dir}
     ${CMAKE_CURRENT_BINARY_DIR}
     )
 target_link_libraries(Main
     PRIVATE
     rtaudio
     rtmidi
-    sndfile
+    libsndfile
       ${llvm_libs}
     )
