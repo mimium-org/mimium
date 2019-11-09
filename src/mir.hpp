@@ -92,7 +92,7 @@ class FcallInst : public MIRinstruction {
   FCALLTYPE type;
 
  public:
-  FcallInst(std::string _lv, std::string _fname, std::deque<std::string> _args)
+  FcallInst(std::string _lv, std::string _fname, std::deque<std::string> _args,FCALLTYPE ftype = DIRECT)
       :fname(_fname), args(std::move(_args)){
         lv_name=_lv;
       };

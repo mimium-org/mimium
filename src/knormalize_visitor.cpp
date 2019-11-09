@@ -105,12 +105,12 @@ void KNormalizeVisitor::visit(LambdaAST& ast){
     currentblock = tmpcontext;//switch back context
 }
 void KNormalizeVisitor::visit(FcallAST& ast){
+  auto newname = getVarName();
   std::deque<std::string> newarg;
   for(auto& arg: ast.getArgs()->getElements()){
     arg->accept(*this);
     newarg.push_back(stack_pop_str());
   }
-  auto newname = getVarName();
   currentblock->addInst(std::make_shared<FcallInst>(newname,ast.getFname()->getVal(),std::move(newarg)));
   res_stack_str.push(newname);
 };

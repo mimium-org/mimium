@@ -54,7 +54,7 @@ std::string s;
 }
 std::string FcallInst::toString(){
     std::string s;
-    return lv_name + " = app " +fcalltype_str[type] + " " + fname + join(args," , ") ;
+    return lv_name + " = app"+fcalltype_str[type] + " " + fname +" "+ join(args," , ") ;
 }
 
 std::string ArrayInst::toString(){
@@ -65,9 +65,11 @@ std::string ArrayAccessInst::toString(){
 }
 std::string IfInst::toString(){
   std::string s;
-  s+= lv_name + " = if";
+  s+= lv_name + " = if " + cond +"\n";
+  MIRblock::indent_level++;
   s+= thenblock->toString();
   s+= elseblock->toString();
+    MIRblock::indent_level--;
     return s;
 }
 std::string ReturnInst::toString(){

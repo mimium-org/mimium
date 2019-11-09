@@ -60,8 +60,44 @@ TEST(knormalizetest, localvar) {
             "      k1 = k2+localvar\n"
             "      k3 = return k1\n"
             "\n"
-            "  main = 5.000000\n"
-            "  k4 = 7.000000\n"
-            "  k5 = app  hogemain , k4\n"
-            );
+            "  k4 = 5.000000\n"
+            "  k5 = 7.000000\n"
+            "  main = app hoge k4 , k5\n");
+}
+TEST(knormalizetest, if_nested) {
+  runtime.clear();
+  knormvisitor->init();
+  runtime.init(knormvisitor);
+  runtime.loadSourceFile("test_if_nested.mmm");
+  auto mainast = knormvisitor->getResult();
+  EXPECT_EQ(mainast->toString(),
+            "main:\n"
+            "  test = fun x , y , z\n"
+            "    test:\n"
+            "      k1 = if x\n"
+            "        k1$then:\n"
+            "          res = 0.000000\n"
+            "        k1$else:\n"
+            "          k2 = if y\n"
+            "            k2$then:\n"
+            "              res = 100.000000\n"
+            "            k2$else:\n"
+            "\n"
+            "\n"
+            "      res = return res\n"
+            "\n"
+            "  k3 = 1.000000\n"
+            "  k4 = 23.000000\n"
+            "  k5 = 244.000000\n"
+            "  zero = app test k3 , k4 , k5\n"
+            "  k6 = 0.000000\n"
+            "  k7 = 200.000000\n"
+            "  k8 = 400.000000\n"
+            "  hand = app test k6 , k7 , k8\n"
+            "  k9 = 0.000000\n"
+            "  k10 = 0.000000\n"
+            "  k11 = 500.000000\n"
+            "  fivehand = app test k9 , k10 , k11\n"
+
+  );
 }
