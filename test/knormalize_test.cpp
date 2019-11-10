@@ -101,3 +101,13 @@ TEST(knormalizetest, if_nested) {
 
   );
 }
+TEST(knormalizetest, closure) {
+    runtime.clear();
+  knormvisitor->init();
+  runtime.init(knormvisitor);
+  runtime.loadSourceFile("test_closure.mmm");
+  auto mainast = knormvisitor->getResult();
+  EXPECT_EQ(mainast->toString(),
+            ""
+  );
+}

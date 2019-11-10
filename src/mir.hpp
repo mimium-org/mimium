@@ -13,20 +13,34 @@ class MIRinstruction {  // base class for MIR instruction
  public:
   virtual std::string toString() = 0;
 };
+class NumberInst;
+class SymbolInst;
+class TimeInst;
+class OpInst;
+class FunInst;
+class FcallInst;
+class MakeClosureInst;
+class ArrayInst;
+class ArrayAccessInst;
+class IfInst;
+class ReturnInst;
+
+using Instructions = std::variant<std::shared_ptr<NumberInst>,std::shared_ptr<SymbolInst>,std::shared_ptr<TimeInst>,std::shared_ptr<OpInst>,std::shared_ptr<FunInst>,std::shared_ptr<FcallInst>,std::shared_ptr<MakeClosureInst>,std::shared_ptr<ArrayInst>,std::shared_ptr<ArrayAccessInst>,std::shared_ptr<IfInst>,std::shared_ptr<ReturnInst>>;
+
 class MIRblock {
  public:
   MIRblock(std::string _label) : label(_label), prev(nullptr), next(nullptr){
     indent_level = 0;
   };
   ~MIRblock(){};
-  void addInst(std::shared_ptr<MIRinstruction> inst) {
-    instructions.push_back(std::move(inst));
+  void addInst(Instructions& inst) {
+    instructions.push_back(inst);
   }
   static void changeIndent(int level){
     indent_level += level;
   }
   std::string label;
-  std::deque<std::shared_ptr<MIRinstruction>>
+  std::deque<Instructions>
       instructions;  // sequence of instructions
   std::shared_ptr<MIRblock> prev;
   std::shared_ptr<MIRblock> next;

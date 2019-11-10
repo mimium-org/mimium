@@ -68,7 +68,8 @@ void KNormalizeVisitor::visit(OpAST& ast) {
   auto nextlhs = stack_pop_str();
   ast.rhs->accept(*this);
   auto nextrhs = stack_pop_str();
-  currentblock->addInst(std::make_shared<OpInst>(name,ast.getOpStr(),std::move(nextlhs),std::move(nextrhs)));
+  Instructions newinst = std::make_shared<OpInst>(name,ast.getOpStr(),std::move(nextlhs),std::move(nextrhs));
+  currentblock->addInst(newinst);
   res_stack_str.push(name);
 }
 
@@ -80,7 +81,8 @@ void KNormalizeVisitor::visit(AssignAST& ast) {
 
 void KNormalizeVisitor::visit(NumberAST& ast){
   auto name = getVarName();
-  currentblock->addInst(std::make_shared<NumberInst>(name,ast.getVal()));
+  Instructions newinst = std::make_shared<NumberInst>(name,ast.getVal());
+  currentblock->addInst(newinst);
   res_stack_str.push(name);
 }
 void KNormalizeVisitor::visit(LvarAST& ast){
@@ -98,9 +100,10 @@ void KNormalizeVisitor::visit(LambdaAST& ast){
       arg->accept(*this);
       newargs.push_back(stack_pop_str());
     }
-    auto newfun = std::make_shared<FunInst>(name,std::move(newargs));
-    currentblock->addInst(newfun);
-    currentblock = newfun->body;//move context
+    auto newinst = std::make_shared<FunInst>(name,std::move(newargs));
+    Instructions res = newinst;
+    currentblock->addInst(res);
+    currentblock = newinst->body;//move context
     ast.getBody()->accept(*this);
     currentblock = tmpcontext;//switch back context
 }
@@ -111,7 +114,8 @@ void KNormalizeVisitor::visit(FcallAST& ast){
     arg->accept(*this);
     newarg.push_back(stack_pop_str());
   }
-  currentblock->addInst(std::make_shared<FcallInst>(newname,ast.getFname()->getVal(),std::move(newarg)));
+  Instructions newinst =std::make_shared<FcallInst>(newname,ast.getFname()->getVal(),std::move(newarg));
+  currentblock->addInst(newinst);
   res_stack_str.push(newname);
 };
 void KNormalizeVisitor::visit(ArgumentsAST& ast){
@@ -123,14 +127,19 @@ void KNormalizeVisitor::visit(ArrayAST& ast){
       elem->accept(*this);
       newelem.push_back(stack_pop_str());
     }
-    auto newname =getVarName();
-    currentblock->addInst(std::make_shared<ArrayInst>(newname,std::move(newelem)));
+    auto newname = getVarName();
+
+    auto newinst =std::make_shared<ArrayInst>(newname,std::move(newelem));
+    Instructions res = newinst;
+    currentblock->addInst(res);
     res_stack_str.push(newname); 
 }
 void KNormalizeVisitor::visit(ArrayAccessAST& ast){//access index may be expr
     ast.getIndex()->accept(*this);
     auto newname =getVarName();
-    currentblock->addInst(std::make_shared<ArrayAccessInst>(newname,ast.getName()->getVal(),stack_pop_str()));
+    auto newinst = std::make_shared<ArrayAccessInst>(newname,ast.getName()->getVal(),stack_pop_str());        Instructions res = newinst;
+
+    currentblock->addInst(res);
     res_stack_str.push(newname);
 }
 void KNormalizeVisitor::visit(IfAST& ast){ 
@@ -138,7 +147,9 @@ void KNormalizeVisitor::visit(IfAST& ast){
     ast.getCond()->accept(*this);
     auto newname = getVarName();
     auto newinst =std::make_shared<IfInst>(newname,stack_pop_str());
-    currentblock->addInst(newinst);
+    Instructions res = newinst;
+
+    currentblock->addInst(res);
     currentblock = newinst->thenblock;
     ast.getThen()->accept(*this);
     currentblock = newinst->elseblock;
@@ -149,8 +160,8 @@ void KNormalizeVisitor::visit(IfAST& ast){
 void KNormalizeVisitor::visit(ReturnAST& ast){
   ast.getExpr()->accept(*this);
   auto newname = getVarName();
-  auto newinst = std::make_shared<ReturnInst>(newname,stack_pop_str());
-  currentblock->addInst(std::move(newinst));
+  Instructions newinst = std::make_shared<ReturnInst>(newname,stack_pop_str());
+  currentblock->addInst(newinst);
   res_stack_str.push(newname);
 }
 void KNormalizeVisitor::visit(ForAST& ast){
@@ -165,7 +176,9 @@ void KNormalizeVisitor::visit(TimeAST& ast){
     ast.getTime()->accept(*this);
     ast.getExpr()->accept(*this);
     auto newname = getVarName();
-    currentblock->addInst(std::make_shared<TimeInst>(newname,stack_pop_str(),stack_pop_str()));
+    auto newinst =std::make_shared<TimeInst>(newname,stack_pop_str(),stack_pop_str());
+    Instructions res = newinst;
+    currentblock->addInst(res);
   res_stack_str.push(newname);
 }
 

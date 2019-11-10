@@ -22,7 +22,8 @@ std::string MIRblock::toString(){
     for(int i=0;i< indent_level;i++){
       str+= "  ";//indent
     }
-    str += inst->toString() + "\n";
+  
+    str += std::visit([](auto val)->std::string{return val->toString();},inst) + "\n";
   }
   indent_level--;
   return str;
