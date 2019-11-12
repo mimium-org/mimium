@@ -8,10 +8,13 @@ static std::map<FCALLTYPE, std::string> fcalltype_str={
 static std::string join(std::deque<std::string> vec, std::string delim);
 class MIRinstruction {  // base class for MIR instruction
  protected:
-  std::string lv_name;
   virtual ~MIRinstruction(){};
+  bool isFreeVariable(std::deque<std::string>& args, std::string str);
+  void gatherFV_raw(std::deque<std::string>& fvlist, std::deque<std::string>& args,std::string str);
  public:
+   std::string lv_name;
   virtual std::string toString() = 0;
+  virtual void gatherFreeVariable(std::deque<std::string>& fvlist, std::deque<std::string>& args)=0;
 };
 class NumberInst;
 class SymbolInst;
@@ -36,7 +39,7 @@ class MIRblock {
   void addInst(Instructions& inst) {
     instructions.push_back(inst);
   }
-  static void changeIndent(int level){
+  void changeIndent(int level){
     indent_level += level;
   }
   std::string label;
@@ -45,7 +48,7 @@ class MIRblock {
   std::shared_ptr<MIRblock> prev;
   std::shared_ptr<MIRblock> next;
   std::string toString();
-  static int indent_level;//shared between instances
+  int indent_level;//shared between instances
 };
 
 
@@ -59,12 +62,15 @@ class NumberInst : public MIRinstruction {
         lv_name = _lv;
       }
   std::string toString() override;
+  void gatherFreeVariable(std::deque<std::string>& fvlist, std::deque<std::string>& args) override;
 };
 class SymbolInst : public MIRinstruction {
   std::string val;
 
  public:
   std::string toString() override;
+  void gatherFreeVariable(std::deque<std::string>& fvlist, std::deque<std::string>& args) override;
+
 };
 class TimeInst: public MIRinstruction{
   public:
@@ -74,6 +80,7 @@ class TimeInst: public MIRinstruction{
     lv_name=_lv;
   }
   std::string toString() override;
+  void gatherFreeVariable(std::deque<std::string>& fvlist, std::deque<std::string>& args) override;
 
 };
 class OpInst : public MIRinstruction {
@@ -89,28 +96,33 @@ class OpInst : public MIRinstruction {
     lv_name=_lv;
         };
   std::string toString() override;
+  void gatherFreeVariable(std::deque<std::string>& fvlist, std::deque<std::string>& args) override;
+
   ~OpInst(){};
 };
 class FunInst : public MIRinstruction {
-  std::deque<std::string> args;
-
  public:
+  std::deque<std::string> args;
   std::shared_ptr<MIRblock> body;
+  std::deque<std::string> freevariables; //introduced in closure conversion;
   FunInst(std::string name,std::deque<std::string> newargs):args(std::move(newargs)) { body = std::make_shared<MIRblock>(name);
    lv_name =name; };
   std::string toString() override;
+  void gatherFreeVariable(std::deque<std::string>& fvlist, std::deque<std::string>& args) override;
+
 };
 class FcallInst : public MIRinstruction {
+ public:
   std::string fname;
   std::deque<std::string> args;
   FCALLTYPE type;
-
- public:
   FcallInst(std::string _lv, std::string _fname, std::deque<std::string> _args,FCALLTYPE ftype = DIRECT)
       :fname(_fname), args(std::move(_args)){
         lv_name=_lv;
       };
   std::string toString() override;
+  void gatherFreeVariable(std::deque<std::string>& fvlist, std::deque<std::string>& args) override;
+
 };
 class MakeClosureInst : public MIRinstruction {
   std::string fname;
@@ -118,6 +130,11 @@ class MakeClosureInst : public MIRinstruction {
 
  public:
   std::string toString() override;
+  MakeClosureInst(std::string _lv,std::string _fname,std::deque<std::string> _captures):fname(std::move(_fname)),captures(std::move(_captures)){
+            lv_name=_lv;
+  };
+  void gatherFreeVariable(std::deque<std::string>& fvlist, std::deque<std::string>& args) override;
+
 };
 class ArrayInst : public MIRinstruction {
   std::string name;
@@ -129,16 +146,20 @@ class ArrayInst : public MIRinstruction {
    }
 
   std::string toString() override;
+  void gatherFreeVariable(std::deque<std::string>& fvlist, std::deque<std::string>& args) override;
+
 };
 class ArrayAccessInst : public MIRinstruction {
   std::string name;
   std::string index;
 
  public:
-  std::string toString() override;
   ArrayAccessInst(std::string _lv,std::string _name,std::string _index):name(_name),index(_index){
     lv_name = _lv;
   }
+  std::string toString() override;
+  void gatherFreeVariable(std::deque<std::string>& fvlist, std::deque<std::string>& args) override;
+
 };
 class IfInst : public MIRinstruction {
  public:
@@ -151,6 +172,8 @@ class IfInst : public MIRinstruction {
     lv_name=name;
   }
   std::string toString() override;
+  void gatherFreeVariable(std::deque<std::string>& fvlist, std::deque<std::string>& args) override;
+
 };
 class ReturnInst: public MIRinstruction{
     public:
@@ -159,5 +182,7 @@ class ReturnInst: public MIRinstruction{
       lv_name = name;
     }
     std::string toString() override;
+    void gatherFreeVariable(std::deque<std::string>& fvlist, std::deque<std::string>& args) override;
+
 };
 }  // namespace mimium

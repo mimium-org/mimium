@@ -81,7 +81,8 @@
         "condition_variable": "cpp",
         "csignal": "cpp",
         "memory_resource": "cpp",
-        "queue": "cpp"
+        "queue": "cpp",
+        "complex": "cpp"
     },
     "C_Cpp.configurationWarnings": "Disabled",
     "C_Cpp.clang_format_style": "{ BasedOnStyle: Google}",

@@ -102,10 +102,14 @@ void KNormalizeVisitor::visit(LambdaAST& ast){
     }
     auto newinst = std::make_shared<FunInst>(name,std::move(newargs));
     Instructions res = newinst;
+    currentblock->indent_level++;
     currentblock->addInst(res);
+    newinst->body->indent_level = currentblock->indent_level;
     currentblock = newinst->body;//move context
     ast.getBody()->accept(*this);
     currentblock = tmpcontext;//switch back context
+    currentblock->indent_level--;
+
 }
 void KNormalizeVisitor::visit(FcallAST& ast){
   auto newname = getVarName();
@@ -148,7 +152,9 @@ void KNormalizeVisitor::visit(IfAST& ast){
     auto newname = getVarName();
     auto newinst =std::make_shared<IfInst>(newname,stack_pop_str());
     Instructions res = newinst;
-
+    currentblock->indent_level++;
+    newinst->thenblock->indent_level = currentblock->indent_level;
+    newinst->elseblock->indent_level = currentblock->indent_level;
     currentblock->addInst(res);
     currentblock = newinst->thenblock;
     ast.getThen()->accept(*this);
@@ -156,6 +162,7 @@ void KNormalizeVisitor::visit(IfAST& ast){
     ast.getElse()->accept(*this);
     res_stack_str.push(newname);
     currentblock = tmpcontext;
+    currentblock->indent_level--;
 }
 void KNormalizeVisitor::visit(ReturnAST& ast){
   ast.getExpr()->accept(*this);

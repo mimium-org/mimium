@@ -6,7 +6,6 @@
 
 static mimium::Runtime runtime;
 static std::shared_ptr<mimium::KNormalizeVisitor> knormvisitor;
-int mimium::MIRblock::indent_level = 0;  // actual instance of indent level
 
 TEST(knormalizetest, basic) {
   knormvisitor = std::make_shared<mimium::KNormalizeVisitor>();
@@ -75,13 +74,13 @@ TEST(knormalizetest, if_nested) {
             "  test = fun x , y , z\n"
             "    test:\n"
             "      k1 = if x\n"
-            "        k1$then:\n"
-            "          res = 0.000000\n"
-            "        k1$else:\n"
-            "          k2 = if y\n"
-            "            k2$then:\n"
-            "              res = 100.000000\n"
-            "            k2$else:\n"
+            "    k1$then:\n"
+            "      res = 0.000000\n"
+            "    k1$else:\n"
+            "      k2 = if y\n"
+            "      k2$then:\n"
+            "        res = 100.000000\n"
+            "      k2$else:\n"
             "\n"
             "\n"
             "      res = return res\n"
@@ -102,12 +101,29 @@ TEST(knormalizetest, if_nested) {
   );
 }
 TEST(knormalizetest, closure) {
-    runtime.clear();
+  runtime.clear();
   knormvisitor->init();
   runtime.init(knormvisitor);
   runtime.loadSourceFile("test_closure.mmm");
   auto mainast = knormvisitor->getResult();
   EXPECT_EQ(mainast->toString(),
-            ""
-  );
+            "main:\n"
+            "  makecounter = fun x\n"
+            "    makecounter:\n"
+            "      localvar = 0.000000\n"
+            "      countup = fun y\n"
+            "      countup:\n"
+            "        localvar = localvar+x\n"
+            "        k1 = return localvar\n"
+            "\n"
+            "      k2 = return countup\n"
+            "\n"
+            "  k3 = 1.000000\n"
+            "  maincounter = app makecounter k3\n"
+            "  k4 = 1.000000\n"
+            "  main = app maincounter k4\n"
+            "  k5 = 1.000000\n"
+            "  main = app maincounter k5\n"
+            "  k6 = 1.000000\n"
+            "  main = app maincounter k6\n");
 }
