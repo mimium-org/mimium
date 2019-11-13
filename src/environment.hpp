@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <unordered_map>
+#include <utility>
 #include "helper_functions.hpp"
 #include "ast.hpp"
 #include "variant_visitor_helper.hpp"
@@ -20,6 +21,7 @@ namespace mimium{
     Environment(std::string Name,std::shared_ptr<Environment> Parent):parent(std::move(Parent)),name(std::move(Name)){
     }
     mValue findVariable(std::string key);
+    std::pair<bool,bool> isFreeVariable(std::string key);
     bool isVariableSet(std::string key);
     void setVariable(std::string key,mValue val);
     void setVariableRaw(std::string key,mValue val);

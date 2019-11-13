@@ -1,5 +1,6 @@
 #include "variant_visitor_helper.hpp"
 #include "mir.hpp"
+#include "environment.hpp"
 namespace mimium {
 
 class ClosureConverter {
@@ -9,6 +10,7 @@ class ClosureConverter {
   std::shared_ptr<MIRblock> convert(std::shared_ptr<MIRblock> mir);
 
   private:
+  std::shared_ptr<Environment> env;
   std::unordered_map<std::string,std::shared_ptr<FunInst>> closure_functions;
   // std::unordered_map<std::string,std::deque<std::string>> fname_to_freevars;
   bool isClosureFunction(std::string str);

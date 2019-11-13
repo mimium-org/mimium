@@ -13,6 +13,18 @@ bool Environment::isVariableSet(std::string key){
     }
 }
 
+std::pair<bool,bool> Environment::isFreeVariable(std::string key){
+    //return value: [isvarset , isfv]
+    if(variables.size()>0 && variables.count(key)>0){//search dictionary
+        return std::pair(true,false); //return false if var is local variable
+    }else if(parent !=nullptr){
+        auto [isvarset,isisfv] = parent->isFreeVariable(key);
+        return std::pair(isvarset,true); //search recursively
+    }else{
+        throw std::runtime_error("Variable " + key  +" not found");    
+        return std::pair(false,false);
+    }
+}
 mValue Environment::findVariable(std::string key){
     if(variables.size()>0 && variables.count(key)>0){//search dictionary
         return variables.at(key);
@@ -24,6 +36,7 @@ mValue Environment::findVariable(std::string key){
         return 0;
     }
 }
+
 
 void Environment::setVariable(std::string key,mValue val){
     mValue newval=0;
