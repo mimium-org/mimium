@@ -196,7 +196,6 @@ forloop: FOR lvar IN expr block {$$ = driver.add_forloop(std::move($2),std::move
 lambda: arguments_top ARROW block {$$ = driver.add_lambda(std::move($1),std::move($3));};
 
 assign : lvar ASSIGN expr {$$ = driver.add_assign(std::move($1),std::move($3));}
-      |  lvar ASSIGN lambda {$$ = driver.add_assign(std::move($1),std::move($3));}
 ;
 
 arguments_top: '(' arguments ')' {$$=std::move($2);};
@@ -238,6 +237,7 @@ term : single
       |fcall
       |array
       |array_access
+      |lambda
       | '(' expr ')' {$$ =std::move($2);};
 
 declaration : include {$$=std::move($1);} 
