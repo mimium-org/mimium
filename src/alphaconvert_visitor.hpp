@@ -8,6 +8,7 @@ class AlphaConvertVisitor : public ASTVisitor {
  public:
   AlphaConvertVisitor();
   ~AlphaConvertVisitor();
+  void init();
   void visit(OpAST& ast) override;
   void visit(ListAST& ast) override;
   void visit(NumberAST& ast) override;
@@ -42,6 +43,7 @@ class AlphaConvertVisitor : public ASTVisitor {
     }
     res_stack.push(std::move(newast));
   };
+  std::shared_ptr<ListAST> currentcontext;
   std::shared_ptr<Environment> env;
   int namecount;
   int envcount;

@@ -1,18 +1,31 @@
 #include "alphaconvert_visitor.hpp"
 namespace mimium {
-AlphaConvertVisitor::AlphaConvertVisitor() : namecount(0) ,envcount(0){
+AlphaConvertVisitor::AlphaConvertVisitor(){
+    init();
+}
+void AlphaConvertVisitor::init() {
+    namecount = 0;
+    envcount = 0;
+    env.reset();
     env = std::make_shared<Environment>("root",nullptr);
 }
+
 AlphaConvertVisitor::~AlphaConvertVisitor() {}
 std::shared_ptr<ListAST> AlphaConvertVisitor::getResult(){
     return std::static_pointer_cast<ListAST>(std::get<AST_Ptr>(res_stack.top()));
 };
 
 void AlphaConvertVisitor::visit(LvarAST& ast) {
-    namecount++;
-    std::string newname = "var" + std::to_string(namecount);
-    env->setVariableRaw(ast.getVal(),newname);//register to map
+    std::string newname;
+    if(env->isVariableSet(ast.getVal())){
+        newname = std::get<std::string>(env->findVariable(ast.getVal()));
+    }else{
+        namecount++;
+        newname = ast.getVal() + std::to_string(namecount);
+        env->setVariableRaw(ast.getVal(),newname);//register to map
+    }
     auto newast = std::make_unique<LvarAST>(newname,ast.type);
+
     res_stack.push(std::move(newast));
 
 }
