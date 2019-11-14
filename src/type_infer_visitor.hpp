@@ -30,7 +30,8 @@ class TypeInferVisitor : public ASTVisitor{
         void visit(StructAccessAST& ast)override;
         mValue findVariable(std::string str) override{return 0;}//??
     private:
-        Value res_stack;
+        types::Value res_stack;
         TypeEnv typeenv;
+        bool has_return;
 };
 }

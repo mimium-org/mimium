@@ -46,6 +46,8 @@ std::shared_ptr<MIRblock> ClosureConverter::convert(std::shared_ptr<MIRblock> mi
             [&it,&mir,this](std::shared_ptr<FcallInst> inst){
                 //insert MakeClosureInst before fcall if the function is closure
                 insertMakeClosure(mir,it,inst); 
+            },
+            [](auto c){//do nothing
             }
         },inst);
     }
