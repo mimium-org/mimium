@@ -9,7 +9,7 @@ static auto interpreter =  std::make_shared<mimium::InterpreterVisitor>();
 
 // static auto& runtime = interpreter->getRuntime();
 TEST(interpreter_test, assign) {
-     mimium::Logger::current_report_level = mimium::Logger::DEBUG;
+     mimium::Logger::current_report_level = mimium::Logger::INFO;
      interpreter->init();
      interpreter->getRuntime().loadSource("a = 1");
      EXPECT_EQ(mimium::Runtime::to_string(interpreter->getRuntime().getMainAst()),"(assign a 1)") ;

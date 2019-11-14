@@ -13,22 +13,22 @@ TEST(typeinfertest, basic) {
   alphaconv = std::make_shared<mimium::AlphaConvertVisitor>();
   typeinfer = std::make_shared<mimium::TypeInferVisitor>();
   runtime.setWorkingDirectory("/Users/tomoya/codes/mimium/build/test/");
-  mimium::Logger::current_report_level = mimium::Logger::DEBUG;
+  mimium::Logger::current_report_level = mimium::Logger::INFO;
   runtime.init(alphaconv);
   runtime.loadSourceFile("test_typeident.mmm");
   auto mainast = alphaconv->getResult();
   mimium::Logger::debug_log(mainast->toString(), mimium::Logger::DEBUG);
   mainast->accept(*typeinfer);
   auto env = typeinfer->getEnv().env;
-  for (auto& it : env) {
-    std::cout << it.first << " : "
-              << std::visit([](auto t) { return t.toString(); }, it.second)
-              << std::endl;
-  }
+//   for (auto& it : env) {
+//     std::cout << it.first << " : "
+//               << std::visit([](auto t) { return t.toString(); }, it.second)
+//               << std::endl;
+//   }
   auto typestr = std::visit([](auto t) { return t.toString(); }, env["var7"]);
-auto typestr2 = std::visit([](auto t) { return t.toString(); }, env["var9"]);
+auto typestr2 = std::visit([](auto t) { return t.toString(); }, env["var10"]);
 
-  EXPECT_EQ(typestr, "Fn[(Float , Fn[(Float)->Float])->Float]");
-  EXPECT_EQ(typestr2, "Fn[(Float , Fn[(Float)->Float])->Float]");
+  EXPECT_EQ(typestr, "Fn[ (Float , Fn[ (Float) -> Float ]) -> Float ]");
+  EXPECT_EQ(typestr2, "Fn[ (Float , Fn[ (Float , Float) -> Float ]) -> Fn[ (Float) -> Float ] ]");
 
 }

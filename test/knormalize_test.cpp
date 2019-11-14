@@ -10,7 +10,7 @@ static std::shared_ptr<mimium::KNormalizeVisitor> knormvisitor;
 TEST(knormalizetest, basic) {
   knormvisitor = std::make_shared<mimium::KNormalizeVisitor>();
   runtime.setWorkingDirectory("/Users/tomoya/codes/mimium/build/test/");
-  mimium::Logger::current_report_level = mimium::Logger::DEBUG;
+  mimium::Logger::current_report_level = mimium::Logger::INFO;
   runtime.init(knormvisitor);
   std::string teststr = "a = 1+2+3";
   runtime.loadSource(teststr);
