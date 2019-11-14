@@ -74,6 +74,10 @@
    FOR "for"
    IN "in"
 
+   TYPE_DELIM "::"
+   TYPEFLOAT "float_typetoken"
+   TYPEFN "fn_typetoken"
+
    INCLUDE "include_token"
 
    END "end_token"
@@ -86,6 +90,12 @@
 %token  <std::string> SYMBOL "symbol_token"
 %token  <std::string> STRING "string_token"
 %token  <std::string> FNAME "fname_token"
+
+
+%type <mimium::types::Value> types "types"
+%type <mimium::types::Value> fntype "fn_type"
+%type <std::vector<mimium::types::Value>> fntype_args "fntype_args"
+
 
 
 %type <AST_Ptr> num "number"
@@ -258,8 +268,29 @@ num :NUM {$$ = driver.add_number($1);};
 
 
 lvar : SYMBOL {$$ = driver.add_lvar($1);}
+      |SYMBOL TYPE_DELIM types {$$ = driver.add_lvar($1,$3);};
+
 rvar : SYMBOL {$$ = driver.add_rvar($1);}
 
+types : TYPEFLOAT {
+      mimium::types::Float f;
+      $$ =std::move(f);}
+      | fntype;
+
+fntype: TYPEFN '(' fntype_args ')' ARROW types {
+      mimium::types::Function f;
+      f.init(std::move($3),std::move($6));
+      mimium::types::Value v = std::move(f);
+      $$ = std::move(v);
+      };
+
+fntype_args  :  fntype_args ',' types {
+                  $1.push_back($3);
+                  $$ = std::move($1);}
+            |   types  {
+                  std::vector<mimium::types::Value> v= {$1};
+                  $$ = std::move(v);}
+; 
 
 %%
 

@@ -12,6 +12,8 @@
 #include <variant>
 #include <vector>
 
+#include "type.hpp"
+
 enum AST_ID {
   BASE,
   NUMBER,
@@ -201,7 +203,13 @@ class SymbolAST : public AST {
 };
 class LvarAST : public SymbolAST {
  public:
-  explicit LvarAST(std::string input) : SymbolAST(input){};
+  mimium::types::Value type;
+  explicit LvarAST(std::string input) : SymbolAST(input){
+    type = mimium::types::Float();//default type is Float
+  };
+  explicit LvarAST(std::string input, mimium::types::Value _type):SymbolAST(input){
+    type = _type;
+  }
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
 };
 class RvarAST : public SymbolAST {

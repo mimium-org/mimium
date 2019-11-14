@@ -30,6 +30,8 @@ class MimiumDriver {
 
   AST_Ptr add_number(double num);
   AST_Ptr add_lvar(std::string str);
+  AST_Ptr add_lvar(std::string str, mimium::types::Value type);
+
   AST_Ptr add_rvar(std::string str);
 
 

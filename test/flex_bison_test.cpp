@@ -213,6 +213,16 @@ TEST(bison_parser_test, comment) {
   EXPECT_EQ(ss.str(),
             "(assign main 1)");
 }
+
+TEST(bison_parser_test, typeidentifier) {
+    driver.clear();
+  driver.parsefile("test_typeident.mmm");
+  std::stringstream ss;
+  driver.print(ss);
+  EXPECT_EQ(ss.str(),
+            "(assign main 1)");
+}
+
 TEST(JSON_test, basictest) {
   driver.clear();
 

@@ -66,6 +66,11 @@ AST_Ptr MimiumDriver::add_number(double num){
 AST_Ptr MimiumDriver::add_lvar(std::string str){
    return std::make_unique<LvarAST>(std::move(str));
 }
+AST_Ptr MimiumDriver::add_lvar(std::string str, mimium::types::Value type){
+      return std::make_unique<LvarAST>(std::move(str),std::move(type));
+};
+
+
 AST_Ptr MimiumDriver::add_rvar(std::string str){
    return std::make_unique<RvarAST>(std::move(str));
 }

@@ -1,0 +1,9 @@
+fn add(x,y){
+    return x+y
+}
+fn add(x::Float,y::Float){
+    return x+y
+}
+fn hof(x, y::Fn(Float)->Float ){
+    return y(x)
+}

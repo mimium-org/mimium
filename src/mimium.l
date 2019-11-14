@@ -51,6 +51,10 @@ END {BREAK}{WSPACE}*"end"
     return token::NUM;
 };
 
+"Float" return token::TYPEFLOAT;
+"Fn" return token::TYPEFN;
+
+"::" return token::TYPE_DELIM;
 
 "include" return token::INCLUDE;
 
