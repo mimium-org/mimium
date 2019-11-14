@@ -185,8 +185,8 @@ statement : assign {$$=std::move($1);}
 
 fdef : FUNC lvar arguments_top block {$$ = driver.add_assign(std::move($2),driver.add_lambda(std::move($3),std::move($4)));};
 
-ifstatement: IF term block {$$ = driver.add_if(std::move($2),std::move($3),nullptr);}
-            |IF term block ELSE block {$$ = driver.add_if(std::move($2),std::move($3),std::move($5));}
+ifstatement: IF '(' expr ')' block {$$ = driver.add_if(std::move($3),std::move($5),nullptr);}
+            |IF '(' expr ')' block ELSE block {$$ = driver.add_if(std::move($3),std::move($5),std::move($7));}
 ;
 
 forloop: FOR lvar IN expr block {$$ = driver.add_forloop(std::move($2),std::move($4),std::move($5));};
