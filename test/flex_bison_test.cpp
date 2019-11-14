@@ -220,7 +220,7 @@ TEST(bison_parser_test, typeidentifier) {
   std::stringstream ss;
   driver.print(ss);
   EXPECT_EQ(ss.str(),
-            "(assign main 1)");
+            "((assign add (lambda (x y) (return (+ x y)))) (assign add (lambda (x y) (return (+ x y)))) (assign hof (lambda (x y) (return (y (x))))) (assign hof2 (lambda (x y) ((assign localvar 1) (return (lambda (x) (return (y (x localvar)))))))))");
 }
 
 TEST(JSON_test, basictest) {

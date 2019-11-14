@@ -7,3 +7,7 @@ fn add(x::Float,y::Float){
 fn hof(x, y::Fn(Float)->Float ){
     return y(x)
 }
+fn hof2(x,y::Fn(Float,Float)->Float){
+    localvar = 1
+    return (x)->{ return y(x,localvar) }
+}

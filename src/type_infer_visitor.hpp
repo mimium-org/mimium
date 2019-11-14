@@ -8,7 +8,6 @@ class TypeInferVisitor : public ASTVisitor{
         public:
         TypeInferVisitor();
         ~TypeInferVisitor()=default;
-        void init();
 
         void visit(OpAST& ast) override;
         void visit(ListAST& ast) override;
@@ -29,6 +28,7 @@ class TypeInferVisitor : public ASTVisitor{
         void visit(StructAST& ast)override;
         void visit(StructAccessAST& ast)override;
         mValue findVariable(std::string str) override{return 0;}//??
+        TypeEnv& getEnv(){return typeenv;};
     private:
         types::Value res_stack;
         TypeEnv typeenv;

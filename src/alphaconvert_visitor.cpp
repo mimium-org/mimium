@@ -12,7 +12,7 @@ void AlphaConvertVisitor::visit(LvarAST& ast) {
     namecount++;
     std::string newname = "var" + std::to_string(namecount);
     env->setVariableRaw(ast.getVal(),newname);//register to map
-    auto newast = std::make_unique<LvarAST>(newname);
+    auto newast = std::make_unique<LvarAST>(newname,ast.type);
     res_stack.push(std::move(newast));
 
 }

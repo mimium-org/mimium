@@ -15,7 +15,7 @@ namespace mimium{
     operator const T &() const { return t.front(); }
     // store the value
     std::vector<T> t;
-    std::string toString();
+    std::string toString() { return t.front().toString();};
     };
 
     namespace types{
@@ -34,10 +34,19 @@ namespace mimium{
                 return "String";
             };
         };
+        struct Time{
+            Float val;
+            Float time;
+            Time(){
+            } 
+            std::string toString(){
+                return val.toString() + "@" +time.toString(); 
+            }
+        };
         struct Function;
         struct Array;
         struct Time;
-        using Value = std::variant<types::Void,types::Float,types::String,recursive_wrapper<types::Function>,recursive_wrapper<types::Array>,recursive_wrapper<types::Time>>;
+        using Value = std::variant<types::Void,types::Float,types::String,recursive_wrapper<types::Function>,recursive_wrapper<types::Array>,types::Time>;
         struct Function {
             Function(){
             }
@@ -55,14 +64,14 @@ namespace mimium{
                 return arg_types;
             }
             std::string toString(){
-                std::string s = "(";
-                int count =0;
+                std::string s = "Fn[ (";
+                int count =1;
                 for(const auto& v: arg_types){
                     s+= std::visit([](auto c){return c.toString();},v);
                     if(count < arg_types.size()) s+= " , ";
                     count++;
                 }
-                s+=")->" + std::visit([](auto c){return c.toString();},ret_type);
+                s+=") -> " + std::visit([](auto c){return c.toString();},ret_type) + " ]";
                 return s;
             };
         };
@@ -77,16 +86,6 @@ namespace mimium{
             Value getElemType(){
                 return elem_type;
             }
-        };
-        struct Time{
-            Float val;
-            Float time;
-            Time(){
-            } 
-            std::string toString(){
-                return val.toString() + "@" +time.toString(); 
-            }
-
         };
     }//namespace types
     class TypeEnv{

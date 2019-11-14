@@ -37,7 +37,16 @@ void TypeInferVisitor::visit(AssignAST& ast) {
     typeenv.env[ast.getName()->getVal()] = res_stack;
 }
 void TypeInferVisitor::visit(ArgumentsAST& ast) {
-   
+        std::vector<types::Value> argtypes;
+       for(const  auto& a : ast.getElements()){
+        a->accept(*this);
+        auto aval = std::static_pointer_cast<LvarAST>(a);
+        typeenv.env[aval->getVal()] = res_stack;
+        argtypes.push_back(res_stack);
+    }
+    types::Void v;
+    types::Function f(std::move(argtypes),std::move(v));
+    res_stack = std::move(f);
 }
 void TypeInferVisitor::visit(ArrayAST& ast) {
     auto tmpres = res_stack;
@@ -62,10 +71,8 @@ void TypeInferVisitor::visit(ArrayAccessAST& ast) {
     res_stack = res;
 }
 void TypeInferVisitor::visit(FcallAST& ast) {
-
     auto it = typeenv.env.find(ast.getFname()->getVal());
     types::Value v = it->second;
-
     types::Function fn = std::get<recursive_wrapper<types::Function>>(v);
 
     types::Value res;    
@@ -87,12 +94,9 @@ void TypeInferVisitor::visit(FcallAST& ast) {
     res_stack = res;
 }
 void TypeInferVisitor::visit(LambdaAST& ast) {
-    std::vector<types::Value> argtypes;
-    for(const auto& a : ast.getArgs()->getElements()){
-        a->accept(*this);
-        argtypes.push_back(res_stack);
-    }
-    //todo///
+    auto args = ast.getArgs();
+    args->accept(*this); 
+    types::Function fntype= std::get<recursive_wrapper<types::Function>>(res_stack);
     ast.getBody()->accept(*this);
     types::Value res_type;
     if(has_return){
@@ -101,8 +105,8 @@ void TypeInferVisitor::visit(LambdaAST& ast) {
         types::Void t;
         res_type = t;
     }
-    auto res = types::Function(std::move(argtypes),res_type);
-    res_stack = res;
+    fntype.ret_type = res_type;
+    res_stack = fntype;
     has_return  = false;//switch back flag
 }
 void TypeInferVisitor::visit(IfAST& ast) {
@@ -121,7 +125,6 @@ void TypeInferVisitor::visit(ReturnAST& ast) {
 
     ast.getExpr()->accept(*this);
     has_return = true;
-    // res_stack.push(std::make_unique<ReturnAST>(stack_pop_ptr()));
 }
 void TypeInferVisitor::visit(ForAST& ast) {
     // env = env->createNewChild("forloop"+std::to_string(envcount));
