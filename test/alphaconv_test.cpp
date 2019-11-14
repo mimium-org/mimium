@@ -10,10 +10,10 @@ static std::shared_ptr<mimium::AlphaConvertVisitor> visitor;
 TEST(alphaconverttest, basic) {
   visitor = std::make_shared<mimium::AlphaConvertVisitor>();
   runtime.setWorkingDirectory("/Users/tomoya/codes/mimium/build/test/");
-  mimium::Logger::current_report_level = mimium::Logger::DEBUG;
+  mimium::Logger::current_report_level = mimium::Logger::INFO;
   runtime.init(visitor);
   runtime.loadSourceFile("test_localvar2.mmm");
   auto mainast = visitor->getResult();
   EXPECT_EQ(mainast->toString(),
-            "((assign var1 (lambda (var2) ((assign var3 var2) (assign var4 (lambda (var5) ((assign var6 (+ var6 var5)) (return var6)))) (return (var4 (2.5)))))) (assign var7 (var1 (1))))");
+            "((assign hoge1 (lambda (x2) ((assign localvar3 x2) (assign fuga4 (lambda (y5) ((assign localvar3 (+ localvar3 y5)) (return localvar3)))) (return (fuga4 (2.5)))))) (assign main6 (hoge1 (1))))");
 }

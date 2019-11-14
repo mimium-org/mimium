@@ -13,7 +13,8 @@ class MIRinstruction {  // base class for MIR instruction
   bool isFreeVariable(std::shared_ptr<Environment> env,std::string str);
   void gatherFV_raw(std::deque<std::string>& fvlist,std::shared_ptr<Environment> env,std::string str);
  public:
-   std::string lv_name;
+  std::string lv_name;
+  types::Value type;
   virtual std::string toString() = 0;
   virtual void gatherFreeVariable(std::deque<std::string>& fvlist, std::deque<std::string>& args,std::shared_ptr<Environment> env)=0;
 };
@@ -61,6 +62,7 @@ class NumberInst : public MIRinstruction {
   NumberInst(std::string _lv, double _val)
       : val(std::move(_val)) {
         lv_name = _lv;
+        type = types::Float();
       }
   std::string toString() override;
   void gatherFreeVariable(std::deque<std::string>& fvlist, std::deque<std::string>& args,std::shared_ptr<Environment> env) override;
@@ -79,6 +81,7 @@ class TimeInst: public MIRinstruction{
   std::string val;
   TimeInst(std::string _lv, std::string _val,std::string _time):time(_time),val(_val){
     lv_name=_lv;
+    type = types::Time();
   }
   std::string toString() override;
   void gatherFreeVariable(std::deque<std::string>& fvlist, std::deque<std::string>& args,std::shared_ptr<Environment> env) override;
@@ -95,6 +98,7 @@ class OpInst : public MIRinstruction {
         lhs(std::move(_lhs)),
         rhs(std::move(_rhs)){
     lv_name=_lv;
+    type = types::Float();
         };
   std::string toString() override;
   void gatherFreeVariable(std::deque<std::string>& fvlist, std::deque<std::string>& args,std::shared_ptr<Environment> env) override;
@@ -106,8 +110,11 @@ class FunInst : public MIRinstruction {
   std::deque<std::string> args;
   std::shared_ptr<MIRblock> body;
   std::deque<std::string> freevariables; //introduced in closure conversion;
-  FunInst(std::string name,std::deque<std::string> newargs):args(std::move(newargs)) { body = std::make_shared<MIRblock>(name);
-   lv_name =name; };
+  FunInst(std::string name,std::deque<std::string> newargs):args(std::move(newargs)) {
+    body = std::make_shared<MIRblock>(name);
+    lv_name =name; 
+    type= types::Void();//temporary;
+    };
   std::string toString() override;
   void gatherFreeVariable(std::deque<std::string>& fvlist, std::deque<std::string>& args,std::shared_ptr<Environment> env) override;
 
@@ -117,7 +124,7 @@ class FcallInst : public MIRinstruction {
   std::string fname;
   std::deque<std::string> args;
   FCALLTYPE type;
-  FcallInst(std::string _lv, std::string _fname, std::deque<std::string> _args,FCALLTYPE ftype = DIRECT)
+  FcallInst(std::string _lv, std::string _fname, std::deque<std::string> _args,FCALLTYPE ftype = CLOSURE)
       :fname(_fname), args(std::move(_args)){
         lv_name=_lv;
       };

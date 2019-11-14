@@ -8,7 +8,7 @@ class TypeInferVisitor : public ASTVisitor{
         public:
         TypeInferVisitor();
         ~TypeInferVisitor()=default;
-
+        void init();
         void visit(OpAST& ast) override;
         void visit(ListAST& ast) override;
         void visit(NumberAST& ast) override;

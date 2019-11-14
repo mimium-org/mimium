@@ -25,8 +25,8 @@ TEST(typeinfertest, basic) {
 //               << std::visit([](auto t) { return t.toString(); }, it.second)
 //               << std::endl;
 //   }
-  auto typestr = std::visit([](auto t) { return t.toString(); }, env["var7"]);
-auto typestr2 = std::visit([](auto t) { return t.toString(); }, env["var10"]);
+  auto typestr = std::visit([](auto t) { return t.toString(); }, env["hof6"]);
+auto typestr2 = std::visit([](auto t) { return t.toString(); }, env["hof29"]);
 
   EXPECT_EQ(typestr, "Fn[ (Float , Fn[ (Float) -> Float ]) -> Float ]");
   EXPECT_EQ(typestr2, "Fn[ (Float , Fn[ (Float , Float) -> Float ]) -> Fn[ (Float) -> Float ] ]");

@@ -2,6 +2,10 @@
 
 namespace mimium{
 TypeInferVisitor::TypeInferVisitor(){
+    init();
+}
+
+void TypeInferVisitor::init(){
     has_return =false;
 }
 void TypeInferVisitor::visit(LvarAST& ast) {

@@ -1,11 +1,12 @@
 #pragma once
 #include "ast.hpp"
 #include "mir.hpp"
+#include "type_infer_visitor.hpp"
 
 namespace mimium{
 class KNormalizeVisitor : public ASTVisitor{
         public:
-        KNormalizeVisitor();
+        explicit KNormalizeVisitor(std::shared_ptr<TypeInferVisitor> _typeinfer);
         ~KNormalizeVisitor()=default;
         void init();
 
@@ -31,6 +32,8 @@ class KNormalizeVisitor : public ASTVisitor{
 
         std::shared_ptr<MIRblock> getResult();
         private:
+        std::shared_ptr<TypeInferVisitor> typeinfer;//to resolve anonymous function type;
+
         std::shared_ptr<MIRblock> rootblock;
         std::shared_ptr<MIRblock> currentblock;
         int var_counter;
