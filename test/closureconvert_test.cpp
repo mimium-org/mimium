@@ -29,7 +29,27 @@ TEST(ClosureConvertTest, basic) {
   alphaast->accept(*knormvisitor);
   auto mir = knormvisitor->getResult();
   auto converted = closureconverter->convert(mir);
-  std::string ans = "";
+  std::string ans = 
+"main:\n"
+"  countup4 = fun y5 fv{ localvar3 , x2 }\n"
+"      countup4:\n"
+"        localvar3 = localvar3+x2\n"
+"        k1 = return localvar3\n"
+"\n"
+"  makecounter1 = fun x2\n"
+"    makecounter1:\n"
+"      localvar3 = 0.000000\n"
+"      countup4$cls0 = makeclosure countup4 localvar3 , x2\n"
+"      k2 = return countup4\n"
+"\n"
+"  k3 = 1.000000\n"
+"  maincounter6 = app makecounter1 k3\n"
+"  k4 = 1.000000\n"
+"  main7 = appcls maincounter6 k4\n"
+"  k5 = 1.000000\n"
+"  main7 = appcls maincounter6 k5\n"
+"  k6 = 1.000000\n"
+"  main7 = appcls maincounter6 k6\n";
   EXPECT_EQ(ans,converted->toString());
 
 };

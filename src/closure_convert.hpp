@@ -32,6 +32,9 @@ class ClosureConverter :public std::enable_shared_from_this<ClosureConverter>{
   std::unordered_map<std::string,std::shared_ptr<FunInst>> known_functions;
 
   private:
+    std::shared_ptr<MIRblock> convertRaw(std::shared_ptr<MIRblock> mir);
+    std::shared_ptr<MIRblock> moveFunToTop(std::shared_ptr<MIRblock> mir);
+
   std::unordered_map<std::string,std::shared_ptr<FunInst>> toplevel_functions;
 
   // std::unordered_map<std::string,std::deque<std::string>> fname_to_freevars;

@@ -87,14 +87,13 @@ std::string FunInst::toString() {
   return s;
 }
 void FunInst::closureConvert(std::deque<std::string>& fvlist, std::deque<std::string>& args,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it){
-  std::cout << lv_name <<std::endl;
 
   for(auto& a : args){
     cc->env->setVariableRaw(a,"arg");
   }
   auto tmpenv = cc->env;
   cc->env =  cc->env->createNewChild(lv_name);
-  for(auto cit = body->instructions.begin(),end =body->instructions.end();cit!=end; cit++){
+  for(auto cit = body->instructions.begin(),end = body->instructions.end() ;cit!=end; cit++){
     auto& childinst = *cit;
     std::visit([&](auto c){c->closureConvert(this->freevariables,this->args,cc,this->body,cit);} ,childinst);//recursively visit;
   }
@@ -104,11 +103,32 @@ void FunInst::closureConvert(std::deque<std::string>& fvlist, std::deque<std::st
     std::string newname = lv_name+"$cls"+ std::to_string(cc->capturecount++);
     auto makecls = std::make_shared<MakeClosureInst>(newname,lv_name,this->freevariables);
     mir->instructions.insert(it,std::move(makecls));
+
   }
   cc->env = tmpenv;
   cc->env->setVariableRaw(lv_name,"some_fun");
   //post process?????
 }
+
+void FunInst::moveFunToTop(std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it){
+  std::cout << lv_name <<std::endl;
+  auto& tinsts = cc->toplevel->instructions;
+  auto cit =  body->instructions.begin();
+  while(cit != body->instructions.end()){
+    auto& childinst = *cit;
+    std::visit(overloaded{
+      [&](std::shared_ptr<FunInst> c){c->moveFunToTop(cc,this->body,cit);cit++;},
+      [&cit](auto c){cit++;}
+      } ,childinst);//recursively visit;
+  }
+  if(cc->toplevel!=mir){
+  tinsts.insert(tinsts.begin(),shared_from_this());
+  }
+  this->body->instructions.remove_if([](Instructions v){
+    return std::visit([](auto v)->bool{return v->isFunction();},v);}
+    );
+}
+
 std::string MakeClosureInst::toString(){
 std::string s;
   s += lv_name + " = makeclosure " + fname + " " + join(captures," , ") ;

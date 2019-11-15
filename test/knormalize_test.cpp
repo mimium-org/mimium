@@ -75,7 +75,7 @@ TEST(knormalizetest, localvar) {
             "\n"
             "  k4 = 5.000000\n"
             "  k5 = 7.000000\n"
-            "  main5 = app hoge1 k4 , k5\n");
+            "  main5 = appcls hoge1 k4 , k5\n");
 }
 TEST(knormalizetest, if_nested) {
   RESET_RUNTIME
@@ -103,15 +103,15 @@ TEST(knormalizetest, if_nested) {
             "  k3 = 1.000000\n"
             "  k4 = 23.000000\n"
             "  k5 = 244.000000\n"
-            "  zero6 = app test1 k3 , k4 , k5\n"
+            "  zero6 = appcls test1 k3 , k4 , k5\n"
             "  k6 = 0.000000\n"
             "  k7 = 200.000000\n"
             "  k8 = 400.000000\n"
-            "  hand7 = app test1 k6 , k7 , k8\n"
+            "  hand7 = appcls test1 k6 , k7 , k8\n"
             "  k9 = 0.000000\n"
             "  k10 = 0.000000\n"
             "  k11 = 500.000000\n"
-            "  fivehand8 = app test1 k9 , k10 , k11\n"
+            "  fivehand8 = appcls test1 k9 , k10 , k11\n"
 
   );
 }
@@ -135,11 +135,11 @@ TEST(knormalizetest, closure) {
             "      k2 = return countup4\n"
             "\n"
             "  k3 = 1.000000\n"
-            "  maincounter6 = app makecounter1 k3\n"
+            "  maincounter6 = appcls makecounter1 k3\n"
             "  k4 = 1.000000\n"
-            "  main7 = app maincounter6 k4\n"
+            "  main7 = appcls maincounter6 k4\n"
             "  k5 = 1.000000\n"
-            "  main7 = app maincounter6 k5\n"
+            "  main7 = appcls maincounter6 k5\n"
             "  k6 = 1.000000\n"
-            "  main7 = app maincounter6 k6\n");
+            "  main7 = appcls maincounter6 k6\n");
 }

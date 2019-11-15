@@ -34,7 +34,10 @@ class MIRinstruction{  // base class for MIR instruction
   std::string lv_name;
   types::Value type;
   virtual std::string toString() = 0;
-  virtual void closureConvert(std::deque<std::string>& fvlist, std::deque<std::string>& args,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it)=0;
+  virtual void closureConvert(std::deque<std::string>& fvlist, std::deque<std::string>& args,
+  std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it)=0;
+  virtual void moveFunToTop(std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it){/*do nothing other than FunInst*/};
+  virtual bool isFunction(){return false;}
 };
 
 
@@ -137,6 +140,8 @@ class FunInst : public MIRinstruction ,public std::enable_shared_from_this<FunIn
     };
   std::string toString() override;
   void closureConvert(std::deque<std::string>& fvlist, std::deque<std::string>& args,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
+  void moveFunToTop(std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
+  bool isFunction() override {return true;}
 
 };
 class FcallInst : public MIRinstruction {
