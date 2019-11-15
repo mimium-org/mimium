@@ -1,0 +1,14 @@
+fn hof(x, func::Fn(Float)->Float){
+    return func(x)
+}
+
+fn double(x){
+    return x+x
+}
+
+fn square(x){
+    return x*x
+}
+
+main1 = hof(2,double)
+main2 = hof(2,square)

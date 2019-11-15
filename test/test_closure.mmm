@@ -1,7 +1,7 @@
 fn makecounter(x){
     localvar = 0
     fn countup(y){
-        localvar= localvar+x
+        localvar = localvar+x
         return localvar
     }
     return countup

@@ -100,7 +100,8 @@ void KNormalizeVisitor::visit(LambdaAST& ast){
       arg->accept(*this);
       newargs.push_back(stack_pop_str());
     }
-    auto newinst = std::make_shared<FunInst>(name,std::move(newargs));
+    ast.accept(*typeinfer);
+    auto newinst = std::make_shared<FunInst>(name,std::move(newargs),typeinfer->getLastType());
     Instructions res = newinst;
     currentblock->indent_level++;
     currentblock->addInst(res);
@@ -118,7 +119,8 @@ void KNormalizeVisitor::visit(FcallAST& ast){
     arg->accept(*this);
     newarg.push_back(stack_pop_str());
   }
-  Instructions newinst =std::make_shared<FcallInst>(newname,ast.getFname()->getVal(),std::move(newarg));
+  ast.accept(*typeinfer);
+  Instructions newinst =std::make_shared<FcallInst>(newname,ast.getFname()->getVal(),std::move(newarg),CLOSURE,typeinfer->getLastType());
   currentblock->addInst(newinst);
   res_stack_str.push(newname);
 };
@@ -166,8 +168,9 @@ void KNormalizeVisitor::visit(IfAST& ast){
 }
 void KNormalizeVisitor::visit(ReturnAST& ast){
   ast.getExpr()->accept(*this);
+  ast.accept(*typeinfer);
   auto newname = getVarName();
-  Instructions newinst = std::make_shared<ReturnInst>(newname,stack_pop_str());
+  Instructions newinst = std::make_shared<ReturnInst>(newname,stack_pop_str(),typeinfer->getLastType());
   currentblock->addInst(newinst);
   res_stack_str.push(newname);
 }
