@@ -1,75 +1,73 @@
 #include "llvmgenerator.hpp"
 namespace mimium{
-LLVMGenerator::LLVMGenerator(){
+LLVMGenerator::LLVMGenerator(std::string _filename){
     builder = std::make_unique<llvm::IRBuilder<>>(ctx);
-    module =nullptr;
+    module =std::make_shared<llvm::Module>(_filename,ctx);;
 }
-LLVMGenerator::LLVMGenerator(llvm::LLVMContext& _ctx){
-    ctx.reset()
-    ctx = std::move(&_ctx);
-    LLVMGenerator();
-}
+// LLVMGenerator::LLVMGenerator(llvm::LLVMContext& _ctx,std::string _filename){
+//     // ctx.reset();
+//     // ctx = std::move(&_ctx);
+// }
+
+LLVMGenerator::~LLVMGenerator(){}
 
 
 std::shared_ptr<llvm::Module> LLVMGenerator::getModule(){
     if(module){
         return module;
     }else{
-        std::make_shared<llvm::Module>("null",ctx);
+        return std::make_shared<llvm::Module>("null",ctx);
     }
 }
 
-bool LLVMGenerator::generateCode(ListAST& listast,std::string name){
-    listast.accept(alphavisitor);
-    alphavisitor.getResult().accept(knormvisitor);
-    knormvisitor.getResult().accept(closurevisitor);
-    closurevisitor.getResult().accept(this);
-}
-
-void LLVMVisitor::visit(OpAST& ast){
-    
-};
-void LLVMVisitor::visit(ListAST& ast){
-    
-};
-void LLVMVisitor::visit(NumberAST& ast){
-    
-};
-void LLVMVisitor::visit(SymbolAST& ast){
-    
-};
-void LLVMVisitor::visit(AssignAST& ast){
-    
-};
-void LLVMVisitor::visit(ArgumentsAST& ast){
-    
-};
-void LLVMVisitor::visit(ArrayAST& ast){
-    
-};
-void LLVMVisitor::visit(ArrayAccessAST& ast){
-    
-};
-void LLVMVisitor::visit(FcallAST& ast){
-    
-};
-void LLVMVisitor::visit(LambdaAST& ast){
-    
-};
-void LLVMVisitor::visit(IfAST& ast){
-    
-};
-void LLVMVisitor::visit(ReturnAST& ast){
-    
-};
-void LLVMVisitor::visit(ForAST& ast){
-    
-};
-void LLVMVisitor::visit(DeclarationAST& ast){
-    
-};
-void LLVMVisitor::visit(TimeAST& ast){
-    
-};
+void LLVMGenerator::preprocess(){
+    auto* fntype =llvm::FunctionType::get(llvm::Type::getInt64Ty(ctx), false);
+    auto* mainfun = llvm::Function::Create(fntype,llvm::Function::ExternalLinkage, "main", module.get());
+    builder->SetInsertPoint(llvm::BasicBlock::Create(ctx, "entry", mainfun));
 
 }
+
+void LLVMGenerator::generateCode(std::shared_ptr<MIRblock> mir){
+    preprocess();
+    for(auto& inst : mir->instructions){
+        std::visit(overloaded{
+            [](auto i){ },
+            [&,this](std::shared_ptr<NumberInst> i){
+                auto ptr = builder->CreateAlloca(llvm::Type::getDoubleTy(ctx), nullptr, i->lv_name);
+                namemap.emplace(i->lv_name,ptr);
+                auto finst = llvm::ConstantFP::get(this->ctx,llvm::APFloat(i->val));
+                builder->CreateStore(finst,ptr);
+            },
+            [&,this](std::shared_ptr<OpInst> i){
+                llvm::Value* ptr;
+                switch (i->getOPid())
+                {
+                case ADD:
+                    ptr = builder->CreateFAdd(namemap[i->lhs],namemap[i->rhs],i->lv_name);
+                    break;
+                case SUB:
+                    ptr = builder->CreateFSub(namemap[i->lhs],namemap[i->rhs],i->lv_name);
+                    break;
+                case MUL:
+                    ptr = builder->CreateFMul(namemap[i->lhs],namemap[i->rhs],i->lv_name);
+                    break;
+                case DIV:
+                    ptr = builder->CreateFDiv(namemap[i->lhs],namemap[i->rhs],i->lv_name);
+                    break;                                        
+                default:
+                    break;
+                }
+                namemap.emplace(i->lv_name,ptr);                    
+            }
+        },inst);
+    }
+
+      builder->CreateRet(builder->getInt64(0));
+
+}
+
+void LLVMGenerator::outputToStream(llvm::raw_ostream& stream){
+    module->print(stream,nullptr,false,true);
+}
+
+}//namespace mimium;

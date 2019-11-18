@@ -65,7 +65,6 @@ class MIRblock {
 
 
 class NumberInst : public MIRinstruction {
-  double val;
 
  public:
   NumberInst(std::string _lv, double _val)
@@ -73,6 +72,7 @@ class NumberInst : public MIRinstruction {
         lv_name = _lv;
         type = types::Float();
       }
+  double val;
   std::string toString() override;
   void closureConvert(std::deque<std::string>& fvlist, std::deque<std::string>& args,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
 };
@@ -111,11 +111,10 @@ class TimeInst: public MIRinstruction{
 
 };
 class OpInst : public MIRinstruction {
+ public:
   std::string op;
   std::string lhs;
   std::string rhs;
-
- public:
   OpInst(std::string _lv, std::string _op, std::string _lhs, std::string _rhs)
       : op(std::move(_op)),
         lhs(std::move(_lhs)),
@@ -124,6 +123,7 @@ class OpInst : public MIRinstruction {
     type = types::Float();
         };
   std::string toString() override;
+  OP_ID getOPid(){return optable[op];}
   void closureConvert(std::deque<std::string>& fvlist, std::deque<std::string>& args,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
 
   ~OpInst(){};

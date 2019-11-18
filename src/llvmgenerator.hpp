@@ -14,40 +14,30 @@
 #include "ast.hpp"
 #include "alphaconvert_visitor.hpp"
 #include "knormalize_visitor.hpp"
-#include "closureconvert_visitor.hpp"
+#include "closure_convert.hpp"
 namespace mimium{
-class LLVMVisitor:public ASTVisitor,public std::enable_shared_from_this<LLVMVisitor> {
+class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
     private: 
+        // std::string filename;
         llvm::LLVMContext ctx;
         std::unique_ptr<llvm::Function> curfunc;
         std::shared_ptr<llvm::Module> module;
         std::unique_ptr<llvm::IRBuilder<>> builder;
-        AlphaConvertVisitor alphavisitor;
-        KNormalizeVisitor knormvisitor;
-        ClosureFlattenVisitor closurevisitor;
+        // ClosureConverter closureconverter;
+        void preprocess();
+        std::unordered_map<std::string, llvm::Value*> namemap;
     public:
-        LLVMGenerator();
-        LLVMGenerator(llvm::LLVMContext& _cts);
+        explicit LLVMGenerator(std::string filename);
+        // explicit LLVMGenerator(llvm::LLVMContext& _cts,std::string filename);
 
         ~LLVMGenerator();
         std::shared_ptr<llvm::Module> getModule();
 
-        bool generateCode(ListAST& listast, std::string name);
+        void generateCode(std::shared_ptr<MIRblock> mir);
+        void outputToStream(llvm::raw_ostream& ostream);
 
-        void visit(OpAST& ast);
-        void visit(ListAST& ast);
-        void visit(NumberAST& ast);
-        void visit(SymbolAST& ast);
-        void visit(AssignAST& ast);
-        void visit(ArgumentsAST& ast);
-        void visit(ArrayAST& ast);
-        void visit(ArrayAccessAST& ast);
-        void visit(FcallAST& ast);
-        void visit(LambdaAST& ast);
-        void visit(IfAST& ast);
-        void visit(ReturnAST& ast);
-        void visit(ForAST& ast);
-        void visit(DeclarationAST& ast);
-        void visit(TimeAST& ast);
 };
+// struct InstructionVisitor{
+//     void operator()(NumberInst)
+// };
 }//namespace mimium
