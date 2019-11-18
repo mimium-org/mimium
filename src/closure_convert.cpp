@@ -49,10 +49,9 @@ std::shared_ptr<MIRblock> ClosureConverter::convertRaw(std::shared_ptr<MIRblock>
     for(auto it = mir->instructions.begin(),end =mir->instructions.end();it!=end; it++){
         auto& inst = *it;
         std::deque<std::string> fvlist;
-        std::deque<std::string> dummy_arg;
         auto type =  std::visit([](auto i){return i->type;},inst);
         std::visit([&,this](auto c){
-                c->closureConvert(fvlist, dummy_arg, shared_from_this() ,mir,it);
+                c->closureConvert(fvlist, shared_from_this() ,mir,it);
                 },inst);
     }
     return mir;

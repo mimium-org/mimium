@@ -31,6 +31,8 @@ TEST(LLVMGenerateTest, basic) {
   alphaast->accept(*typevisitor);
   alphaast->accept(*knormvisitor);
   auto mir = knormvisitor->getResult();
+      std::cout << mir->toString() << std::endl;
+
   auto converted = closureconverter->convert(mir);
     std::cout << converted->toString() << std::endl;
   llvmgenerator->generateCode(converted);

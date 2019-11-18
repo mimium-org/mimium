@@ -16,16 +16,19 @@
 #include "knormalize_visitor.hpp"
 #include "closure_convert.hpp"
 namespace mimium{
-class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
+class LLVMGenerator {
     private: 
         // std::string filename;
         llvm::LLVMContext ctx;
         std::unique_ptr<llvm::Function> curfunc;
         std::shared_ptr<llvm::Module> module;
         std::unique_ptr<llvm::IRBuilder<>> builder;
-        // ClosureConverter closureconverter;
-        void preprocess();
         std::unordered_map<std::string, llvm::Value*> namemap;
+        std::unique_ptr<llvm::BasicBlock> mainentry;
+
+        llvm::Type* getType(types::Value type);
+        void preprocess();
+        void visitInstructions(Instructions& inst);
     public:
         explicit LLVMGenerator(std::string filename);
         // explicit LLVMGenerator(llvm::LLVMContext& _cts,std::string filename);

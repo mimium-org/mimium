@@ -51,3 +51,25 @@ TEST(ClosureConvertTest, basic) {
       "  main7 = appcls maincounter6 k6\n";
   EXPECT_EQ(ans, converted->toString());
 };
+
+TEST(ClosureConvertTest, localvar) {
+  alphavisitor.reset();
+  alphavisitor = std::make_shared<mimium::AlphaConvertVisitor>();
+  typevisitor.reset();
+  typevisitor = std::make_shared<mimium::TypeInferVisitor>();
+   knormvisitor.reset();
+  knormvisitor = std::make_shared<mimium::KNormalizeVisitor>(typevisitor);
+  closureconverter.reset();
+  closureconverter = std::make_shared<mimium::ClosureConverter>();
+  runtime.clear();
+   runtime.init(alphavisitor);
+  runtime.loadSourceFile("test_localvar.mmm");
+  auto alphaast = alphavisitor->getResult();
+  alphaast->accept(*typevisitor);
+  alphaast->accept(*knormvisitor);
+  auto mir = knormvisitor->getResult();
+  std::cout << mir->toString()<<std::endl;
+  auto converted = closureconverter->convert(mir);
+  std::string ans ="";
+  EXPECT_EQ(ans, converted->toString());
+};

@@ -43,22 +43,22 @@ void MIRinstruction::gatherFV_raw(std::deque<std::string>& fvlist ,std::shared_p
 std::string NumberInst::toString() {
   return lv_name + " = " + std::to_string(val);
 }
-void NumberInst::closureConvert(std::deque<std::string>& fvlist, std::deque<std::string>& args,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it){
+void NumberInst::closureConvert(std::deque<std::string>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it){
   cc->env->setVariableRaw(lv_name,std::to_string(val));
 }
 
 std::string SymbolInst::toString() { return lv_name + " = " + val ; }
-void SymbolInst::closureConvert(std::deque<std::string>& fvlist, std::deque<std::string>& args,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it){
+void SymbolInst::closureConvert(std::deque<std::string>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it){
   //do nothing
 }
 
 std::string RefInst::toString() { return lv_name + " = ref " + val ; }
-void RefInst::closureConvert(std::deque<std::string>& fvlist, std::deque<std::string>& args,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it){
+void RefInst::closureConvert(std::deque<std::string>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it){
   cc->env->setVariableRaw(lv_name,val);
 }
 
 std::string TimeInst::toString() { return lv_name + " = " + val + +"@" + time; }
-void TimeInst::closureConvert(std::deque<std::string>& fvlist, std::deque<std::string>& args,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it){
+void TimeInst::closureConvert(std::deque<std::string>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it){
   gatherFV_raw(fvlist,cc->env,val);
   gatherFV_raw(fvlist,cc->env,time);
   cc->env->setVariableRaw(lv_name,val);
@@ -67,7 +67,7 @@ std::string OpInst::toString() {
   return lv_name + " = " + lhs + op + rhs;
 
 }
-void OpInst::closureConvert(std::deque<std::string>& fvlist, std::deque<std::string>& args,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it){
+void OpInst::closureConvert(std::deque<std::string>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it){
   gatherFV_raw(fvlist,cc->env,lhs);
   gatherFV_raw(fvlist,cc->env,rhs);
   cc->env->setVariableRaw(lv_name,"some_op");
@@ -86,16 +86,15 @@ std::string FunInst::toString() {
   
   return s;
 }
-void FunInst::closureConvert(std::deque<std::string>& fvlist, std::deque<std::string>& args,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it){
-
-  for(auto& a : args){
-    cc->env->setVariableRaw(a,"arg");
-  }
+void FunInst::closureConvert(std::deque<std::string>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it){
   auto tmpenv = cc->env;
   cc->env =  cc->env->createNewChild(lv_name);
+  for(auto& a : this->args){
+    cc->env->setVariableRaw(a,"arg");
+  }
   for(auto cit = body->instructions.begin(),end = body->instructions.end() ;cit!=end; cit++){
     auto& childinst = *cit;
-    std::visit([&](auto c){c->closureConvert(this->freevariables,this->args,cc,this->body,cit);} ,childinst);//recursively visit;
+    std::visit([&](auto c){c->closureConvert(this->freevariables,cc,this->body,cit);} ,childinst);//recursively visit;
   }
   if(this->freevariables.size()<=0){
     cc->known_functions[lv_name] = shared_from_this();
@@ -135,14 +134,14 @@ std::string s;
   // s += body->toString();
   return s;
 }
-void MakeClosureInst::closureConvert(std::deque<std::string>& fvlist, std::deque<std::string>& args,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it){
+void MakeClosureInst::closureConvert(std::deque<std::string>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it){
 //do nothing
 }
 std::string FcallInst::toString(){
     std::string s;
     return lv_name + " = app"+fcalltype_str[ftype] + " " + fname +" "+ join(args," , ")  ;
 }
-void FcallInst::closureConvert(std::deque<std::string>& fvlist, std::deque<std::string>& args,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it){
+void FcallInst::closureConvert(std::deque<std::string>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it){
   bool isknown = cc->known_functions.count(this->fname)>0;
   if(isknown){
     this->ftype = DIRECT;
@@ -157,7 +156,7 @@ std::string ArrayInst::toString(){
     return lv_name + " = array " + name + " " + join(args," , ");
 }
 
-void ArrayInst::closureConvert(std::deque<std::string>& fvlist, std::deque<std::string>& args,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it){
+void ArrayInst::closureConvert(std::deque<std::string>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it){
   for(auto& a : this->args){
     gatherFV_raw(fvlist,cc->env,a);
   }
@@ -167,7 +166,7 @@ void ArrayInst::closureConvert(std::deque<std::string>& fvlist, std::deque<std::
 std::string ArrayAccessInst::toString(){
     return lv_name + " = arrayaccess " + name + " " + index;
 }
-void ArrayAccessInst::closureConvert(std::deque<std::string>& fvlist, std::deque<std::string>& args,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it){
+void ArrayAccessInst::closureConvert(std::deque<std::string>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it){
     gatherFV_raw(fvlist,cc->env,name);
     gatherFV_raw(fvlist,cc->env,index);
     cc->env->setVariableRaw(lv_name,"some_access");
@@ -181,21 +180,21 @@ std::string IfInst::toString(){
   s+= elseblock->toString();
   return s;
 }
-void IfInst::closureConvert(std::deque<std::string>& fvlist, std::deque<std::string>& args,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it){
+void IfInst::closureConvert(std::deque<std::string>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it){
     gatherFV_raw(fvlist,cc->env,cond);
     for(auto cit = thenblock->instructions.begin(),end =thenblock->instructions.end();cit!=end; cit++){
       auto& theninst = *cit;
-      std::visit([&](auto c){c->closureConvert(fvlist,args,cc,mir,cit);},theninst);
+      std::visit([&](auto c){c->closureConvert(fvlist,cc,mir,cit);},theninst);
     }
     for(auto cit = elseblock->instructions.begin(),end =elseblock->instructions.end();cit!=end; cit++){
       auto& elseinst = *cit;
-      std::visit([&](auto c){c->closureConvert(fvlist,args,cc,mir,cit);},elseinst);
+      std::visit([&](auto c){c->closureConvert(fvlist,cc,mir,cit);},elseinst);
     }
 }
 std::string ReturnInst::toString(){
     return lv_name + " = return " + val ;
 }
-void ReturnInst::closureConvert(std::deque<std::string>& fvlist, std::deque<std::string>& args,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it){
+void ReturnInst::closureConvert(std::deque<std::string>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it){
       gatherFV_raw(fvlist,cc->env,val);
       // std::visit( overloaded{
       //   [](types::Function f){},
