@@ -10,6 +10,14 @@ A final purpose is to edit a source code written in this language with gui as a 
 
 More specific info about language is currently in [design](design/design-proposal.md) section.
 
+# Dependency
+
+- llvm
+- clang > 8.0.0(depends on features of C++ 17)
+- RtAudio
+- RtMidi
+- LibSndFile
+
 # Author
 
 Tomoya Matsuura 松浦知也
