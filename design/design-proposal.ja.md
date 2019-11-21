@@ -55,7 +55,7 @@ function noteOff(input_pitch::int,instrument){
    	instrument.gain = 0.0
 }
  
- pitchevents.map(pitch->noteOn(pitch)) // bind noteon to all pitchevents elements
+ pitchevents.map((pitch)->{noteOn(pitch)}) // bind noteon to all pitchevents elements
 ```
 
 ### 関数の中の任意の変数呼び出しで、過去/未来の値を参照できる、
@@ -63,9 +63,9 @@ function noteOff(input_pitch::int,instrument){
 
 ```
  
-delay(input::int@) = input <<< 100[ms] //過去の入力を出力する
+delay(input::int@) = input@+100::ms //過去の入力を出力する
 
-future(input::int@) = input >>> 100[ms] //未来の入力を出力する(フィルターとか作るときに有効)
+future(input::int@) = input@+100::ms //未来の入力を出力する(フィルターとか作るときに有効)
 
  //VSTプラグインのように全体にオフセットディレイがかかる感じ（Chronicでもやってた） 
 ```
@@ -75,18 +75,54 @@ future(input::int@) = input >>> 100[ms] //未来の入力を出力する(フィ�
 ```
 combfilter(input) = input + 0.999*( self<<<1 ) // 出力で未来の参照>>>は流石にエラー
 
-combfilter = input+0.999*(self >>> 1[sec] ) // //絶対時間で遡ることもビルトイン機能で配列の補完が効けばできる??無理かも
+combfilter = input+0.999*(self >>> 1::sec ) // //絶対時間で遡ることもビルトイン機能で配列の補完が効けばできる??無理かも
  
 ```
 
 
 つまり、関数としてオーディオのパイプラインみたいに扱えるんだけど、内部的にはクラスのように値を保持している（配列の長さとかはコンパイル時に確定しなければエラーになる//faustと同じ）
 
+## 環境変数
+
+オーディオドライバなどから渡される値は環境変数≒グローバル変数として渡される
+イミュータブルなもの(例えばサンプルレート)とミュータブル(例えばdacのアウト)なもの両方がある
+
+環境変数は区別するために\#で参照される
+
+## 2つ目のreturn,future
+一定時間後に別の値を返す2つ目のreturnをfutureを書くことで予約できる
+返り値の型はreturnと一致している必要がある
+
+これと環境変数を組み合わせることでオーディオを以下のようなパイプライン形式で書くことができるようになる
+
+↓サイン波の例
+
+```
+fn ramp(SR::int, incl::double){
+    return self[-1]+incl
+    future ramp(incl@+SR) //type of return & future should be the same;
+}
+(#SR,1) : ramp : %(4410) : /(4410) : *(PI*2) |> sin　-> tmp1
+//コロンはパイプライン演算子、->は右向き代入 自動カリー化される
+
+tmp1+tmp2 -> out //みたいにしたときにtmp1とtmp2が違う間隔で実行されてたらどうやって同期します？tmp1が更新されたタイミングで自動で変更を伝搬？？？？
+
+//多分こう
+
+fn trigger(input){
+	return input
+	future trigger(input@+#SR)
+}
+
+trigger(tmp1+tmp2) -> out //periodically triggered in constant rate regardless update rate of tmp1 and tmp2
+
+```
+
 ## あんまり本質と関係ないけど実装したい機能
 
-### Dialect機能
+### Dialect機能(2019/11/21現在やめたほうがいいかもとおもっている)
 
-型/関数に対するエイリアスなんだけど、1回限りしかできない（エイリアスのエイリアスは不可）
+予約語や関数名に対するエイリアスなんだけど、1回限りしかできない（エイリアスのエイリアスは不可）
 パフォーマンスとかで短く書く用　
 コンパイル時にマクロ的に変換するので実行速度に影響しない(なんでもマクロを許すと大変なことになりそうなのでこういう制約をつけたい)
 

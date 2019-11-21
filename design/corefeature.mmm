@@ -3,41 +3,60 @@
 // make event
 
 x::int@ = 100(ms)
-y = x|>100(ms) //y becomes 200ms
-z = x<|100(sec)
+y = x>>>100(ms) //y becomes 200ms
+z = x<<<100(sec)
 
 declare myunit 1(ms)! //!makes it current default time-unit context
 
 x::int@ = 100 // you can define variable without time unit, default time unit in current context is used(you must specify in your code before default unit is called)
 
-function samplefun(x::int , y::int){
+fn samplefun(x::int , y::int){
     return x+y
 }
 
-samplefun = (x::int,y::int)->int {return x+y}
+samplefun = (x::int,y::int)->int {return x+y} //inline lambda
 
 
 //delay
 
 //delay of 100ms
 
-function delay(input){
-    input = input<|100::ms 
+fn delay(input){
+    input = input@-100::ms 
 }
 
 // delay can refer future
 //practically, it makes global offset delay of 100ms and pass the input
-function futuredelay(input){
-    input = input|>100::ms
+fn futuredelay(input){
+    input = input@+100::ms
 }
 
 //recursive
 //self is special parameter in function to refer to its own output history
 
-function combfilter(input){
- 	input = input + 0.999*(self<|100(ms) ); 
+fn combfilter(input){
+ 	return input + 0.999*(self@-100(ms) ); 
  }
 
-function smooth(input){
-    input = input+0.999*(self[-1]) // you can specify non-uniform time sequence as array
+fn smooth(input){
+    return input+0.999*(self[-1]) // you can specify non-uniform time sequence as array
 }
+
+//temporal recursion
+
+// SR,and dac comes from environment variable
+
+
+
+fn ramp(incl::double){
+    return self[-1]+incl
+    future ramp(incl@+#SR) //type of return & future should be the same;
+}
+fn phasor(rate::double){
+    return ramp(1)%rate
+}
+
+ch = sin(phasor*PI*2)
+(#dac[0],#dac[1]) = (ch,ch)
+
+
