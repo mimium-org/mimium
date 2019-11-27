@@ -22,10 +22,10 @@ class MIRblock;
 
 class ClosureConverter :public std::enable_shared_from_this<ClosureConverter>{
  public:
-  ClosureConverter();
+  explicit ClosureConverter(TypeEnv& _typeenv);
   ~ClosureConverter();
   std::shared_ptr<MIRblock> convert(std::shared_ptr<MIRblock> mir);
-
+  TypeEnv& typeenv;
   std::shared_ptr<MIRblock> toplevel;
   std::shared_ptr<Environment> env;
   int capturecount;

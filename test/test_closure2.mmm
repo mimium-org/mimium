@@ -1,0 +1,7 @@
+globalvar = 2
+glovalvar2 = 5
+fn closurefun(hoge){
+    return globalvar+glovalvar2+hoge
+}
+
+res = closurefun(3)

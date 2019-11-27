@@ -122,6 +122,7 @@ TEST(knormalizetest, closure) {
   alphaast->accept(*typeinfer);
   alphaast->accept(*knormvisitor);
   auto mainmir = knormvisitor->getResult();
+  // std::cout << mainmir->toString() << std::endl;
   EXPECT_EQ(mainmir->toString(),
             "main:\n"
             "  makecounter1 = fun x2\n"

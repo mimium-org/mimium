@@ -26,6 +26,7 @@ class LLVMGenerator :public std::enable_shared_from_this<LLVMGenerator>{
         std::shared_ptr<LLVMBuiltin> builtinfn;
 
         llvm::Type* getType(types::Value type);
+        llvm::Type* getRawStructType(types::Value& type);
         void preprocess();
         void visitInstructions(Instructions& inst);
 

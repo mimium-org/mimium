@@ -17,7 +17,7 @@ TEST(ClosureConvertTest, basic) {
   alphavisitor = std::make_shared<mimium::AlphaConvertVisitor>();
   typevisitor = std::make_shared<mimium::TypeInferVisitor>();
   knormvisitor = std::make_shared<mimium::KNormalizeVisitor>(typevisitor);
-  closureconverter = std::make_shared<mimium::ClosureConverter>();
+  closureconverter = std::make_shared<mimium::ClosureConverter>(typevisitor->getEnv());
 
   runtime.setWorkingDirectory("/Users/tomoya/codes/mimium/build/test/");
   mimium::Logger::current_report_level = mimium::Logger::DEBUG;
@@ -28,6 +28,7 @@ TEST(ClosureConvertTest, basic) {
   alphaast->accept(*knormvisitor);
   auto mir = knormvisitor->getResult();
   auto converted = closureconverter->convert(mir);
+  std::cout << converted->toString()<<std::endl;
   std::string ans =
       "main:\n"
       "  countup4 = fun y5 fv{ localvar3 , x2 }\n"
@@ -60,7 +61,7 @@ TEST(ClosureConvertTest, localvar) {
    knormvisitor.reset();
   knormvisitor = std::make_shared<mimium::KNormalizeVisitor>(typevisitor);
   closureconverter.reset();
-  closureconverter = std::make_shared<mimium::ClosureConverter>();
+  closureconverter = std::make_shared<mimium::ClosureConverter>(typevisitor->getEnv());
   runtime.clear();
    runtime.init(alphavisitor);
   runtime.loadSourceFile("test_localvar.mmm");
@@ -68,7 +69,7 @@ TEST(ClosureConvertTest, localvar) {
   alphaast->accept(*typevisitor);
   alphaast->accept(*knormvisitor);
   auto mir = knormvisitor->getResult();
-  std::cout << mir->toString()<<std::endl;
+  // std::cout << mir->toString()<<std::endl;
   auto converted = closureconverter->convert(mir);
   std::string ans ="";
   EXPECT_EQ(ans, converted->toString());

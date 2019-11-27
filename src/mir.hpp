@@ -8,7 +8,6 @@ namespace mimium {
 enum FCALLTYPE { DIRECT, CLOSURE, EXTERNAL };
 static std::map<FCALLTYPE, std::string> fcalltype_str={
     {DIRECT , ""}, {CLOSURE , "cls"}, {EXTERNAL , "ext"}};
-static std::string join(std::deque<std::string> vec, std::string delim);
 class ClosureConverter;//forward decl
 class MIRblock;
 class NumberInst;
@@ -25,16 +24,22 @@ class IfInst;
 class ReturnInst;
 
 using Instructions = std::variant<std::shared_ptr<NumberInst>,std::shared_ptr<SymbolInst>,std::shared_ptr<RefInst>,std::shared_ptr<TimeInst>,std::shared_ptr<OpInst>,std::shared_ptr<FunInst>,std::shared_ptr<FcallInst>,std::shared_ptr<MakeClosureInst>,std::shared_ptr<ArrayInst>,std::shared_ptr<ArrayAccessInst>,std::shared_ptr<IfInst>,std::shared_ptr<ReturnInst>>;
+
+struct TypedVal{
+  types::Value type;
+  std::string name; 
+};
+
 class MIRinstruction{  // base class for MIR instruction
  protected:
   virtual ~MIRinstruction(){};
   bool isFreeVariable(std::shared_ptr<Environment> env,std::string str);
-  void gatherFV_raw(std::deque<std::string>& fvlist,std::shared_ptr<Environment> env,std::string str);
+  void gatherFV_raw(std::deque<TypedVal>& fvlist,std::shared_ptr<Environment> env,TypeEnv& typeenv,std::string& str);
  public:
   std::string lv_name;
   types::Value type;
   virtual std::string toString() = 0;
-  virtual void closureConvert(std::deque<std::string>& fvlist, std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it)=0;
+  virtual void closureConvert(std::deque<TypedVal>& fvlist, std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it)=0;
   virtual void moveFunToTop(std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it){/*do nothing other than FunInst*/};
   virtual bool isFunction(){return false;}
 };
@@ -73,7 +78,7 @@ class NumberInst : public MIRinstruction {
       }
   double val;
   std::string toString() override;
-  void closureConvert(std::deque<std::string>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
+  void closureConvert(std::deque<TypedVal>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
 };
 class SymbolInst : public MIRinstruction {  //unused??
 
@@ -81,7 +86,7 @@ class SymbolInst : public MIRinstruction {  //unused??
 
  public:
   std::string toString() override;
-  void closureConvert(std::deque<std::string>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
+  void closureConvert(std::deque<TypedVal>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
 
 };
 class RefInst : public MIRinstruction{
@@ -93,7 +98,7 @@ class RefInst : public MIRinstruction{
         type = _type;
   }
   std::string toString() override;
-  void closureConvert(std::deque<std::string>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
+  void closureConvert(std::deque<TypedVal>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
 
 };
 
@@ -106,7 +111,7 @@ class TimeInst: public MIRinstruction{
     type = types::Time();
   }
   std::string toString() override;
-  void closureConvert(std::deque<std::string>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
+  void closureConvert(std::deque<TypedVal>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
 
 };
 class OpInst : public MIRinstruction {
@@ -123,24 +128,28 @@ class OpInst : public MIRinstruction {
         };
   std::string toString() override;
   OP_ID getOPid(){return optable[op];}
-  void closureConvert(std::deque<std::string>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
+  void closureConvert(std::deque<TypedVal>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
 
   ~OpInst(){};
 };
+
+
+
 class FunInst : public MIRinstruction ,public std::enable_shared_from_this<FunInst> {
  public:
   std::deque<std::string> args;
   std::shared_ptr<MIRblock> body;
-  std::deque<std::string> freevariables; //introduced in closure conversion;
+  std::deque<TypedVal> freevariables; //introduced in closure conversion;
   FunInst(std::string name,std::deque<std::string> newargs,types::Value _type = types::Void()):args(std::move(newargs)) {
     body = std::make_shared<MIRblock>(name);
     lv_name = name; 
     type = _type;//temporary;
     };
   std::string toString() override;
-  void closureConvert(std::deque<std::string>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
+  void closureConvert(std::deque<TypedVal>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
   void moveFunToTop(std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
   bool isFunction() override {return true;}
+  static types::Struct getFvType(std::deque<TypedVal>& fvlist);
 
 };
 class FcallInst : public MIRinstruction {
@@ -154,20 +163,19 @@ class FcallInst : public MIRinstruction {
         type = _type;
       };
   std::string toString() override;
-  void closureConvert(std::deque<std::string>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
+  void closureConvert(std::deque<TypedVal>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
 
 };
 class MakeClosureInst : public MIRinstruction {
-  std::string fname;
-  std::deque<std::string> captures;
-
  public:
+   std::string fname;
+  std::deque<TypedVal> captures;
   std::string toString() override;
-  MakeClosureInst(std::string _lv,std::string _fname,std::deque<std::string> _captures):fname(std::move(_fname)),captures(std::move(_captures)){
+  MakeClosureInst(std::string _lv,std::string _fname,std::deque<TypedVal>  _captures,types::Value _type):fname(std::move(_fname)),captures(_captures){
             lv_name=_lv;
-            type = types::Void();
+            type = _type;
   };
-  void closureConvert(std::deque<std::string>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
+  void closureConvert(std::deque<TypedVal>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
 
 };
 class ArrayInst : public MIRinstruction {
@@ -181,7 +189,7 @@ class ArrayInst : public MIRinstruction {
    }
 
   std::string toString() override;
-  void closureConvert(std::deque<std::string>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
+  void closureConvert(std::deque<TypedVal>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
 
 };
 class ArrayAccessInst : public MIRinstruction {
@@ -194,7 +202,7 @@ class ArrayAccessInst : public MIRinstruction {
     type = types::Float();
   }
   std::string toString() override;
-  void closureConvert(std::deque<std::string>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
+  void closureConvert(std::deque<TypedVal>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
 
 };
 class IfInst : public MIRinstruction {
@@ -209,7 +217,7 @@ class IfInst : public MIRinstruction {
     type = types::Void();
   }
   std::string toString() override;
-  void closureConvert(std::deque<std::string>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
+  void closureConvert(std::deque<TypedVal>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
 
 };
 class ReturnInst: public MIRinstruction{
@@ -220,7 +228,7 @@ class ReturnInst: public MIRinstruction{
       type = _type;
     }
     std::string toString() override;
-    void closureConvert(std::deque<std::string>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
+    void closureConvert(std::deque<TypedVal>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
 
 };
 }  // namespace mimium

@@ -45,8 +45,9 @@ namespace mimium{
         };
         struct Function;
         struct Array;
+        struct Struct;
         struct Time;
-        using Value = std::variant<types::Void,types::Float,types::String,recursive_wrapper<types::Function>,recursive_wrapper<types::Array>,types::Time>;
+        using Value = std::variant<types::Void,types::Float,types::String,recursive_wrapper<types::Function>,recursive_wrapper<types::Array>,recursive_wrapper<types::Struct>,types::Time>;
         struct Function {
             Function(){
             }
@@ -87,6 +88,20 @@ namespace mimium{
                 return elem_type;
             }
         };
+        struct Struct{
+            std::vector<Value> arg_types;
+            Struct(std::vector<Value> types):arg_types(types){}
+            std::string toString(){
+                std::string s;
+                s+= "struct{";
+                for(auto& a:arg_types){
+                    s+= std::visit([](auto c){return c.toString();},a) + " ";
+                }
+                s+="}";
+                return s;
+            }
+        };
+
     }//namespace types
     class TypeEnv{
         public:

@@ -17,15 +17,17 @@ TEST(LLVMGenerateTest, basic) {
   auto alphavisitor = std::make_shared<mimium::AlphaConvertVisitor>();
   auto typevisitor = std::make_shared<mimium::TypeInferVisitor>();
   auto knormvisitor = std::make_shared<mimium::KNormalizeVisitor>(typevisitor);
-  auto closureconverter = std::make_shared<mimium::ClosureConverter>();
+  auto closureconverter = std::make_shared<mimium::ClosureConverter>(typevisitor->getEnv());
   auto llvmgenerator = std::make_shared<mimium::LLVMGenerator>("test.ll");
   runtime.init(alphavisitor);
-  runtime.loadSourceFile("test_emit_llvm.mmm");
+  runtime.loadSourceFile("test_closure2.mmm");
   auto alphaast = alphavisitor->getResult();
   alphaast->accept(*typevisitor);
   alphaast->accept(*knormvisitor);
   auto mir = knormvisitor->getResult();
   auto converted = closureconverter->convert(mir);
+  std::cout << converted->toString() <<std::endl;
+
   llvmgenerator->generateCode(converted);
   std::string test = "";
   llvm::raw_string_ostream ss(test);
@@ -39,7 +41,7 @@ TEST(LLVMGenerateTest, builtin) {
   auto alphavisitor = std::make_shared<mimium::AlphaConvertVisitor>();
   auto typevisitor = std::make_shared<mimium::TypeInferVisitor>();
   auto knormvisitor = std::make_shared<mimium::KNormalizeVisitor>(typevisitor);
-  auto closureconverter = std::make_shared<mimium::ClosureConverter>();
+  auto closureconverter = std::make_shared<mimium::ClosureConverter>(typevisitor->getEnv());
   auto llvmgenerator = std::make_shared<mimium::LLVMGenerator>("test.ll");
   runtime.init(alphavisitor);
   runtime.loadSource("main = print(100)");

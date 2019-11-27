@@ -1,7 +1,7 @@
 #include "closure_convert.hpp"
 
 namespace mimium {
-ClosureConverter::ClosureConverter():capturecount(0){
+ClosureConverter::ClosureConverter(TypeEnv& _typeenv):typeenv(_typeenv),capturecount(0){
     env = std::make_shared<Environment>("root",nullptr);
 }
 ClosureConverter::~ClosureConverter(){
@@ -48,10 +48,10 @@ std::shared_ptr<MIRblock> ClosureConverter::convertRaw(std::shared_ptr<MIRblock>
     
     for(auto it = mir->instructions.begin(),end =mir->instructions.end();it!=end; it++){
         auto& inst = *it;
-        std::deque<std::string> fvlist;
+        std::deque<TypedVal> fvlist;
         auto type =  std::visit([](auto i){return i->type;},inst);
         std::visit([&,this](auto c){
-                c->closureConvert(fvlist, shared_from_this() ,mir,it);
+                c->closureConvert(fvlist, shared_from_this(),mir,it);
                 },inst);
     }
     return mir;
