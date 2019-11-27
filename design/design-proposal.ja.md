@@ -102,7 +102,7 @@ fn ramp(SR::int, incl::double){
     return self[-1]+incl
     future ramp(incl@+SR) //type of return & future should be the same;
 }
-(#SR,1) : ramp : %(4410) : /(4410) : *(PI*2) |> sin　-> tmp1
+(#SR,1) : ramp : %(4410) : /(4410) : *(PI*2) : sin　-> tmp1
 //コロンはパイプライン演算子、->は右向き代入 自動カリー化される
 
 tmp1+tmp2 -> out //みたいにしたときにtmp1とtmp2が違う間隔で実行されてたらどうやって同期します？tmp1が更新されたタイミングで自動で変更を伝搬？？？？
@@ -115,6 +115,22 @@ fn trigger(input){
 }
 
 trigger(tmp1+tmp2) -> out //periodically triggered in constant rate regardless update rate of tmp1 and tmp2
+
+ではダウンサンプルはどうするか
+
+fn make_downsample(){
+	count = 0
+	fn downsample(input){
+		count = (count+1)%256
+		return (count==0)? : input : STOP
+	}
+	return downsample
+}
+ds = make_downsample()
+input : downsample
+
+こうすると関数が値を返す時と返さない時とがある
+何かnullでもvoidでもない別の予約ワードが必要？（エラーではないが、何も返さない、代入した時何も値を更新しない）
 
 ```
 
