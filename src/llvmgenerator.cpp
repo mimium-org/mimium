@@ -12,12 +12,29 @@ LLVMGenerator::LLVMGenerator(std::string _filename) {
 
 LLVMGenerator::~LLVMGenerator() {
   namemap.clear();
-  for (auto& f : module->getFunctionList()) {
-    for (auto& bb : f.getBasicBlockList()) {
-      bb.eraseFromParent();
+  auto& flist = module->getFunctionList();
+  for (auto& f : flist) {
+    auto& bbs = f.getBasicBlockList();
+    while (bbs.size() > 0) {
+      auto bb = bbs.begin();
+      auto inst = bb->begin();
+      while (bb->getInstList().size() > 0) {
+        inst->replaceAllUsesWith(llvm::UndefValue::get(inst->getType()));
+        // inst->dropAllReferences();
+        inst = inst->eraseFromParent();
+      }
+      bb->dropAllReferences();
+      bb = bb->eraseFromParent();
+      bb = bbs.begin();
     }
-    delete &f;
   }
+  auto f = flist.begin();
+  while (flist.size() > 0) {
+    f->dropAllReferences();
+    flist.erase(f);
+    f = flist.begin();
+  }
+
 }
 
 std::shared_ptr<llvm::Module> LLVMGenerator::getModule() {
@@ -34,7 +51,7 @@ llvm::Type* LLVMGenerator::getRawStructType(types::Value& type) {
     field.push_back(getType(a));
   }
 
-  llvm::Type* structtype = llvm::StructType::create(ctx, field,"fvtype");
+  llvm::Type* structtype = llvm::StructType::create(ctx, field, "fvtype");
   return structtype;
 }
 llvm::Type* LLVMGenerator::getType(types::Value type) {
@@ -58,10 +75,10 @@ llvm::Type* LLVMGenerator::getType(types::Value type) {
             auto s = (types::Struct)rs;
             std::vector<llvm::Type*> field;
             for (auto& a : s.arg_types) {
-              field.push_back(getType(a));
+              field.push_back(llvm::PointerType::get(getType(a), 0));
             }
-            llvm::Type* structtype =
-                llvm::PointerType::get(llvm::StructType::create(ctx, field,"fvtype"), 0);
+            llvm::Type* structtype = llvm::PointerType::get(
+                llvm::StructType::create(ctx, field, "fvtype"), 0);
             return structtype;
           },
           [this](auto t) {
@@ -72,16 +89,15 @@ llvm::Type* LLVMGenerator::getType(types::Value type) {
       type);
 }
 
-void LLVMGenerator::setBB(std::shared_ptr<llvm::BasicBlock> newblock) {
-  builder->SetInsertPoint(newblock.get());
+void LLVMGenerator::setBB(llvm::BasicBlock* newblock) {
+  builder->SetInsertPoint(newblock);
 }
 void LLVMGenerator::preprocess() {
   auto* fntype = llvm::FunctionType::get(llvm::Type::getInt64Ty(ctx), false);
   auto* mainfun = llvm::Function::Create(
       fntype, llvm::Function::ExternalLinkage, "main", module.get());
-  std::unique_ptr<llvm::BasicBlock> ptr(
-      llvm::BasicBlock::Create(ctx, "entry", mainfun));
-  mainentry = std::move(ptr);
+
+  mainentry = llvm::BasicBlock::Create(ctx, "entry", mainfun);
   setBB(mainentry);
 }
 
@@ -97,12 +113,13 @@ void LLVMGenerator::visitInstructions(Instructions& inst) {
       overloaded{
           [](auto i) {},
           [&, this](std::shared_ptr<NumberInst> i) {
-            auto* ptr =
-                builder->CreateAlloca(llvm::Type::getDoubleTy(ctx), nullptr);
+            auto* ptr = builder->CreateAlloca(llvm::Type::getDoubleTy(ctx),
+                                              nullptr, "ptr_" + i->lv_name);
             auto* finst =
                 llvm::ConstantFP::get(this->ctx, llvm::APFloat(i->val));
             builder->CreateStore(std::move(finst), std::move(ptr));
             auto* load = builder->CreateLoad(ptr, i->lv_name);
+            namemap.emplace("ptr_" + i->lv_name, ptr);
             namemap.emplace(i->lv_name, load);
           },
           [&, this](std::shared_ptr<OpInst> i) {
@@ -140,7 +157,7 @@ void LLVMGenerator::visitInstructions(Instructions& inst) {
                 arg.setName(i->args[idx++]);
               }
             }
-            if (i->freevariables.size() > 0) {
+            if (hasfv) {
               auto it = f->args().end();
               (--it)->setName("clsarg_" + i->lv_name);
             }
@@ -158,8 +175,10 @@ void LLVMGenerator::visitInstructions(Instructions& inst) {
             for (int id = 0; id < i->freevariables.size(); id++) {
               std::string newname = "fv_" + i->freevariables[id].name;
               llvm::Value* gep = builder->CreateStructGEP(lastarg, id, "fv");
-              llvm::Value* load = builder->CreateLoad(gep, newname);
-              auto [it, res] = namemap.try_emplace(newname, load);
+              llvm::Value* ptrload =
+                  builder->CreateLoad(gep, "ptrto_" + newname);
+              llvm::Value* valload = builder->CreateLoad(ptrload, newname);
+              auto [it, res] = namemap.try_emplace(newname, valload);
             }
             for (auto& cinsts : i->body->instructions) {
               visitInstructions(cinsts);
@@ -167,15 +186,19 @@ void LLVMGenerator::visitInstructions(Instructions& inst) {
             setBB(mainentry);
           },
           [&, this](std::shared_ptr<MakeClosureInst> i) {
-            auto it = static_cast<llvm::Function*>(namemap[i->fname])->arg_end();
-            llvm::Type* strtype =  static_cast<llvm::PointerType*>((--it)->getType())->getElementType();
+            auto it =
+                static_cast<llvm::Function*>(namemap[i->fname])->arg_end();
+            llvm::Type* strtype =
+                static_cast<llvm::PointerType*>((--it)->getType())
+                    ->getElementType();
             llvm::Value* cap_size =
                 builder->CreateAlloca(strtype, nullptr, i->lv_name);
             int idx = 0;
             for (auto& cap : i->captures) {
               llvm::Value* gep =
                   builder->CreateStructGEP(strtype, cap_size, idx, "");
-              llvm::Value* store = builder->CreateStore(namemap[cap.name], gep);
+              llvm::Value* store =
+                  builder->CreateStore(namemap["ptr_" + cap.name], gep);
               idx++;
             }
             namemap.emplace(i->lv_name, cap_size);
@@ -188,7 +211,7 @@ void LLVMGenerator::visitInstructions(Instructions& inst) {
               namemap[a]->dump();
             }
             if (i->ftype == CLOSURE) {
-              llvm::Value* cls = namemap[i->fname+"$cls"];
+              llvm::Value* cls = namemap[i->fname + "_cls"];
               args.push_back(cls);
               cls->dump();
             }

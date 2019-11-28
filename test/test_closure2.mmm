@@ -1,7 +1,14 @@
 globalvar = 2
 glovalvar2 = 5
+gv3 = 100
 fn closurefun(hoge){
     return globalvar+glovalvar2+hoge
 }
 
+fn myfun2(test){
+    return glovalvar2+gv3*test
+}
+
 res = closurefun(3)
+
+res2 = myfun2(200)
