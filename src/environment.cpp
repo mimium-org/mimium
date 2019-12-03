@@ -13,18 +13,20 @@ bool Environment::isVariableSet(std::string key) {
 
 std::pair<bool, bool> Environment::isFreeVariable(std::string key) {
   // return value: [isvarset , isfv]
-  if (variables.size() > 0 && variables.count(key) > 0) {  // search dictionary
-    return std::pair(true, false);  // return false if var is local variable
+  std::pair<bool, bool> res;
+  if (!variables.empty() && variables.count(key) > 0) {  // search dictionary
+    res= std::pair(true, false);  // return false if var is local variable
   } else if (parent != nullptr) {
     auto [isvarset, isisfv] = parent->isFreeVariable(key);
-    return std::pair(isvarset, true);  // search recursively
+    res= std::pair(isvarset, true);  // search recursively
   } else {
     throw std::runtime_error("Variable " + key + " not found");
-    return std::pair(false, false);
+    res= std::pair(false, false);
   }
+  return res;
 }
 mValue Environment::findVariable(std::string key) {
-  if (variables.size() > 0 && variables.count(key) > 0) {  // search dictionary
+  if (!variables.empty() && variables.count(key) > 0) {  // search dictionary
     return variables.at(key);
   } else if (parent != nullptr) {
     return parent->findVariable(key);  // search recursively
@@ -41,7 +43,7 @@ void Environment::setVariable(std::string key, mValue val) {
   } else {
     newval = val;
   }
-  if (variables.size() > 0 && variables.count(key) > 0) {  // search dictionary
+  if (!variables.empty() && variables.count(key) > 0) {  // search dictionary
     // Logger::debug_log("Variable " + key + " already exists as " +
     // variables[key] + ". Overwritten to " + Runtime::to_string(newval),
     //               Logger::INFO);

@@ -8,7 +8,7 @@ namespace mimium {
 class TypeInferVisitor : public ASTVisitor {
  public:
   TypeInferVisitor();
-  ~TypeInferVisitor() = default;
+  ~TypeInferVisitor() override = default;
   void init();
   void visit(OpAST& ast) override;
   void visit(ListAST& ast) override;
@@ -28,7 +28,7 @@ class TypeInferVisitor : public ASTVisitor {
   void visit(TimeAST& ast) override;
   void visit(StructAST& ast) override;
   void visit(StructAccessAST& ast) override;
-  mValue findVariable(std::string str) override { return 0; }  //??
+  mValue findVariable(std::string  /*str*/) override { return 0.; }  //??
   TypeEnv& getEnv() { return typeenv; };
   types::Value getLastType() { return res_stack; }
 

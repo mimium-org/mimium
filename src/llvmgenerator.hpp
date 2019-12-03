@@ -25,7 +25,7 @@ class LLVMGenerator :public std::enable_shared_from_this<LLVMGenerator>{
         // std::string filename;
         std::shared_ptr<LLVMBuiltin> builtinfn;
 
-        auto getType(types::Value type) -> llvm::Type*;
+        auto getType(const types::Value& type) -> llvm::Type*;
         auto getRawStructType(const types::Value& type) -> llvm::Type*;
         void preprocess();
         void visitInstructions(const Instructions& inst);
@@ -38,7 +38,7 @@ class LLVMGenerator :public std::enable_shared_from_this<LLVMGenerator>{
         std::unordered_map<std::string, llvm::Value*> namemap;
         llvm::BasicBlock* mainentry;
         llvm::BasicBlock* currentblock;
-        explicit LLVMGenerator(std::string _filename);
+        explicit LLVMGenerator(std::string filename);
         // explicit LLVMGenerator(llvm::LLVMContext& _cts,std::string filename);
 
         ~LLVMGenerator();

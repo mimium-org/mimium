@@ -1,5 +1,17 @@
-Checks: 'clang-diagnostic-*,clang-analyzer-*cppcoreguidelines-*,google-*,modernize-*,misc-*,readability-*,portability-*
-HeaderFilterRegex: "src.*\.(hpp|h)"
+Checks: "clang-diagnostic-*,\
+clang-analyzer-*,\
+cppcoreguidelines-*,\
+google-*,\
+modernize-*,\
+misc-*,\
+readability-*,\
+performance-*,\
+portability-*,\
+-performance-unnecessary-value-param,\
+-modernize-use-trailing-return-type,\
+-misc-non-private-member-variables-in-classes\
+"
+HeaderFilterRegex: 'src.*\.(hpp|h)'
 CheckOptions:
   - key:             readability-identifier-naming.ClassCase
     value:           CamelCase
@@ -9,8 +21,6 @@ CheckOptions:
     value:           camelBack
   - key:             readability-identifier-naming.MemberCase
     value:           lower_case
-  - key:             readability-identifier-naming.MemberSuffix
-    value:           _
   - key:             readability-identifier-naming.ParameterCase
     value:           lower_case
   - key:             readability-identifier-naming.UnionCase

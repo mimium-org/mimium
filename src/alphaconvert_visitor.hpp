@@ -27,8 +27,8 @@ class AlphaConvertVisitor : public ASTVisitor {
   void visit(TimeAST& ast) override;
   void visit(StructAST& ast)override;
   void visit(StructAccessAST& ast)override;
-  std::shared_ptr<ListAST> getResult();
-  mValue findVariable(std::string str)override{return 0;};
+  auto getResult() -> std::shared_ptr<ListAST>;
+  mValue findVariable(std::string str)override{return 0.;};
  private:
   template <class T>
   void defaultvisit(T& ast) {
@@ -39,7 +39,7 @@ class AlphaConvertVisitor : public ASTVisitor {
     auto newast = std::make_shared<MYAST>();  // make empty args
     for (auto& elem : ast.getElements()) {
       elem->accept(* this);
-      newast->appendAST(std::move(stack_pop_ptr()));
+      newast->appendAST(std::move(stackPopPtr()));
     }
     res_stack.push(std::move(newast));
   };
@@ -47,7 +47,7 @@ class AlphaConvertVisitor : public ASTVisitor {
   std::shared_ptr<Environment> env;
   int namecount;
   int envcount;
-  AST_Ptr stack_pop_ptr() { return std::get<AST_Ptr>(stack_pop()); }
+  auto stackPopPtr() -> AST_Ptr { return std::get<AST_Ptr>(stack_pop()); }
 };
 
 }  // namespace mimium

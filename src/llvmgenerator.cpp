@@ -2,9 +2,9 @@
 #include <cstddef>
 #include "type.hpp"
 namespace mimium {
-LLVMGenerator::LLVMGenerator(std::string _filename):mainentry(nullptr),currentblock(nullptr) {
+LLVMGenerator::LLVMGenerator(std::string filename):mainentry(nullptr),currentblock(nullptr) {
   builder = std::make_unique<llvm::IRBuilder<>>(ctx);
-  module = std::make_shared<llvm::Module>(_filename, ctx);
+  module = std::make_shared<llvm::Module>(filename, ctx);
   builtinfn = std::make_shared<LLVMBuiltin>();
 }
 // LLVMGenerator::LLVMGenerator(llvm::LLVMContext& _ctx,std::string _filename){
@@ -55,11 +55,11 @@ auto LLVMGenerator::getRawStructType(const types::Value& type) -> llvm::Type* {
   llvm::Type* structtype = llvm::StructType::create(ctx, field, "fvtype");
   return structtype;
 }
-auto LLVMGenerator::getType(types::Value type) -> llvm::Type* {
+auto LLVMGenerator::getType(const types::Value& type) -> llvm::Type* {
   return std::visit(
       overloaded{
-          [this](types::Float f) { return llvm::Type::getDoubleTy(ctx); },
-          [this](recursive_wrapper<types::Function> rf) {
+          [this](const types::Float& f) { return llvm::Type::getDoubleTy(ctx); },//NOLINT
+          [this](const recursive_wrapper<types::Function>& rf) {
             auto f = types::Function(rf);
             std::vector<llvm::Type*> args;
             auto* rettype = getType(f.getReturnType());
@@ -72,7 +72,7 @@ auto LLVMGenerator::getType(types::Value type) -> llvm::Type* {
                 rettype, args, false);  // what is final parameter isVarArg??
             return res;
           },
-          [this](recursive_wrapper<types::Struct> rs) {
+          [this](const recursive_wrapper<types::Struct>& rs) {
             auto s = types::Struct(rs);
             std::vector<llvm::Type*> field;
             for (auto& a : s.arg_types) {
@@ -82,7 +82,7 @@ auto LLVMGenerator::getType(types::Value type) -> llvm::Type* {
                 llvm::StructType::create(ctx, field, "fvtype"), 0);
             return structtype;
           },
-          [this](auto t) {
+          [this](auto& t) {//NOLINT
             throw std::runtime_error("not a function");
             return llvm::Type::getDoubleTy(ctx);
             ;
@@ -109,21 +109,21 @@ void LLVMGenerator::generateCode(std::shared_ptr<MIRblock> mir) {
   }
 }
 
-void LLVMGenerator::visitInstructions(Instructions& inst) {
+void LLVMGenerator::visitInstructions(const Instructions& inst) {
   std::visit(
       overloaded{
           [](auto i) {},
-          [&, this](std::shared_ptr<NumberInst> i) {
+          [&, this](const std::shared_ptr<NumberInst>& i) {
             auto* ptr = builder->CreateAlloca(llvm::Type::getDoubleTy(ctx),
                                               nullptr, "ptr_" + i->lv_name);
             auto* finst =
                 llvm::ConstantFP::get(this->ctx, llvm::APFloat(i->val));
-            builder->CreateStore(std::move(finst), std::move(ptr));
+            builder->CreateStore(finst, ptr);
             auto* load = builder->CreateLoad(ptr, i->lv_name);
             namemap.emplace("ptr_" + i->lv_name, ptr);
             namemap.emplace(i->lv_name, load);
           },
-          [&, this](std::shared_ptr<OpInst> i) {
+          [&, this](const std::shared_ptr<OpInst>& i) {
             llvm::Value* ptr;
             switch (i->getOPid()) {
               case ADD:
@@ -147,7 +147,7 @@ void LLVMGenerator::visitInstructions(Instructions& inst) {
             }
             namemap.emplace(i->lv_name, ptr);
           },
-          [&, this](std::shared_ptr<FunInst> i) {
+          [&, this](const std::shared_ptr<FunInst>& i) {
             bool hasfv = !i->freevariables.empty();
             auto* ft = static_cast<llvm::FunctionType*>(getType(i->type));//NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
             llvm::Function* f = llvm::Function::Create(
@@ -186,7 +186,7 @@ void LLVMGenerator::visitInstructions(Instructions& inst) {
             }
             setBB(mainentry);
           },
-          [&, this](std::shared_ptr<MakeClosureInst> i) {
+          [&, this](const std::shared_ptr<MakeClosureInst>& i) {
             auto it =
                 static_cast<llvm::Function*>(namemap[i->fname])->arg_end();//NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
             auto ptrtype = static_cast<llvm::PointerType*>((--it)->getType());//NOLINT
@@ -202,7 +202,7 @@ void LLVMGenerator::visitInstructions(Instructions& inst) {
             }
             namemap.emplace(i->lv_name, cap_size);
           },
-          [&, this](std::shared_ptr<FcallInst> i) {
+          [&, this](const std::shared_ptr<FcallInst>& i) {
             llvm::Value* res;
             std::vector<llvm::Value*> args;
             for (auto& a : i->args) {
@@ -227,9 +227,9 @@ void LLVMGenerator::visitInstructions(Instructions& inst) {
               fun->dump();
               res = builder->CreateCall(fun, args, i->lv_name);
             }
-            namemap.emplace(i->lv_name, std::move(res));
+            namemap.emplace(i->lv_name, res);
           },
-          [&, this](std::shared_ptr<ReturnInst> i) {
+          [&, this](const std::shared_ptr<ReturnInst>& i) {
             builder->CreateRet(namemap[i->val]);
           }},
       inst);

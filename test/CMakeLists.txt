@@ -3,11 +3,13 @@ project(mytest CXX)
 find_package(SndFile REQUIRED)
 
 find_package(GTest REQUIRED)
+include(GoogleTest)
+
+
 
 BISON_TARGET(MyParser ../src/mimium.yy ${CMAKE_CURRENT_BINARY_DIR}/mimium_parser.cpp)
 FLEX_TARGET(MyScanner ../src/mimium.l ${CMAKE_CURRENT_BINARY_DIR}/tokens.cpp)
 ADD_FLEX_BISON_DEPENDENCY(MyScanner MyParser)
-
 
 
 add_executable(Test
@@ -30,6 +32,7 @@ target_include_directories(Test
     PRIVATE
     .
     ${CMAKE_CURRENT_BINARY_DIR}
+    ${GTEST_INCLUDE_DIRS}
     )
 target_include_directories(SchedulerTest
     PRIVATE

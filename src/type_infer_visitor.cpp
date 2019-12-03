@@ -1,164 +1,152 @@
 #include "type_infer_visitor.hpp"
 
-namespace mimium{
-TypeInferVisitor::TypeInferVisitor():has_return(false){
-    init();
-}
+namespace mimium {
+TypeInferVisitor::TypeInferVisitor() : has_return(false) { init(); }
 
-void TypeInferVisitor::init(){
-    has_return =false;
-}
-void TypeInferVisitor::visit(LvarAST& ast) {
-    res_stack = ast.type;  
-}
-
+void TypeInferVisitor::init() { has_return = false; }
+void TypeInferVisitor::visit(LvarAST& ast) { res_stack = ast.type; }
 
 void TypeInferVisitor::visit(RvarAST& ast) {
-    auto it = typeenv.env.find(ast.getVal());
-    res_stack = it->second;
+  auto it = typeenv.env.find(ast.getVal());
+  res_stack = it->second;
 }
 void TypeInferVisitor::visit(OpAST& ast) {
-    ast.lhs->accept(*this);
-    types::Value lhstype = res_stack;
-    ast.rhs->accept(*this);
-    types::Value rhstype = res_stack;
-    if(lhstype.index()!=rhstype.index()){
-        std::runtime_error("type of lhs and rhs is not matched");
-    }
-    types::Float f;
-    res_stack = f;
+  ast.lhs->accept(*this);
+  types::Value lhstype = res_stack;
+  ast.rhs->accept(*this);
+  types::Value rhstype = res_stack;
+  if (lhstype.index() != rhstype.index()) {
+    std::runtime_error("type of lhs and rhs is not matched");
+  }
+  types::Float f;
+  res_stack = f;
 }
 void TypeInferVisitor::visit(ListAST& ast) {
-    for(auto line : ast.getElements()){
-        line->accept(*this);
-    }
+  for (auto& line : ast.getElements()) {
+    line->accept(*this);
+  }
 }
-void TypeInferVisitor::visit(NumberAST& ast) {
-    res_stack = types::Float();
-}
+void TypeInferVisitor::visit(NumberAST& /*ast*/) { res_stack = types::Float(); }
 void TypeInferVisitor::visit(AssignAST& ast) {
-    ast.getBody()->accept(*this);
-    typeenv.env[ast.getName()->getVal()] = res_stack;
+  ast.getBody()->accept(*this);
+  typeenv.env[ast.getName()->getVal()] = res_stack;
 }
 void TypeInferVisitor::visit(ArgumentsAST& ast) {
-        std::vector<types::Value> argtypes;
-       for(const  auto& a : ast.getElements()){
-        a->accept(*this);
-        auto aval = std::static_pointer_cast<LvarAST>(a);
-        typeenv.env[aval->getVal()] = res_stack;
-        argtypes.push_back(res_stack);
-    }
-    types::Void v;
-    types::Function f(std::move(argtypes),std::move(v));
-    res_stack = std::move(f);
+  std::vector<types::Value> argtypes;
+  for (const auto& a : ast.getElements()) {
+    a->accept(*this);
+    auto aval = std::static_pointer_cast<LvarAST>(a);
+    typeenv.env[aval->getVal()] = res_stack;
+    argtypes.push_back(res_stack);
+  }
+  types::Void v;
+  types::Function f(std::move(argtypes), v);
+  res_stack = std::move(f);
 }
 void TypeInferVisitor::visit(ArrayAST& ast) {
-    auto tmpres = res_stack;
-    for(const auto& v : ast.getElements()){
-        v->accept(*this);
-        if(tmpres.index()!=res_stack.index()){
-            throw std::runtime_error("array contains different types.");
-        }
-        tmpres = res_stack;
+  auto tmpres = res_stack;
+  for (const auto& v : ast.getElements()) {
+    v->accept(*this);
+    if (tmpres.index() != res_stack.index()) {
+      throw std::runtime_error("array contains different types.");
     }
-    res_stack = types::Array(tmpres);
+    tmpres = res_stack;
+  }
+  res_stack = types::Array(tmpres);
 }
 void TypeInferVisitor::visit(ArrayAccessAST& ast) {
-    auto it = typeenv.env.find(ast.getName()->getVal());
-    types::Value res;
-    if(it==typeenv.env.end()){
-        throw std::runtime_error("could not find accessed array");
-    }else{
-        types::Array arr = std::get<recursive_wrapper<types::Array>>(it->second);//implicit cast
-        arr.getElemType();
-    }
-    res_stack = res;
+  auto it = typeenv.env.find(ast.getName()->getVal());
+  types::Value res;
+  if (it != typeenv.env.end()) {
+    types::Array arr =
+        std::get<recursive_wrapper<types::Array>>(it->second);  // implicit cast
+    arr.getElemType();
+  } else {
+    throw std::runtime_error("could not find accessed array");
+  }
+  res_stack = res;
 }
 void TypeInferVisitor::visit(FcallAST& ast) {
-    auto it = typeenv.env.find(ast.getFname()->getVal());
-    types::Value v = it->second;
-    types::Function fn = std::get<recursive_wrapper<types::Function>>(v);
+  auto it = typeenv.env.find(ast.getFname()->getVal());
+  types::Value v = it->second;
+  types::Function fn = std::get<recursive_wrapper<types::Function>>(v);
 
-    types::Value res;    
-    auto fnargtypes = fn.getArgTypes();
-    auto args = ast.getArgs()->getElements();
+  types::Value res;
+  auto fnargtypes = fn.getArgTypes();
+  auto args = ast.getArgs()->getElements();
 
-    std::vector<types::Value> argtypes;
-    bool checkflag = false;
-    for(int i = 0; i<args.size();i++){
-        args[i]->accept(*this);
-        checkflag |=  res_stack.index() != fnargtypes[i].index();
-    }
-    if(checkflag){
-        throw std::runtime_error("argument types were invalid");
-    }
-    res = fn.getReturnType();
+  std::vector<types::Value> argtypes;
+  bool checkflag = false;
+  for (int i = 0; i < args.size(); i++) {
+    args[i]->accept(*this);
+    checkflag |= res_stack.index() != fnargtypes[i].index();
+  }
+  if (checkflag) {
+    throw std::runtime_error("argument types were invalid");
+  }
+  res = fn.getReturnType();
 
-
-    res_stack = res;
+  res_stack = res;
 }
 void TypeInferVisitor::visit(LambdaAST& ast) {
-    auto args = ast.getArgs();
-    args->accept(*this); 
-    types::Function fntype= std::get<recursive_wrapper<types::Function>>(res_stack);
-    ast.getBody()->accept(*this);
-    types::Value res_type;
-    if(has_return){
-        res_type = res_stack;
-    }else{
-        types::Void t;
-        res_type = t;
-    }
-    fntype.ret_type = res_type;
-    res_stack = fntype;
-    has_return  = false;//switch back flag
+  auto args = ast.getArgs();
+  args->accept(*this);
+  types::Function fntype =
+      std::get<recursive_wrapper<types::Function>>(res_stack);
+  ast.getBody()->accept(*this);
+  types::Value res_type;
+  if (has_return) {
+    res_type = res_stack;
+  } else {
+    types::Void t;
+    res_type = t;
+  }
+  fntype.ret_type = res_type;
+  res_stack = fntype;
+  has_return = false;  // switch back flag
 }
 void TypeInferVisitor::visit(IfAST& ast) {
-    ast.getCond()->accept(*this);
-    
-    // auto newcond = stack_pop_ptr();
-    ast.getThen()->accept(*this);
-    // auto newthen = stack_pop_ptr();
-    ast.getElse()->accept(*this);
-    // auto newelse = stack_pop_ptr();
-    // auto newast = std::make_unique<IfAST>(std::move(newcond),std::move(newthen),std::move(newelse));
-    // res_stack.push(std::move(newast));
+  ast.getCond()->accept(*this);
+
+  // auto newcond = stack_pop_ptr();
+  ast.getThen()->accept(*this);
+  // auto newthen = stack_pop_ptr();
+  ast.getElse()->accept(*this);
+  // auto newelse = stack_pop_ptr();
+  // auto newast =
+  // std::make_unique<IfAST>(std::move(newcond),std::move(newthen),std::move(newelse));
+  // res_stack.push(std::move(newast));
 };
 
 void TypeInferVisitor::visit(ReturnAST& ast) {
-
-    ast.getExpr()->accept(*this);
-    has_return = true;
+  ast.getExpr()->accept(*this);
+  has_return = true;
 }
 void TypeInferVisitor::visit(ForAST& ast) {
-    // env = env->createNewChild("forloop"+std::to_string(envcount));
-    // envcount++;
-    // ast.getVar()->accept(*this);
-    // auto newvar = stack_pop_ptr();
-    // ast.getIterator()->accept(*this);
-    // auto newiter = stack_pop_ptr();
-    // ast.getExpression()->accept(*this);
-    // auto newexpr = stack_pop_ptr();
-    // auto newast = std::make_unique<IfAST>(std::move(newvar),std::move(newiter),std::move(newexpr));
-    // res_stack.push(std::move(newast));
-    // env = env->getParent();
+  // env = env->createNewChild("forloop"+std::to_string(envcount));
+  // envcount++;
+  // ast.getVar()->accept(*this);
+  // auto newvar = stack_pop_ptr();
+  // ast.getIterator()->accept(*this);
+  // auto newiter = stack_pop_ptr();
+  // ast.getExpression()->accept(*this);
+  // auto newexpr = stack_pop_ptr();
+  // auto newast =
+  // std::make_unique<IfAST>(std::move(newvar),std::move(newiter),std::move(newexpr));
+  // res_stack.push(std::move(newast));
+  // env = env->getParent();
 }
 void TypeInferVisitor::visit(DeclarationAST& ast) {
-    //will not be called
+  // will not be called
 }
 void TypeInferVisitor::visit(TimeAST& ast) {
-    ast.getExpr()->accept(*this);
-    ast.getTime()->accept(*this);
-    types::Time t;
-    res_stack  = std::move(t);
+  ast.getExpr()->accept(*this);
+  ast.getTime()->accept(*this);
+  types::Time t;
+  res_stack = t;
 }
 
-void TypeInferVisitor::visit(StructAST& ast){
+void TypeInferVisitor::visit(StructAST& ast) {}
+void TypeInferVisitor::visit(StructAccessAST& ast) {}
 
-}
-void TypeInferVisitor::visit(StructAccessAST& ast){
-
-}
-
-
-}//namespace mimium
+}  // namespace mimium

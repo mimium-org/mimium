@@ -16,24 +16,24 @@ namespace cl = llvm::cl;
 
 
 std::function<void(int)> shutdown_handler;
-void signal_handler(int signo){
+void signalHandler(int signo){
     shutdown_handler(signo);
 }
 
 
-int main(int argc,char** argv) {
-    cl::opt<std::string> InputFilename(cl::Positional, cl::desc("<input file>"), cl::init("-"));
-    cl::opt<bool> SndFile ("sndfile", cl::desc("write out a sound file as an output"));
+auto main(int argc,char** argv) -> int {
+    cl::opt<std::string> input_filename(cl::Positional, cl::desc("<input file>"), cl::init("-"));
+    cl::opt<bool> snd_file ("sndfile", cl::desc("write out a sound file as an output"));
 
     cl::ParseCommandLineOptions(argc, argv);//launch cli helper
 
-    std::ifstream Input(InputFilename.c_str());
-    signal(SIGINT,signal_handler);
+    std::ifstream input(input_filename.c_str());
+    signal(SIGINT,signalHandler);
     mimium::Logger::current_report_level = mimium::Logger::INFO;
     auto interpreter =  std::make_shared<mimium::InterpreterVisitor>();
     interpreter->init();
     auto& runtime = interpreter->getRuntime();
-    shutdown_handler = [&runtime](int signal){
+    shutdown_handler = [&runtime](int /*signal*/){
         if(runtime.isrunning()){
         runtime.stop();
         }
@@ -41,8 +41,8 @@ int main(int argc,char** argv) {
         exit(0);
     };
 
-    runtime.add_scheduler(SndFile);
-    if(!Input.good()){// filename is empty
+    runtime.add_scheduler(snd_file);
+    if(!input.good()){// filename is empty
     std::string line;
     std::cout << "start" <<std::endl;
     
@@ -55,8 +55,8 @@ int main(int argc,char** argv) {
     }
     else{
         try{
-        std::cout << InputFilename.c_str() <<std::endl;
-        runtime.loadSourceFile(InputFilename.c_str());
+        std::cout << input_filename.c_str() <<std::endl;
+        runtime.loadSourceFile(input_filename.c_str());
         runtime.start();
         while(true){sleep(20);}; //todo : what is best way to wait infinitely? thread?
         }catch(std::exception& e){

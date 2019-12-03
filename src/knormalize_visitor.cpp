@@ -2,8 +2,8 @@
 
 namespace mimium {
 
-KNormalizeVisitor::KNormalizeVisitor(std::shared_ptr<TypeInferVisitor> _typeinfer):var_counter(0){
-  typeinfer = _typeinfer;
+KNormalizeVisitor::KNormalizeVisitor(std::shared_ptr<TypeInferVisitor> typeinfer_init):var_counter(0){
+  typeinfer = typeinfer_init;
   init();
 }
 
@@ -17,13 +17,13 @@ std::string KNormalizeVisitor::makeNewName(){
 }
 std::string KNormalizeVisitor::getVarName(){
   auto copiedname = tmpname;
-  if(copiedname.size()>0){
+  if(!copiedname.empty()){
     tmpname = "";
-    return copiedname;
   }else{
-    return makeNewName();
+    copiedname = makeNewName();
   }
-}
+  return copiedname;
+ }
 
 void KNormalizeVisitor::init(){
   var_counter=1;
@@ -65,9 +65,9 @@ void KNormalizeVisitor::visit(ListAST& ast) {
 void KNormalizeVisitor::visit(OpAST& ast) {
   auto name = getVarName();
   ast.lhs->accept(*this);  // recursively visit
-  auto nextlhs = stack_pop_str();
+  auto nextlhs = stackPopStr();
   ast.rhs->accept(*this);
-  auto nextrhs = stack_pop_str();
+  auto nextrhs = stackPopStr();
   Instructions newinst = std::make_shared<OpInst>(name,ast.getOpStr(),std::move(nextlhs),std::move(nextrhs));
   currentblock->addInst(newinst);
   res_stack_str.push(name);
@@ -98,7 +98,7 @@ void KNormalizeVisitor::visit(LambdaAST& ast){
     std::deque<std::string> newargs;
     for(auto& arg : args ){
       arg->accept(*this);
-      newargs.push_back(stack_pop_str());
+      newargs.push_back(stackPopStr());
     }
     ast.accept(*typeinfer);
     auto newinst = std::make_shared<FunInst>(name,std::move(newargs),typeinfer->getLastType());
@@ -117,7 +117,7 @@ void KNormalizeVisitor::visit(FcallAST& ast){
   std::deque<std::string> newarg;
   for(auto& arg: ast.getArgs()->getElements()){
     arg->accept(*this);
-    newarg.push_back(stack_pop_str());
+    newarg.push_back(stackPopStr());
   }
   ast.accept(*typeinfer);
   Instructions newinst =std::make_shared<FcallInst>(newname,ast.getFname()->getVal(),std::move(newarg),CLOSURE,typeinfer->getLastType());
@@ -131,7 +131,7 @@ void KNormalizeVisitor::visit(ArrayAST& ast){
     std::deque<std::string> newelem;
     for(auto& elem: ast.getElements()){
       elem->accept(*this);
-      newelem.push_back(stack_pop_str());
+      newelem.push_back(stackPopStr());
     }
     auto newname = getVarName();
 
@@ -143,7 +143,7 @@ void KNormalizeVisitor::visit(ArrayAST& ast){
 void KNormalizeVisitor::visit(ArrayAccessAST& ast){//access index may be expr
     ast.getIndex()->accept(*this);
     auto newname =getVarName();
-    auto newinst = std::make_shared<ArrayAccessInst>(newname,ast.getName()->getVal(),stack_pop_str());        Instructions res = newinst;
+    auto newinst = std::make_shared<ArrayAccessInst>(newname,ast.getName()->getVal(),stackPopStr());        Instructions res = newinst;
 
     currentblock->addInst(res);
     res_stack_str.push(newname);
@@ -152,7 +152,7 @@ void KNormalizeVisitor::visit(IfAST& ast){
   auto tmpcontext = currentblock;
     ast.getCond()->accept(*this);
     auto newname = getVarName();
-    auto newinst =std::make_shared<IfInst>(newname,stack_pop_str());
+    auto newinst =std::make_shared<IfInst>(newname,stackPopStr());
     Instructions res = newinst;
     currentblock->indent_level++;
     newinst->thenblock->indent_level = currentblock->indent_level;
@@ -170,7 +170,7 @@ void KNormalizeVisitor::visit(ReturnAST& ast){
   ast.getExpr()->accept(*this);
   ast.accept(*typeinfer);
   auto newname = getVarName();
-  Instructions newinst = std::make_shared<ReturnInst>(newname,stack_pop_str(),typeinfer->getLastType());
+  Instructions newinst = std::make_shared<ReturnInst>(newname,stackPopStr(),typeinfer->getLastType());
   currentblock->addInst(newinst);
   res_stack_str.push(newname);
 }
@@ -186,7 +186,7 @@ void KNormalizeVisitor::visit(TimeAST& ast){
     ast.getTime()->accept(*this);
     ast.getExpr()->accept(*this);
     auto newname = getVarName();
-    auto newinst =std::make_shared<TimeInst>(newname,stack_pop_str(),stack_pop_str());
+    auto newinst =std::make_shared<TimeInst>(newname,stackPopStr(),stackPopStr());
     Instructions res = newinst;
     currentblock->addInst(res);
   res_stack_str.push(newname);

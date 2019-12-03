@@ -37,8 +37,7 @@ namespace mimium{
         struct Time{
             Float val;
             Float time;
-            Time(){
-            } 
+            Time()=default;
             std::string toString(){
                 return val.toString() + "@" +time.toString(); 
             }
@@ -49,12 +48,11 @@ namespace mimium{
         struct Time;
         using Value = std::variant<types::Void,types::Float,types::String,recursive_wrapper<types::Function>,recursive_wrapper<types::Array>,recursive_wrapper<types::Struct>,types::Time>;
         struct Function {
-            Function(){
-            }
-            Function(std::vector<Value> _arg_types,Value _ret_type): arg_types(std::move(_arg_types)),ret_type(std::move(_ret_type)){};
-            void init(std::vector<Value> _arg_types,Value _ret_type){
-                arg_types = std::move(_arg_types);
-                ret_type = std::move(_ret_type);
+            Function()=default;
+            Function(std::vector<Value> arg_types_p,Value ret_type_p): arg_types(std::move(arg_types_p)),ret_type(std::move(ret_type_p)){};
+            void init(std::vector<Value> arg_types_p,Value ret_type_p){
+                arg_types = std::move(arg_types_p);
+                ret_type = std::move(ret_type_p);
             }
             std::vector<Value> arg_types;
             Value ret_type;

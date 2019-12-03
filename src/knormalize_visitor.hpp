@@ -6,7 +6,7 @@
 namespace mimium{
 class KNormalizeVisitor : public ASTVisitor{
         public:
-        explicit KNormalizeVisitor(std::shared_ptr<TypeInferVisitor> _typeinfer);
+        explicit KNormalizeVisitor(std::shared_ptr<TypeInferVisitor> typeinfer_init);
         ~KNormalizeVisitor() override =default;
         void init();
 
@@ -28,7 +28,7 @@ class KNormalizeVisitor : public ASTVisitor{
         void visit(TimeAST& ast) override;
         void visit(StructAST& ast)override;
         void visit(StructAccessAST& ast)override;
-        mValue findVariable(std::string str) override{return 0;}//??
+        mValue findVariable(std::string  /*str*/) override{return 0.;}//??
 
         std::shared_ptr<MIRblock> getResult();
         private:
@@ -43,7 +43,7 @@ class KNormalizeVisitor : public ASTVisitor{
         std::shared_ptr<ListAST> current_context;
         AST_Ptr insertAssign(AST_Ptr ast);
         std::stack<std::string> res_stack_str;
-        std::string stack_pop_str(){
+        std::string stackPopStr(){
             auto ret = res_stack_str.top();
             res_stack_str.pop();
             return ret;
