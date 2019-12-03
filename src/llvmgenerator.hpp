@@ -25,10 +25,10 @@ class LLVMGenerator :public std::enable_shared_from_this<LLVMGenerator>{
         // std::string filename;
         std::shared_ptr<LLVMBuiltin> builtinfn;
 
-        llvm::Type* getType(types::Value type);
-        llvm::Type* getRawStructType(types::Value& type);
+        auto getType(types::Value type) -> llvm::Type*;
+        auto getRawStructType(const types::Value& type) -> llvm::Type*;
         void preprocess();
-        void visitInstructions(Instructions& inst);
+        void visitInstructions(const Instructions& inst);
 
     public:
         llvm::LLVMContext ctx;
@@ -42,7 +42,7 @@ class LLVMGenerator :public std::enable_shared_from_this<LLVMGenerator>{
         // explicit LLVMGenerator(llvm::LLVMContext& _cts,std::string filename);
 
         ~LLVMGenerator();
-        std::shared_ptr<llvm::Module> getModule();
+        auto getModule() -> std::shared_ptr<llvm::Module>;
         void setBB(llvm::BasicBlock*  newblock);
 
         void generateCode(std::shared_ptr<MIRblock> mir);
