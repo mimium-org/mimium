@@ -7,7 +7,7 @@ namespace mimium{
 class KNormalizeVisitor : public ASTVisitor{
         public:
         explicit KNormalizeVisitor(std::shared_ptr<TypeInferVisitor> _typeinfer);
-        ~KNormalizeVisitor()=default;
+        ~KNormalizeVisitor() override =default;
         void init();
 
         void visit(OpAST& ast) override;

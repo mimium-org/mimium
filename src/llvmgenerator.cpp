@@ -188,9 +188,8 @@ void LLVMGenerator::visitInstructions(Instructions& inst) {
           [&, this](std::shared_ptr<MakeClosureInst> i) {
             auto it =
                 static_cast<llvm::Function*>(namemap[i->fname])->arg_end();//NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
-            llvm::Type* strtype =
-                static_cast<llvm::PointerType*>((--it)->getType())
-                    ->getElementType();//NOLINT
+            auto ptrtype = static_cast<llvm::PointerType*>((--it)->getType());//NOLINT
+            llvm::Type* strtype =ptrtype->getElementType();
             llvm::Value* cap_size =
                 builder->CreateAlloca(strtype, nullptr, i->lv_name);
             int idx = 0;
