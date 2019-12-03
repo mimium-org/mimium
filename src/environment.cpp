@@ -33,13 +33,13 @@ mValue Environment::findVariable(std::string key){
     }else{
 
         throw std::runtime_error("Variable " + key  +" not found");    
-        return 0;
+        return 0.0;
     }
 }
 
 
 void Environment::setVariable(std::string key,mValue val){
-    mValue newval=0;
+    mValue newval=0.0;
     if(auto pval = std::get_if<std::string>(&val)){ 
         newval = findVariable(*pval);
     }else{

@@ -85,7 +85,7 @@ mValue Builtin::sendMidiMessage(std::shared_ptr<ArgumentsAST> argast,
   auto message = midiSendVisitor(val, interpreter);
   interpreter->getVstack().pop();
   interpreter->getRuntime().getMidiInstance().sendMessage(message);
-  interpreter->getVstack().push(0);  // dummy
+  interpreter->getVstack().push(0.0);  // dummy
   return 0.0;
 };
 

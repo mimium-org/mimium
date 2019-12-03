@@ -86,5 +86,10 @@
     },
     "C_Cpp.configurationWarnings": "Disabled",
     "C_Cpp.clang_format_style": "{ BasedOnStyle: Google}",
-    "git.ignoreLimitWarning": true
+    "git.ignoreLimitWarning": true,
+    "clangd.arguments": [
+        "-clang-tidy",
+        "-background-index",
+        "-compile-commands-dir=build"
+    ]
 }

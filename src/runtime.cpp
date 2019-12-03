@@ -36,8 +36,8 @@ void Runtime::init(std::shared_ptr<ASTVisitor> _visitor) {
 void Runtime::setupEnv(){
     rootenv = std::make_shared<Environment>("root", nullptr);
   currentenv = rootenv;  // share
-  currentenv->setVariable("dacL", 0);
-  currentenv->setVariable("dacR", 0);
+  currentenv->setVariable("dacL", 0.0);
+  currentenv->setVariable("dacR", 0.0);
 }
 void Runtime::clear() {
   rootenv.reset();

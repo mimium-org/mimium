@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.4)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-set(LLVM_CONFIG "/usr/local/Cellar/llvm/8.0.1/bin/llvm-config")
+set(LLVM_CONFIG "/Users/tomoya/codes/llvm-project/build/bin/llvm-config")
 
 # set(LLVM_DIR "/usr/local/opt/llvm/share/cmake/modules")
-list(APPEND CMAKE_PREFIX_PATH "/usr/local/Cellar/llvm/8.0.1/")
+list(APPEND CMAKE_PREFIX_PATH "/Users/tomoya/codes/llvm-project/build")
 
 find_package(LLVM REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
