@@ -2,7 +2,7 @@
 
 namespace mimium {
 
-KNormalizeVisitor::KNormalizeVisitor(std::shared_ptr<TypeInferVisitor> _typeinfer){
+KNormalizeVisitor::KNormalizeVisitor(std::shared_ptr<TypeInferVisitor> _typeinfer):var_counter(0){
   typeinfer = _typeinfer;
   init();
 }

@@ -10,9 +10,9 @@ namespace mimium{
     //https://medium.com/@dennis.luxen/breaking-circular-dependencies-in-recursive-union-types-with-c-17-the-curious-case-of-4ab00cfda10d
     template <typename T> struct recursive_wrapper {
     // construct from an existing object
-    recursive_wrapper(T t_) { t.emplace_back(std::move(t_)); }
+    recursive_wrapper(T t_) { t.emplace_back(std::move(t_)); }//NOLINT
     // cast back to wrapped type
-    operator const T &() const { return t.front(); }
+    operator const T &() const { return t.front(); }//NOLINT
     // store the value
     std::vector<T> t;
     std::string toString() { return t.front().toString();};
@@ -78,7 +78,7 @@ namespace mimium{
         };
         struct Array{
             Value elem_type;
-            Array(Value elem):elem_type(elem){
+            explicit Array(Value elem):elem_type(std::move(elem)){
 
             }
             std::string toString(){
@@ -90,7 +90,7 @@ namespace mimium{
         };
         struct Struct{
             std::vector<Value> arg_types;
-            Struct(std::vector<Value> types):arg_types(types){}
+            explicit Struct(std::vector<Value> types):arg_types(std::move(types)){}
             std::string toString(){
                 std::string s;
                 s+= "struct{";

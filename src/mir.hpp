@@ -1,5 +1,6 @@
 #pragma once
 #include <list>
+#include <utility>
 #include "ast.hpp"
 #include "environment.hpp"
 #include "closure_convert.hpp"
@@ -47,7 +48,7 @@ class MIRinstruction{  // base class for MIR instruction
 
 class MIRblock {
  public:
-  MIRblock(std::string _label) : label(_label), prev(nullptr), next(nullptr){
+  explicit MIRblock(std::string _label) : label(std::move(_label)), prev(nullptr), next(nullptr){
     indent_level = 0;
   };
   ~MIRblock(){};
@@ -106,7 +107,7 @@ class TimeInst: public MIRinstruction{
   public:
   std::string time;
   std::string val;
-  TimeInst(std::string _lv, std::string _val,std::string _time):time(_time),val(_val){
+  TimeInst(std::string _lv, std::string _val,std::string _time):time(std::move(_time)),val(std::move(_val)){
     lv_name=_lv;
     type = types::Time();
   }
@@ -158,7 +159,7 @@ class FcallInst : public MIRinstruction {
   std::deque<std::string> args;
   FCALLTYPE ftype;
   FcallInst(std::string _lv, std::string _fname, std::deque<std::string> _args,FCALLTYPE _ftype = CLOSURE,types::Value _type = types::Float())
-      :fname(_fname), args(std::move(_args)),ftype(_ftype){
+      :fname(std::move(_fname)), args(std::move(_args)),ftype(_ftype){
         lv_name=_lv;
         type = _type;
       };
@@ -171,7 +172,7 @@ class MakeClosureInst : public MIRinstruction {
    std::string fname;
   std::deque<TypedVal> captures;
   std::string toString() override;
-  MakeClosureInst(std::string _lv,std::string _fname,std::deque<TypedVal>  _captures,types::Value _type):fname(std::move(_fname)),captures(_captures){
+  MakeClosureInst(std::string _lv,std::string _fname,std::deque<TypedVal>  _captures,types::Value _type):fname(std::move(_fname)),captures(std::move(_captures)){
             lv_name=_lv;
             type = _type;
   };
@@ -197,7 +198,7 @@ class ArrayAccessInst : public MIRinstruction {
   std::string index;
 
  public:
-  ArrayAccessInst(std::string _lv,std::string _name,std::string _index):name(_name),index(_index){
+  ArrayAccessInst(std::string _lv,std::string _name,std::string _index):name(std::move(_name)),index(std::move(_index)){
     lv_name = _lv;
     type = types::Float();
   }
@@ -210,7 +211,7 @@ class IfInst : public MIRinstruction {
   std::string cond;
   std::shared_ptr<MIRblock> thenblock;
   std::shared_ptr<MIRblock> elseblock;
-  IfInst(std::string name, std::string _cond):cond(_cond) {
+  IfInst(std::string name, std::string _cond):cond(std::move(_cond)) {
     thenblock = std::make_shared<MIRblock>(name + "$then");
     elseblock = std::make_shared<MIRblock>(name + "$else");
     lv_name=name;
@@ -223,7 +224,7 @@ class IfInst : public MIRinstruction {
 class ReturnInst: public MIRinstruction{
     public:
     std::string val;
-    ReturnInst(std::string name,std::string _val,types::Value _type = types::Float()):val(_val){
+    ReturnInst(std::string name,std::string _val,types::Value _type = types::Float()):val(std::move(_val)){
       lv_name = name;
       type = _type;
     }

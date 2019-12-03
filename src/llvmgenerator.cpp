@@ -1,6 +1,7 @@
 #include "llvmgenerator.hpp"
+#include <cstddef>
 namespace mimium {
-LLVMGenerator::LLVMGenerator(std::string _filename) {
+LLVMGenerator::LLVMGenerator(std::string _filename):mainentry(nullptr),currentblock(nullptr) {
   builder = std::make_unique<llvm::IRBuilder<>>(ctx);
   module = std::make_shared<llvm::Module>(_filename, ctx);
   builtinfn = std::make_shared<LLVMBuiltin>();
@@ -34,7 +35,6 @@ LLVMGenerator::~LLVMGenerator() {
     flist.erase(f);
     f = flist.begin();
   }
-
 }
 
 std::shared_ptr<llvm::Module> LLVMGenerator::getModule() {
@@ -148,7 +148,7 @@ void LLVMGenerator::visitInstructions(Instructions& inst) {
           },
           [&, this](std::shared_ptr<FunInst> i) {
             bool hasfv = i->freevariables.size() > 0;
-            auto* ft = static_cast<llvm::FunctionType*>(getType(i->type));
+            auto* ft = static_cast<llvm::FunctionType*>(getType(i->type));//NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
             llvm::Function* f = llvm::Function::Create(
                 ft, llvm::Function::ExternalLinkage, i->lv_name, module.get());
             int idx = 0;
@@ -178,7 +178,7 @@ void LLVMGenerator::visitInstructions(Instructions& inst) {
               llvm::Value* ptrload =
                   builder->CreateLoad(gep, "ptrto_" + newname);
               llvm::Value* valload = builder->CreateLoad(ptrload, newname);
-              auto [it, res] = namemap.try_emplace(newname, valload);
+              namemap.try_emplace(newname, valload);
             }
             for (auto& cinsts : i->body->instructions) {
               visitInstructions(cinsts);
@@ -187,18 +187,17 @@ void LLVMGenerator::visitInstructions(Instructions& inst) {
           },
           [&, this](std::shared_ptr<MakeClosureInst> i) {
             auto it =
-                static_cast<llvm::Function*>(namemap[i->fname])->arg_end();
+                static_cast<llvm::Function*>(namemap[i->fname])->arg_end();//NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
             llvm::Type* strtype =
                 static_cast<llvm::PointerType*>((--it)->getType())
-                    ->getElementType();
+                    ->getElementType();//NOLINT
             llvm::Value* cap_size =
                 builder->CreateAlloca(strtype, nullptr, i->lv_name);
             int idx = 0;
             for (auto& cap : i->captures) {
               llvm::Value* gep =
                   builder->CreateStructGEP(strtype, cap_size, idx, "");
-              llvm::Value* store =
-                  builder->CreateStore(namemap["ptr_" + cap.name], gep);
+              builder->CreateStore(namemap["ptr_" + cap.name], gep);
               idx++;
             }
             namemap.emplace(i->lv_name, cap_size);

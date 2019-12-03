@@ -1,7 +1,7 @@
 #include "type_infer_visitor.hpp"
 
 namespace mimium{
-TypeInferVisitor::TypeInferVisitor(){
+TypeInferVisitor::TypeInferVisitor():has_return(false){
     init();
 }
 

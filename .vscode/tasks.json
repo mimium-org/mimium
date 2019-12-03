@@ -4,12 +4,7 @@
             "type": "shell",
             "label": "cmake file",
             "command": "cmake",
-            "args": [".."
-                // "-g",
-                // "${file}",
-                // "-o",
-                // "${fileDirname}/${fileBasenameNoExtension}"
-            ],
+            "args": [".."],
             "options": {
                 "cwd": "${workspaceFolder}/build"
             }

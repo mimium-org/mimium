@@ -7,7 +7,7 @@ namespace mimium {
 class AlphaConvertVisitor : public ASTVisitor {
  public:
   AlphaConvertVisitor();
-  ~AlphaConvertVisitor();
+  ~AlphaConvertVisitor() override;
   void init();
   void visit(OpAST& ast) override;
   void visit(ListAST& ast) override;
