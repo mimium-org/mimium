@@ -1,8 +1,11 @@
 #include "llvmgenerator.hpp"
+
 #include <cstddef>
+
 #include "type.hpp"
 namespace mimium {
-LLVMGenerator::LLVMGenerator(std::string filename):mainentry(nullptr),currentblock(nullptr) {
+LLVMGenerator::LLVMGenerator(std::string filename)
+    : mainentry(nullptr), currentblock(nullptr) {
   builder = std::make_unique<llvm::IRBuilder<>>(ctx);
   module = std::make_shared<llvm::Module>(filename, ctx);
   builtinfn = std::make_shared<LLVMBuiltin>();
@@ -40,8 +43,8 @@ LLVMGenerator::~LLVMGenerator() {
 
 auto LLVMGenerator::getModule() -> std::shared_ptr<llvm::Module> {
   auto res = module;
-  if (module==nullptr) {
-     res = std::make_shared<llvm::Module>("null", ctx);
+  if (module == nullptr) {
+    res = std::make_shared<llvm::Module>("null", ctx);
   }
   return res;
 }
@@ -57,36 +60,38 @@ auto LLVMGenerator::getRawStructType(const types::Value& type) -> llvm::Type* {
 }
 auto LLVMGenerator::getType(const types::Value& type) -> llvm::Type* {
   return std::visit(
-      overloaded{
-          [this](const types::Float& f) { return llvm::Type::getDoubleTy(ctx); },//NOLINT
-          [this](const recursive_wrapper<types::Function>& rf) {
-            auto f = types::Function(rf);
-            std::vector<llvm::Type*> args;
-            auto* rettype = getType(f.getReturnType());
-            for (auto& a : f.getArgTypes()) {
-              auto* atype = getType(a);
-              args.push_back(atype);
-            }
-            // upcast
-            llvm::Type* res = llvm::FunctionType::get(
-                rettype, args, false);  // what is final parameter isVarArg??
-            return res;
-          },
-          [this](const recursive_wrapper<types::Struct>& rs) {
-            auto s = types::Struct(rs);
-            std::vector<llvm::Type*> field;
-            for (auto& a : s.arg_types) {
-              field.push_back(llvm::PointerType::get(getType(a), 0));
-            }
-            llvm::Type* structtype = llvm::PointerType::get(
-                llvm::StructType::create(ctx, field, "fvtype"), 0);
-            return structtype;
-          },
-          [this](auto& t) {//NOLINT
-            throw std::runtime_error("not a function");
-            return llvm::Type::getDoubleTy(ctx);
-            ;
-          }},
+      overloaded{[this](const types::Float& /*f*/) {
+                   return llvm::Type::getDoubleTy(ctx);
+                 },
+                 [this](const recursive_wrapper<types::Function>& rf) {
+                   auto f = types::Function(rf);
+                   std::vector<llvm::Type*> args;
+                   auto* rettype = getType(f.getReturnType());
+                   for (auto& a : f.getArgTypes()) {
+                     auto* atype = getType(a);
+                     args.push_back(atype);
+                   }
+                   // upcast
+                   llvm::Type* res = llvm::FunctionType::get(
+                       rettype, args,
+                       false);  // what is final parameter isVarArg??
+                   return res;
+                 },
+                 [this](const recursive_wrapper<types::Struct>& rs) {
+                   auto s = types::Struct(rs);
+                   std::vector<llvm::Type*> field;
+                   for (auto& a : s.arg_types) {
+                     field.push_back(llvm::PointerType::get(getType(a), 0));
+                   }
+                   llvm::Type* structtype = llvm::PointerType::get(
+                       llvm::StructType::create(ctx, field, "fvtype"), 0);
+                   return structtype;
+                 },
+                 [this](auto& t) {  // NOLINT
+                   throw std::runtime_error("not a function");
+                   return llvm::Type::getDoubleTy(ctx);
+                   ;
+                 }},
       type);
 }
 
@@ -149,7 +154,7 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
           },
           [&, this](const std::shared_ptr<FunInst>& i) {
             bool hasfv = !i->freevariables.empty();
-            auto* ft = static_cast<llvm::FunctionType*>(getType(i->type));//NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
+            auto* ft = static_cast<llvm::FunctionType*>(getType(i->type));// NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
             llvm::Function* f = llvm::Function::Create(
                 ft, llvm::Function::ExternalLinkage, i->lv_name, module.get());
             int idx = 0;
@@ -187,10 +192,12 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
             setBB(mainentry);
           },
           [&, this](const std::shared_ptr<MakeClosureInst>& i) {
-            auto it =
-                static_cast<llvm::Function*>(namemap[i->fname])->arg_end();//NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
-            auto ptrtype = static_cast<llvm::PointerType*>((--it)->getType());//NOLINT
-            llvm::Type* strtype =ptrtype->getElementType();
+            auto it = 
+                static_cast<llvm::Function*>(namemap[i->fname]) //NOLINT
+                    ->arg_end();  
+            auto ptrtype =
+                static_cast<llvm::PointerType*>((--it)->getType());  // NOLINT
+            llvm::Type* strtype = ptrtype->getElementType();
             llvm::Value* cap_size =
                 builder->CreateAlloca(strtype, nullptr, i->lv_name);
             int idx = 0;
@@ -223,7 +230,7 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
               llvm::Function* fun = module->getFunction(i->fname);
               if (fun == nullptr) {
                 throw std::runtime_error("function could not be referenced");
-}
+              }
               fun->dump();
               res = builder->CreateCall(fun, args, i->lv_name);
             }

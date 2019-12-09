@@ -301,7 +301,7 @@ class FcallAST : public AST {
   }
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
   auto getArgs() { return std::static_pointer_cast<ArgumentsAST>(args); };
-  auto getFname() { return std::static_pointer_cast<SymbolAST>(fname); };
+  auto getFname() { return std::static_pointer_cast<RvarAST>(fname); };
   std::string toString() override;
   std::string toJson() override;
 };

@@ -31,11 +31,13 @@ struct TypedVal{
   std::string name; 
 };
 
+using SymbolEnv = Environment<std::string>;
+
 class MIRinstruction{  // base class for MIR instruction
  protected:
   virtual ~MIRinstruction()=default;
-  bool isFreeVariable(std::shared_ptr<Environment> env,std::string str);
-  void gatherFV_raw(std::deque<TypedVal>& fvlist,std::shared_ptr<Environment> env,TypeEnv& typeenv,std::string& str);
+  bool isFreeVariable(std::shared_ptr<SymbolEnv> env,std::string str);
+  void gatherFV_raw(std::deque<TypedVal>& fvlist,std::shared_ptr<SymbolEnv> env,TypeEnv& typeenv,std::string& str);
  public:
   std::string lv_name;
   types::Value type;

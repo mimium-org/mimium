@@ -44,7 +44,8 @@ class AlphaConvertVisitor : public ASTVisitor {
     res_stack.push(std::move(newast));
   };
   std::shared_ptr<ListAST> currentcontext;
-  std::shared_ptr<Environment> env;
+  std::shared_ptr<Environment<std::string>> env;
+  using SymbolEnv = Environment<std::string>;
   int namecount;
   int envcount;
   auto stackPopPtr() -> AST_Ptr { return std::get<AST_Ptr>(stack_pop()); }

@@ -1,7 +1,7 @@
 #include "mir.hpp"
 
 namespace mimium {
-static std::string join(std::deque<std::string>& vec, std::string delim) {
+static std::string join(const std::deque<std::string>& vec, std::string delim) {
   std::string s;
   for (auto& elem : vec) {
     s += elem;
@@ -10,7 +10,7 @@ static std::string join(std::deque<std::string>& vec, std::string delim) {
   }
   return s;
 };
-static std::string join(std::deque<TypedVal>& vec, std::string delim) {
+static std::string join(const std::deque<TypedVal>& vec, std::string delim) {
   std::string s;
   for (auto& elem : vec) {
     s += elem.name;
@@ -40,19 +40,19 @@ std::string MIRblock::toString() {
   return str;
 }
 
-bool MIRinstruction::isFreeVariable(std::shared_ptr<Environment> env,
+bool MIRinstruction::isFreeVariable(std::shared_ptr<SymbolEnv> env,
                                     std::string str) {
   auto [isvarset, isfv] = env->isFreeVariable(str);  // check local vars
 
   return isfv;
 }
 void MIRinstruction::gatherFV_raw(std::deque<TypedVal>& fvlist,
-                                  std::shared_ptr<Environment> env,
+                                  std::shared_ptr<SymbolEnv> env,
                                   TypeEnv& typeenv, std::string& str) {
   if (isFreeVariable(env, str)) {
+    str = "fv_" + str;
     TypedVal tv = {typeenv.env.find(str)->second, str};
     fvlist.push_back(tv);
-    str = "fv_" + str;
   }
 }
 
@@ -103,7 +103,7 @@ void OpInst::closureConvert(std::deque<TypedVal>& fvlist,
 std::string FunInst::toString() {
   std::string s;
   s += lv_name + " = fun " + join(args, " , ");
-  if (freevariables.size() > 0) {
+  if (!freevariables.empty()) {
     s += " fv{ " + join(freevariables, " , ") + " }";
   }
   s += "\n";
@@ -131,7 +131,7 @@ void FunInst::closureConvert(std::deque<TypedVal>& fvlist,
         },
         childinst);  // recursively visit;
   }
-  if (this->freevariables.size() <= 0) {
+  if (this->freevariables.empty()) {
     cc->known_functions[lv_name] = shared_from_this();
   } else {
     auto fvtype = getFvType(this->freevariables);

@@ -33,8 +33,8 @@ class Runtime {
   void loadSourceFile(const std::string filename);
   virtual void loadAst(AST_Ptr _ast);
   inline Mididriver& getMidiInstance() { return midi; };
-  inline std::shared_ptr<Environment> getCurrentEnv() { return currentenv; };
-  inline void setCurrentEnv(std::shared_ptr<Environment> env){currentenv = env;};
+  inline std::shared_ptr<InterpreterEnv> getCurrentEnv() { return currentenv; };
+  inline void setCurrentEnv(std::shared_ptr<InterpreterEnv> env){currentenv = env;};
   inline AST_Ptr getMainAst() { return driver.getMainAst(); };
   inline auto getScheduler(){return sch;};
   static std::string to_string(mValue v);
@@ -44,8 +44,8 @@ class Runtime {
   }
   std::string current_working_directory = "";
  protected:
-  std::shared_ptr<Environment> rootenv;
-  std::shared_ptr<Environment> currentenv;
+  std::shared_ptr<InterpreterEnv> rootenv;
+  std::shared_ptr<InterpreterEnv> currentenv;
   std::string currentNS;
   std::shared_ptr<Scheduler> sch;
   mmmpsr::MimiumDriver driver;

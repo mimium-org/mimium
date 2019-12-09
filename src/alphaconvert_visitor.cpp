@@ -5,7 +5,7 @@ void AlphaConvertVisitor::init() {
   namecount = 0;
   envcount = 0;
   env.reset();
-  env = std::make_shared<Environment>("root", nullptr);
+  env = std::make_shared<SymbolEnv>("root", nullptr);
 }
 
 AlphaConvertVisitor::~AlphaConvertVisitor()=default;
@@ -16,10 +16,9 @@ auto AlphaConvertVisitor::getResult() -> std::shared_ptr<ListAST> {
 void AlphaConvertVisitor::visit(LvarAST& ast) {
   std::string newname;
   if (env->isVariableSet(ast.getVal())) {
-    newname = std::get<std::string>(env->findVariable(ast.getVal()));
+    newname = env->findVariable(ast.getVal());
   } else {
-    namecount++;
-    newname = ast.getVal() + std::to_string(namecount);
+    newname = ast.getVal() + std::to_string(namecount++);
     env->setVariableRaw(ast.getVal(), newname);  // register to map
   }
   auto newast = std::make_unique<LvarAST>(newname, ast.type);
@@ -28,7 +27,7 @@ void AlphaConvertVisitor::visit(LvarAST& ast) {
 }
 
 void AlphaConvertVisitor::visit(RvarAST& ast) {
-  auto newname = std::get<std::string>(env->findVariable(ast.getVal()));
+  auto newname = env->findVariable(ast.getVal());
   auto newast = std::make_unique<RvarAST>(newname);
   res_stack.push(std::move(newast));
 }
@@ -60,6 +59,7 @@ void AlphaConvertVisitor::visit(ArrayAccessAST& ast) {
   res_stack.push(std::move(newast));
 }
 void AlphaConvertVisitor::visit(FcallAST& ast) {
+  
   ast.getFname()->accept(*this);
   auto newname = stackPopPtr();
   ast.getArgs()->accept(*this);
