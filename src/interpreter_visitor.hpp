@@ -4,11 +4,12 @@
 #include <variant>
 #include "ast.hpp"
 #include "builtin_functions.hpp"
+#include "environment.hpp"
 #include "helper_functions.hpp"
 #include "runtime.hpp"
 
 namespace mimium {
-
+  class Runtime;//forward
 class InterpreterVisitor
     : public ASTVisitor,public std::enable_shared_from_this<InterpreterVisitor> {
  public:
@@ -50,9 +51,9 @@ class InterpreterVisitor
   double get_as_double(mValue v);
   void doForVisitor(mValue v, std::string iname, AST_Ptr expression);
   inline auto& getVstack() { return res_stack; };
-  mimium::Runtime& getRuntime();
+  std::shared_ptr<Runtime> getRuntime();
  private:
-  mimium::Runtime runtime;
+  std::shared_ptr<Runtime> runtime;
   bool assertArgumentsLength(std::deque<AST_Ptr>& args, int length);
 };
 }  // namespace mimium

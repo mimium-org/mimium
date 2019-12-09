@@ -3,6 +3,7 @@
 #include "environment.hpp"
 
 namespace mimium {
+using SymbolEnv = Environment<std::string>;
 
 class AlphaConvertVisitor : public ASTVisitor {
  public:
@@ -45,7 +46,6 @@ class AlphaConvertVisitor : public ASTVisitor {
   };
   std::shared_ptr<ListAST> currentcontext;
   std::shared_ptr<Environment<std::string>> env;
-  using SymbolEnv = Environment<std::string>;
   int namecount;
   int envcount;
   auto stackPopPtr() -> AST_Ptr { return std::get<AST_Ptr>(stack_pop()); }

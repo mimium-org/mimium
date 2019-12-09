@@ -1,5 +1,4 @@
 #include "runtime.hpp"
-#include "environment.hpp"
 namespace mimium{
 
 std::string Runtime::to_string(mValue v) {// where to place this
@@ -35,7 +34,7 @@ void Runtime::init(std::shared_ptr<ASTVisitor> _visitor) {
   setupEnv();
 }
 void Runtime::setupEnv(){
-    rootenv = std::make_shared<InterpreterEnv>("root", nullptr);
+    rootenv = std::make_shared<Environment<mValue>>("root", nullptr);
   currentenv = rootenv;  // share
   currentenv->setVariable("dacL", 0.0);
   currentenv->setVariable("dacR", 0.0);

@@ -15,18 +15,17 @@ using mValue = std::variant<double, std::shared_ptr<AST>, mClosure_ptr,
 namespace mimium {
 template <typename T>
 class Environment : public std::enable_shared_from_this<Environment<T>> {
-  std::vector<std::shared_ptr<Environment<T>>> children;
   std::string name;
-
-  protected:
-    std::shared_ptr<Environment<T>> parent;
-    std::unordered_map<std::string, T> variables;
+  std::vector<std::shared_ptr<Environment<T>>> children;
+  std::shared_ptr<Environment<T>> parent;
+  std::unordered_map<std::string, T> variables;
 
  public:
-  Environment() : parent(nullptr), name("") {}
+  Environment() :  name("") ,parent(nullptr){}
   Environment(std::string name_i, std::shared_ptr<Environment<T>> parent_i)
-      : name(std::move(name_i),parent(std::move(parent_i))) {}
-  auto findVariable(std::string key)->T {
+      : name(std::move(name_i)), parent(parent_i) {}
+  virtual ~Environment()=default;
+  auto findVariable(std::string key) -> T {
     T res;
     if (!variables.empty() && variables.count(key) > 0) {  // search dictionary
       res = variables.at(key);
@@ -86,7 +85,8 @@ class Environment : public std::enable_shared_from_this<Environment<T>> {
   auto getParent() { return parent; }
   std::string getName() { return name; };
   auto createNewChild(std::string newname) -> std::shared_ptr<Environment<T>> {
-    auto child = std::make_shared<Environment<T>>(newname, this->shared_from_this());
+    auto child =
+        std::make_shared<Environment<T>>(newname, this->shared_from_this());
     children.push_back(std::move(child));
     return children.back();
   }
@@ -94,8 +94,64 @@ class Environment : public std::enable_shared_from_this<Environment<T>> {
   static std::string to_string(mValue m);
 };
 
-class InterpreterEnv : public Environment<mValue>{
-  public:
-    void setVariable(std::string key, mValue val) override;
-};
+template <>  // specialization
+class Environment<mValue>: public std::enable_shared_from_this<Environment<mValue>> {
+    std::string name;
+  std::vector<std::shared_ptr<Environment<mValue>>> children;
+  std::shared_ptr<Environment<mValue>> parent;
+  std::unordered_map<std::string, mValue> variables;
+
+ public:
+  Environment() :  name("") ,parent(nullptr){}
+  Environment(std::string name_i, std::shared_ptr<Environment<mValue>> parent_i)
+      : name(std::move(name_i)), parent(parent_i){}
+  virtual ~Environment()=default;
+  auto findVariable(std::string key) -> mValue {
+    mValue res;
+    if (!variables.empty() && variables.count(key) > 0) {  // search dictionary
+      res = variables.at(key);
+    } else if (parent != nullptr) {
+      res = parent->findVariable(key);  // search recursively
+    } else {
+      throw std::runtime_error("Variable " + key + " not found");
+      res = 0.0;
+    }
+    return res;
+  }
+ public:
+  void setVariable(std::string key, mValue val) {
+    mValue newval = 0.0;
+    if (auto pval = std::get_if<std::string>(&val)) {
+      newval = findVariable(*pval);
+    } else {
+      newval = val;
+    }
+    if (!variables.empty() && variables.count(key) > 0) {  // search dictionary
+      Logger::debug_log("overwritten", Logger::DEBUG);
+      variables.insert_or_assign(key, newval);  // overwrite exsisting value
+
+    } else if (parent != nullptr) {
+      parent->setVariable(key, newval);  // search recursively
+    } else {
+      Logger::debug_log("Create New Variable " + key, Logger::DEBUG);
+      variables.emplace(key, newval);
+    }
+  }
+    void setVariableRaw(std::string key, mValue val) {
+    Logger::debug_log("Create New variable" + key, Logger::DEBUG);
+    variables.emplace(key, val);
+  };
+
+  auto& getVariables() { return variables; }
+  auto getParent() { return parent; }
+  std::string getName() { return name; };
+  auto createNewChild(std::string newname) -> std::shared_ptr<Environment<mValue>> {
+    auto child =
+        std::make_shared<Environment<mValue>>(newname, this->shared_from_this());
+    children.push_back(std::move(child));
+    return children.back();
+  }
+  void deleteLastChild() { children.pop_back(); }
+  static std::string to_string(mValue m);
+  };
 };  // namespace mimium

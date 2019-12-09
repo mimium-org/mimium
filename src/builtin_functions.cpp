@@ -39,14 +39,14 @@ mValue Builtin::setMidiOut(std::shared_ptr<ArgumentsAST> argast,
   args[0]->accept(*interpreter);
   double port = std::get<double>(interpreter->getVstack().top());
   interpreter->getVstack().pop();
-  interpreter->getRuntime().getMidiInstance().setPort((int)port);
-  interpreter->getRuntime().getMidiInstance().printCurrentPort((int)port);
+  interpreter->getRuntime()->getMidiInstance().setPort((int)port);
+  interpreter->getRuntime()->getMidiInstance().printCurrentPort((int)port);
   return 0.0;
 };
 mValue Builtin::setVirtualMidiOut(std::shared_ptr<ArgumentsAST> argast,
                                   InterpreterVisitor *interpreter) {
   // ignore arguments
-  interpreter->getRuntime().getMidiInstance().createVirtualPort();
+  interpreter->getRuntime()->getMidiInstance().createVirtualPort();
   return 0.0;
 };
 std::vector<unsigned char> Builtin::midiSendVisitor(
@@ -67,7 +67,7 @@ std::vector<unsigned char> Builtin::midiSendVisitor(
             return outvec;
           },
           [&interpreter](std::string s) -> std::vector<unsigned char> {
-            mValue res = interpreter->getRuntime().findVariable(s);
+            mValue res = interpreter->getRuntime()->findVariable(s);
             return midiSendVisitor(res, interpreter);
           },
           [](auto v) -> std::vector<unsigned char> {
@@ -84,7 +84,7 @@ mValue Builtin::sendMidiMessage(std::shared_ptr<ArgumentsAST> argast,
   mValue val = interpreter->getVstack().top();
   auto message = midiSendVisitor(val, interpreter);
   interpreter->getVstack().pop();
-  interpreter->getRuntime().getMidiInstance().sendMessage(message);
+  interpreter->getRuntime()->getMidiInstance().sendMessage(message);
   interpreter->getVstack().push(0.0);  // dummy
   return 0.0;
 };

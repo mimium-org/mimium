@@ -1,4 +1,5 @@
 #pragma once
+#include "builtin_functions.hpp"
 #include "environment.hpp"
 #include "ast.hpp"
 namespace mimium{

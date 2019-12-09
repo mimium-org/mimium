@@ -1,18 +1,20 @@
 #pragma once
 #include "ast.hpp"
+#include "environment.hpp"
+#include "closure.hpp"
 #include "mididriver.hpp"
 #include "scheduler.hpp"
-#include "closure.hpp"
 #include "driver.hpp"
+
 
 namespace mimium {
 class Scheduler;//forward
 class Runtime {
  public:
-  explicit Runtime(){ 
+  Runtime(){ 
     midi.init(); }
 
-  virtual ~Runtime(){};
+  virtual ~Runtime()=default;
   mValue findVariable(std::string str) {  // fortest
     auto it = arguments.find(str);
     if (it != arguments.end()) {
@@ -33,8 +35,8 @@ class Runtime {
   void loadSourceFile(const std::string filename);
   virtual void loadAst(AST_Ptr _ast);
   inline Mididriver& getMidiInstance() { return midi; };
-  inline std::shared_ptr<InterpreterEnv> getCurrentEnv() { return currentenv; };
-  inline void setCurrentEnv(std::shared_ptr<InterpreterEnv> env){currentenv = env;};
+  inline std::shared_ptr<Environment<mValue>> getCurrentEnv() { return currentenv; };
+  inline void setCurrentEnv(std::shared_ptr<Environment<mValue>> env){currentenv = env;};
   inline AST_Ptr getMainAst() { return driver.getMainAst(); };
   inline auto getScheduler(){return sch;};
   static std::string to_string(mValue v);
@@ -44,8 +46,8 @@ class Runtime {
   }
   std::string current_working_directory = "";
  protected:
-  std::shared_ptr<InterpreterEnv> rootenv;
-  std::shared_ptr<InterpreterEnv> currentenv;
+  std::shared_ptr<Environment<mValue>> rootenv;
+  std::shared_ptr<Environment<mValue>> currentenv;
   std::string currentNS;
   std::shared_ptr<Scheduler> sch;
   mmmpsr::MimiumDriver driver;

@@ -1,14 +1,17 @@
 #include "interpreter_visitor.hpp"
+#include <memory>
+#include "environment.hpp"
 
 namespace mimium {
 void InterpreterVisitor::init(){
-  runtime.init(shared_from_this());
+  runtime = std::make_unique<Runtime>();
+  runtime->init(this->shared_from_this());
 }
 double InterpreterVisitor::get_as_double(mValue v) {
   return std::visit(
       overloaded{[](double d) { return d; },
                  [this](std::string s) {
-                   return get_as_double(this->getRuntime().findVariable(s));
+                   return get_as_double(this->getRuntime()->findVariable(s));
                  },  // recursive!!
                  [](auto a) {
                    throw std::runtime_error("refered variable is not number");
@@ -16,11 +19,11 @@ double InterpreterVisitor::get_as_double(mValue v) {
                  }},
       v);
 }
-Runtime& InterpreterVisitor::getRuntime(){
+std::shared_ptr<Runtime> InterpreterVisitor::getRuntime(){
   return runtime;
 }
 mValue InterpreterVisitor::findVariable(std::string str){
-  return runtime.findVariable(str);
+  return runtime->findVariable(str);
 };
 
 void InterpreterVisitor::visit(ListAST& ast) {
@@ -97,7 +100,7 @@ void InterpreterVisitor::visit(AssignAST& ast) {
 
   if (body) {
     body->accept(*this);
-    runtime.getCurrentEnv()->setVariable(varname, res_stack.top());
+    runtime->getCurrentEnv()->setVariable(varname, res_stack.top());
     Logger::debug_log(
         "Variable " + varname + " : " + Runtime::to_string(stack_pop()),
         Logger::DEBUG);
@@ -148,12 +151,11 @@ void InterpreterVisitor::visit(FcallAST& ast) {
     res_stack.push(res);
   } else {
     auto argsv = args->getElements();
-    mClosure_ptr closure = std::visit(fcall_visitor, runtime.findVariable(name));
+    mClosure_ptr closure = std::visit(fcall_visitor, runtime->findVariable(name));
     auto& lambda = closure->fun;
-    auto originalenv = runtime.getCurrentEnv();
+    auto originalenv = runtime->getCurrentEnv();
     auto lambdaargs = lambda.getArgs()->getElements();
-    auto tmpenv =
-        closure->env->createNewChild("arg" + name);  // create arguments
+    std::shared_ptr<Environment<mValue>> tmpenv =closure->env->createNewChild("arg" + name);  // create arguments(upcasting,,,)
     int argscond = lambdaargs.size() - argsv.size();
     if (argscond < 0) {
       throw std::runtime_error("too many arguments");
@@ -167,10 +169,10 @@ void InterpreterVisitor::visit(FcallAST& ast) {
         count++;
       }
       if (argscond == 0) {
-        runtime.setCurrentEnv(tmpenv);  // switch env
+        runtime->setCurrentEnv(tmpenv);  // switch env
         lambda.getBody()->accept(*this);
-        runtime.getCurrentEnv()->getParent()->deleteLastChild();
-        runtime.setCurrentEnv(originalenv);
+        runtime->getCurrentEnv()->getParent()->deleteLastChild();
+        runtime->setCurrentEnv(originalenv);
       } else {
         throw std::runtime_error(
             "too few arguments");  // ideally we want to return new function
@@ -180,7 +182,7 @@ void InterpreterVisitor::visit(FcallAST& ast) {
   }
 };
 void InterpreterVisitor::visit(LambdaAST& ast) {
-  res_stack.push( std::make_shared<Closure>(runtime.getCurrentEnv(), ast) );
+  res_stack.push( std::make_shared<Closure>(runtime->getCurrentEnv(), ast) );
 };
 void InterpreterVisitor::visit(IfAST& ast) {
   ast.getCond()->accept(*this);
@@ -202,30 +204,30 @@ void InterpreterVisitor::doForVisitor(mValue v, std::string iname,
           [&](std::vector<double> v) {
             auto it = v.begin();
             while (it != v.end()) {
-              runtime.getCurrentEnv()->setVariable(iname, *it);
+              runtime->getCurrentEnv()->setVariable(iname, *it);
               expression->accept(*this);
               it++;
             }
           },
           [&](double v) {
-            runtime.getCurrentEnv()->setVariable(iname, v);
+            runtime->getCurrentEnv()->setVariable(iname, v);
             expression->accept(*this);
           },
-          [&](std::string s) { doForVisitor(runtime.findVariable(s),iname,expression); },
+          [&](std::string s) { doForVisitor(runtime->findVariable(s),iname,expression); },
           [](auto v) { throw std::runtime_error("iterator is invalid"); }},
       v);
 }
 
 void InterpreterVisitor::visit(ForAST& ast) {
   std::string loopname = "for" + std::to_string(rand());  // temporary,,
-  runtime.getCurrentEnv() = runtime.getCurrentEnv()->createNewChild(loopname);
+  runtime->getCurrentEnv() = runtime->getCurrentEnv()->createNewChild(loopname);
   ast.getVar()->accept(*this);
   auto varname = std::get<std::string>(stack_pop());
   auto expression = ast.getExpression();
   ast.getIterator()->accept(*this);
   mValue iterator = stack_pop();
   doForVisitor(iterator,varname,expression);
-  runtime.getCurrentEnv() = runtime.getCurrentEnv()->getParent();
+  runtime->getCurrentEnv() = runtime->getCurrentEnv()->getParent();
 };
 void InterpreterVisitor::visit(DeclarationAST& ast) { 
   std::string name = ast.getFname()->getVal();
@@ -237,9 +239,9 @@ void InterpreterVisitor::visit(DeclarationAST& ast) {
       args[0]->accept(*this);
       std::string filename = std::get<std::string>(stack_pop());
       auto temporary_driver =
-          std::make_unique<mmmpsr::MimiumDriver>(runtime.current_working_directory);
+          std::make_unique<mmmpsr::MimiumDriver>(runtime->current_working_directory);
       temporary_driver->parsefile(filename);
-      runtime.loadAst(temporary_driver->getMainAst());
+      runtime->loadAst(temporary_driver->getMainAst());
     } else {
       throw std::runtime_error("given argument is not a string");
     }
@@ -250,7 +252,7 @@ void InterpreterVisitor::visit(DeclarationAST& ast) {
  };
 void InterpreterVisitor::visit(TimeAST& ast) {
   ast.getTime()->accept(*this);
-  runtime.getScheduler()->addTask(get_as_double(stack_pop()), ast.getExpr());
+  runtime->getScheduler()->addTask(get_as_double(stack_pop()), ast.getExpr());
   res_stack.push(ast.getExpr());//for print??
 };
 
