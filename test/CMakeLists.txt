@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
 project(mytest CXX)
-find_package(SndFile REQUIRED)
 
 find_package(GTest REQUIRED)
 include(GoogleTest)

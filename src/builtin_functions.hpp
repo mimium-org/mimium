@@ -33,8 +33,8 @@ namespace mimium{
         const static bool isBuiltin(std::string str);
         const static std::map<std::string,mmmfn> builtin_fntable; 
         private:
-        Builtin(){}
-        ~Builtin(){}
+        Builtin()=default;
+        ~Builtin()=default;
         static std::vector<unsigned char> midiSendVisitor(mValue v,InterpreterVisitor* interpreter);
     }; // namespace Builtin
 } //namespace mimium

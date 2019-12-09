@@ -32,23 +32,23 @@ auto main(int argc,char** argv) -> int {
     mimium::Logger::current_report_level = mimium::Logger::INFO;
     auto interpreter =  std::make_shared<mimium::InterpreterVisitor>();
     interpreter->init();
-    auto& runtime = interpreter->getRuntime();
+    auto runtime = interpreter->getRuntime();
     shutdown_handler = [&runtime](int /*signal*/){
-        if(runtime.isrunning()){
-        runtime.stop();
+        if(runtime->isrunning()){
+        runtime->stop();
         }
         std::cerr << std::endl << "Interuppted by key" << std::endl;
         exit(0);
     };
 
-    runtime.add_scheduler(snd_file);
+    runtime->add_scheduler(snd_file);
     if(!input.good()){// filename is empty
     std::string line;
     std::cout << "start" <<std::endl;
     
     while (std::getline(std::cin, line)) {  
-    runtime.clearDriver();  
-    runtime.loadSource(line);
+    runtime->clearDriver();  
+    runtime->loadSource(line);
     // now load source is void function, how to debug print?
     // std::cout << resstr << std::endl;
     }
@@ -56,12 +56,12 @@ auto main(int argc,char** argv) -> int {
     else{
         try{
         std::cout << input_filename.c_str() <<std::endl;
-        runtime.loadSourceFile(input_filename.c_str());
-        runtime.start();
+        runtime->loadSourceFile(input_filename.c_str());
+        runtime->start();
         while(true){sleep(20);}; //todo : what is best way to wait infinitely? thread?
         }catch(std::exception& e){
         std::cerr << e.what()<<std::endl;
-        runtime.stop();
+        runtime->stop();
         }
     }
     return 0;
