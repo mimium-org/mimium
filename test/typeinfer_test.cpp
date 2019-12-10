@@ -20,13 +20,13 @@ TEST(typeinfertest, basic) {
   mimium::Logger::debug_log(mainast->toString(), mimium::Logger::DEBUG);
   mainast->accept(*typeinfer);
   auto env = typeinfer->getEnv().env;
-//   for (auto& it : env) {
-//     std::cout << it.first << " : "
-//               << std::visit([](auto t) { return t.toString(); }, it.second)
-//               << std::endl;
-//   }
-  auto typestr = std::visit([](auto t) { return t.toString(); }, env["hof6"]);
-auto typestr2 = std::visit([](auto t) { return t.toString(); }, env["hof29"]);
+  for (auto& it : env) {
+    std::cout << it.first << " : "
+              << std::visit([](auto t) { return t.toString(); }, it.second)
+              << std::endl;
+  }
+  auto typestr = std::visit([](auto t) { return t.toString(); }, env["hof"]);
+auto typestr2 = std::visit([](auto t) { return t.toString(); }, env["hof2"]);
 
   EXPECT_EQ(typestr, "Fn[ (Float , Fn[ (Float) -> Float ]) -> Float ]");
   EXPECT_EQ(typestr2, "Fn[ (Float , Fn[ (Float , Float) -> Float ]) -> Fn[ (Float) -> Float ] ]");

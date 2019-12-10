@@ -268,7 +268,7 @@ void InterpreterVisitor::visit(StructAST& ast) {
 }
 void InterpreterVisitor::visit(StructAccessAST& ast) {}
 
-bool InterpreterVisitor::assertArgumentsLength(std::deque<AST_Ptr>& args,
+bool InterpreterVisitor::assertArgumentsLength(const std::deque<AST_Ptr>& args,
                                                int length) {
   bool res;
   int size = args.size();

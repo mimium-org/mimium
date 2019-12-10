@@ -14,7 +14,7 @@ class InterpreterVisitor
     : public ASTVisitor,public std::enable_shared_from_this<InterpreterVisitor> {
  public:
   InterpreterVisitor() =default;
-  ~InterpreterVisitor(){};
+  ~InterpreterVisitor() override =default;
   // void add_scheduler() { sch = std::make_shared<Scheduler>(this); };
   // void init();
   // void clear();
@@ -54,6 +54,6 @@ class InterpreterVisitor
   std::shared_ptr<Runtime> getRuntime();
  private:
   std::shared_ptr<Runtime> runtime;
-  static bool assertArgumentsLength(std::deque<AST_Ptr>& args, int length);
+  static bool assertArgumentsLength(const std::deque<AST_Ptr>& args, int length);
 };
 }  // namespace mimium

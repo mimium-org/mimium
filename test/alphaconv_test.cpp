@@ -15,5 +15,5 @@ TEST(alphaconverttest, basic) {
   runtime.loadSourceFile("test_localvar2.mmm");
   auto mainast = visitor->getResult();
   EXPECT_EQ(mainast->toString(),
-            "((assign hoge1 (lambda (x2) ((assign localvar3 x2) (assign fuga4 (lambda (y5) ((assign localvar3 (+ localvar3 y5)) (return localvar3)))) (return (fuga4 (2.5)))))) (assign main6 (hoge1 (1))))");
+            "((assign hoge (lambda (x0) ((assign localvar1 x0) (assign fuga2 (lambda (y3) ((assign localvar1 (+ localvar1 y3)) (return localvar1)))) (return (fuga2 (2.5)))))) (assign main (hoge (1))))");
 }

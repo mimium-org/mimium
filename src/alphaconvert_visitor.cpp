@@ -1,6 +1,11 @@
 #include "alphaconvert_visitor.hpp"
+
+#include <memory>
+#include "helper_functions.hpp"
 namespace mimium {
-AlphaConvertVisitor::AlphaConvertVisitor():namecount(0),envcount(0) { init(); }
+AlphaConvertVisitor::AlphaConvertVisitor() : namecount(0), envcount(0) {
+  init();
+}
 void AlphaConvertVisitor::init() {
   namecount = 0;
   envcount = 0;
@@ -8,34 +13,47 @@ void AlphaConvertVisitor::init() {
   env = std::make_shared<SymbolEnv>("root", nullptr);
 }
 
-AlphaConvertVisitor::~AlphaConvertVisitor()=default;
+AlphaConvertVisitor::~AlphaConvertVisitor() = default;
 auto AlphaConvertVisitor::getResult() -> std::shared_ptr<ListAST> {
   return std::static_pointer_cast<ListAST>(std::get<AST_Ptr>(res_stack.top()));
 };
 
-void AlphaConvertVisitor::visit(LvarAST& ast) {
+auto AlphaConvertVisitor::createNewLVar(LvarAST& ast)
+    -> std::unique_ptr<LvarAST> {
   std::string newname;
   if (env->isVariableSet(ast.getVal())) {
     newname = env->findVariable(ast.getVal());
   } else {
-    newname = ast.getVal() + std::to_string(namecount++);
+    newname = ast.getVal();
+    if (!env->isRoot()) {  // do not rename variables in global scope
+      newname += std::to_string(namecount++);
+    }
     env->setVariableRaw(ast.getVal(), newname);  // register to map
   }
-  auto newast = std::make_unique<LvarAST>(newname, ast.type);
+  return std::make_unique<LvarAST>(newname, ast.type);
+}
 
+void AlphaConvertVisitor::visit(LvarAST& ast) {
+  auto newast = createNewLVar(ast);
   res_stack.push(std::move(newast));
 }
 
 void AlphaConvertVisitor::visit(RvarAST& ast) {
-  auto newname = env->findVariable(ast.getVal());
+  std::string newname;
+
+  if (env->isVariableSet(ast.getVal())) {
+      newname = env->findVariable(ast.getVal());
+  }else{
+    newname = ast.getVal();
+    Logger::debug_log("symbol "+ast.getVal()+" not found, assumed to be external/builtin function", Logger::DEBUG);
+  }
   auto newast = std::make_unique<RvarAST>(newname);
   res_stack.push(std::move(newast));
 }
 void AlphaConvertVisitor::visit(OpAST& ast) {
   ast.rhs->accept(*this);
   ast.lhs->accept(*this);
-  auto newast =
-      std::make_unique<OpAST>(ast.op, stackPopPtr(), stackPopPtr());
+  auto newast = std::make_unique<OpAST>(ast.op, stackPopPtr(), stackPopPtr());
   res_stack.push(std::move(newast));
 }
 void AlphaConvertVisitor::visit(ListAST& ast) { listastvisit(ast); }
@@ -44,8 +62,7 @@ void AlphaConvertVisitor::visit(AssignAST& ast) {
   ast.getName()->accept(*this);
   auto newname = stackPopPtr();
   ast.getBody()->accept(*this);
-  auto newast =
-      std::make_unique<AssignAST>(std::move(newname), stackPopPtr());
+  auto newast = std::make_unique<AssignAST>(std::move(newname), stackPopPtr());
   res_stack.push(std::move(newast));
 }
 void AlphaConvertVisitor::visit(ArgumentsAST& ast) { listastvisit(ast); }
@@ -59,7 +76,6 @@ void AlphaConvertVisitor::visit(ArrayAccessAST& ast) {
   res_stack.push(std::move(newast));
 }
 void AlphaConvertVisitor::visit(FcallAST& ast) {
-  
   ast.getFname()->accept(*this);
   auto newname = stackPopPtr();
   ast.getArgs()->accept(*this);
@@ -135,8 +151,7 @@ void AlphaConvertVisitor::visit(StructAST& ast) {
 void AlphaConvertVisitor::visit(StructAccessAST& ast) {
   ast.getVal()->accept(*this);
   ast.getKey()->accept(*this);
-  auto newast =
-      std::make_unique<StructAccessAST>(stackPopPtr(), stackPopPtr());
+  auto newast = std::make_unique<StructAccessAST>(stackPopPtr(), stackPopPtr());
   res_stack.push(std::move(newast));
 }
 

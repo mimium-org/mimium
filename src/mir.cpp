@@ -50,7 +50,7 @@ void MIRinstruction::gatherFV_raw(std::deque<TypedVal>& fvlist,
                                   std::shared_ptr<SymbolEnv> env,
                                   TypeEnv& typeenv, std::string& str) {
   if (isFreeVariable(env, str)) {
-    str = "fv_" + str;
+    // auto newstr = "fv_" + str;
     TypedVal tv = {typeenv.env.find(str)->second, str};
     fvlist.push_back(tv);
   }

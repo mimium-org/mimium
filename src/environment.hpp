@@ -40,7 +40,7 @@ class Environment : public std::enable_shared_from_this<Environment<T>> {
   std::pair<bool, bool> isFreeVariable(std::string key) {
     // return value: [isvarset , isfv]
     std::pair<bool, bool> res;
-    if (!variables.empty()) {        // search dictionary
+    if (variables.count(key)>0) {        // search dictionary
       res = std::pair(true, false);  // return false if var is local variable
     } else if (parent != nullptr) {
       auto [isvarset, isisfv] = parent->isFreeVariable(key);
@@ -53,7 +53,7 @@ class Environment : public std::enable_shared_from_this<Environment<T>> {
   };
   bool isVariableSet(std::string key) {
     bool res;
-    if (!variables.empty()) {  // search dictionary
+    if (variables.count(key)>0) {  // search dictionary
       res = true;
     } else if (parent != nullptr) {
       res = parent->isVariableSet(key);  // search recursively
@@ -83,6 +83,7 @@ class Environment : public std::enable_shared_from_this<Environment<T>> {
 
   auto& getVariables() { return variables; }
   auto getParent() { return parent; }
+  bool isRoot(){return parent==nullptr;}
   std::string getName() { return name; };
   auto createNewChild(std::string newname) -> std::shared_ptr<Environment<T>> {
     auto child =

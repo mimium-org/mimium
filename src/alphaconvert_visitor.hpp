@@ -44,6 +44,9 @@ class AlphaConvertVisitor : public ASTVisitor {
     }
     res_stack.push(std::move(newast));
   };
+
+  auto createNewLVar(LvarAST& ast)->std::unique_ptr<LvarAST>;
+
   std::shared_ptr<ListAST> currentcontext;
   std::shared_ptr<Environment<std::string>> env;
   int namecount;

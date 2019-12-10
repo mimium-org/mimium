@@ -33,7 +33,7 @@ TEST(knormalizetest, basic) {
       "  k3 = 2.000000\n"
       "  k1 = k2+k3\n"
       "  k4 = 3.000000\n"
-      "  a1 = k1+k4\n";
+      "  a = k1+k4\n";
   EXPECT_EQ(mainmir->toString(), ans);
 }
 TEST(knormalizetest, multiline) {
@@ -50,12 +50,12 @@ TEST(knormalizetest, multiline) {
             "  k3 = 2.000000\n"
             "  k1 = k2+k3\n"
             "  k4 = 3.000000\n"
-            "  a1 = k1+k4\n"
+            "  a = k1+k4\n"
             "  k5 = 4.000000\n"
             "  k7 = 150.000000\n"
             "  k8 = 20.000000\n"
             "  k6 = k7*k8\n"
-            "  b2 = k5-k6\n");
+            "  b = k5-k6\n");
 }
 TEST(knormalizetest, localvar) {
   RESET_RUNTIME
@@ -66,16 +66,16 @@ TEST(knormalizetest, localvar) {
   auto mainmir = knormvisitor->getResult();
   EXPECT_EQ(mainmir->toString(),
             "main:\n"
-            "  hoge1 = fun x2 , y3\n"
-            "    hoge1:\n"
-            "      localvar4 = 2.000000\n"
-            "      k2 = x2*y3\n"
-            "      k1 = k2+localvar4\n"
+            "  hoge = fun x0 , y1\n"
+            "    hoge:\n"
+            "      localvar2 = 2.000000\n"
+            "      k2 = x0*y1\n"
+            "      k1 = k2+localvar2\n"
             "      k3 = return k1\n"
             "\n"
             "  k4 = 5.000000\n"
             "  k5 = 7.000000\n"
-            "  main5 = appcls hoge1 k4 , k5\n");
+            "  main = appcls hoge k4 , k5\n");
 }
 TEST(knormalizetest, if_nested) {
   RESET_RUNTIME
@@ -86,32 +86,32 @@ TEST(knormalizetest, if_nested) {
   auto mainmir = knormvisitor->getResult();
   EXPECT_EQ(mainmir->toString(),
             "main:\n"
-            "  test1 = fun x2 , y3 , z4\n"
-            "    test1:\n"
-            "      k1 = if x2\n"
+            "  test = fun x0 , y1 , z2\n"
+            "    test:\n"
+            "      k1 = if x0\n"
             "    k1$then:\n"
-            "      res5 = 0.000000\n"
+            "      res3 = 0.000000\n"
             "    k1$else:\n"
-            "      k2 = if y3\n"
+            "      k2 = if y1\n"
             "      k2$then:\n"
-            "        res5 = 100.000000\n"
+            "        res3 = 100.000000\n"
             "      k2$else:\n"
             "\n"
             "\n"
-            "      res5 = return res5\n"
+            "      res3 = return res3\n"
             "\n"
             "  k3 = 1.000000\n"
             "  k4 = 23.000000\n"
             "  k5 = 244.000000\n"
-            "  zero6 = appcls test1 k3 , k4 , k5\n"
+            "  zero = appcls test k3 , k4 , k5\n"
             "  k6 = 0.000000\n"
             "  k7 = 200.000000\n"
             "  k8 = 400.000000\n"
-            "  hand7 = appcls test1 k6 , k7 , k8\n"
+            "  hand = appcls test k6 , k7 , k8\n"
             "  k9 = 0.000000\n"
             "  k10 = 0.000000\n"
             "  k11 = 500.000000\n"
-            "  fivehand8 = appcls test1 k9 , k10 , k11\n"
+            "  fivehand = appcls test k9 , k10 , k11\n"
 
   );
 }
@@ -125,22 +125,22 @@ TEST(knormalizetest, closure) {
   // std::cout << mainmir->toString() << std::endl;
   EXPECT_EQ(mainmir->toString(),
             "main:\n"
-            "  makecounter1 = fun x2\n"
-            "    makecounter1:\n"
-            "      localvar3 = 0.000000\n"
-            "      countup4 = fun y5\n"
-            "      countup4:\n"
-            "        localvar3 = localvar3+x2\n"
-            "        k1 = return localvar3\n"
+            "  makecounter = fun x0\n"
+            "    makecounter:\n"
+            "      localvar1 = 0.000000\n"
+            "      countup2 = fun y3\n"
+            "      countup2:\n"
+            "        localvar1 = localvar1+x0\n"
+            "        k1 = return localvar1\n"
             "\n"
-            "      k2 = return countup4\n"
+            "      k2 = return countup2\n"
             "\n"
             "  k3 = 1.000000\n"
-            "  maincounter6 = appcls makecounter1 k3\n"
+            "  maincounter = appcls makecounter k3\n"
             "  k4 = 1.000000\n"
-            "  main7 = appcls maincounter6 k4\n"
+            "  main = appcls maincounter k4\n"
             "  k5 = 1.000000\n"
-            "  main7 = appcls maincounter6 k5\n"
+            "  main = appcls maincounter k5\n"
             "  k6 = 1.000000\n"
-            "  main7 = appcls maincounter6 k6\n");
+            "  main = appcls maincounter k6\n");
 }
