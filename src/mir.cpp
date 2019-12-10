@@ -46,13 +46,14 @@ bool MIRinstruction::isFreeVariable(std::shared_ptr<SymbolEnv> env,
 
   return isfv;
 }
+
 void MIRinstruction::gatherFV_raw(std::deque<TypedVal>& fvlist,
                                   std::shared_ptr<SymbolEnv> env,
                                   TypeEnv& typeenv, std::string& str) {
   if (isFreeVariable(env, str)) {
-    // auto newstr = "fv_" + str;
     TypedVal tv = {typeenv.env.find(str)->second, str};
     fvlist.push_back(tv);
+    str  = "fv_" + str;//destructive
   }
 }
 
