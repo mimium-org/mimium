@@ -3,23 +3,37 @@
 #include <algorithm>
 #include <cstddef>
 #include <exception>
+#include <memory>
 
-#include "llvm/IR/Constants.h"
 #include "type.hpp"
 namespace mimium {
-LLVMGenerator::LLVMGenerator(std::string filename)
-    : mainentry(nullptr), currentblock(nullptr) {
+LLVMGenerator::LLVMGenerator(std::string filename, bool i_isjit)
+    : mainentry(nullptr),
+      isjit(i_isjit),
+      currentblock(nullptr),
+      jitengine(nullptr) {
   init(filename);
 }
 void LLVMGenerator::init(std::string filename) {
   builder = std::make_unique<llvm::IRBuilder<>>(ctx);
   module = std::make_shared<llvm::Module>(filename, ctx);
   builtinfn = std::make_shared<LLVMBuiltin>();
+  if (isjit) {
+    initJit();
+  }
 }
 void LLVMGenerator::reset(std::string filename) {
   dropAllReferences();
   init(filename);
 }
+
+void LLVMGenerator::initJit() {
+  LLVMInitializeNativeTarget();
+  LLVMInitializeNativeAsmPrinter();
+  LLVMInitializeNativeAsmParser();
+  jitengine = std::move(llvm::orc::MimiumJIT::createEngine().get());
+}
+
 // LLVMGenerator::LLVMGenerator(llvm::LLVMContext& _ctx,std::string _filename){
 //     // ctx.reset();
 //     // ctx = std::move(&_ctx);
@@ -120,8 +134,9 @@ void LLVMGenerator::generateCode(std::shared_ptr<MIRblock> mir) {
   for (auto& inst : mir->instructions) {
     visitInstructions(inst);
   }
-  if(mainentry->getTerminator()==nullptr){
-    builder->CreateRet(llvm::ConstantInt::get(builder->getInt64Ty(),0));
+  if (mainentry->getTerminator() ==
+      nullptr) {  // insert empty return if no return
+    builder->CreateRet(llvm::ConstantInt::get(builder->getInt64Ty(), 0));
   }
 }
 
@@ -249,6 +264,8 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
           }},
       inst);
 }
+
+void LLVMGenerator::doJit() {}
 
 void LLVMGenerator::outputToStream(llvm::raw_ostream& stream) {
   module->print(stream, nullptr, false, true);

@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <memory>
 
 #include "alphaconvert_visitor.hpp"
@@ -16,20 +17,27 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Verifier.h"
+
 #include "llvm_builtin_functions.hpp"
+#include "jit_engine.hpp"
 
 namespace mimium {
 class LLVMBuiltin;
+
 class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
  private:
   // std::string filename;
   std::shared_ptr<LLVMBuiltin> builtinfn;
-
+  bool isjit;
   auto getType(const types::Value& type) -> llvm::Type*;
   auto getRawStructType(const types::Value& type) -> llvm::Type*;
   void preprocess();
   void visitInstructions(const Instructions& inst);
   void dropAllReferences();
+
+  void initJit();
+  void doJit();
+
  public:
   llvm::LLVMContext ctx;
   std::unique_ptr<llvm::Function> curfunc;
@@ -38,7 +46,8 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   std::unordered_map<std::string, llvm::Value*> namemap;
   llvm::BasicBlock* mainentry;
   llvm::BasicBlock* currentblock;
-  explicit LLVMGenerator(std::string filename);
+  std::unique_ptr<llvm::orc::MimiumJIT> jitengine;
+  explicit LLVMGenerator(std::string filename,bool i_isjit=true);
   // explicit LLVMGenerator(llvm::LLVMContext& _cts,std::string filename);
 
   ~LLVMGenerator();
@@ -51,6 +60,7 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   void generateCode(std::shared_ptr<MIRblock> mir);
   void outputToStream(llvm::raw_ostream& ostream);
 };
+
 // struct InstructionVisitor{
 //     void operator()(NumberInst)
 // };
