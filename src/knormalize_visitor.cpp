@@ -1,4 +1,5 @@
 #include "knormalize_visitor.hpp"
+#include "builtin_fn_types.hpp"
 
 namespace mimium {
 
@@ -113,6 +114,7 @@ void KNormalizeVisitor::visit(LambdaAST& ast){
 
 }
 void KNormalizeVisitor::visit(FcallAST& ast){
+  auto fname= ast.getFname()->getVal();
   auto newname = getVarName();
   std::deque<std::string> newarg;
   for(auto& arg: ast.getArgs()->getElements()){
@@ -120,7 +122,9 @@ void KNormalizeVisitor::visit(FcallAST& ast){
     newarg.push_back(stackPopStr());
   }
   ast.accept(*typeinfer);
-  Instructions newinst =std::make_shared<FcallInst>(newname,ast.getFname()->getVal(),std::move(newarg),CLOSURE,typeinfer->getLastType());
+  auto tm = builtin::types_map;
+  auto fntype = (tm.find(fname)!=tm.end())?EXTERNAL:CLOSURE;
+  Instructions newinst =std::make_shared<FcallInst>(newname,fname,std::move(newarg),fntype,typeinfer->getLastType());
   currentblock->addInst(newinst);
   res_stack_str.push(newname);
 };

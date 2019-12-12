@@ -1,6 +1,7 @@
 #pragma once
 #include "ast.hpp"
 #include "type.hpp"
+#include "builtin_fn_types.hpp"
 // type inference ... assumed to be visited after finished alpha-conversion(each
 // variable has unique name regardless its scope)
 

@@ -31,6 +31,7 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
   explicit ClosureConverter(TypeEnv& _typeenv);
   ~ClosureConverter();
   std::shared_ptr<MIRblock> convert(std::shared_ptr<MIRblock> mir);
+  void reset();
   TypeEnv& typeenv;
   std::shared_ptr<MIRblock> toplevel;
   std::shared_ptr<Environment<std::string>> env;

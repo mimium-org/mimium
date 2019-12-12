@@ -4,6 +4,11 @@ namespace mimium {
 ClosureConverter::ClosureConverter(TypeEnv& _typeenv):typeenv(_typeenv),capturecount(0){
     env = std::make_shared<SymbolEnv>("root",nullptr);
 }
+
+void ClosureConverter::reset(){
+  capturecount=0;
+  env = std::make_shared<SymbolEnv>("root",nullptr);
+}
 ClosureConverter::~ClosureConverter(){
 
 }

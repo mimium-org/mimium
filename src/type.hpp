@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <utility>
 #include <vector>
 #include <string>
 #include <variant>
@@ -73,6 +74,11 @@ namespace mimium{
                 s+=") -> " + std::visit([](auto c){return c.toString();},ret_type) + " ]";
                 return s;
             };
+            template <class ...Args>
+            static std::vector<Value> createArgs(Args&&... args){
+                std::vector<Value> a = {std::forward<Args>(args)...};
+                return a;
+            }
         };
         struct Array{
             Value elem_type;

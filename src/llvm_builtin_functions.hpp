@@ -1,4 +1,6 @@
 #pragma once
+#include <initializer_list>
+#include "builtin_functions.hpp"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/IR/BasicBlock.h"
@@ -13,16 +15,23 @@
 
 #include "llvmgenerator.hpp"
 #include "mididriver.hpp"
+#include "type.hpp"
 
 namespace mimium {
     class LLVMGenerator;
     using builtintype = llvm::Value* (*)(std::vector<llvm::Value*>&,std::string,std::shared_ptr<LLVMGenerator>);
+    struct BulitinFnInfo{
+        // BuiltinFnInfo(std::initializer_list<Buil>)
+        std::string name;
+        types::Function mmmtype;
+        builtintype fn_ptr;    
+    };
 
     class LLVMBuiltin{
 
         public:
         LLVMBuiltin();
-        ~LLVMBuiltin()=default;
+        ~LLVMBuiltin();
         static llvm::Value* print(std::vector<llvm::Value*>& args,std::string name,std::shared_ptr<LLVMGenerator> generator);
         const static bool isBuiltin(std::string str);
         const static std::map<std::string,builtintype> builtin_fntable; 

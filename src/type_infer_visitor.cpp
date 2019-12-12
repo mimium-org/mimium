@@ -1,7 +1,11 @@
 #include "type_infer_visitor.hpp"
 
 namespace mimium {
-TypeInferVisitor::TypeInferVisitor() : has_return(false) { init(); }
+TypeInferVisitor::TypeInferVisitor() : has_return(false) { 
+  for(const auto& [key,val]: builtin::types_map){
+  typeenv.env.emplace(key,val);
+  }
+ }
 
 void TypeInferVisitor::init() { has_return = false; }
 void TypeInferVisitor::visit(LvarAST& ast) { res_stack = ast.type; }

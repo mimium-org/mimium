@@ -1,25 +1,37 @@
 #include "llvmgenerator.hpp"
 
+#include <algorithm>
 #include <cstddef>
+#include <exception>
 
+#include "llvm/IR/Constants.h"
 #include "type.hpp"
 namespace mimium {
 LLVMGenerator::LLVMGenerator(std::string filename)
     : mainentry(nullptr), currentblock(nullptr) {
+  init(filename);
+}
+void LLVMGenerator::init(std::string filename) {
   builder = std::make_unique<llvm::IRBuilder<>>(ctx);
   module = std::make_shared<llvm::Module>(filename, ctx);
   builtinfn = std::make_shared<LLVMBuiltin>();
+}
+void LLVMGenerator::reset(std::string filename) {
+  dropAllReferences();
+  init(filename);
 }
 // LLVMGenerator::LLVMGenerator(llvm::LLVMContext& _ctx,std::string _filename){
 //     // ctx.reset();
 //     // ctx = std::move(&_ctx);
 // }
 
-LLVMGenerator::~LLVMGenerator() {
+LLVMGenerator::~LLVMGenerator() { dropAllReferences(); }
+void LLVMGenerator::dropAllReferences() {
   namemap.clear();
   auto& flist = module->getFunctionList();
-  for (auto& f : flist) {
-    auto& bbs = f.getBasicBlockList();
+  auto f = flist.begin();
+  while (!flist.empty()) {
+    auto& bbs = f->getBasicBlockList();
     while (!bbs.empty()) {
       auto bb = bbs.begin();
       auto inst = bb->begin();
@@ -32,15 +44,11 @@ LLVMGenerator::~LLVMGenerator() {
       bb = bb->eraseFromParent();
       bb = bbs.begin();
     }
-  }
-  auto f = flist.begin();
-  while (!flist.empty()) {
     f->dropAllReferences();
     flist.erase(f);
     f = flist.begin();
   }
 }
-
 auto LLVMGenerator::getModule() -> std::shared_ptr<llvm::Module> {
   auto res = module;
   if (module == nullptr) {
@@ -112,6 +120,9 @@ void LLVMGenerator::generateCode(std::shared_ptr<MIRblock> mir) {
   for (auto& inst : mir->instructions) {
     visitInstructions(inst);
   }
+  if(mainentry->getTerminator()==nullptr){
+    builder->CreateRet(llvm::ConstantInt::get(builder->getInt64Ty(),0));
+  }
 }
 
 void LLVMGenerator::visitInstructions(const Instructions& inst) {
@@ -154,15 +165,14 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
           },
           [&, this](const std::shared_ptr<FunInst>& i) {
             bool hasfv = !i->freevariables.empty();
-            auto* ft = static_cast<llvm::FunctionType*>(getType(i->type));// NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
+            auto* ft = static_cast<llvm::FunctionType*>(getType(
+                i->type));  // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
             llvm::Function* f = llvm::Function::Create(
                 ft, llvm::Function::ExternalLinkage, i->lv_name, module.get());
-            int idx = 0;
-            for (auto& arg : f->args()) {
-              if (idx < i->args.size()) {
-                arg.setName(i->args[idx++]);
-              }
-            }
+            auto f_it = f->args().begin();
+
+            std::for_each(i->args.begin(), i->args.end(),
+                          [&](std::string s) { (f_it++)->setName(s); });
             if (hasfv) {
               auto it = f->args().end();
               (--it)->setName("clsarg_" + i->lv_name);
@@ -171,11 +181,11 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
 
             auto* bb = llvm::BasicBlock::Create(ctx, "entry", f);
             builder->SetInsertPoint(bb);
-            idx = 0;
-            for (auto& arg : f->args()) {
-              namemap.emplace(i->args[idx], &arg);
-              idx++;
-            }
+            currentblock = bb;
+            f_it = f->args().begin();
+            std::for_each(i->args.begin(), i->args.end(),
+                          [&](std::string s) { namemap.emplace(s, f_it++); });
+
             auto arg_end = f->arg_end();
             llvm::Value* lastarg = --arg_end;
             for (int id = 0; id < i->freevariables.size(); id++) {
@@ -190,11 +200,11 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
               visitInstructions(cinsts);
             }
             setBB(mainentry);
+            currentblock = mainentry;
           },
           [&, this](const std::shared_ptr<MakeClosureInst>& i) {
-            auto it = 
-                static_cast<llvm::Function*>(namemap[i->fname]) //NOLINT
-                    ->arg_end();  
+            auto it = static_cast<llvm::Function*>(namemap[i->fname])  // NOLINT
+                          ->arg_end();
             auto ptrtype =
                 static_cast<llvm::PointerType*>((--it)->getType());  // NOLINT
             llvm::Type* strtype = ptrtype->getElementType();
@@ -214,24 +224,22 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
             std::vector<llvm::Value*> args;
             for (auto& a : i->args) {
               args.push_back(namemap[a]);
-              namemap[a]->dump();
             }
             if (i->ftype == CLOSURE) {
               llvm::Value* cls = namemap[i->fname + "_cls"];
               args.push_back(cls);
-              cls->dump();
             }
             if (LLVMBuiltin::isBuiltin(i->fname)) {
               auto it = LLVMBuiltin::builtin_fntable.find(i->fname);
               builtintype fn = it->second;
               std::vector<llvm::Value*> arg;
-              res = fn(args, i->fname, shared_from_this());
+              res = fn(args, i->lv_name, shared_from_this());
+              res->dump();
             } else {
               llvm::Function* fun = module->getFunction(i->fname);
               if (fun == nullptr) {
                 throw std::runtime_error("function could not be referenced");
               }
-              fun->dump();
               res = builder->CreateCall(fun, args, i->lv_name);
             }
             namemap.emplace(i->lv_name, res);
