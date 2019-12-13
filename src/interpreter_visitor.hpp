@@ -6,7 +6,6 @@
 #include "builtin_functions.hpp"
 #include "environment.hpp"
 #include "helper_functions.hpp"
-#include "runtime.hpp"
 
 namespace mimium {
   class Runtime;//forward

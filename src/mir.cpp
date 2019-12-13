@@ -162,7 +162,6 @@ types::Struct FunInst::getFvType(std::deque<TypedVal>& fvlist) {
 void FunInst::moveFunToTop(std::shared_ptr<ClosureConverter> cc,
                            std::shared_ptr<MIRblock> mir,
                            std::list<Instructions>::iterator it) {
-  std::cout << lv_name << std::endl;
   auto& tinsts = cc->toplevel->instructions;
   auto cit = body->instructions.begin();
   while (cit != body->instructions.end()) {

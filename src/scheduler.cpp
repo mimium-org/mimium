@@ -12,16 +12,16 @@ void Scheduler::incrementTime() {
   }
 }
 void Scheduler::executeTask() {
-  tasks.top().second->accept(*interpreter);
-  // current_task_index->second->accept(*interpreter);
-  // const auto deleteitr = current_task_index;
-  // current_task_index++;
-  tasks.pop();
-  // tasks.erase(deleteitr);
-  if (time > tasks.top().first) {
-    executeTask();  // recursively execute if multiple tasks exist at the same
-                    // time
-  }
+  // tasks.top().second->accept(*interpreter);
+  // // current_task_index->second->accept(*interpreter);
+  // // const auto deleteitr = current_task_index;
+  // // current_task_index++;
+  // tasks.pop();
+  // // tasks.erase(deleteitr);
+  // if (time > tasks.top().first) {
+  //   executeTask();  // recursively execute if multiple tasks exist at the same
+  //                   // time
+  // }
 }
 
 void Scheduler::addTask(int time, AST_Ptr fn) {
@@ -49,7 +49,7 @@ int SchedulerRT::audioCallback(void* outputBuffer, void* inputBuffer,
                                      void* userData) {
   auto data = static_cast<CallbackData*>(userData);
   auto sch = data->scheduler;
-  auto interpreter = data->interpreter;
+  // auto interpreter = data->interpreter;
   double* outputBuffer_d =static_cast<double*>(outputBuffer);
   if (status) Logger::debug_log("Stream underflow detected!", Logger::WARNING);
   // Write interleaved audio data.
@@ -58,14 +58,14 @@ int SchedulerRT::audioCallback(void* outputBuffer, void* inputBuffer,
   for (int i = 0; i < nBufferFrames; i++) {
     sch->incrementTime();
 
-    outputBuffer_d[i*2] = std::get<double>(interpreter->findVariable("dacL"));
-    outputBuffer_d[i*2+1] =std::get<double>(interpreter->findVariable("dacR"));
+    // outputBuffer_d[i*2] = std::get<double>(interpreter->findVariable("dacL"));
+    // outputBuffer_d[i*2+1] =std::get<double>(interpreter->findVariable("dacR"));
 
   }
   return 0;
 }
 
-SchedulerSndFile::SchedulerSndFile(std::shared_ptr<ASTVisitor> itp): Scheduler(itp){
+SchedulerSndFile::SchedulerSndFile(std::shared_ptr<Runtime> runtime_i): Scheduler(runtime_i){
         sfinfo.channels=2;
         sfinfo.format= (SF_FORMAT_WAV | SF_FORMAT_PCM_16);
         sfinfo.samplerate = 48000;
@@ -86,11 +86,11 @@ void SchedulerSndFile::start() {
       incrementTime();
       for(int chan=0;chan<sfinfo.channels;chan++){
         if(chan%2){
-                buffer[sfinfo.channels*i+chan] = 
-std::get<double>(interpreter->findVariable("dacL"));
+//                 buffer[sfinfo.channels*i+chan] = 
+// std::get<double>(interpreter->findVariable("dacL"));
         }else {
-           buffer[sfinfo.channels*i+ chan] = 
-std::get<double>(interpreter->findVariable("dacR"));
+//            buffer[sfinfo.channels*i+ chan] = 
+// std::get<double>(interpreter->findVariable("dacR"));
         }
     }
   }

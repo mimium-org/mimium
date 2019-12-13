@@ -7,13 +7,14 @@
 #include "audiodriver.hpp"
 #include "helper_functions.hpp"
 
+#include "runtime.hpp"
 #include "sndfile.h"
 
 namespace mimium{
-
+class Runtime;
 class Scheduler{//scheduler interface
     public:
-    explicit Scheduler(std::shared_ptr<ASTVisitor> itp):interpreter(itp),time(0){}
+    explicit Scheduler(std::shared_ptr<Runtime> runtime_i):runtime(runtime_i),time(0){}
     Scheduler(Scheduler& sch)=default;//copy
     Scheduler(Scheduler&& sch)=default;//move
     Scheduler &operator=(const Scheduler&)=default;
@@ -25,9 +26,9 @@ class Scheduler{//scheduler interface
     void addTask(int time,AST_Ptr fn);
 
     protected:
-    std::shared_ptr<ASTVisitor> interpreter;
-    typedef std::pair<int64_t,AST_Ptr> key_type;
-    typedef std::priority_queue<key_type,std::vector<key_type>,std::greater<key_type>> queue_type;
+    std::shared_ptr<Runtime> runtime;
+    using key_type = std::pair<int64_t,AST_Ptr> ;
+    using queue_type = std::priority_queue<key_type,std::vector<key_type>,std::greater<key_type>> ;
     int64_t time;
     queue_type tasks;
     void executeTask();
@@ -39,12 +40,12 @@ class SchedulerRT :public Scheduler{
     public:
     struct CallbackData{
         Scheduler* scheduler;
-        std::shared_ptr<ASTVisitor> interpreter;
-        CallbackData():scheduler(),interpreter(){};
+        std::shared_ptr<Runtime> runtime;
+        CallbackData():scheduler(),runtime(){};
     };
-    explicit SchedulerRT(std::shared_ptr<ASTVisitor> itp): Scheduler(itp),audio(){
+    explicit SchedulerRT(std::shared_ptr<Runtime> runtime_i): Scheduler(runtime_i),audio(){
         userdata.scheduler=this;
-        userdata.interpreter=interpreter;
+        userdata.runtime=runtime;
     };
     virtual ~SchedulerRT(){};
 
@@ -61,7 +62,7 @@ class SchedulerRT :public Scheduler{
 
 class SchedulerSndFile :public Scheduler{
     public:
-    explicit SchedulerSndFile(std::shared_ptr<ASTVisitor> itp);
+    explicit SchedulerSndFile(std::shared_ptr<Runtime> runtime_i);
     ~SchedulerSndFile();
 
     void start() override;

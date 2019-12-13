@@ -31,7 +31,7 @@ void LLVMGenerator::initJit() {
   LLVMInitializeNativeTarget();
   LLVMInitializeNativeAsmPrinter();
   LLVMInitializeNativeAsmParser();
-  jitengine = std::move(llvm::orc::MimiumJIT::createEngine().get());
+  jitengine = std::move(llvm::cantFail(llvm::orc::MimiumJIT::createEngine()));
 }
 
 // LLVMGenerator::LLVMGenerator(llvm::LLVMContext& _ctx,std::string _filename){

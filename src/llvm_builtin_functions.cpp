@@ -1,6 +1,5 @@
 #include "llvm_builtin_functions.hpp"
 
-#include <algorithm>
 
 namespace mimium {
 LLVMBuiltin::LLVMBuiltin() {}

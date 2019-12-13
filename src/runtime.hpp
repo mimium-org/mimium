@@ -1,59 +1,73 @@
 #pragma once
+#include <memory>
+
+#include "alphaconvert_visitor.hpp"
 #include "ast.hpp"
+#include "closure_convert.hpp"
+#include "driver.hpp"
 #include "environment.hpp"
-#include "closure.hpp"
+#include "knormalize_visitor.hpp"
+#include "llvmgenerator.hpp"
 #include "mididriver.hpp"
 #include "scheduler.hpp"
-#include "driver.hpp"
-
+#include "type_infer_visitor.hpp"
 
 namespace mimium {
-class Scheduler;//forward
-class Runtime {
+class Runtime : public std::enable_shared_from_this<Runtime> {
  public:
-  Runtime(){ 
-    midi.init(); }
+  Runtime(std::string filename_i = "untitled") : filename(filename_i) {}
 
-  virtual ~Runtime()=default;
-  mValue findVariable(std::string str) {  // fortest
-    auto it = arguments.find(str);
-    if (it != arguments.end()) {
-      return it->second;
-    } else {
-      return currentenv->findVariable(str);
-    }
-  }
-  void add_scheduler(bool issoundfile);
-  void init(std::shared_ptr<ASTVisitor> _visitor);
-  void setupEnv();
+  virtual ~Runtime() = default;
+
+  void addScheduler(bool issoundfile);
+  virtual void init();
   void clear();
   inline void clearDriver() { driver.clear(); };
   void start();
   inline bool isrunning() { return running_status; };
   void stop();
-  void loadSource(const std::string src);
-  void loadSourceFile(const std::string filename);
-  virtual void loadAst(AST_Ptr _ast);
+  AST_Ptr loadSource(std::string src);
+  virtual AST_Ptr loadSourceFile(std::string filename);
   inline Mididriver& getMidiInstance() { return midi; };
-  inline std::shared_ptr<Environment<mValue>> getCurrentEnv() { return currentenv; };
-  inline void setCurrentEnv(std::shared_ptr<Environment<mValue>> env){currentenv = env;};
+
   inline AST_Ptr getMainAst() { return driver.getMainAst(); };
-  inline auto getScheduler(){return sch;};
-  static std::string to_string(mValue v);
+  inline auto getScheduler() { return sch; };
+
   void setWorkingDirectory(const std::string path) {
     current_working_directory = path;
     driver.setWorkingDirectory(path);
   }
   std::string current_working_directory = "";
+
  protected:
-  std::shared_ptr<Environment<mValue>> rootenv;
-  std::shared_ptr<Environment<mValue>> currentenv;
-  std::string currentNS;
   std::shared_ptr<Scheduler> sch;
   mmmpsr::MimiumDriver driver;
   Mididriver midi;
-  std::map<std::string, mValue> arguments;
-  std::shared_ptr<ASTVisitor> visitor;
+  std::string filename;
   bool running_status = false;
+};
+
+class Runtime_LLVM : public Runtime {
+ public:
+  explicit Runtime_LLVM(std::string filename = "untitled.mmm");
+
+  ~Runtime_LLVM() = default;
+
+  AST_Ptr alphaConvert(AST_Ptr _ast);
+  TypeEnv& typeInfer(AST_Ptr _ast);
+  TypeEnv& getTypeEnv() { return typevisitor.getEnv(); };
+  std::shared_ptr<MIRblock> kNormalize(AST_Ptr _ast);
+  std::shared_ptr<MIRblock> closureConvert(std::shared_ptr<MIRblock> mir);
+  auto llvmGenarate(std::shared_ptr<MIRblock> mir) -> std::string;
+  AST_Ptr loadSourceFile(std::string filename) override;
+  // virtual void loadAst(AST_Ptr _ast) override;
+
+ private:
+  AlphaConvertVisitor alphavisitor;
+  TypeInferVisitor typevisitor;
+  std::shared_ptr<TypeInferVisitor> ti_ptr;
+  KNormalizeVisitor knormvisitor;
+  std::shared_ptr<ClosureConverter>closureconverter;
+  LLVMGenerator llvmgenerator;
 };
 }  // namespace mimium

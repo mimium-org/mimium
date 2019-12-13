@@ -1,50 +1,20 @@
 #include "runtime.hpp"
-namespace mimium{
+#include "closure_convert.hpp"
 
-std::string Runtime::to_string(mValue v) {// where to place this
-  return std::visit(overloaded{[](double v) { return std::to_string(v); },
-                               [](std::vector<double> vec) {
-                                 std::stringstream ss;
-                                 ss << "[";
-                                 int count = vec.size();
-                                 for (auto& elem : vec) {
-                                   ss << elem;
-                                   count--;
-                                   if (count > 0) ss << ",";
-                                 }
-                                 ss << "]";
-                                 return ss.str();
-                               },
-                               [](std::string s) { return s; },
-                               [](std::shared_ptr<AST> v) { return v->toString(); },
-                               [](mClosure_ptr m){return m->toString();}},
-                    v);
-};
 
-void Runtime::add_scheduler(bool issoundfile=false){
-  if(issoundfile){
-   sch = std::make_shared<SchedulerSndFile>(visitor);
-  }else{
-   sch = std::make_shared<SchedulerRT>(visitor);
+namespace mimium {
+
+void Runtime::addScheduler(bool issoundfile = false) {
+  if (issoundfile) {
+    sch = std::make_shared<SchedulerSndFile>(shared_from_this());
+  } else {
+    sch = std::make_shared<SchedulerRT>(shared_from_this());
   }
 }
 
-void Runtime::init(std::shared_ptr<ASTVisitor> _visitor) {
-  visitor = _visitor;
-  setupEnv();
-}
-void Runtime::setupEnv(){
-    rootenv = std::make_shared<Environment<mValue>>("root", nullptr);
-  currentenv = rootenv;  // share
-  currentenv->setVariable("dacL", 0.0);
-  currentenv->setVariable("dacR", 0.0);
-}
-void Runtime::clear() {
-  rootenv.reset();
-  currentenv.reset();
-  clearDriver();
-  setupEnv();
-}
+void Runtime::init() { midi.init(); }
+
+void Runtime::clear() { clearDriver(); }
 
 void Runtime::start() {
   sch->start();
@@ -56,17 +26,54 @@ void Runtime::stop() {
   running_status = false;
 }
 
-void Runtime::loadSource(const std::string src) {
+AST_Ptr Runtime::loadSource(const std::string src) {
   driver.parsestring(src);
-  loadAst(driver.getMainAst());
+  return driver.getMainAst();
 }
-void Runtime::loadSourceFile(const std::string filename) {
+AST_Ptr Runtime::loadSourceFile(const std::string filename) {
   driver.parsefile(filename);
-  loadAst(driver.getMainAst());
+  return driver.getMainAst();
 }
 
-void Runtime::loadAst(AST_Ptr _ast) {
-  auto ast = std::dynamic_pointer_cast<ListAST>(_ast);
-  ast->accept(*visitor);
+Runtime_LLVM::Runtime_LLVM(std::string filename_i)
+    : Runtime(filename_i),
+      alphavisitor(),
+      typevisitor(),
+      ti_ptr(&typevisitor),
+      knormvisitor(ti_ptr),
+      closureconverter(),
+      llvmgenerator(filename_i,false) {
+        closureconverter = std::make_shared<ClosureConverter>(typevisitor.getEnv());
+      } //temporary,jit is off
+
+AST_Ptr Runtime_LLVM::loadSourceFile(std::string filename) {
+  this->filename = filename;
+  llvmgenerator.reset(filename);
+  driver.parsefile(filename);
+  return driver.getMainAst();
 }
+AST_Ptr Runtime_LLVM::alphaConvert(AST_Ptr _ast) {
+  _ast->accept(alphavisitor);
+  return alphavisitor.getResult();
 }
+TypeEnv& Runtime_LLVM::typeInfer(AST_Ptr _ast) {
+  _ast->accept(typevisitor);
+  return typevisitor.getEnv();
+}
+std::shared_ptr<MIRblock> Runtime_LLVM::kNormalize(AST_Ptr _ast) {
+  _ast->accept(knormvisitor);
+  return knormvisitor.getResult();
+}
+std::shared_ptr<MIRblock> Runtime_LLVM::closureConvert(
+    std::shared_ptr<MIRblock> mir) {
+  return closureconverter->convert(mir);
+}
+auto Runtime_LLVM::llvmGenarate(std::shared_ptr<MIRblock> mir) -> std::string {
+  llvmgenerator.generateCode(mir);
+  std::string s;
+  llvm::raw_string_ostream ss(s);
+  llvmgenerator.outputToStream(ss);
+  return s;
+}
+
+}  // namespace mimium
