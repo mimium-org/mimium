@@ -1,3 +1,1 @@
-main = 2+3
-main2 = [1,2,3]
-main3 = main2[1]
+main = print(134)

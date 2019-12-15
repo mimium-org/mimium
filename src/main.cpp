@@ -13,13 +13,22 @@
 // #include "cli_tools.cpp"
 #include "llvm/Support/CommandLine.h"
 namespace cl = llvm::cl;
+using Logger = mimium::Logger;
+
 #include "runtime.hpp"
 
 std::function<void(int)> shutdown_handler;
 void signalHandler(int signo) { shutdown_handler(signo); }
-
 auto main(int argc, char** argv) -> int {
-  enum CompileStage { AST = 0, AST_UNIQUENAME, TYPEINFOS, MIR, MIR_CC, LLVMIR };
+  enum class CompileStage : int {
+    AST = 0,
+    AST_UNIQUENAME,
+    TYPEINFOS,
+    MIR,
+    MIR_CC,
+    LLVMIR,
+    EXECUTE
+  };
 
   cl::OptionCategory general_category("General Options", "");
   cl::opt<std::string> input_filename(cl::Positional, cl::desc("<input file>"),
@@ -28,17 +37,20 @@ auto main(int argc, char** argv) -> int {
   cl::opt<CompileStage> compile_stage(
       cl::desc("Printing Debug Infomations"),
       cl::values(
-          clEnumValN(AST, "emit-ast", "Enable trivial optimizations"),
-          clEnumValN(AST_UNIQUENAME, "emit-ast-u",
+          clEnumValN(CompileStage::AST, "emit-ast",
+                     "Enable trivial optimizations"),
+          clEnumValN(CompileStage::AST_UNIQUENAME, "emit-ast-u",
                      "Enable default optimizations"),
-          clEnumValN(TYPEINFOS, "emit-types",
+          clEnumValN(CompileStage::TYPEINFOS, "emit-types",
                      "emit type information for all variables to stdout"),
-          clEnumValN(MIR, "emit-mir", "emit MIR to stdout"),
-          clEnumValN(MIR_CC, "emit-mir-cc",
+          clEnumValN(CompileStage::MIR, "emit-mir", "emit MIR to stdout"),
+          clEnumValN(CompileStage::MIR_CC, "emit-mir-cc",
                      "emit MIR after closure convertsion to stdout"),
 
-          clEnumValN(LLVMIR, "emit-llvm", "emit LLVM IR to stdout")),
+          clEnumValN(CompileStage::LLVMIR, "emit-llvm",
+                     "emit LLVM IR to stdout")),
       cl::cat(general_category));
+  compile_stage.setInitialValue(CompileStage::EXECUTE);
   cl::opt<bool> snd_file("sndfile",
                          cl::desc("write out a sound file as an output"));
   cl::ResetAllOptionOccurrences();
@@ -48,7 +60,7 @@ auto main(int argc, char** argv) -> int {
 
   std::ifstream input(input_filename.c_str());
   signal(SIGINT, signalHandler);
-  mimium::Logger::current_report_level = mimium::Logger::INFO;
+  Logger::current_report_level = Logger::INFO;
   auto runtime = std::make_shared<mimium::Runtime_LLVM>();
   runtime->init();
   shutdown_handler = [&runtime](int /*signal*/) {
@@ -62,8 +74,7 @@ auto main(int argc, char** argv) -> int {
   runtime->addScheduler(snd_file);
   if (!input.good()) {  // filename is empty:enter repl mode
     std::string line;
-    std::cout << "start" << std::endl;
-
+    Logger::debug_log("start", Logger::INFO);
     while (std::getline(std::cin, line)) {
       runtime->clearDriver();
       runtime->loadSource(line);
@@ -72,55 +83,62 @@ auto main(int argc, char** argv) -> int {
     }
   } else {  // try to parse and exec input file
     try {
-      std::cerr << "Opening: " << input_filename.c_str() << std::endl;
+      std::string filename = input_filename.c_str();
+      Logger::debug_log("Opening: " + filename, Logger::INFO);
+
       int stage = 0;
       AST_Ptr ast, ast_u;
       std::shared_ptr<mimium::MIRblock> mir, mir_cc;
       mimium::TypeEnv& typeinfos = runtime->getTypeEnv();
       std::string llvmir;
-      while (stage <= static_cast<int>(compile_stage)) {
+      int returncode;
+      while (stage <= static_cast<int>(compile_stage.getValue())) {
         switch (static_cast<CompileStage>(stage)) {
-          case AST:
-            ast = runtime->loadSourceFile(input_filename.c_str());
+          case CompileStage::AST:
+            ast = runtime->loadSourceFile(filename);
             break;
-          case AST_UNIQUENAME:
+          case CompileStage::AST_UNIQUENAME:
             ast_u = runtime->alphaConvert(ast);
             break;
-          case TYPEINFOS:
+          case CompileStage::TYPEINFOS:
             typeinfos = runtime->typeInfer(ast_u);
             break;
-          case MIR:
+          case CompileStage::MIR:
             mir = runtime->kNormalize(ast_u);
             break;
-          case MIR_CC:
+          case CompileStage::MIR_CC:
             mir_cc = runtime->closureConvert(mir);
             break;
-          case LLVMIR:
+          case CompileStage::LLVMIR:
             llvmir = runtime->llvmGenarate(mir_cc);
+            break;
+          case CompileStage::EXECUTE:
+            returncode = runtime->execute();
             break;
         }
         stage++;
       }
       switch (compile_stage) {
-        case AST:
+        case CompileStage::AST:
           std::cout << ast->toString() << std::endl;
           break;
-        case AST_UNIQUENAME:
+        case CompileStage::AST_UNIQUENAME:
           std::cout << ast_u->toString() << std::endl;
           break;
-        case TYPEINFOS:
+        case CompileStage::TYPEINFOS:
           std::cout << typeinfos.dump() << std::endl;
           break;
-        case MIR:
+        case CompileStage::MIR:
           std::cout << mir->toString() << std::endl;
           break;
-        case MIR_CC:
+        case CompileStage::MIR_CC:
           std::cout << mir_cc->toString() << std::endl;
           break;
-        case LLVMIR:
+        case CompileStage::LLVMIR:
           std::cout << llvmir << std::endl;
           break;
-        default:
+        case CompileStage::EXECUTE:
+          std::cerr << "return code: " << returncode << std::endl;
           break;
       }
 

@@ -1,5 +1,6 @@
 #include "runtime.hpp"
 #include "closure_convert.hpp"
+#include "llvmgenerator.hpp"
 
 
 namespace mimium {
@@ -35,20 +36,21 @@ AST_Ptr Runtime::loadSourceFile(const std::string filename) {
   return driver.getMainAst();
 }
 
-Runtime_LLVM::Runtime_LLVM(std::string filename_i)
+Runtime_LLVM::Runtime_LLVM(std::string filename_i,bool isjit)
     : Runtime(filename_i),
       alphavisitor(),
       typevisitor(),
       ti_ptr(&typevisitor),
       knormvisitor(ti_ptr),
       closureconverter(),
-      llvmgenerator(filename_i,false) {
+      llvmgenerator() {
+        llvmgenerator = std::make_shared<LLVMGenerator>(filename_i,isjit);
         closureconverter = std::make_shared<ClosureConverter>(typevisitor.getEnv());
       } //temporary,jit is off
 
 AST_Ptr Runtime_LLVM::loadSourceFile(std::string filename) {
   this->filename = filename;
-  llvmgenerator.reset(filename);
+  llvmgenerator->reset(filename);
   driver.parsefile(filename);
   return driver.getMainAst();
 }
@@ -69,11 +71,14 @@ std::shared_ptr<MIRblock> Runtime_LLVM::closureConvert(
   return closureconverter->convert(mir);
 }
 auto Runtime_LLVM::llvmGenarate(std::shared_ptr<MIRblock> mir) -> std::string {
-  llvmgenerator.generateCode(mir);
+  llvmgenerator->generateCode(mir);
   std::string s;
   llvm::raw_string_ostream ss(s);
-  llvmgenerator.outputToStream(ss);
+  llvmgenerator->outputToStream(ss);
   return s;
+}
+int Runtime_LLVM::execute(){
+  return llvmgenerator->execute();
 }
 
 }  // namespace mimium

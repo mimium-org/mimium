@@ -1,38 +1,46 @@
 #include "llvmgenerator.hpp"
 
+#include <sys/types.h>
+
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <exception>
 #include <memory>
+#include <stdexcept>
 
+#include "llvm/ExecutionEngine/JITSymbol.h"
+#include "llvm/IR/Attributes.h"
+#include "llvm/IR/CallingConv.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/Support/Error.h"
 #include "type.hpp"
 namespace mimium {
 LLVMGenerator::LLVMGenerator(std::string filename, bool i_isjit)
     : mainentry(nullptr),
       isjit(i_isjit),
       currentblock(nullptr),
-      jitengine(nullptr) {
+      jitengine(nullptr),ctx(nullptr) {
+  LLVMInitializeNativeTarget();
+  LLVMInitializeNativeAsmPrinter();
+  LLVMInitializeNativeAsmParser();
+  jitengine = llvm::cantFail(llvm::orc::MimiumJIT::createEngine());
+  auto ctxptr = std::shared_ptr<llvm::LLVMContext>(&jitengine->getContext());
+  ctx= std::move(ctxptr);
   init(filename);
 }
 void LLVMGenerator::init(std::string filename) {
-  builder = std::make_unique<llvm::IRBuilder<>>(ctx);
-  module = std::make_shared<llvm::Module>(filename, ctx);
+  builder = std::make_unique<llvm::IRBuilder<>>(*ctx);
+  module = std::make_unique<llvm::Module>(filename, *ctx);
   builtinfn = std::make_shared<LLVMBuiltin>();
-  if (isjit) {
-    initJit();
-  }
+  module->setDataLayout(jitengine->getDataLayout());
 }
 void LLVMGenerator::reset(std::string filename) {
   dropAllReferences();
   init(filename);
 }
 
-void LLVMGenerator::initJit() {
-  LLVMInitializeNativeTarget();
-  LLVMInitializeNativeAsmPrinter();
-  LLVMInitializeNativeAsmParser();
-  jitengine = std::move(llvm::cantFail(llvm::orc::MimiumJIT::createEngine()));
-}
+void LLVMGenerator::initJit() {}
 
 // LLVMGenerator::LLVMGenerator(llvm::LLVMContext& _ctx,std::string _filename){
 //     // ctx.reset();
@@ -63,13 +71,7 @@ void LLVMGenerator::dropAllReferences() {
     f = flist.begin();
   }
 }
-auto LLVMGenerator::getModule() -> std::shared_ptr<llvm::Module> {
-  auto res = module;
-  if (module == nullptr) {
-    res = std::make_shared<llvm::Module>("null", ctx);
-  }
-  return res;
-}
+
 auto LLVMGenerator::getRawStructType(const types::Value& type) -> llvm::Type* {
   types::Struct s = std::get<recursive_wrapper<types::Struct>>(type);
   std::vector<llvm::Type*> field;
@@ -77,13 +79,13 @@ auto LLVMGenerator::getRawStructType(const types::Value& type) -> llvm::Type* {
     field.push_back(getType(a));
   }
 
-  llvm::Type* structtype = llvm::StructType::create(ctx, field, "fvtype");
+  llvm::Type* structtype = llvm::StructType::create(*ctx, field, "fvtype");
   return structtype;
 }
 auto LLVMGenerator::getType(const types::Value& type) -> llvm::Type* {
   return std::visit(
       overloaded{[this](const types::Float& /*f*/) {
-                   return llvm::Type::getDoubleTy(ctx);
+                   return llvm::Type::getDoubleTy(*ctx);
                  },
                  [this](const recursive_wrapper<types::Function>& rf) {
                    auto f = types::Function(rf);
@@ -94,9 +96,8 @@ auto LLVMGenerator::getType(const types::Value& type) -> llvm::Type* {
                      args.push_back(atype);
                    }
                    // upcast
-                   llvm::Type* res = llvm::FunctionType::get(
-                       rettype, args,
-                       false);  // what is final parameter isVarArg??
+                   llvm::Type* res =
+                       llvm::FunctionType::get(rettype, args, false);
                    return res;
                  },
                  [this](const recursive_wrapper<types::Struct>& rs) {
@@ -106,12 +107,12 @@ auto LLVMGenerator::getType(const types::Value& type) -> llvm::Type* {
                      field.push_back(llvm::PointerType::get(getType(a), 0));
                    }
                    llvm::Type* structtype = llvm::PointerType::get(
-                       llvm::StructType::create(ctx, field, "fvtype"), 0);
+                       llvm::StructType::create(*ctx, field, "fvtype"), 0);
                    return structtype;
                  },
                  [this](auto& t) {  // NOLINT
-                   throw std::runtime_error("not a function");
-                   return llvm::Type::getDoubleTy(ctx);
+                   throw std::logic_error("invalid type");
+                   return llvm::Type::getDoubleTy(*ctx);
                    ;
                  }},
       type);
@@ -121,11 +122,21 @@ void LLVMGenerator::setBB(llvm::BasicBlock* newblock) {
   builder->SetInsertPoint(newblock);
 }
 void LLVMGenerator::preprocess() {
-  auto* fntype = llvm::FunctionType::get(llvm::Type::getInt64Ty(ctx), false);
+  auto* fntype = llvm::FunctionType::get(llvm::Type::getInt64Ty(*ctx), false);
   auto* mainfun = llvm::Function::Create(
-      fntype, llvm::Function::ExternalLinkage, "main", module.get());
+      fntype, llvm::Function::ExternalLinkage, "__mimium_main", module.get());
+  mainfun->setCallingConv(llvm::CallingConv::C);
+  llvm::AttrBuilder attrbuilder;
+  using Akind = llvm::Attribute;
+  std::vector<llvm::Attribute::AttrKind> attrs = {
+      Akind::NoUnwind, Akind::NoInline, Akind::OptimizeNone};
+  llvm::AttributeSet aset;
+  for (auto& a : attrs) {
+    aset = aset.addAttribute(*ctx, a);
+  }
 
-  mainentry = llvm::BasicBlock::Create(ctx, "entry", mainfun);
+  mainfun->addAttributes(llvm::AttributeList::FunctionIndex, aset);
+  mainentry = llvm::BasicBlock::Create(*ctx, "entry", mainfun);
   setBB(mainentry);
 }
 
@@ -145,10 +156,10 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
       overloaded{
           [](auto i) {},
           [&, this](const std::shared_ptr<NumberInst>& i) {
-            auto* ptr = builder->CreateAlloca(llvm::Type::getDoubleTy(ctx),
+            auto* ptr = builder->CreateAlloca(llvm::Type::getDoubleTy(*ctx),
                                               nullptr, "ptr_" + i->lv_name);
             auto* finst =
-                llvm::ConstantFP::get(this->ctx, llvm::APFloat(i->val));
+                llvm::ConstantFP::get(*(this->ctx), llvm::APFloat(i->val));
             builder->CreateStore(finst, ptr);
             auto* load = builder->CreateLoad(ptr, i->lv_name);
             namemap.emplace("ptr_" + i->lv_name, ptr);
@@ -194,7 +205,7 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
             }
             namemap.emplace(i->lv_name, f);
 
-            auto* bb = llvm::BasicBlock::Create(ctx, "entry", f);
+            auto* bb = llvm::BasicBlock::Create(*ctx, "entry", f);
             builder->SetInsertPoint(bb);
             currentblock = bb;
             f_it = f->args().begin();
@@ -248,12 +259,12 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
               auto it = LLVMBuiltin::builtin_fntable.find(i->fname);
               builtintype fn = it->second;
               std::vector<llvm::Value*> arg;
-              res = fn(args, i->lv_name, shared_from_this());
-              res->dump();
+              res = fn(args, i->lv_name, this->shared_from_this());
+              // res->dump();
             } else {
               llvm::Function* fun = module->getFunction(i->fname);
               if (fun == nullptr) {
-                throw std::runtime_error("function could not be referenced");
+                throw std::logic_error("function could not be referenced");
               }
               res = builder->CreateCall(fun, args, i->lv_name);
             }
@@ -265,8 +276,25 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
       inst);
 }
 
-void LLVMGenerator::doJit() {}
-
+llvm::Error LLVMGenerator::doJit(const size_t opt_level) {
+  return jitengine->addModule(
+      std::move(module));  // do JIT compilation for module
+}
+int LLVMGenerator::execute() {
+  llvm::Error err = doJit();
+  if (bool(err)) {
+    Logger::debug_log("Error in JIT engine", Logger::ERROR);
+  }
+  auto mainfun = jitengine->lookup("__mimium_main");
+  auto err2 = mainfun.takeError();
+  if (bool(err2)) {
+    llvm::errs() << err2 << "\n";
+  }
+  uint64_t address = mainfun->getAddress();
+  auto fnptr = reinterpret_cast<int64_t (*)()>(address);  // NOLINT
+  int64_t res = fnptr();
+  return res;
+}
 void LLVMGenerator::outputToStream(llvm::raw_ostream& stream) {
   module->print(stream, nullptr, false, true);
 }

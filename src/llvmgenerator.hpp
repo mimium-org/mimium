@@ -17,6 +17,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Verifier.h"
+#include "llvm/ExecutionEngine/Orc/LLJIT.h"
 
 #include "llvm_builtin_functions.hpp"
 #include "jit_engine.hpp"
@@ -36,17 +37,17 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   void dropAllReferences();
 
   void initJit();
-  void doJit();
+  llvm::Error doJit(size_t opt_level = 1);
 
  public:
-  llvm::LLVMContext ctx;
+   std::unique_ptr<llvm::orc::MimiumJIT> jitengine;
+  std::shared_ptr<llvm::LLVMContext> ctx;
   std::unique_ptr<llvm::Function> curfunc;
-  std::shared_ptr<llvm::Module> module;
+  std::unique_ptr<llvm::Module> module;
   std::unique_ptr<llvm::IRBuilder<>> builder;
   std::unordered_map<std::string, llvm::Value*> namemap;
   llvm::BasicBlock* mainentry;
   llvm::BasicBlock* currentblock;
-  std::unique_ptr<llvm::orc::MimiumJIT> jitengine;
   explicit LLVMGenerator(std::string filename,bool i_isjit=true);
   // explicit LLVMGenerator(llvm::LLVMContext& _cts,std::string filename);
 
@@ -54,10 +55,10 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   void init(std::string filename);
   void reset(std::string filename);
 
-  auto getModule() -> std::shared_ptr<llvm::Module>;
   void setBB(llvm::BasicBlock* newblock);
 
   void generateCode(std::shared_ptr<MIRblock> mir);
+  int execute();
   void outputToStream(llvm::raw_ostream& ostream);
 };
 

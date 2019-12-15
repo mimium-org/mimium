@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <iostream>
 
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ExecutionEngine/JITSymbol.h"
@@ -43,10 +44,10 @@ class MimiumJIT {
         DL(DL),
         Mangle(ES, this->DL),
         Ctx(std::make_unique<LLVMContext>()),
-        MainJD(ES.createJITDylib("<main>")) {
+        MainJD(ES.getMainJITDylib()) {
             MainJD.setGenerator(
         cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(
-            DL)));
+            DL.getGlobalPrefix())));
   }
   static Expected<std::unique_ptr<MimiumJIT>> createEngine() {
     auto jtmb = JITTargetMachineBuilder::detectHost();
@@ -61,13 +62,15 @@ class MimiumJIT {
     }
     return std::make_unique<MimiumJIT>(std::move(*jtmb), std::move(*dl));
   }
-  void addModule(std::unique_ptr<Module> m) {
-    cantFail(CompileLayer.add(ES.getMainJITDylib(),
-                              ThreadSafeModule(std::move(m), Ctx)));
+  Error addModule(std::unique_ptr<Module> M) {
+    M->dump();
+    return OptimizeLayer.add(MainJD, ThreadSafeModule(std::move(M), Ctx));
   }
-
   Expected<JITEvaluatedSymbol> lookup(StringRef name) {
-    return ES.lookup({&ES.getMainJITDylib()}, Mangle(name.str()));
+    MainJD.dump(llvm::errs());
+    ES.dump(llvm::errs());
+    return ES.lookup({&ES.getMainJITDylib()}, name.str());
+
   }
   static Expected<ThreadSafeModule> optimizeModule(
       ThreadSafeModule M, const MaterializationResponsibility& R) {
@@ -76,10 +79,10 @@ class MimiumJIT {
     auto FPM = std::make_unique<legacy::FunctionPassManager>(M.getModule());
 
     // Add some optimizations.
-    FPM->add(createInstructionCombiningPass());
-    FPM->add(createReassociatePass());
-    FPM->add(createGVNPass());
-    FPM->add(createCFGSimplificationPass());
+    // FPM->add(createInstructionCombiningPass());
+    // FPM->add(createReassociatePass());
+    // FPM->add(createGVNPass());
+    // FPM->add(createCFGSimplificationPass());
     FPM->doInitialization();
 
     // Run the optimizations over all functions in the module being added to
@@ -87,7 +90,7 @@ class MimiumJIT {
     for (auto& fun : *M.getModule()) {
       FPM->run(fun);
     }
-
+    M.getModule()->dump();
     return M;
   }
   const DataLayout& getDataLayout() const { return DL; }
