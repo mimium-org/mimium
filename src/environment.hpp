@@ -32,7 +32,7 @@ class Environment : public std::enable_shared_from_this<Environment<T>> {
     } else if (parent != nullptr) {
       res = parent->findVariable(key);  // search recursively
     } else {
-      throw std::runtime_error("Variable " + key + " not found");
+      throw std::logic_error("Variable " + key + " not found");
       res = nullptr;
     }
     return res;
@@ -46,7 +46,7 @@ class Environment : public std::enable_shared_from_this<Environment<T>> {
       auto [isvarset, isisfv] = parent->isFreeVariable(key);
       res = std::pair(isvarset, true);  // search recursively
     } else {
-      throw std::runtime_error("Variable " + key + " not found");
+      throw std::logic_error("Variable " + key + " not found");
       res = std::pair(false, false);
     }
     return res;
@@ -114,7 +114,7 @@ class Environment<mValue>: public std::enable_shared_from_this<Environment<mValu
     } else if (parent != nullptr) {
       res = parent->findVariable(key);  // search recursively
     } else {
-      throw std::runtime_error("Variable " + key + " not found");
+      throw std::logic_error("Variable " + key + " not found");
       res = 0.0;
     }
     return res;

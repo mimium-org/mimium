@@ -1,4 +1,5 @@
 #pragma once
+#include "helper_functions.hpp"
 #include "ast.hpp"
 #include "type.hpp"
 #include "builtin_fn_types.hpp"

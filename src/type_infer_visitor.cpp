@@ -20,7 +20,7 @@ void TypeInferVisitor::visit(OpAST& ast) {
   ast.rhs->accept(*this);
   types::Value rhstype = res_stack;
   if (lhstype.index() != rhstype.index()) {
-    std::runtime_error("type of lhs and rhs is not matched");
+    std::logic_error("type of lhs and rhs is not matched");
   }
   types::Float f;
   res_stack = f;
@@ -52,7 +52,7 @@ void TypeInferVisitor::visit(ArrayAST& ast) {
   for (const auto& v : ast.getElements()) {
     v->accept(*this);
     if (tmpres.index() != res_stack.index()) {
-      throw std::runtime_error("array contains different types.");
+      throw std::logic_error("array contains different types.");
     }
     tmpres = res_stack;
   }
@@ -66,14 +66,19 @@ void TypeInferVisitor::visit(ArrayAccessAST& ast) {
         std::get<recursive_wrapper<types::Array>>(it->second);  // implicit cast
     arr.getElemType();
   } else {
-    throw std::runtime_error("could not find accessed array");
+    throw std::logic_error("could not find accessed array");
   }
   res_stack = res;
 }
 void TypeInferVisitor::visit(FcallAST& ast) {
-  auto it = typeenv.env.find(ast.getFname()->getVal());
-  types::Value v = it->second;
-  types::Function fn = std::get<recursive_wrapper<types::Function>>(v);
+  auto fname = ast.getFname()->getVal();
+  auto it = typeenv.env.find(fname);
+  if(it == typeenv.env.end()){
+    // Logger::debug_log("function "+ fname+ " could not be found",Logger::ERROR);
+    throw std::logic_error("function "+ fname+ " could not be found");
+  }
+  auto [name, type] = *it;
+  types::Function fn = std::get<recursive_wrapper<types::Function>>(type);
 
   types::Value res;
   auto fnargtypes = fn.getArgTypes();
@@ -86,7 +91,7 @@ void TypeInferVisitor::visit(FcallAST& ast) {
     checkflag |= res_stack.index() != fnargtypes[i].index();
   }
   if (checkflag) {
-    throw std::runtime_error("argument types were invalid");
+    throw std::invalid_argument("argument types were invalid");
   }
   res = fn.getReturnType();
 

@@ -2,7 +2,7 @@
 namespace mimium{
 
 Logger::REPORT_LEVEL Logger::current_report_level = Logger::WARNING;
-std::ostream* Logger::output = &std::cout;
+std::ostream* Logger::output = &std::cerr;
 
 Logger::Logger(){
     setoutput(std::cout);
