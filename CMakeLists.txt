@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.4)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-set(LLVM_CONFIG "/usr/local/Cellar/llvm/8.0.1/bin/llvm-config")
+set(LLVM_CONFIG "/usr/local/Cellar/llvm/9.0.0debug/bin/llvm-config")
 
 # set(LLVM_DIR "/usr/local/opt/llvm/share/cmake/modules")
-list(APPEND CMAKE_PREFIX_PATH "/usr/local/Cellar/llvm/8.0.1")
+list(APPEND CMAKE_PREFIX_PATH "/usr/local/Cellar/llvm/9.0.0debug")
 
 find_package(LLVM REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
@@ -12,7 +12,7 @@ message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
-llvm_map_components_to_libnames(llvm_libs support core orcjit native irreader)
+llvm_map_components_to_libnames(llvm_libs core orcjit native irreader support )
 
 
 
@@ -27,6 +27,9 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-Og -g -DNDEBUG")
 set(CMAKE_CXX_COMPILER /usr/local/opt/llvm/bin/clang++)
 set(CMAKE_C_COMPILER /usr/local/opt/llvm/bin/clang) 
 SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
+
+
+# for macOS SDK Root
 
 
 project (mimium CXX)

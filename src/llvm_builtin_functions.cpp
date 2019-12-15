@@ -31,8 +31,8 @@ llvm::Value* LLVMBuiltin::print(std::vector<llvm::Value*>& args,
     std::vector<llvm::Type*> atype = {iptr_type, dtype};
     llvm::FunctionType* ftype = llvm::FunctionType::get(rettype, atype, false);
     // ftype->dump();
-    auto newfun = llvm::cast<llvm::Function>(
-        generator->module->getOrInsertFunction("printf", ftype));
+    auto* newfun = llvm::cast<llvm::Function>(
+        generator->module->getOrInsertFunction("printf", ftype).getCallee());
     newfun->setCallingConv(llvm::CallingConv::C);
     // newfun->dump();
     format = generator->builder->CreateGlobalStringPtr("%f\n", "printfformat");

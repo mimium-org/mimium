@@ -4,11 +4,18 @@
             "type": "shell",
             "label": "cmake file",
             "command": "cmake",
-            "args": [".."],
+            "args": [
+                ".."
+            ],
             "options": {
                 "cwd": "${workspaceFolder}/build"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
             }
-        },{
+        },
+        {
             "type": "shell",
             "label": "make file",
             "command": "make",

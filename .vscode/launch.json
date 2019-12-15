@@ -15,11 +15,11 @@
             "cwd": "${workspaceFolder}/build/test",
         },
         {
-            "name": "(lldb) Launch with arg", 
+            "name": "Launch with arg", 
             "type": "lldb",
             "request": "launch",
-            "program": "${workspaceFolder}/build/src/Main",
-            "args": ["-emit-mir-cc", "/Users/tomoya/codes/mimium/test/test_closure2.mmm"], 
+            "program": "${workspaceFolder}/build/src/mimium",
+            "args": [ "/Users/tomoya/codes/mimium/test/testfile1.mmm"], 
             "cwd": "${workspaceFolder}/build", 
         },
 
@@ -44,21 +44,9 @@
             // "externalConsole": false,
             // "MIMode": "lldb"
         },
+
         {
-            "name": "Main Debug",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/build/src/Main",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/build",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "lldb",
-            // "preLaunchTask": "cmake file"
-        },
-        {
-            "name": "(lldb) Launch with stdin(./input.txt)", 
+            "name": "Launch with stdin(./input.txt)", 
             "type": "lldb",
             "request": "launch",
             "program": "${workspaceFolder}/build/src/Main",
