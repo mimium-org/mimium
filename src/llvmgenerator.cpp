@@ -10,6 +10,7 @@
 #include <stdexcept>
 
 #include "llvm/ExecutionEngine/JITSymbol.h"
+#include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
 #include "llvm/IR/Attributes.h"
 #include "llvm/IR/CallingConv.h"
 #include "llvm/IR/LLVMContext.h"
@@ -20,20 +21,29 @@ LLVMGenerator::LLVMGenerator(std::string filename, bool i_isjit)
     : mainentry(nullptr),
       isjit(i_isjit),
       currentblock(nullptr),
-      jitengine(nullptr),ctx(nullptr) {
+      lljit(nullptr),
+      ctx(nullptr) {
   LLVMInitializeNativeTarget();
   LLVMInitializeNativeAsmPrinter();
   LLVMInitializeNativeAsmParser();
-  jitengine = llvm::cantFail(llvm::orc::MimiumJIT::createEngine());
-  auto ctxptr = std::shared_ptr<llvm::LLVMContext>(&jitengine->getContext());
-  ctx= std::move(ctxptr);
+  // jitengine = llvm::cantFail(llvm::orc::MimiumJIT::createEngine());
+  auto lljitexp = llvm::orc::LLJITBuilder().create();
+  if (!lljitexp) {
+    auto err = lljitexp.takeError();
+  }
+  lljit = std::move(lljitexp.get());
+  lljit->getMainJITDylib().setGenerator(llvm::cantFail(
+      llvm::orc::DynamicLibrarySearchGenerator::GetForCurrentProcess(
+          lljit->getDataLayout().getGlobalPrefix())));
+  // auto ctxptr = std::shared_ptr<llvm::LLVMContext>(;
+  ctx = std::make_unique<llvm::LLVMContext>();
   init(filename);
 }
 void LLVMGenerator::init(std::string filename) {
   builder = std::make_unique<llvm::IRBuilder<>>(*ctx);
   module = std::make_unique<llvm::Module>(filename, *ctx);
   builtinfn = std::make_shared<LLVMBuiltin>();
-  module->setDataLayout(jitengine->getDataLayout());
+  module->setDataLayout(lljit->getDataLayout());
 }
 void LLVMGenerator::reset(std::string filename) {
   dropAllReferences();
@@ -277,15 +287,16 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
 }
 
 llvm::Error LLVMGenerator::doJit(const size_t opt_level) {
-  return jitengine->addModule(
-      std::move(module));  // do JIT compilation for module
+  llvm::orc::ThreadSafeContext tsc(std::move(ctx));
+  return lljit->addIRModule(llvm::orc::ThreadSafeModule(
+      std::move(module), std::move(tsc)));  // do JIT compilation for module
 }
 int LLVMGenerator::execute() {
   llvm::Error err = doJit();
   if (bool(err)) {
     Logger::debug_log("Error in JIT engine", Logger::ERROR);
   }
-  auto mainfun = jitengine->lookup("__mimium_main");
+  auto mainfun = lljit->lookup("__mimium_main");
   auto err2 = mainfun.takeError();
   if (bool(err2)) {
     llvm::errs() << err2 << "\n";
