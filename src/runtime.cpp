@@ -44,6 +44,9 @@ Runtime_LLVM::Runtime_LLVM(std::string filename_i,bool isjit)
       knormvisitor(ti_ptr),
       closureconverter(),
       llvmgenerator() {
+  LLVMInitializeNativeTarget();
+  LLVMInitializeNativeAsmPrinter();
+  LLVMInitializeNativeAsmParser();
         llvmgenerator = std::make_shared<LLVMGenerator>(filename_i,isjit);
         closureconverter = std::make_shared<ClosureConverter>(typevisitor.getEnv());
       } //temporary,jit is off

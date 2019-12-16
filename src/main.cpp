@@ -61,6 +61,7 @@ auto main(int argc, char** argv) -> int {
   std::ifstream input(input_filename.c_str());
   signal(SIGINT, signalHandler);
   Logger::current_report_level = Logger::INFO;
+  
   auto runtime = std::make_shared<mimium::Runtime_LLVM>();
   runtime->init();
   shutdown_handler = [&runtime](int /*signal*/) {

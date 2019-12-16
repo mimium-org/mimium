@@ -9,6 +9,7 @@
 #include <memory>
 #include <stdexcept>
 
+#include "jit_engine.hpp"
 #include "llvm/ExecutionEngine/JITSymbol.h"
 #include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
 #include "llvm/IR/Attributes.h"
@@ -21,29 +22,15 @@ LLVMGenerator::LLVMGenerator(std::string filename, bool i_isjit)
     : mainentry(nullptr),
       isjit(i_isjit),
       currentblock(nullptr),
-      lljit(nullptr),
-      ctx(nullptr) {
-  LLVMInitializeNativeTarget();
-  LLVMInitializeNativeAsmPrinter();
-  LLVMInitializeNativeAsmParser();
-  // jitengine = llvm::cantFail(llvm::orc::MimiumJIT::createEngine());
-  auto lljitexp = llvm::orc::LLJITBuilder().create();
-  if (!lljitexp) {
-    auto err = lljitexp.takeError();
-  }
-  lljit = std::move(lljitexp.get());
-  lljit->getMainJITDylib().setGenerator(llvm::cantFail(
-      llvm::orc::DynamicLibrarySearchGenerator::GetForCurrentProcess(
-          lljit->getDataLayout().getGlobalPrefix())));
-  // auto ctxptr = std::shared_ptr<llvm::LLVMContext>(;
-  ctx = std::make_unique<llvm::LLVMContext>();
+      jitengine(std::make_unique<llvm::orc::MimiumJIT>()),
+      ctx(jitengine->getContext()) {
   init(filename);
 }
 void LLVMGenerator::init(std::string filename) {
-  builder = std::make_unique<llvm::IRBuilder<>>(*ctx);
-  module = std::make_unique<llvm::Module>(filename, *ctx);
+  builder = std::make_unique<llvm::IRBuilder<>>(ctx);
+  module = std::make_unique<llvm::Module>(filename, ctx);
   builtinfn = std::make_shared<LLVMBuiltin>();
-  module->setDataLayout(lljit->getDataLayout());
+  module->setDataLayout(jitengine->getDataLayout());
 }
 void LLVMGenerator::reset(std::string filename) {
   dropAllReferences();
@@ -89,13 +76,13 @@ auto LLVMGenerator::getRawStructType(const types::Value& type) -> llvm::Type* {
     field.push_back(getType(a));
   }
 
-  llvm::Type* structtype = llvm::StructType::create(*ctx, field, "fvtype");
+  llvm::Type* structtype = llvm::StructType::create(ctx, field, "fvtype");
   return structtype;
 }
 auto LLVMGenerator::getType(const types::Value& type) -> llvm::Type* {
   return std::visit(
       overloaded{[this](const types::Float& /*f*/) {
-                   return llvm::Type::getDoubleTy(*ctx);
+                   return llvm::Type::getDoubleTy(ctx);
                  },
                  [this](const recursive_wrapper<types::Function>& rf) {
                    auto f = types::Function(rf);
@@ -117,12 +104,12 @@ auto LLVMGenerator::getType(const types::Value& type) -> llvm::Type* {
                      field.push_back(llvm::PointerType::get(getType(a), 0));
                    }
                    llvm::Type* structtype = llvm::PointerType::get(
-                       llvm::StructType::create(*ctx, field, "fvtype"), 0);
+                       llvm::StructType::create(ctx, field, "fvtype"), 0);
                    return structtype;
                  },
                  [this](auto& t) {  // NOLINT
                    throw std::logic_error("invalid type");
-                   return llvm::Type::getDoubleTy(*ctx);
+                   return llvm::Type::getDoubleTy(ctx);
                    ;
                  }},
       type);
@@ -132,7 +119,7 @@ void LLVMGenerator::setBB(llvm::BasicBlock* newblock) {
   builder->SetInsertPoint(newblock);
 }
 void LLVMGenerator::preprocess() {
-  auto* fntype = llvm::FunctionType::get(llvm::Type::getInt64Ty(*ctx), false);
+  auto* fntype = llvm::FunctionType::get(llvm::Type::getInt64Ty(ctx), false);
   auto* mainfun = llvm::Function::Create(
       fntype, llvm::Function::ExternalLinkage, "__mimium_main", module.get());
   mainfun->setCallingConv(llvm::CallingConv::C);
@@ -142,11 +129,11 @@ void LLVMGenerator::preprocess() {
       Akind::NoUnwind, Akind::NoInline, Akind::OptimizeNone};
   llvm::AttributeSet aset;
   for (auto& a : attrs) {
-    aset = aset.addAttribute(*ctx, a);
+    aset = aset.addAttribute(ctx, a);
   }
 
   mainfun->addAttributes(llvm::AttributeList::FunctionIndex, aset);
-  mainentry = llvm::BasicBlock::Create(*ctx, "entry", mainfun);
+  mainentry = llvm::BasicBlock::Create(ctx, "entry", mainfun);
   setBB(mainentry);
 }
 
@@ -166,10 +153,10 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
       overloaded{
           [](auto i) {},
           [&, this](const std::shared_ptr<NumberInst>& i) {
-            auto* ptr = builder->CreateAlloca(llvm::Type::getDoubleTy(*ctx),
+            auto* ptr = builder->CreateAlloca(llvm::Type::getDoubleTy(ctx),
                                               nullptr, "ptr_" + i->lv_name);
             auto* finst =
-                llvm::ConstantFP::get(*(this->ctx), llvm::APFloat(i->val));
+                llvm::ConstantFP::get(this->ctx, llvm::APFloat(i->val));
             builder->CreateStore(finst, ptr);
             auto* load = builder->CreateLoad(ptr, i->lv_name);
             namemap.emplace("ptr_" + i->lv_name, ptr);
@@ -215,7 +202,7 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
             }
             namemap.emplace(i->lv_name, f);
 
-            auto* bb = llvm::BasicBlock::Create(*ctx, "entry", f);
+            auto* bb = llvm::BasicBlock::Create(ctx, "entry", f);
             builder->SetInsertPoint(bb);
             currentblock = bb;
             f_it = f->args().begin();
@@ -287,16 +274,14 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
 }
 
 llvm::Error LLVMGenerator::doJit(const size_t opt_level) {
-  llvm::orc::ThreadSafeContext tsc(std::move(ctx));
-  return lljit->addIRModule(llvm::orc::ThreadSafeModule(
-      std::move(module), std::move(tsc)));  // do JIT compilation for module
+  return jitengine->addModule(std::move(module)) ; // do JIT compilation for module
 }
 int LLVMGenerator::execute() {
   llvm::Error err = doJit();
   if (bool(err)) {
     Logger::debug_log("Error in JIT engine", Logger::ERROR);
   }
-  auto mainfun = lljit->lookup("__mimium_main");
+  auto mainfun = jitengine->lookup("__mimium_main");
   auto err2 = mainfun.takeError();
   if (bool(err2)) {
     llvm::errs() << err2 << "\n";

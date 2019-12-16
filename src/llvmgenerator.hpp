@@ -42,8 +42,8 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   llvm::Error doJit(size_t opt_level = 1);
 
  public:
-   std::unique_ptr<llvm::orc::LLJIT> lljit;
-  std::unique_ptr<llvm::LLVMContext> ctx;
+   std::unique_ptr<llvm::orc::MimiumJIT> jitengine;
+  llvm::LLVMContext& ctx;
   std::unique_ptr<llvm::Function> curfunc;
   std::unique_ptr<llvm::Module> module;
   std::unique_ptr<llvm::IRBuilder<>> builder;
