@@ -1,8 +1,2 @@
 start =220500
-main = println(1)@start
-main =  println(2)@(start+2000)
-main =  println(3)@(start+8000)
-main =  println(4)@(start+8001)
-main =  println(5)@(start+12001)
-main =  println(6)@(start+23001)
-main =  println(7)@(start+45001)
+main = print(1@start)

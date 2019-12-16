@@ -10,11 +10,14 @@
 #include <stdexcept>
 
 #include "jit_engine.hpp"
+#include "llvm/ADT/APInt.h"
 #include "llvm/ExecutionEngine/JITSymbol.h"
 #include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
 #include "llvm/IR/Attributes.h"
 #include "llvm/IR/CallingConv.h"
+#include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Type.h"
 #include "llvm/Support/Error.h"
 #include "type.hpp"
 namespace mimium {
@@ -92,10 +95,8 @@ auto LLVMGenerator::getType(const types::Value& type) -> llvm::Type* {
                      auto* atype = getType(a);
                      args.push_back(atype);
                    }
-                   // upcast
-                   llvm::Type* res =
-                       llvm::FunctionType::get(rettype, args, false);
-                   return res;
+                   return llvm::cast<llvm::Type>(
+                       llvm::FunctionType::get(rettype, args, false));
                  },
                  [this](const recursive_wrapper<types::Struct>& rs) {
                    auto s = types::Struct(rs);
@@ -107,9 +108,12 @@ auto LLVMGenerator::getType(const types::Value& type) -> llvm::Type* {
                        llvm::StructType::create(ctx, field, "fvtype"), 0);
                    return structtype;
                  },
+                 [this](const types::Void& /* t */) {
+                   return llvm::Type::getVoidTy(ctx);
+                 },
                  [this](auto& t) {  // NOLINT
                    throw std::logic_error("invalid type");
-                   return llvm::Type::getDoubleTy(ctx);
+                   return llvm::Type::getVoidTy(ctx);
                    ;
                  }},
       type);
@@ -118,12 +122,11 @@ auto LLVMGenerator::getType(const types::Value& type) -> llvm::Type* {
 void LLVMGenerator::setBB(llvm::BasicBlock* newblock) {
   builder->SetInsertPoint(newblock);
 }
-void LLVMGenerator::preprocess() {
+void LLVMGenerator::createMainFun() {
   auto* fntype = llvm::FunctionType::get(llvm::Type::getInt64Ty(ctx), false);
   auto* mainfun = llvm::Function::Create(
       fntype, llvm::Function::ExternalLinkage, "__mimium_main", module.get());
   mainfun->setCallingConv(llvm::CallingConv::C);
-  llvm::AttrBuilder attrbuilder;
   using Akind = llvm::Attribute;
   std::vector<llvm::Attribute::AttrKind> attrs = {
       Akind::NoUnwind, Akind::NoInline, Akind::OptimizeNone};
@@ -134,6 +137,47 @@ void LLVMGenerator::preprocess() {
 
   mainfun->addAttributes(llvm::AttributeList::FunctionIndex, aset);
   mainentry = llvm::BasicBlock::Create(ctx, "entry", mainfun);
+}
+void LLVMGenerator::createTaskRegister() {
+  std::vector<llvm::Type*> argtypes = {builder->getInt64Ty(),
+                                       builder->getInt64Ty()};  //????
+  auto* fntype = llvm::FunctionType::get(builder->getVoidTy(), argtypes, false);
+  auto addtaskfun = llvm::cast<llvm::Function>(
+      module->getOrInsertFunction("addTask", fntype).getCallee());
+  addtaskfun->setCallingConv(llvm::CallingConv::C);
+  using Akind = llvm::Attribute;
+  std::vector<llvm::Attribute::AttrKind> attrs = {
+      Akind::NoUnwind, Akind::NoInline, Akind::OptimizeNone};
+  llvm::AttributeSet aset;
+  for (auto& a : attrs) {
+    aset = aset.addAttribute(ctx, a);
+  }
+  addtaskfun->addAttributes(llvm::AttributeList::FunctionIndex, aset);
+  typemap.emplace("addTask", fntype);
+  fntype->dump();
+}
+
+llvm::Type* LLVMGenerator::createTimeStruct(types::Value t) {
+  llvm::Type* res;
+  std::string name =
+      "TimeType_" + std::visit([](auto& type) { return type.toString(); }, t);
+  if (module->getTypeByName(name) == nullptr) {
+    llvm::Type* containtype = std::visit(
+        overloaded{[&](types::Float& f) { return builder->getDoubleTy(); },
+                   [&](auto& v) { return builder->getVoidTy(); }},
+        t);
+    std::vector<llvm::Type*> elemtypes = {builder->getInt64Ty(),
+                                          containtype->getPointerTo()};
+    res = llvm::StructType::create(ctx, elemtypes, name);
+    typemap.emplace(name, res);
+  } else {
+    res = module->getTypeByName(name);
+  }
+  return res;
+}
+void LLVMGenerator::preprocess() {
+  createTaskRegister();
+  createMainFun();
   setBB(mainentry);
 }
 
@@ -162,24 +206,42 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
             namemap.emplace("ptr_" + i->lv_name, ptr);
             namemap.emplace(i->lv_name, load);
           },
+          [&, this](const std::shared_ptr<TimeInst>& i) {
+            auto resname = "ptr_" + i->lv_name;
+            types::Time timetype =
+                std::get<recursive_wrapper<types::Time>>(i->type);
+            auto strtype = createTimeStruct(timetype.val);
+            typemap.emplace(resname, strtype);
+            auto* ptr = builder->CreateAlloca(strtype, nullptr, resname);
+            auto* timepos = builder->CreateStructGEP(strtype, ptr, 0);
+            auto* valpos = builder->CreateStructGEP(strtype, ptr, 1);
+            namemap[i->time]->dump();
+            timepos->dump();
+            valpos->dump();
+            auto* time =
+                builder->CreateFPToUI(namemap[i->time], builder->getInt64Ty());
+            builder->CreateStore(time, timepos);
+            auto* ptrtoval = namemap["ptr_"+i->val];
+            
+            builder->CreateStore(ptrtoval, valpos);
+            namemap.emplace(resname, ptr);
+          },
           [&, this](const std::shared_ptr<OpInst>& i) {
             llvm::Value* ptr;
+            auto* lhs = namemap[i->lhs];
+            auto* rhs = namemap[i->rhs];
             switch (i->getOPid()) {
               case ADD:
-                ptr = builder->CreateFAdd(namemap[i->lhs], namemap[i->rhs],
-                                          i->lv_name);
+                ptr = builder->CreateFAdd(lhs, rhs, i->lv_name);
                 break;
               case SUB:
-                ptr = builder->CreateFSub(namemap[i->lhs], namemap[i->rhs],
-                                          i->lv_name);
+                ptr = builder->CreateFSub(lhs, rhs, i->lv_name);
                 break;
               case MUL:
-                ptr = builder->CreateFMul(namemap[i->lhs], namemap[i->rhs],
-                                          i->lv_name);
+                ptr = builder->CreateFMul(lhs, rhs, i->lv_name);
                 break;
               case DIV:
-                ptr = builder->CreateFDiv(namemap[i->lhs], namemap[i->rhs],
-                                          i->lv_name);
+                ptr = builder->CreateFDiv(lhs, rhs, i->lv_name);
                 break;
               default:
                 break;
@@ -188,8 +250,8 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
           },
           [&, this](const std::shared_ptr<FunInst>& i) {
             bool hasfv = !i->freevariables.empty();
-            auto* ft = static_cast<llvm::FunctionType*>(getType(
-                i->type));  // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
+            auto* ft =
+                llvm::cast<llvm::FunctionType>(getType(i->type));  // NOLINT
             llvm::Function* f = llvm::Function::Create(
                 ft, llvm::Function::ExternalLinkage, i->lv_name, module.get());
             auto f_it = f->args().begin();
@@ -226,38 +288,47 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
             currentblock = mainentry;
           },
           [&, this](const std::shared_ptr<MakeClosureInst>& i) {
-            auto it = static_cast<llvm::Function*>(namemap[i->fname])  // NOLINT
+            auto it = llvm::cast<llvm::Function>(namemap[i->fname])  // NOLINT
                           ->arg_end();
             auto ptrtype =
-                static_cast<llvm::PointerType*>((--it)->getType());  // NOLINT
+                llvm::cast<llvm::PointerType>((--it)->getType());  // NOLINT
             llvm::Type* strtype = ptrtype->getElementType();
             llvm::Value* cap_size =
                 builder->CreateAlloca(strtype, nullptr, i->lv_name);
             int idx = 0;
             for (auto& cap : i->captures) {
               llvm::Value* gep =
-                  builder->CreateStructGEP(strtype, cap_size, idx, "");
+                  builder->CreateStructGEP(strtype, cap_size, idx++, "");
               builder->CreateStore(namemap["ptr_" + cap.name], gep);
-              idx++;
             }
             namemap.emplace(i->lv_name, cap_size);
           },
           [&, this](const std::shared_ptr<FcallInst>& i) {
             llvm::Value* res;
             std::vector<llvm::Value*> args;
-            for (auto& a : i->args) {
-              args.push_back(namemap[a]);
-            }
+            std::for_each(i->args.begin(), i->args.end(),
+                          [&](auto& a) { args.emplace_back(namemap[a]); });
             if (i->ftype == CLOSURE) {
-              llvm::Value* cls = namemap[i->fname + "_cls"];
-              args.push_back(cls);
+              args.emplace_back(namemap[i->fname + "_cls"]);
+            }
+            if (i->istimed) {
+              auto tvptr = namemap["ptr_" + i->args[0]];
+              auto timeptr = builder->CreateStructGEP(
+                  typemap["ptr_" + i->args[0]], tvptr, 0, "");
+              auto valptrptr = builder->CreateStructGEP(
+                  typemap["ptr_" + i->args[0]], tvptr, 1, "");
+              auto timeval = builder->CreateLoad(timeptr);
+              auto valptr = builder->CreateLoad(valptrptr);
+              auto val = builder->CreateLoad(valptr);
+              std::vector<llvm::Value*> args = {timeval, val};
+              auto res = builder->CreateCall(
+                  module->getOrInsertFunction("addTask", typemap["addTask"]),
+                  args);
             }
             if (LLVMBuiltin::isBuiltin(i->fname)) {
               auto it = LLVMBuiltin::builtin_fntable.find(i->fname);
               builtintype fn = it->second;
-              std::vector<llvm::Value*> arg;
               res = fn(args, i->lv_name, this->shared_from_this());
-              // res->dump();
             } else {
               llvm::Function* fun = module->getFunction(i->fname);
               if (fun == nullptr) {
@@ -274,7 +345,8 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
 }
 
 llvm::Error LLVMGenerator::doJit(const size_t opt_level) {
-  return jitengine->addModule(std::move(module)) ; // do JIT compilation for module
+  return jitengine->addModule(
+      std::move(module));  // do JIT compilation for module
 }
 int LLVMGenerator::execute() {
   llvm::Error err = doJit();

@@ -36,6 +36,7 @@ class TypeInferVisitor : public ASTVisitor {
 
  private:
   types::Value res_stack;
+  static bool checkArg(const types::Value& fnarg,const types::Value& givenarg);
   TypeEnv typeenv;
   bool has_return;
 };

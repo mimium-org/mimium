@@ -1,4 +1,5 @@
 #include "knormalize_visitor.hpp"
+#include "ast.hpp"
 #include "builtin_fn_types.hpp"
 
 namespace mimium {
@@ -113,18 +114,23 @@ void KNormalizeVisitor::visit(LambdaAST& ast){
     currentblock->indent_level--;
 
 }
+bool KNormalizeVisitor::isArgTime(ArgumentsAST& args){
+  auto& elems = args.getElements();
+  return (!elems.empty()&&elems[0]->getid()==TIME);
+}
 void KNormalizeVisitor::visit(FcallAST& ast){
   auto fname= ast.getFname()->getVal();
   auto newname = getVarName();
+  auto args = ast.getArgs();
   std::deque<std::string> newarg;
-  for(auto& arg: ast.getArgs()->getElements()){
+  for(auto& arg: args->getElements()){
     arg->accept(*this);
     newarg.push_back(stackPopStr());
   }
   ast.accept(*typeinfer);
   auto tm = builtin::types_map;
-  auto fntype = (tm.find(fname)!=tm.end())?EXTERNAL:CLOSURE;
-  Instructions newinst =std::make_shared<FcallInst>(newname,fname,std::move(newarg),fntype,typeinfer->getLastType());
+  auto fnkind = (tm.find(fname)!=tm.end())?EXTERNAL:CLOSURE;
+  Instructions newinst =std::make_shared<FcallInst>(newname,fname,std::move(newarg),fnkind,typeinfer->getLastType(),isArgTime(*args));
   currentblock->addInst(newinst);
   res_stack_str.push(newname);
 };
@@ -189,9 +195,11 @@ void KNormalizeVisitor::visit(TimeAST& ast){
   //とりあえずこの先で処理します
     ast.getTime()->accept(*this);
     ast.getExpr()->accept(*this);
+    ast.accept(*typeinfer);
     auto newname = getVarName();
-    auto newinst =std::make_shared<TimeInst>(newname,stackPopStr(),stackPopStr());
+    auto newinst =std::make_shared<TimeInst>(newname,stackPopStr(),stackPopStr(),typeinfer->getLastType());
     Instructions res = newinst;
+    
     currentblock->addInst(res);
   res_stack_str.push(newname);
 }

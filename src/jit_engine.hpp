@@ -35,10 +35,8 @@ class MimiumJIT {
   MangleAndInterner Mangle;
   ThreadSafeContext Ctx;
 
-
-
  public:
-   MimiumJIT()
+  MimiumJIT()
       : lllazyjit(cantFail(createEngine())),
         ES(lllazyjit->getExecutionSession()),
         DL(lllazyjit->getDataLayout()),
@@ -62,6 +60,13 @@ class MimiumJIT {
   Expected<JITEvaluatedSymbol> lookup(StringRef name) {
     return lllazyjit->lookup(name);
   }
+
+  Error addSymbol(StringRef name, void* ptr) {
+    auto symbol =
+        JITEvaluatedSymbol(pointerToJITTargetAddress(ptr), JITSymbolFlags());
+    return lllazyjit->defineAbsolute(name, symbol);
+  }
+
   static Expected<ThreadSafeModule> optimizeModule(
       ThreadSafeModule M, const MaterializationResponsibility& R) {
     // Create a function pass manager.

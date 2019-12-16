@@ -4,6 +4,7 @@
 #include "ast.hpp"
 #include "environment.hpp"
 #include "closure_convert.hpp"
+#include "type.hpp"
 
 namespace mimium {
 enum FCALLTYPE { DIRECT, CLOSURE, EXTERNAL };
@@ -109,9 +110,9 @@ class TimeInst: public MIRinstruction{
   public:
   std::string time;
   std::string val;
-  TimeInst(std::string _lv, std::string _val,std::string _time):time(std::move(_time)),val(std::move(_val)){
+  TimeInst(std::string _lv, std::string _val,std::string _time,types::Value _type):time(std::move(_time)),val(std::move(_val)){
     lv_name=_lv;
-    type = types::Time();
+    type = _type;
   }
   std::string toString() override;
   void closureConvert(std::deque<TypedVal>& fvlist,std::shared_ptr<ClosureConverter> cc ,std::shared_ptr<MIRblock> mir,std::list<Instructions>::iterator it) override;
@@ -160,8 +161,9 @@ class FcallInst : public MIRinstruction {
   std::string fname;
   std::deque<std::string> args;
   FCALLTYPE ftype;
-  FcallInst(std::string _lv, std::string _fname, std::deque<std::string> _args,FCALLTYPE _ftype = CLOSURE,types::Value _type = types::Float())
-      :fname(std::move(_fname)), args(std::move(_args)),ftype(_ftype){
+  bool istimed;
+  FcallInst(std::string _lv, std::string _fname, std::deque<std::string> _args,FCALLTYPE _ftype = CLOSURE,types::Value _type = types::Float(),bool istimed = false)
+      :fname(std::move(_fname)), args(std::move(_args)),ftype(_ftype),istimed(istimed){
         lv_name=_lv;
         type = _type;
       };

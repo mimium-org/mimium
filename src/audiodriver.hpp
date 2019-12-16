@@ -5,9 +5,6 @@
 #include <memory>
 
 namespace mimium{
-//to convert lambda function to RtAudioCallback
-class Scheduler;//forward
-
 
 class AudioDriver{
     std::shared_ptr<RtAudio> rtaudio;

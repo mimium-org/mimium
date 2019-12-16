@@ -1,6 +1,7 @@
 #pragma once
 #include <algorithm>
 #include <memory>
+#include <unordered_map>
 
 #include "alphaconvert_visitor.hpp"
 #include "ast.hpp"
@@ -8,6 +9,7 @@
 #include "knormalize_visitor.hpp"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DerivedTypes.h"
@@ -35,12 +37,16 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   auto getType(const types::Value& type) -> llvm::Type*;
   auto getRawStructType(const types::Value& type) -> llvm::Type*;
   void preprocess();
+  void createMainFun();
+  void createTaskRegister();
   void visitInstructions(const Instructions& inst);
   void dropAllReferences();
+  std::unordered_map<std::string, llvm::Type*> typemap;
 
   void initJit();
   llvm::Error doJit(size_t opt_level = 1);
 
+  llvm::Type* createTimeStruct(types::Value t);
  public:
    std::unique_ptr<llvm::orc::MimiumJIT> jitengine;
   llvm::LLVMContext& ctx;
@@ -62,6 +68,7 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   void generateCode(std::shared_ptr<MIRblock> mir);
   int execute();
   void outputToStream(llvm::raw_ostream& ostream);
+  llvm::orc::MimiumJIT& getJitEngine(){return *jitengine;}
 };
 
 // struct InstructionVisitor{

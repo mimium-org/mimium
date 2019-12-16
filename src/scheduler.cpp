@@ -5,34 +5,20 @@
 #include <cstdlib>
 namespace mimium{
 
-void Scheduler::incrementTime() {
-  time++;
-  if (!tasks.empty() && time > tasks.top().first) {
-    executeTask();
-  }
-}
-void Scheduler::executeTask() {
-  // tasks.top().second->accept(*interpreter);
-  // // current_task_index->second->accept(*interpreter);
-  // // const auto deleteitr = current_task_index;
-  // // current_task_index++;
-  // tasks.pop();
-  // // tasks.erase(deleteitr);
-  // if (time > tasks.top().first) {
-  //   executeTask();  // recursively execute if multiple tasks exist at the same
-  //                   // time
-  // }
-}
+// void Scheduler::executeTask() {
+//   // tasks.top().second->accept(*interpreter);
+//   // // current_task_index->second->accept(*interpreter);
+//   // // const auto deleteitr = current_task_index;
+//   // // current_task_index++;
+//   // tasks.pop();
+//   // // tasks.erase(deleteitr);
+//   // if (time > tasks.top().first) {
+//   //   executeTask();  // recursively execute if multiple tasks exist at the same
+//   //                   // time
+//   // }
+// }
 
-void Scheduler::addTask(int time, AST_Ptr fn) {
-  // fn->set_time(-1); //remove time to execute
-  tasks.push(std::make_pair(time,fn));
-  // tasks.insert(std::make_pair(time, fn));
-  // if (tasks.size() == 1) {
-  //   current_task_index = tasks.begin();
-  //   nexttask_time = time;
-  // }
-}
+
 
 
 void SchedulerRT::start() {
@@ -63,6 +49,9 @@ int SchedulerRT::audioCallback(void* outputBuffer, void* inputBuffer,
 
   }
   return 0;
+}
+void SchedulerRT::executeTask(){
+  //todo
 }
 
 SchedulerSndFile::SchedulerSndFile(std::shared_ptr<Runtime> runtime_i): Scheduler(runtime_i){
@@ -107,6 +96,9 @@ void SchedulerSndFile::stop() {
         std::exit(0);
   }
  }
+void SchedulerSndFile::executeTask(){
+  //todo
+}
 
 
 }//namespace mimium

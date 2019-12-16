@@ -11,6 +11,14 @@ SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE),
 
 namespace mimium {
 
+template<typename T, typename... U>
+size_t getAddressfromFun(std::function<T(U...)> f) {
+    typedef T(fnType)(U...);
+    fnType ** fnPointer = f.template target<fnType*>();
+    return (size_t) *fnPointer;
+}
+
+
 class Logger {
  public:
   Logger();

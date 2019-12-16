@@ -32,12 +32,7 @@ struct Float {
 struct String {
   std::string toString() { return "String"; };
 };
-struct Time {
-  Float val;
-  Float time;
-  Time() = default;
-  std::string toString() { return val.toString() + "@" + time.toString(); }
-};
+
 struct Function;
 struct Array;
 struct Struct;
@@ -45,7 +40,13 @@ struct Time;
 using Value = std::variant<types::Void, types::Float, types::String,
                            recursive_wrapper<types::Function>,
                            recursive_wrapper<types::Array>,
-                           recursive_wrapper<types::Struct>, types::Time>;
+                           recursive_wrapper<types::Struct>, recursive_wrapper<types::Time>>;
+struct Time {
+  Value val;
+  Float time;
+  Time() = default;
+  std::string toString() { return std::visit([](auto c) { return c.toString(); }, val); + "@" + time.toString(); }
+};
 struct Function {
   Function() = default;
   Function(std::vector<Value> arg_types_p, Value ret_type_p)

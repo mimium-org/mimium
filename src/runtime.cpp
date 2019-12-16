@@ -51,6 +51,22 @@ Runtime_LLVM::Runtime_LLVM(std::string filename_i,bool isjit)
         closureconverter = std::make_shared<ClosureConverter>(typevisitor.getEnv());
       } //temporary,jit is off
 
+void Runtime_LLVM::addScheduler(bool issoundfile){
+    if (issoundfile) {
+    sch = std::make_shared<SchedulerSndFile>(shared_from_this());
+  } else {
+    sch = std::make_shared<SchedulerRT>(shared_from_this());
+  }
+  auto& jit = llvmgenerator->getJitEngine();
+  // std::function<void(int,AST_Ptr)> addtaskfn = [&](int time,AST_Ptr task){ sch->addTask(time, task);};
+  // auto ptr = reinterpret_cast<void*>( getAddressfromFun(std::move(addtaskfn)));
+  // auto err = jit.addSymbol("addTask", ptr);
+  // if(bool(err)){
+  //   llvm::errs()<<err <<"\n";
+  // }
+}
+
+
 AST_Ptr Runtime_LLVM::loadSourceFile(std::string filename) {
   this->filename = filename;
   llvmgenerator->reset(filename);

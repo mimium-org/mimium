@@ -1,4 +1,6 @@
 #include "type_infer_visitor.hpp"
+#include <variant>
+#include "type.hpp"
 
 namespace mimium {
 TypeInferVisitor::TypeInferVisitor() : has_return(false) { 
@@ -70,6 +72,18 @@ void TypeInferVisitor::visit(ArrayAccessAST& ast) {
   }
   res_stack = res;
 }
+bool TypeInferVisitor::checkArg(const types::Value& fnarg,const types::Value& givenarg){
+  bool res;
+    if(std::holds_alternative<recursive_wrapper<types::Time>>(givenarg)){
+      types::Time v =std::get<recursive_wrapper<types::Time>>(givenarg);
+      res = fnarg.index() == v.val.index(); //currently
+    }else{
+      res = fnarg.index() == givenarg.index();
+    }
+    return res;
+  }
+
+
 void TypeInferVisitor::visit(FcallAST& ast) {
   auto fname = ast.getFname()->getVal();
   auto it = typeenv.env.find(fname);
@@ -88,9 +102,9 @@ void TypeInferVisitor::visit(FcallAST& ast) {
   bool checkflag = false;
   for (int i = 0; i < args.size(); i++) {
     args[i]->accept(*this);
-    checkflag |= res_stack.index() != fnargtypes[i].index();
+    checkflag |=  checkArg(fnargtypes[i],res_stack);
   }
-  if (checkflag) {
+  if (!checkflag) {
     throw std::invalid_argument("argument types were invalid");
   }
   res = fn.getReturnType();
@@ -149,9 +163,11 @@ void TypeInferVisitor::visit(DeclarationAST& ast) {
   // will not be called
 }
 void TypeInferVisitor::visit(TimeAST& ast) {
+    types::Time t;
   ast.getExpr()->accept(*this);
+  t.val = res_stack;
   ast.getTime()->accept(*this);
-  types::Time t;
+  t.time = types::Float();
   res_stack = t;
 }
 

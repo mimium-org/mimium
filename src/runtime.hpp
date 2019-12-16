@@ -13,13 +13,16 @@
 #include "type_infer_visitor.hpp"
 
 namespace mimium {
+template<typename TaskType>
+class Scheduler;
+
 class Runtime : public std::enable_shared_from_this<Runtime> {
  public:
   Runtime(std::string filename_i = "untitled") : filename(filename_i) {}
 
   virtual ~Runtime() = default;
 
-  void addScheduler(bool issoundfile);
+  virtual void addScheduler(bool issoundfile);
   virtual void init();
   void clear();
   inline void clearDriver() { driver.clear(); };
@@ -40,7 +43,7 @@ class Runtime : public std::enable_shared_from_this<Runtime> {
   std::string current_working_directory = "";
 
  protected:
-  std::shared_ptr<Scheduler> sch;
+  std::shared_ptr<Scheduler<AST_Ptr>> sch;
   mmmpsr::MimiumDriver driver;
   Mididriver midi;
   std::string filename;
@@ -52,7 +55,7 @@ class Runtime_LLVM : public Runtime {
   explicit Runtime_LLVM(std::string filename = "untitled.mmm" ,bool isjit=true);
 
   ~Runtime_LLVM() = default;
-
+  void addScheduler(bool issoundfile) override;
   AST_Ptr alphaConvert(AST_Ptr _ast);
   TypeEnv& typeInfer(AST_Ptr _ast);
   TypeEnv& getTypeEnv() { return typevisitor.getEnv(); };
