@@ -13,7 +13,7 @@ void Runtime::addScheduler(bool issoundfile = false) {
   }
 }
 
-void Runtime::init() { midi.init(); }
+void Runtime::init() { /* midi.init(); */ }
 
 void Runtime::clear() { clearDriver(); }
 
