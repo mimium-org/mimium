@@ -60,7 +60,7 @@ class MimiumJIT {
   Expected<JITEvaluatedSymbol> lookup(StringRef name) {
     return lllazyjit->lookup(name);
   }
-
+  
   Error addSymbol(StringRef name, void* ptr) {
     auto symbol =
         JITEvaluatedSymbol(pointerToJITTargetAddress(ptr), JITSymbolFlags());

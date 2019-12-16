@@ -50,11 +50,12 @@ int SchedulerRT::audioCallback(void* outputBuffer, void* inputBuffer,
   }
   return 0;
 }
-void SchedulerRT::executeTask(){
+void SchedulerRT::executeTask(const LLVMTaskType& task){
   //todo
+  runtime->executeTask(task);
 }
 
-SchedulerSndFile::SchedulerSndFile(std::shared_ptr<Runtime> runtime_i): Scheduler(runtime_i){
+SchedulerSndFile::SchedulerSndFile(std::shared_ptr<Runtime<LLVMTaskType>> runtime_i): Scheduler(runtime_i){
         sfinfo.channels=2;
         sfinfo.format= (SF_FORMAT_WAV | SF_FORMAT_PCM_16);
         sfinfo.samplerate = 48000;
@@ -96,7 +97,7 @@ void SchedulerSndFile::stop() {
         std::exit(0);
   }
  }
-void SchedulerSndFile::executeTask(){
+void SchedulerSndFile::executeTask(const LLVMTaskType& task){
   //todo
 }
 

@@ -5,39 +5,10 @@
 
 namespace mimium {
 
-void Runtime::addScheduler(bool issoundfile = false) {
-  if (issoundfile) {
-    sch = std::make_shared<SchedulerSndFile>(shared_from_this());
-  } else {
-    sch = std::make_shared<SchedulerRT>(shared_from_this());
-  }
-}
 
-void Runtime::init() { /* midi.init(); */ }
-
-void Runtime::clear() { clearDriver(); }
-
-void Runtime::start() {
-  sch->start();
-  running_status = true;
-}
-
-void Runtime::stop() {
-  sch->stop();
-  running_status = false;
-}
-
-AST_Ptr Runtime::loadSource(const std::string src) {
-  driver.parsestring(src);
-  return driver.getMainAst();
-}
-AST_Ptr Runtime::loadSourceFile(const std::string filename) {
-  driver.parsefile(filename);
-  return driver.getMainAst();
-}
 
 Runtime_LLVM::Runtime_LLVM(std::string filename_i,bool isjit)
-    : Runtime(filename_i),
+    : Runtime<LLVMTaskType>(filename_i),
       alphavisitor(),
       typevisitor(),
       ti_ptr(&typevisitor),
@@ -99,5 +70,19 @@ auto Runtime_LLVM::llvmGenarate(std::shared_ptr<MIRblock> mir) -> std::string {
 int Runtime_LLVM::execute(){
   return llvmgenerator->execute();
 }
+
+void Runtime_LLVM::executeTask(const LLVMTaskType& task){
+  auto& [fname,fntype,args] = task;
+    auto& jit = llvmgenerator->getJitEngine();
+  auto res = jit.lookup(fname);
+  if(auto err = res.takeError()){
+    llvm::errs() << err << "\n";
+  }
+  auto& symbol = res.get();
+  auto fnptr = llvm::jitTargetAddressToPointer<void*>(symbol.getAddress());
+  auto fnres = fnptr(args); 
+  
+  }
+
 
 }  // namespace mimium
