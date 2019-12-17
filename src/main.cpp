@@ -85,7 +85,7 @@ auto main(int argc, char** argv) -> int {
   } else {  // try to parse and exec input file
     try {
       std::string filename = input_filename.c_str();
-      Logger::debug_log("Opening: " + filename, Logger::INFO);
+      Logger::debug_log("Opening " + filename, Logger::INFO);
 
       int stage = 0;
       AST_Ptr ast, ast_u;
@@ -148,7 +148,7 @@ auto main(int argc, char** argv) -> int {
       //   sleep(20);
       // };  // todo : what is best way to wait infinitely? thread?
     } catch (std::exception& e) {
-      std::cerr << e.what() << std::endl;
+      mimium::Logger::debug_log(e.what(),mimium::Logger::ERROR);
       runtime->stop();
     }
   }

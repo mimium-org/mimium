@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 
+#include "helper_functions.hpp"
 #include "driver.hpp"
 
 #ifndef MIMIUM_DEBUG
@@ -22,9 +23,7 @@ void MimiumDriver::parse(std::istream &is){
    parser.reset();
    parser = std::make_unique<mmmpsr::MimiumParser>( *scanner,*this );
    parser->set_debug_level(DEBUG_LEVEL); //debug
-   if( parser->parse() != 0 ){
-      std::cerr << "Parse failed!!\n";
-   }
+   parser->parse();
 }
 void MimiumDriver::parsestring(const std::string str){
    std::stringbuf strBuf( str.c_str() );

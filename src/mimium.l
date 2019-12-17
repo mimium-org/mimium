@@ -1,5 +1,7 @@
 %{
+  #include <sstream>
   #include "scanner.hpp"
+  #include "helper_functions.hpp"
   #undef  YY_DECL
   #define YY_DECL int mmmpsr::MimiumScanner::yylex( mmmpsr::MimiumParser::semantic_type * const lval, mmmpsr::MimiumParser::location_type *loc )
   
@@ -118,7 +120,9 @@ END {BREAK}{WSPACE}*"end"
 {WSPACE} 
 
 . {
-std::cerr << "Lexer: Unrecognized char \"" << yytext[0] << "\"" << std::endl;
+  std::stringstream ss;
+  ss << "Lexer: Unrecognized char \"" << yytext[0] << "\"\n";
+    mimium::Logger::debug_log( ss.str() ,mimium::Logger::ERROR);
 		loc->step();
 }
 %%

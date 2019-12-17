@@ -15,9 +15,9 @@ void Mididriver::setPort(int portnumber) {
     midiout->closePort();
   }
   if(midiout->getPortCount()<=0){
-    std::cout<< "No Availlable Midi Port"<< std::endl;
+    std::cerr<< "No Availlable Midi Port"<< std::endl;
   }else if(portnumber > midiout->getPortCount()){
-    std::cout<< "port number out of range"<< std::endl;
+    std::cerr<< "Port number out of range"<< std::endl;
   }else{
   midiout->openPort(portnumber);
   }

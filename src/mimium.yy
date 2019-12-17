@@ -23,7 +23,9 @@
       class MimiumScanner;
    }
   #include <memory>
+  #include <sstream>
 #include "ast.hpp"
+#include "helper_functions.hpp"
   using AST_Ptr = std::shared_ptr<AST>;
   #define YYDEBUG 1
 
@@ -298,5 +300,7 @@ fntype_args  :  fntype_args ',' types {
 void 
 mmmpsr::MimiumParser::error( const location_type &l, const std::string &err_message )
 {
-   std::cerr << "Error: " << err_message << " at " << l << "\n";
+      std::stringstream ss;
+      ss  <<  "Parse Error: " << err_message << " at " << l << "\n";
+mimium::Logger::debug_log(ss.str(),mimium::Logger::ERROR);
 }

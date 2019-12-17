@@ -154,7 +154,6 @@ void LLVMGenerator::createTaskRegister() {
   }
   addtaskfun->addAttributes(llvm::AttributeList::FunctionIndex, aset);
   typemap.emplace("addTask", fntype);
-  fntype->dump();
 }
 
 llvm::Type* LLVMGenerator::createTimeStruct(types::Value t) {
@@ -221,8 +220,8 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
             auto* time =
                 builder->CreateFPToUI(namemap[i->time], builder->getInt64Ty());
             builder->CreateStore(time, timepos);
-            auto* ptrtoval = namemap["ptr_"+i->val];
-            
+            auto* ptrtoval = namemap["ptr_" + i->val];
+
             builder->CreateStore(ptrtoval, valpos);
             namemap.emplace(resname, ptr);
           },
@@ -350,16 +349,10 @@ llvm::Error LLVMGenerator::doJit(const size_t opt_level) {
 }
 int LLVMGenerator::execute() {
   llvm::Error err = doJit();
-  if (bool(err)) {
-    Logger::debug_log("Error in JIT engine", Logger::ERROR);
-  }
+  Logger::debug_log(err, Logger::ERROR);
   auto mainfun = jitengine->lookup("__mimium_main");
-  auto err2 = mainfun.takeError();
-  if (bool(err2)) {
-    llvm::errs() << err2 << "\n";
-  }
-  uint64_t address = mainfun->getAddress();
-  auto fnptr = reinterpret_cast<int64_t (*)()>(address);  // NOLINT
+  Logger::debug_log(mainfun, Logger::ERROR);
+  auto fnptr = llvm::jitTargetAddressToPointer<int64_t (*)()>(mainfun->getAddress());
   int64_t res = fnptr();
   return res;
 }

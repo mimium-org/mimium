@@ -5,7 +5,7 @@ Logger::REPORT_LEVEL Logger::current_report_level = Logger::WARNING;
 std::ostream* Logger::output = &std::cerr;
 
 Logger::Logger(){
-    setoutput(std::cout);
+    setoutput(std::cerr);
     Logger::current_report_level = Logger::DEBUG;
 }
 Logger::Logger(std::ostream& out){

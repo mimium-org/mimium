@@ -75,13 +75,11 @@ void Runtime_LLVM::executeTask(const LLVMTaskType& task){
   auto& [fname,fntype,args] = task;
     auto& jit = llvmgenerator->getJitEngine();
   auto res = jit.lookup(fname);
-  if(auto err = res.takeError()){
-    llvm::errs() << err << "\n";
-  }
+  Logger::debug_log(res,Logger::ERROR);
   auto& symbol = res.get();
   auto fnptr = llvm::jitTargetAddressToPointer<void*>(symbol.getAddress());
-  auto fnres = fnptr(args); 
-  
+  // auto fnres = fnptr(args); 
+
   }
 
 

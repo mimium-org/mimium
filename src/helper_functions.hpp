@@ -3,6 +3,7 @@
 #include <iostream>
 #include <map>
 #include <string>
+#include "llvm/Support/Error.h"
 
 #ifdef _WIN32
 SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE),
@@ -27,6 +28,18 @@ class Logger {
   using REPORT_LEVEL = enum { FATAL = 1, ERROR, WARNING, INFO, DEBUG, TRACE };
   /// @callgraph
   static void debug_log(const std::string& str, REPORT_LEVEL report_level);
+  static void debug_log(llvm::Error& err,REPORT_LEVEL report_level){
+    if(bool(err) && report_level<=Logger::current_report_level){
+          llvm::errs() << report_str.at(report_level) << ": " << err << norm << "\n";
+      }
+  }
+  template<typename T>
+  static void debug_log(llvm::Expected<T>& expected,REPORT_LEVEL report_level){
+      if(auto err = expected.takeError() && report_level<=Logger::current_report_level){
+          llvm::errs() << report_str.at(report_level) << ": " << err << norm << "\n";
+      }
+  }
+
   inline void setoutput(std::ostream& out) { Logger::output = &out; }
   static REPORT_LEVEL current_report_level;
 
