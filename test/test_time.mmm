@@ -1,2 +1,7 @@
 start =220500
-main = print(1@start)
+myvalue = 0
+fn dummy(input){
+    print(input)
+    return input
+}
+myvalue = dummy(1@start)

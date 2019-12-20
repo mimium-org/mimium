@@ -11,6 +11,8 @@
 
 #include "jit_engine.hpp"
 #include "llvm/ADT/APInt.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/ExecutionEngine/JITSymbol.h"
 #include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
 #include "llvm/IR/Attributes.h"
@@ -139,11 +141,17 @@ void LLVMGenerator::createMainFun() {
   mainentry = llvm::BasicBlock::Create(ctx, "entry", mainfun);
 }
 void LLVMGenerator::createTaskRegister() {
-  std::vector<llvm::Type*> argtypes = {builder->getInt64Ty(),
-                                       builder->getInt64Ty()};  //????
+  // time,address to function(upcasted),argument(currently only double),address
+  // to target variable
+  auto taskfntype = llvm::FunctionType::get(builder->getDoubleTy(),
+                                            {builder->getDoubleTy()}, false);
+
+  llvm::ArrayRef<llvm::Type*> argtypes = {
+      builder->getDoubleTy(), llvm::PointerType::get(taskfntype, 0),
+      builder->getDoubleTy(), llvm::Type::getDoublePtrTy(ctx)};
   auto* fntype = llvm::FunctionType::get(builder->getVoidTy(), argtypes, false);
-  auto addtaskfun = llvm::cast<llvm::Function>(
-      module->getOrInsertFunction("addTask", fntype).getCallee());
+  addtask = module->getOrInsertFunction("addTask", fntype);
+  auto addtaskfun = llvm::cast<llvm::Function>(addtask.getCallee());
   addtaskfun->setCallingConv(llvm::CallingConv::C);
   using Akind = llvm::Attribute;
   std::vector<llvm::Attribute::AttrKind> attrs = {
@@ -157,20 +165,18 @@ void LLVMGenerator::createTaskRegister() {
 }
 
 llvm::Type* LLVMGenerator::createTimeStruct(types::Value t) {
-  llvm::Type* res;
-  std::string name =
+  llvm::StringRef name =
       "TimeType_" + std::visit([](auto& type) { return type.toString(); }, t);
-  if (module->getTypeByName(name) == nullptr) {
+  llvm::Type* res = module->getTypeByName(name);
+  if (res == nullptr) {
     llvm::Type* containtype = std::visit(
         overloaded{[&](types::Float& f) { return builder->getDoubleTy(); },
                    [&](auto& v) { return builder->getVoidTy(); }},
         t);
-    std::vector<llvm::Type*> elemtypes = {builder->getInt64Ty(),
-                                          containtype->getPointerTo()};
+    llvm::ArrayRef<llvm::Type*> elemtypes = {
+        builder->getDoubleTy(), llvm::PointerType::get(containtype, 0)};
     res = llvm::StructType::create(ctx, elemtypes, name);
     typemap.emplace(name, res);
-  } else {
-    res = module->getTypeByName(name);
   }
   return res;
 }
@@ -218,7 +224,7 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
             timepos->dump();
             valpos->dump();
             auto* time =
-                builder->CreateFPToUI(namemap[i->time], builder->getInt64Ty());
+                builder->CreateFPToUI(namemap[i->time], builder->getDoubleTy());
             builder->CreateStore(time, timepos);
             auto* ptrtoval = namemap["ptr_" + i->val];
 
@@ -310,7 +316,8 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
             if (i->ftype == CLOSURE) {
               args.emplace_back(namemap[i->fname + "_cls"]);
             }
-            if (i->istimed) {
+            if (i->istimed) {  // if arguments is timed value, call addTask
+                               // function,
               auto tvptr = namemap["ptr_" + i->args[0]];
               auto timeptr = builder->CreateStructGEP(
                   typemap["ptr_" + i->args[0]], tvptr, 0, "");
@@ -319,11 +326,20 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
               auto timeval = builder->CreateLoad(timeptr);
               auto valptr = builder->CreateLoad(valptrptr);
               auto val = builder->CreateLoad(valptr);
-              std::vector<llvm::Value*> args = {timeval, val};
-              auto res = builder->CreateCall(
-                  module->getOrInsertFunction("addTask", typemap["addTask"]),
-                  args);
-            }
+              auto ptrtofn = namemap[i->fname];
+              auto taskfntype = llvm::FunctionType::get(
+                  builder->getDoubleTy(), {builder->getDoubleTy()}, false);
+
+              auto addresstofn = builder->CreatePointerCast(
+                  ptrtofn, llvm::PointerType::get(taskfntype, 0));
+              // time,address to fun, arg(double), ptrtotarget,
+              llvm::ArrayRef<llvm::Value*> args = {
+                  timeval, addresstofn, val, namemap["ptr_" + i->lv_name]};
+              // auto rettype
+              // =llvm::cast<llvm::FunctionType>(typemap["addTask"])->getReturnType();
+              for(const auto& a:args){a->dump();};
+              builder->CreateCall(addtask, args);
+            }else{
             if (LLVMBuiltin::isBuiltin(i->fname)) {
               auto it = LLVMBuiltin::builtin_fntable.find(i->fname);
               builtintype fn = it->second;
@@ -336,6 +352,7 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
               res = builder->CreateCall(fun, args, i->lv_name);
             }
             namemap.emplace(i->lv_name, res);
+            }
           },
           [&, this](const std::shared_ptr<ReturnInst>& i) {
             builder->CreateRet(namemap[i->val]);
@@ -352,7 +369,8 @@ int LLVMGenerator::execute() {
   Logger::debug_log(err, Logger::ERROR);
   auto mainfun = jitengine->lookup("__mimium_main");
   Logger::debug_log(mainfun, Logger::ERROR);
-  auto fnptr = llvm::jitTargetAddressToPointer<int64_t (*)()>(mainfun->getAddress());
+  auto fnptr =
+      llvm::jitTargetAddressToPointer<int64_t (*)()>(mainfun->getAddress());
   int64_t res = fnptr();
   return res;
 }

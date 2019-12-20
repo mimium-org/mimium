@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 
+#include <memory>
 #include <string>
 #include <sstream>
 
@@ -13,10 +14,7 @@
 
 namespace mmmpsr{
 
-MimiumDriver::~MimiumDriver()
-{
-
-}
+MimiumDriver::~MimiumDriver() = default;
 void MimiumDriver::parse(std::istream &is){
    scanner.reset();
    scanner = std::make_unique<mmmpsr::MimiumScanner>( is );
@@ -26,8 +24,8 @@ void MimiumDriver::parse(std::istream &is){
    parser->parse();
 }
 void MimiumDriver::parsestring(const std::string str){
-   std::stringbuf strBuf( str.c_str() );
-   std::istream instream( &strBuf );
+   std::stringbuf str_buf( str );
+   std::istream instream( &str_buf );
    parse(instream);
 }
 
@@ -51,7 +49,7 @@ void MimiumDriver::parsefile(const std::string filename){
 }
 
 void MimiumDriver::clear(){
-   mainast.reset(new ListAST());
+   mainast = std::make_shared<ListAST>();
 }
 
 void MimiumDriver::setWorkingDirectory(const std::string str){

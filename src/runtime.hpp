@@ -13,13 +13,15 @@
 #include "type_infer_visitor.hpp"
 
 namespace mimium {
+  using dtodtype = double(*)(double);
 struct LLVMTaskType {
-  std::string fname;
-  llvm::FunctionType ftype;
-  std::vector<llvm::Value*> args;
+  dtodtype addresstofn;
+  double arg;
+  double* ptrtotarget;
 };
 template <typename TaskType>
 class Scheduler;
+
 
 class SchedulerRT;
 class SchedulerSndFile;

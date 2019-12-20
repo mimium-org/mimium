@@ -60,35 +60,40 @@ class MimiumJIT {
   Expected<JITEvaluatedSymbol> lookup(StringRef name) {
     return lllazyjit->lookup(name);
   }
-  
+
   Error addSymbol(StringRef name, void* ptr) {
-    auto symbol =
-        JITEvaluatedSymbol(pointerToJITTargetAddress(ptr), JITSymbolFlags());
-    return lllazyjit->defineAbsolute(name, symbol);
+    auto symbol = JITEvaluatedSymbol(pointerToJITTargetAddress(ptr), JITSymbolFlags());
+    auto res =    MainJD.define(absoluteSymbols({{ Mangle(name), symbol}}));
+    // auto res = lllazyjit->defineAbsolute(name, symbol);
+    MainJD.dump(errs());
+
+    return res;
   }
 
   static Expected<ThreadSafeModule> optimizeModule(
       ThreadSafeModule M, const MaterializationResponsibility& R) {
-    // Create a function pass manager.
+      // Create a function pass manager.
 
-    auto FPM = std::make_unique<legacy::FunctionPassManager>(M.getModule());
+      auto FPM = std::make_unique<legacy::FunctionPassManager>(M.getModule());
 
-    // Add some optimizations.
-    FPM->add(createInstructionCombiningPass());
-    FPM->add(createReassociatePass());
-    FPM->add(createGVNPass());
-    FPM->add(createCFGSimplificationPass());
-    FPM->doInitialization();
+      // Add some optimizations.
+      FPM->add(createInstructionCombiningPass());
+      FPM->add(createReassociatePass());
+      FPM->add(createGVNPass());
+      FPM->add(createCFGSimplificationPass());
+      FPM->doInitialization();
 
-    // Run the optimizations over all functions in the module being added to
-    // the JIT.
-    for (auto& fun : *M.getModule()) {
-      FPM->run(fun);
-    }
-    return M;
+      // Run the optimizations over all functions in the module being added to
+      // the JIT.
+      for (auto& fun : *M.getModule()) {
+        FPM->run(fun);
+      }
+      return M;
   }
-  [[nodiscard]] const DataLayout& getDataLayout() const { return DL; }
-  LLVMContext& getContext() { return *Ctx.getContext(); }
-};
+  [[nodiscard]] const DataLayout& getDataLayout() const {
+      return DL; }
+  LLVMContext& getContext() {
+      return *Ctx.getContext(); }
+  };
 }  // namespace orc
-}  // namespace llvm
+}  // namespace orc

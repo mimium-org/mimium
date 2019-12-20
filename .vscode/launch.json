@@ -19,7 +19,7 @@
             "type": "lldb",
             "request": "launch",
             "program": "${workspaceFolder}/build/src/mimium",
-            "args": [ "/Users/tomoya/codes/mimium/test/test_time.mmm","-emit-llvm"], 
+            "args": [ "/Users/tomoya/codes/mimium/test/test_time.mmm"], 
             "cwd": "${workspaceFolder}/build", 
         },
 

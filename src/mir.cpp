@@ -141,8 +141,8 @@ void FunInst::closureConvert(std::deque<TypedVal>& fvlist,
     auto makecls = std::make_shared<MakeClosureInst>(
         newname, lv_name, this->freevariables, fvtype);
     mir->instructions.insert(++it, std::move(makecls));
-    auto newtype = static_cast<types::Function>(
-        std::get<recursive_wrapper<types::Function>>(this->type));
+    types::Function newtype = 
+        std::get<recursive_wrapper<types::Function>>(this->type);
     newtype.arg_types.emplace_back(fvtype);
     this->type = newtype;
   }

@@ -34,16 +34,31 @@ class Scheduler {  // scheduler interface
       executeTask(tasks.top().second);
     }
   };
-  void addTask(int time, TaskType fn) { tasks.push(std::make_pair(time, fn)); };
+  // time,address to fun, arg(double), ptrtotarget,
+  void addTask(double time, double (*addresstofn)(double), double arg,
+               double* ptrtotarget) {
+    auto task = TaskType{addresstofn, arg, ptrtotarget};
+    tasks.emplace(static_cast<int64_t>(time), task);
+  };
+// static auto getAddTaskAddress(){
+//     void(Scheduler<TaskType>::*ptr)(double,double(*)(double),double,double*) = &Scheduler<TaskType>::addTask;
+//     return ptr; }
+
 
  protected:
   std::shared_ptr<Runtime<TaskType>> runtime;
   using key_type = std::pair<int64_t, TaskType>;
+  struct Comparator {
+    bool operator()(const key_type& l, const key_type& r) const {
+        return l.first < r.first;
+    }
+    };
+
   using queue_type = std::priority_queue<key_type, std::vector<key_type>,
-                                         std::greater<key_type>>;
+                                         Comparator>;
   int64_t time;
   queue_type tasks;
-  virtual void executeTask(const TaskType& task)=0;
+  virtual void executeTask(const TaskType& task) = 0;
 };
 
 class SchedulerRT : public Scheduler<LLVMTaskType> {
@@ -69,7 +84,7 @@ class SchedulerRT : public Scheduler<LLVMTaskType> {
                            RtAudioStreamStatus status, void* userdata);
 
  private:
- void executeTask(const LLVMTaskType& task) override;
+  void executeTask(const LLVMTaskType& task) override;
   AudioDriver audio;
   CallbackData userdata;
 };

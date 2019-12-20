@@ -42,6 +42,7 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   void visitInstructions(const Instructions& inst);
   void dropAllReferences();
   std::unordered_map<std::string, llvm::Type*> typemap;
+  llvm::FunctionCallee addtask;
 
   void initJit();
   llvm::Error doJit(size_t opt_level = 1);

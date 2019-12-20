@@ -1,5 +1,7 @@
 #include "runtime.hpp"
+#include <memory>
 #include "closure_convert.hpp"
+#include "llvm/ExecutionEngine/JITSymbol.h"
 #include "llvmgenerator.hpp"
 
 
@@ -29,12 +31,16 @@ void Runtime_LLVM::addScheduler(bool issoundfile){
     sch = std::make_shared<SchedulerRT>(shared_from_this());
   }
   auto& jit = llvmgenerator->getJitEngine();
-  // std::function<void(int,AST_Ptr)> addtaskfn = [&](int time,AST_Ptr task){ sch->addTask(time, task);};
-  // auto ptr = reinterpret_cast<void*>( getAddressfromFun(std::move(addtaskfn)));
-  // auto err = jit.addSymbol("addTask", ptr);
-  // if(bool(err)){
-  //   llvm::errs()<<err <<"\n";
-  // }
+  auto addtaskaddress = &Scheduler<LLVMTaskType>::addTask;
+  auto mysize = sizeof(addtaskaddress);
+  auto* ptr = reinterpret_cast<char*>(sch.get());
+  auto*newptr = static_cast<void*>(ptr + mysize);
+  auto err = jit.addSymbol("addTask", newptr);
+
+
+  if(bool(err)){
+    llvm::errs()<<err <<"\n";
+  }
 }
 
 
@@ -72,14 +78,17 @@ int Runtime_LLVM::execute(){
 }
 
 void Runtime_LLVM::executeTask(const LLVMTaskType& task){
-  auto& [fname,fntype,args] = task;
+  auto& [addresstofn,arg,ptrtotarget] = task;
     auto& jit = llvmgenerator->getJitEngine();
-  auto res = jit.lookup(fname);
-  Logger::debug_log(res,Logger::ERROR);
-  auto& symbol = res.get();
-  auto fnptr = llvm::jitTargetAddressToPointer<void*>(symbol.getAddress());
-  // auto fnres = fnptr(args); 
 
+  auto fn = addresstofn;
+  // auto res = jit.lookup(fname);
+  // Logger::debug_log(res,Logger::ERROR);
+  // auto& symbol = res.get();
+
+  // auto fnptr = llvm::jitTargetAddressToPointer<void*>(symbol.getAddress());
+  double res  = fn(arg);
+  *ptrtotarget = res;//overwrite value....?
   }
 
 

@@ -183,6 +183,7 @@ statement : assign {$$=std::move($1);}
          | forloop {$$=std::move($1);}
          | declaration {$$=std::move($1);} 
          |RETURN expr {$$ = driver.add_return(std::move($2));}
+         | expr {$$ = std::move($1);}//for void function
          ;
 
 fdef : FUNC lvar arguments_top block {$$ = driver.add_assign(std::move($2),driver.add_lambda(std::move($3),std::move($4)));};
