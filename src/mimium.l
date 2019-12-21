@@ -26,7 +26,8 @@ DELIMITER "{"|"}"|"("|")"|"["|"]"|","|"\""|"\."|"/"
 WSPACE   [[:blank:]]+
 BREAK  "\r\n"|"\n"|"\r"
 NEWLINE {BREAK}* | ";"
-END {BREAK}{WSPACE}*"end"
+/*END {BREAK}{WSPACE}*"end"*/
+/*{END} return token::END;*/
 %%
 
 %{
@@ -61,7 +62,7 @@ END {BREAK}{WSPACE}*"end"
 "include" return token::INCLUDE;
 
 "fn" return token::FUNC;
-{END} return token::END;
+
 "for" return token::FOR;
 "in" return token::IN;
 

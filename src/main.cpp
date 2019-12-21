@@ -17,19 +17,18 @@ using Logger = mimium::Logger;
 
 #include "runtime.hpp"
 
-extern "C"{ 
+extern "C" {
 
 mimium::Scheduler<mimium::LLVMTaskType>* global_sch;
 void addTask(double time, double (*addresstofn)(double), double arg,
-               double* ptrtotarget){
-                 global_sch->addTask(time,addresstofn,arg,ptrtotarget);
-      }
+             double* ptrtotarget) {
+  global_sch->addTask(time, addresstofn, arg, ptrtotarget);
+}
 
-int myprint(double d){
+int myprint(double d) {
   std::cerr << d << std::endl;
   return 0;
 }
-
 }
 
 std::function<void(int)> shutdown_handler;
@@ -132,6 +131,10 @@ auto main(int argc, char** argv) -> int {
             break;
           case CompileStage::EXECUTE:
             returncode = runtime->execute();
+            runtime->start();
+            while (runtime->getScheduler()->hasTask()) {
+              sleep(20);
+            };  // todo : what is best way to wait infinitely? thread?
             break;
         }
         stage++;
@@ -160,10 +163,6 @@ auto main(int argc, char** argv) -> int {
           break;
       }
 
-      runtime->start();
-      while (runtime->getScheduler()->hasTask()) {
-        sleep(20);
-      };  // todo : what is best way to wait infinitely? thread?
     } catch (std::exception& e) {
       mimium::Logger::debug_log(e.what(), mimium::Logger::ERROR);
       runtime->stop();
@@ -171,6 +170,3 @@ auto main(int argc, char** argv) -> int {
   }
   return 0;
 }
-
-
-

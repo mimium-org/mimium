@@ -82,7 +82,7 @@
 
    INCLUDE "include_token"
 
-   END "end_token"
+   /*END "end_token"*/
    RETURN "return_token"
 
    ENDFILE    0     "end of file"
@@ -186,7 +186,8 @@ statement : assign {$$=std::move($1);}
          | expr {$$ = std::move($1);}//for void function
          ;
 
-fdef : FUNC lvar arguments_top block {$$ = driver.add_assign(std::move($2),driver.add_lambda(std::move($3),std::move($4)));};
+fdef : FUNC lvar arguments_top block {$$ = driver.add_assign(std::move($2),driver.add_lambda(std::move($3),std::move($4)));}
+      |FUNC lvar arguments_top ARROW types block {$$ = driver.add_assign(std::move($2),driver.add_lambda(std::move($3),std::move($6),std::move($5)));};
 
 ifstatement: IF '(' expr ')' block {$$ = driver.add_if(std::move($3),std::move($5),nullptr);}
             |IF '(' expr ')' block ELSE block {$$ = driver.add_if(std::move($3),std::move($5),std::move($7));}

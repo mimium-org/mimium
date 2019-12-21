@@ -265,8 +265,10 @@ class LambdaAST : public AST {
  public:
   AST_Ptr args;
   AST_Ptr body;  // statements
-  LambdaAST(AST_Ptr Args, AST_Ptr Body)
-      : args(std::move(Args)), body(std::move(Body)) {
+  mimium::types::Value type;
+
+  LambdaAST(AST_Ptr Args, AST_Ptr Body,mimium::types::Value type)
+      : args(std::move(Args)), body(std::move(Body)),type(std::move(type)) {
     id = LAMBDA;
   }
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); };

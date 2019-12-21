@@ -38,7 +38,8 @@ class MimiumDriver {
   AST_Ptr add_op(std::string op, AST_Ptr lhs, AST_Ptr rhs);
 
   AST_Ptr add_arguments(AST_Ptr arg);
-  AST_Ptr add_lambda(AST_Ptr args, AST_Ptr body);
+  AST_Ptr add_lambda(AST_Ptr args, AST_Ptr body,mimium::types::Value type = mimium::types::Value());
+
 
   AST_Ptr add_fcall(AST_Ptr fname, AST_Ptr args);
   AST_Ptr add_declaration(std::string fname, AST_Ptr args);

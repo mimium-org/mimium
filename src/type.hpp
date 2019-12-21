@@ -37,7 +37,7 @@ struct Function;
 struct Array;
 struct Struct;
 struct Time;
-using Value = std::variant<types::Void, types::Float, types::String,
+using Value = std::variant<std::monostate,types::Void, types::Float, types::String,
                            recursive_wrapper<types::Function>,
                            recursive_wrapper<types::Array>,
                            recursive_wrapper<types::Struct>, recursive_wrapper<types::Time>>;

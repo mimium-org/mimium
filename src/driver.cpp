@@ -84,8 +84,9 @@ AST_Ptr MimiumDriver::add_arguments(AST_Ptr arg){
    return std::make_unique<ArgumentsAST>(std::move(arg));
 }
 
-AST_Ptr MimiumDriver::add_lambda(AST_Ptr args,AST_Ptr body){
-   return std::make_unique<LambdaAST>(std::move(args),std::move(body));
+
+AST_Ptr MimiumDriver::add_lambda(AST_Ptr args,AST_Ptr body,mimium::types::Value type = mimium::types::Value()){
+   return std::make_unique<LambdaAST>(std::move(args),std::move(body),std::move(type));
 }
 
 AST_Ptr MimiumDriver::add_fcall(AST_Ptr fname,AST_Ptr args){
