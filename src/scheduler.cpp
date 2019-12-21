@@ -6,16 +6,16 @@
 namespace mimium{
 
 // void Scheduler::executeTask() {
-//   // tasks.top().second->accept(*interpreter);
-//   // // current_task_index->second->accept(*interpreter);
-//   // // const auto deleteitr = current_task_index;
-//   // // current_task_index++;
-//   // tasks.pop();
-//   // // tasks.erase(deleteitr);
-//   // if (time > tasks.top().first) {
-//   //   executeTask();  // recursively execute if multiple tasks exist at the same
-//   //                   // time
-//   // }
+//   tasks.top().second->accept(*interpreter);
+//   // current_task_index->second->accept(*interpreter);
+//   // const auto deleteitr = current_task_index;
+//   // current_task_index++;
+//   tasks.pop();
+//   // tasks.erase(deleteitr);
+//   if (time > tasks.top().first) {
+//     executeTask();  // recursively execute if multiple tasks exist at the same
+//                     // time
+//   }
 // }
 
 
@@ -53,6 +53,10 @@ int SchedulerRT::audioCallback(void* outputBuffer, void* inputBuffer,
 void SchedulerRT::executeTask(const LLVMTaskType& task){
   //todo
   runtime->executeTask(task);
+  tasks.pop();
+  if(!tasks.empty() && time > tasks.top().first){
+    this->executeTask(tasks.top().second);
+  }
 }
 
 SchedulerSndFile::SchedulerSndFile(std::shared_ptr<Runtime<LLVMTaskType>> runtime_i): Scheduler(runtime_i){

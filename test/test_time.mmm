@@ -4,4 +4,4 @@ fn dummy(input){
     print(input)
     return input
 }
-myvalue = dummy(1@start)
+myvalue = dummy(134@start)

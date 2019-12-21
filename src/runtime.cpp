@@ -2,6 +2,7 @@
 #include <memory>
 #include "closure_convert.hpp"
 #include "llvm/ExecutionEngine/JITSymbol.h"
+#include "llvm/ExecutionEngine/RTDyldMemoryManager.h"
 #include "llvmgenerator.hpp"
 
 

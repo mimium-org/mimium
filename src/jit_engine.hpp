@@ -2,6 +2,7 @@
 #include <iostream>
 #include <memory>
 
+#include "llvm-c/ExecutionEngine.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ExecutionEngine/JITSymbol.h"
 #include "llvm/ExecutionEngine/Orc/CompileUtils.h"
@@ -13,6 +14,7 @@
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/ExecutionEngine/Orc/Layer.h"
 #include "llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h"
+#include "llvm/ExecutionEngine/RTDyldMemoryManager.h"
 #include "llvm/ExecutionEngine/SectionMemoryManager.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/LLVMContext.h"
@@ -51,7 +53,7 @@ class MimiumJIT {
   static Expected<std::unique_ptr<LLLazyJIT>> createEngine() {
     auto builder = LLLazyJITBuilder();
     auto jit = builder.create();
-
+    
     return jit;
   }
   Error addModule(std::unique_ptr<Module> M) {
@@ -62,12 +64,17 @@ class MimiumJIT {
   }
 
   Error addSymbol(StringRef name, void* ptr) {
-    auto symbol = JITEvaluatedSymbol(pointerToJITTargetAddress(ptr), JITSymbolFlags());
-    auto res =    MainJD.define(absoluteSymbols({{ Mangle(name), symbol}}));
+    // auto symbol = JITEvaluatedSymbol(pointerToJITTargetAddress(&puts), JITSymbolFlags::Absolute);
+    // auto res =    MainJD.define(absoluteSymbols({{ Mangle("puts"), symbol}}));
+    // symbol.setFlags(JITSymbolFlags::FlagNames::Callable);
     // auto res = lllazyjit->defineAbsolute(name, symbol);
-    MainJD.dump(errs());
+    auto res = lllazyjit->lookup("addTask");
+    ES.dump(errs());
 
-    return res;
+
+    // auto address = jitTargetAddressToPointer<int(*)(char*)>(test->getAddress());
+    MainJD.dump(errs());
+    return res.takeError();
   }
 
   static Expected<ThreadSafeModule> optimizeModule(

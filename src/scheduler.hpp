@@ -28,6 +28,7 @@ class Scheduler {  // scheduler interface
   virtual ~Scheduler(){};
   virtual void start() = 0;
   virtual void stop() = 0;
+  bool hasTask(){return !tasks.empty();}
   void incrementTime() {
     time++;
     if (!tasks.empty() && time > tasks.top().first) {
@@ -40,22 +41,21 @@ class Scheduler {  // scheduler interface
     auto task = TaskType{addresstofn, arg, ptrtotarget};
     tasks.emplace(static_cast<int64_t>(time), task);
   };
-// static auto getAddTaskAddress(){
-//     void(Scheduler<TaskType>::*ptr)(double,double(*)(double),double,double*) = &Scheduler<TaskType>::addTask;
-//     return ptr; }
-
+  // static auto getAddTaskAddress(){
+  //     void(Scheduler<TaskType>::*ptr)(double,double(*)(double),double,double*)
+  //     = &Scheduler<TaskType>::addTask; return ptr; }
 
  protected:
   std::shared_ptr<Runtime<TaskType>> runtime;
   using key_type = std::pair<int64_t, TaskType>;
-  struct Comparator {
+  struct Greater {
     bool operator()(const key_type& l, const key_type& r) const {
-        return l.first < r.first;
+      return l.first > r.first;
     }
-    };
+  };
 
-  using queue_type = std::priority_queue<key_type, std::vector<key_type>,
-                                         Comparator>;
+  using queue_type =
+      std::priority_queue<key_type, std::vector<key_type>, Greater>;
   int64_t time;
   queue_type tasks;
   virtual void executeTask(const TaskType& task) = 0;

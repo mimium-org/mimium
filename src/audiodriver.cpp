@@ -28,10 +28,10 @@ bool AudioDriver::start() {
   try {
     rtaudio->openStream(&parameters, nullptr, RTAUDIO_FLOAT64, sample_rate,
                         &buffer_frames, callback, userdata);
-    std::cout << rtaudio->getStreamSampleRate() << std::endl;
+    std::cerr << rtaudio->getStreamSampleRate() << std::endl;
     auto device = rtaudio->getDeviceInfo(rtaudio->getDefaultOutputDevice());
-    std::cout << device.name << std::endl;
-    std::cout << device.outputChannels << std::endl;
+    std::cerr << device.name << std::endl;
+    std::cerr << device.outputChannels << std::endl;
     rtaudio->startStream();
   } catch (RtAudioError& e) {
     e.printMessage();
