@@ -158,7 +158,7 @@ void TypeInferVisitor::visit(FcallAST& ast) {
   bool checkflag = false;
   for (int i = 0; i < args.size(); i++) {
     args[i]->accept(*this);
-    checkflag |= checkArg(fnargtypes[i], res_stack);
+    checkflag |= unify(fnargtypes[i], res_stack);
   }
   if (!checkflag) {
     throw std::invalid_argument("argument types were invalid");
