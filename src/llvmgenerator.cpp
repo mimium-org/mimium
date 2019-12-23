@@ -220,9 +220,7 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
             auto* ptr = builder->CreateAlloca(strtype, nullptr, resname);
             auto* timepos = builder->CreateStructGEP(strtype, ptr, 0);
             auto* valpos = builder->CreateStructGEP(strtype, ptr, 1);
-            namemap[i->time]->dump();
-            timepos->dump();
-            valpos->dump();
+
             auto* time =
                 builder->CreateFPToUI(namemap[i->time], builder->getDoubleTy());
             builder->CreateStore(time, timepos);
@@ -288,6 +286,9 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
             for (auto& cinsts : i->body->instructions) {
               visitInstructions(cinsts);
             }
+            if(currentblock->getTerminator()==nullptr && ft->getReturnType()->isVoidTy()){
+              builder->CreateRetVoid();
+            }
             setBB(mainentry);
             currentblock = mainentry;
           },
@@ -317,6 +318,7 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
             }
             if (i->istimed) {  // if arguments is timed value, call addTask
                                // function,
+
               auto tvptr = namemap["ptr_" + i->args[0]];
               auto timeptr = builder->CreateStructGEP(
                   typemap["ptr_" + i->args[0]], tvptr, 0, "");
@@ -327,15 +329,15 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
               auto ptrtofn = namemap[i->fname];
               auto taskfntype = llvm::FunctionType::get(
                   builder->getDoubleTy(), {builder->getDoubleTy()}, false);
-
+              auto lvptrname = "ptr_" + i->lv_name;
+              auto lvptr = builder->CreateAlloca(taskfntype->getReturnType(),nullptr,lvptrname);
+              namemap.emplace(lvptrname,lvptr);
               auto addresstofn = builder->CreatePointerCast(
                   ptrtofn, llvm::PointerType::get(taskfntype, 0));
               // time,address to fun, arg(double), ptrtotarget,
               llvm::ArrayRef<llvm::Value*> args = {
-                  timeval, addresstofn, val, namemap["ptr_" + i->lv_name]};
-              // auto rettype
-              // =llvm::cast<llvm::FunctionType>(typemap["addTask"])->getReturnType();
-              for(const auto& a:args){a->dump();};
+                  timeval, addresstofn, val, lvptr};
+            
               builder->CreateCall(addtask, args);
             }else{
             if (LLVMBuiltin::isBuiltin(i->fname)) {
