@@ -42,7 +42,7 @@ class KNormalizeVisitor : public ASTVisitor {
   int var_counter;
   std::string makeNewName();
   std::string getVarName();
-  static bool isArgTime(FcallArgsAST& args);
+  bool isArgTime(FcallArgsAST& args);
   std::string tmpname;
   std::shared_ptr<ListAST> current_context;
   AST_Ptr insertAssign(AST_Ptr ast);

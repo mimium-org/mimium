@@ -18,7 +18,8 @@
 enum AST_ID {
   BASE,
   NUMBER,
-  SYMBOL,
+  LVAR,
+  RVAR,
   ARG,
   ARGS,
   FCALLARGS,
@@ -202,7 +203,7 @@ class NumberAST : public AST {
 class SymbolAST : public AST {
  public:
   std::string val;
-  explicit SymbolAST(std::string input) : val(std::move(input)) { id = SYMBOL; }
+  explicit SymbolAST(std::string input) : val(std::move(input)) { }
   // void accept(ASTVisitor& visitor) override{
   //     visitor.visit(*this);
   // };
@@ -215,6 +216,7 @@ class LvarAST : public SymbolAST {
   mimium::types::Value type;
   explicit LvarAST(std::string input) : SymbolAST(input){
     type = mimium::types::None();//default type is Float
+    id =LVAR;
   };
   explicit LvarAST(std::string input, mimium::types::Value _type):SymbolAST(input){
     type = _type;
@@ -224,7 +226,7 @@ class LvarAST : public SymbolAST {
 };
 class RvarAST : public SymbolAST {
  public:
-  explicit RvarAST(std::string input) : SymbolAST(input){};
+  explicit RvarAST(std::string input) : SymbolAST(input){id = RVAR;};
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
 };
 
