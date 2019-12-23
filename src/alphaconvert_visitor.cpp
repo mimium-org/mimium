@@ -60,26 +60,30 @@ void AlphaConvertVisitor::visit(ListAST& ast) { listastvisit(ast); }
 void AlphaConvertVisitor::visit(NumberAST& ast) { defaultvisit(ast); }
 void AlphaConvertVisitor::visit(AssignAST& ast) {
   ast.getName()->accept(*this);
-  auto newname = stackPopPtr();
+  auto newname = std::static_pointer_cast<LvarAST>(stackPopPtr());
   ast.getBody()->accept(*this);
   auto newast = std::make_unique<AssignAST>(std::move(newname), stackPopPtr());
   res_stack.push(std::move(newast));
 }
+
 void AlphaConvertVisitor::visit(ArgumentsAST& ast) { listastvisit(ast); }
+void AlphaConvertVisitor::visit(FcallArgsAST& ast) { listastvisit(ast); }
+
 void AlphaConvertVisitor::visit(ArrayAST& ast) { listastvisit(ast); }
 void AlphaConvertVisitor::visit(ArrayAccessAST& ast) {
   ast.getName()->accept(*this);
-  auto newname = stackPopPtr();
+  auto newname = std::static_pointer_cast<RvarAST>(stackPopPtr());
   ast.getIndex()->accept(*this);
+  auto newindex = stackPopPtr();
   auto newast =
-      std::make_unique<ArrayAccessAST>(std::move(newname), stackPopPtr());
+      std::make_unique<ArrayAccessAST>(std::move(newname),std::move(newindex));
   res_stack.push(std::move(newast));
 }
 void AlphaConvertVisitor::visit(FcallAST& ast) {
   ast.getFname()->accept(*this);
-  auto newname = stackPopPtr();
+  auto newname = std::static_pointer_cast<RvarAST>(stackPopPtr());
   ast.getArgs()->accept(*this);
-  auto newargs = stackPopPtr();
+  auto newargs = std::static_pointer_cast<FcallArgsAST>(stackPopPtr());
   auto newast =
       std::make_unique<FcallAST>(std::move(newname), std::move(newargs));
   res_stack.push(std::move(newast));
@@ -88,7 +92,7 @@ void AlphaConvertVisitor::visit(LambdaAST& ast) {
   env = env->createNewChild("lambda" + std::to_string(envcount));
   envcount++;
   ast.getArgs()->accept(*this);  // register argument as unique name
-  auto newargs = stackPopPtr();
+  auto newargs = std::static_pointer_cast<ArgumentsAST>(stackPopPtr());
   ast.getBody()->accept(*this);
   auto newbody = stackPopPtr();
   auto newast =

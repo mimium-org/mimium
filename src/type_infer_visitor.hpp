@@ -19,6 +19,7 @@ class TypeInferVisitor : public ASTVisitor {
   void visit(RvarAST& ast) override;
   void visit(AssignAST& ast) override;
   void visit(ArgumentsAST& ast) override;
+  void visit(FcallArgsAST& ast) override;
   void visit(ArrayAST& ast) override;
   void visit(ArrayAccessAST& ast) override;
   void visit(FcallAST& ast) override;

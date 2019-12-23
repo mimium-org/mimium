@@ -101,8 +101,8 @@
 
 
 %type <AST_Ptr> num "number"
-%type <AST_Ptr> lvar "left value"
-%type <AST_Ptr> rvar "right value"
+%type <std::shared_ptr<LvarAST>> lvar "left value"
+%type <std::shared_ptr<RvarAST>> rvar "right value"
 %type <AST_Ptr> string "string"
 
 %type <AST_Ptr> single "symbol or number"
@@ -116,29 +116,29 @@
 %type <AST_Ptr> declaration "declaration"
 %type <AST_Ptr> include "include declaration"
 
-%type <AST_Ptr> arguments_top "arguments top"
+%type <std::shared_ptr<ArgumentsAST>> arguments_top "arguments top"
 
-%type <AST_Ptr> arguments "arguments for fdef"
-%type <AST_Ptr> arguments_fcall "arguments for fcall"
+%type <std::shared_ptr<ArgumentsAST>> arguments "arguments for fdef"
+%type <std::shared_ptr<FcallArgsAST>> arguments_fcall "arguments for fcall"
 
-%type <AST_Ptr> array "array"
-%type <AST_Ptr> array_elems "array elements"
-%type <AST_Ptr> array_access "array access"
+%type <std::shared_ptr<ArrayAST>> array "array"
+%type <std::shared_ptr<ArrayAST>> array_elems "array elements"
+%type <std::shared_ptr<ArrayAccessAST>> array_access "array access"
 
 
-%type <AST_Ptr> assign "assign"
+%type <std::shared_ptr<AssignAST>> assign "assign"
 %type <AST_Ptr> fdef "fdef"
 
 %type <AST_Ptr> fcall "fcall"
 
 %type <AST_Ptr> ifstatement "if statement"
 %type <AST_Ptr> statement "single statement"
-%type <AST_Ptr> statements "statements"
+%type <std::shared_ptr<ListAST>> statements "statements"
 %type <AST_Ptr> block "block"
 
 %type <AST_Ptr> forloop "forloop"
 
-%type <AST_Ptr> top "top"
+%type <std::shared_ptr<AssignAST>> top "top"
 
 
 %locations
@@ -212,7 +212,7 @@ arguments : lvar ',' arguments   {$3->addAST(std::move($1));
 
 arguments_fcall : expr ',' arguments_fcall   {$3->addAST(std::move($1));
                                           $$ = std::move($3); }
-         | expr {$$ = driver.add_arguments(std::move($1));}
+         | expr {$$ = driver.add_fcallargs(std::move($1));}
          ;
 
 expr : expr ADD    expr  {$$ = driver.add_op("+" , std::move($1),std::move($3));}
@@ -237,11 +237,11 @@ expr : expr ADD    expr  {$$ = driver.add_op("+" , std::move($1),std::move($3));
 term_time : term AT term {$$ = driver.set_time(std::move($1),std::move($3));}
          | term {$$ = std::move($1);}
          ;
-term : single
-      |fcall
-      |array
-      |array_access
-      |lambda
+term : single {$$ = std::move($1);}
+      |fcall {$$ = std::move($1);}
+      |array {$$ = std::move($1);}
+      |array_access {$$ = std::move($1);}
+      |lambda {$$ = std::move($1);}
       | '(' expr ')' {$$ =std::move($2);};
 
 declaration : include {$$=std::move($1);} 

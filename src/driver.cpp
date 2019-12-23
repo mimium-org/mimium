@@ -5,6 +5,7 @@
 #include <string>
 #include <sstream>
 
+#include "ast.hpp"
 #include "helper_functions.hpp"
 #include "driver.hpp"
 
@@ -60,15 +61,15 @@ AST_Ptr MimiumDriver::add_number(double num){
    return std::make_unique<NumberAST>(std::move(num));
 }
 
-AST_Ptr MimiumDriver::add_lvar(std::string str){
+std::shared_ptr<LvarAST> MimiumDriver::add_lvar(std::string str){
    return std::make_unique<LvarAST>(std::move(str));
 }
-AST_Ptr MimiumDriver::add_lvar(std::string str, mimium::types::Value type){
+std::shared_ptr<LvarAST> MimiumDriver::add_lvar(std::string str, mimium::types::Value type){
       return std::make_unique<LvarAST>(std::move(str),std::move(type));
 };
 
 
-AST_Ptr MimiumDriver::add_rvar(std::string str){
+std::shared_ptr<RvarAST> MimiumDriver::add_rvar(std::string str){
    return std::make_unique<RvarAST>(std::move(str));
 }
 
@@ -77,26 +78,31 @@ AST_Ptr MimiumDriver::add_op( std::string op,AST_Ptr lhs,AST_Ptr rhs){
 }
 
 
-AST_Ptr MimiumDriver::add_assign(AST_Ptr symbol,AST_Ptr expr){
+std::shared_ptr<AssignAST> MimiumDriver::add_assign(std::shared_ptr<LvarAST> symbol,AST_Ptr expr){
    return std::make_unique<AssignAST>(std::move(symbol),std::move(expr));
 }
-AST_Ptr MimiumDriver::add_arguments(AST_Ptr arg){
+
+std::shared_ptr<FcallArgsAST> MimiumDriver::add_fcallargs(AST_Ptr arg){
+   return std::make_unique<FcallArgsAST>(std::move(arg));
+}
+
+std::shared_ptr<ArgumentsAST> MimiumDriver::add_arguments(std::shared_ptr<LvarAST> arg){
    return std::make_unique<ArgumentsAST>(std::move(arg));
 }
 
 
-AST_Ptr MimiumDriver::add_lambda(AST_Ptr args,AST_Ptr body,mimium::types::Value type = mimium::types::Value()){
+AST_Ptr MimiumDriver::add_lambda(std::shared_ptr<ArgumentsAST> args,AST_Ptr body,mimium::types::Value type){
    return std::make_unique<LambdaAST>(std::move(args),std::move(body),std::move(type));
 }
 
-AST_Ptr MimiumDriver::add_fcall(AST_Ptr fname,AST_Ptr args){
+std::shared_ptr<FcallAST> MimiumDriver::add_fcall(std::shared_ptr<RvarAST> fname,std::shared_ptr<FcallArgsAST> args){
    return std::make_unique<FcallAST>(std::move(fname),std::move(args));
 };
 
-AST_Ptr MimiumDriver::add_array(AST_Ptr array){
+std::shared_ptr<ArrayAST> MimiumDriver::add_array(AST_Ptr array){
    return std::make_unique<ArrayAST>(std::move(array));
 };
-AST_Ptr MimiumDriver::add_array_access(AST_Ptr array,AST_Ptr index){
+std::shared_ptr<ArrayAccessAST> MimiumDriver::add_array_access(std::shared_ptr<RvarAST> array,AST_Ptr index){
    return std::make_unique<ArrayAccessAST>(std::move(array),std::move(index));
 };
 
@@ -104,7 +110,7 @@ AST_Ptr MimiumDriver::add_return(AST_Ptr expr){
    return std::make_unique<ReturnAST>(std::move(expr));
 };
 
-AST_Ptr MimiumDriver::add_statements(AST_Ptr statements){
+std::shared_ptr<ListAST> MimiumDriver::add_statements(AST_Ptr statements){
    return std::make_unique<ListAST>(std::move(statements));
 };
 

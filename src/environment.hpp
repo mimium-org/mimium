@@ -8,10 +8,6 @@
 #include "variant_visitor_helper.hpp"
 // helper type for visiting
 
-using mClosure_ptr = std::shared_ptr<mimium::Closure>;
-using mValue = std::variant<double, std::shared_ptr<AST>, mClosure_ptr,
-                            std::vector<double>, std::string>;
-
 namespace mimium {
 template <typename T>
 class Environment : public std::enable_shared_from_this<Environment<T>> {

@@ -114,7 +114,7 @@ void KNormalizeVisitor::visit(LambdaAST& ast){
     currentblock->indent_level--;
 
 }
-bool KNormalizeVisitor::isArgTime(ArgumentsAST& args){
+bool KNormalizeVisitor::isArgTime(FcallArgsAST& args){
   auto& elems = args.getElements();
   return (!elems.empty()&&elems[0]->getid()==TIME);
 }
@@ -134,8 +134,9 @@ void KNormalizeVisitor::visit(FcallAST& ast){
   currentblock->addInst(newinst);
   res_stack_str.push(newname);
 };
+void KNormalizeVisitor::visit(FcallArgsAST& ast){
+}
 void KNormalizeVisitor::visit(ArgumentsAST& ast){
-//this won't be used?
 }
 void KNormalizeVisitor::visit(ArrayAST& ast){
     std::deque<std::string> newelem;

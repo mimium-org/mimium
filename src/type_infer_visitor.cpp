@@ -49,6 +49,9 @@ void TypeInferVisitor::visit(ArgumentsAST& ast) {
   types::Function f(std::move(argtypes), v);
   res_stack = std::move(f);
 }
+void TypeInferVisitor::visit(FcallArgsAST& ast) {
+  //
+}
 void TypeInferVisitor::visit(ArrayAST& ast) {
   auto tmpres = res_stack;
   for (const auto& v : ast.getElements()) {

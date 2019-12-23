@@ -29,29 +29,31 @@ class MimiumDriver {
   void setWorkingDirectory(const std::string cwd);
 
   AST_Ptr add_number(double num);
-  AST_Ptr add_lvar(std::string str);
-  AST_Ptr add_lvar(std::string str, mimium::types::Value type);
+  std::shared_ptr<LvarAST> add_lvar(std::string str);
+  std::shared_ptr<LvarAST> add_lvar(std::string str, mimium::types::Value type);
 
-  AST_Ptr add_rvar(std::string str);
+  std::shared_ptr<RvarAST> add_rvar(std::string str);
 
 
   AST_Ptr add_op(std::string op, AST_Ptr lhs, AST_Ptr rhs);
 
-  AST_Ptr add_arguments(AST_Ptr arg);
-  AST_Ptr add_lambda(AST_Ptr args, AST_Ptr body,mimium::types::Value type = mimium::types::Value());
+  std::shared_ptr<ArgumentsAST> add_arguments(std::shared_ptr<LvarAST> arg);
+  std::shared_ptr<FcallArgsAST> add_fcallargs(AST_Ptr arg);
+
+  AST_Ptr add_lambda(std::shared_ptr<ArgumentsAST> args, AST_Ptr body,mimium::types::Value type = mimium::types::Value());
 
 
-  AST_Ptr add_fcall(AST_Ptr fname, AST_Ptr args);
+  std::shared_ptr<FcallAST> add_fcall(std::shared_ptr<RvarAST> fname,std::shared_ptr<FcallArgsAST> args);
   AST_Ptr add_declaration(std::string fname, AST_Ptr args);
 
-  AST_Ptr add_array(AST_Ptr array);
-  AST_Ptr add_array_access(
-      AST_Ptr array,
+  std::shared_ptr<ArrayAST> add_array(AST_Ptr array);
+   std::shared_ptr<ArrayAccessAST> add_array_access(
+      std::shared_ptr<RvarAST> ,
       AST_Ptr index);  // todo: is it better to use fcall as syntax sugar?
 
   AST_Ptr add_return(AST_Ptr expr);
-  AST_Ptr add_assign(AST_Ptr symbol, AST_Ptr expr);
-  AST_Ptr add_statements(AST_Ptr statements);
+  std::shared_ptr<AssignAST> add_assign(std::shared_ptr<LvarAST> symbol, AST_Ptr expr);
+  std::shared_ptr<ListAST> add_statements(AST_Ptr statements);
 
   AST_Ptr add_fdef(AST_Ptr fname, AST_Ptr args, AST_Ptr statements);
 

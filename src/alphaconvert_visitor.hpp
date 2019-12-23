@@ -17,6 +17,8 @@ class AlphaConvertVisitor : public ASTVisitor {
   void visit(RvarAST& ast) override;
   void visit(AssignAST& ast) override;
   void visit(ArgumentsAST& ast) override;
+  void visit(FcallArgsAST& ast) override;
+
   void visit(ArrayAST& ast) override;
   void visit(ArrayAccessAST& ast) override;
   void visit(FcallAST& ast) override;
@@ -35,12 +37,12 @@ class AlphaConvertVisitor : public ASTVisitor {
   void defaultvisit(T& ast) {
     res_stack.push(std::make_unique<T>(ast));  // move by copy constructor;
   };
-  template <class MYAST>
-  void listastvisit(MYAST& ast) {
-    auto newast = std::make_shared<MYAST>();  // make empty args
+  template <class T,AST_ID ID>
+  void listastvisit(AbstractListAST<std::shared_ptr<T>,ID>& ast) {
+    auto newast = std::make_shared<AbstractListAST<std::shared_ptr<T>,ID>>();  // make empty args
     for (auto& elem : ast.getElements()) {
-      elem->accept(* this);
-      newast->appendAST(std::move(stackPopPtr()));
+      elem->accept(*this);
+      newast->appendAST(std::move(std::static_pointer_cast<T>(stackPopPtr())));
     }
     res_stack.push(std::move(newast));
   };
