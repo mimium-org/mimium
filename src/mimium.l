@@ -55,6 +55,7 @@ NEWLINE {BREAK}* | ";"
 };
 
 "Float" return token::TYPEFLOAT;
+"Void" return token::TYPEVOID;
 "Fn" return token::TYPEFN;
 
 "::" return token::TYPE_DELIM;

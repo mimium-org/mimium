@@ -78,6 +78,7 @@
 
    TYPE_DELIM "::"
    TYPEFLOAT "float_typetoken"
+   TYPEVOID "void_typetoken"
    TYPEFN "fn_typetoken"
 
    INCLUDE "include_token"
@@ -279,6 +280,9 @@ rvar : SYMBOL {$$ = driver.add_rvar($1);}
 types : TYPEFLOAT {
       mimium::types::Float f;
       $$ =std::move(f);}
+      | TYPEVOID{
+            mimium::types::Void v;
+            $$ = std::move(v);}
       | fntype;
 
 fntype: TYPEFN '(' fntype_args ')' ARROW types {
