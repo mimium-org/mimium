@@ -20,6 +20,8 @@ bool TypeInferVisitor::typeCheck(types::Value& lt, types::Value& rt) {
   return res;
 }
 
+
+
 bool TypeInferVisitor::unify(types::Value& lt, types::Value& rt) {
   bool istvl = types::isTypeVar(lt);
   bool istvr = types::isTypeVar(rt);
@@ -41,6 +43,15 @@ bool TypeInferVisitor::unify(std::string lname, types::Value& rt) {
 }
 bool TypeInferVisitor::unify(std::string lname, std::string rname) {
   return unify(typeenv.find(lname), typeenv.find(rname));
+}
+
+bool TypeInferVisitor::unifyArg(types::Value& target, types::Value& realarg) {
+  if(auto* timeptr = std::get_if<recursive_wrapper<types::Time>>(&realarg)){
+    types::Time time= *timeptr;
+    return unify(time.val,target);
+  }else{
+    return unify(realarg,target);
+  }
 }
 
 void TypeInferVisitor::visit(AssignAST& ast) {
@@ -158,7 +169,7 @@ void TypeInferVisitor::visit(FcallAST& ast) {
   bool checkflag = false;
   for (int i = 0; i < args.size(); i++) {
     args[i]->accept(*this);
-    checkflag |= unify(fnargtypes[i], res_stack);
+    checkflag |= unifyArg(fnargtypes[i], res_stack);
   }
   if (!checkflag) {
     throw std::invalid_argument("argument types were invalid");

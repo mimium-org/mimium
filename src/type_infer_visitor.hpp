@@ -37,6 +37,7 @@ class TypeInferVisitor : public ASTVisitor {
   bool unify(types::Value& lt, types::Value& rt);
   bool unify(std::string lname, std::string rname);
   bool unify(std::string lname, types::Value& rt);
+  bool unifyArg(types::Value& target, types::Value& realarg);
 
   mValue findVariable(std::string /*str*/) override { return 0.; }  //??
   TypeEnv& getEnv() { return typeenv; };
