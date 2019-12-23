@@ -3,6 +3,7 @@
 #include <iostream>
 #include <memory>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -23,6 +24,17 @@ struct recursive_wrapper {
 };
 
 namespace types {
+struct None {
+  std::string toString() { return "None"; }
+};
+struct TypeVar {
+  TypeVar(int i):index(i){}
+  int index;
+  int getIndex(){return index;}
+  void setIndex(int newindex){index = newindex;}
+  std::string toString() { return "Not Unified Type Variable:" + std::to_string(index); }
+};
+
 struct Void {
   std::string toString() { return "Void"; }
 };
@@ -37,7 +49,7 @@ struct Function;
 struct Array;
 struct Struct;
 struct Time;
-using Value = std::variant<std::monostate,types::Void, types::Float, types::String,
+using Value = std::variant<types::None,types::TypeVar,types::Void, types::Float, types::String,
                            recursive_wrapper<types::Function>,
                            recursive_wrapper<types::Array>,
                            recursive_wrapper<types::Struct>, recursive_wrapper<types::Time>>;
@@ -99,16 +111,41 @@ struct Struct {
     return s;
   }
 };
-
+static bool isTypeVar(types::Value t){
+  return std::holds_alternative<types::TypeVar>(t);
+}
 }  // namespace types
+
+
 class TypeEnv {
- public:
+  private:
+  int64_t typeid_count;
   std::unordered_map<std::string, types::Value> env;
+
+ public:
+  TypeEnv():typeid_count(0),env(){
+
+  }
+  types::TypeVar createNewTypeVar(){
+    return types::TypeVar(typeid_count++);
+  }
+  types::Value& find(std::string key){
+    auto res = env.find(key);
+    if(res==env.end()){
+      throw std::logic_error("Could not find type for variable \""+ key+"\"" );
+    }
+    return res->second;
+  }
+
+  auto emplace(std::string_view key,types::Value typevar){
+    return env.emplace(key,typevar);
+  }
+
   std::string dump() {
     std::stringstream ss;
-    for (auto& it : env) {
-      ss << it.first << " : "
-         << std::visit([](auto t) { return t.toString(); }, it.second)
+    for (auto& [key, val] : env) {
+      ss << key << " : "
+         << std::visit([](auto t) { return t.toString(); }, val)
          << std::endl;
     }
     return ss.str();

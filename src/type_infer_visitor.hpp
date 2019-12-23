@@ -1,12 +1,13 @@
 #pragma once
-#include "helper_functions.hpp"
 #include "ast.hpp"
-#include "type.hpp"
 #include "builtin_fn_types.hpp"
+#include "helper_functions.hpp"
+#include "type.hpp"
 // type inference ... assumed to be visited after finished alpha-conversion(each
 // variable has unique name regardless its scope)
 
 namespace mimium {
+
 class TypeInferVisitor : public ASTVisitor {
  public:
   TypeInferVisitor();
@@ -31,13 +32,19 @@ class TypeInferVisitor : public ASTVisitor {
   void visit(TimeAST& ast) override;
   void visit(StructAST& ast) override;
   void visit(StructAccessAST& ast) override;
-  mValue findVariable(std::string  /*str*/) override { return 0.; }  //??
+
+  bool typeCheck(types::Value& lt, types::Value& rt);
+  bool unify(types::Value& lt, types::Value& rt);
+  bool unify(std::string lname, std::string rname);
+  bool unify(std::string lname, types::Value& rt);
+
+  mValue findVariable(std::string /*str*/) override { return 0.; }  //??
   TypeEnv& getEnv() { return typeenv; };
   types::Value getLastType() { return res_stack; }
 
  private:
   types::Value res_stack;
-  static bool checkArg(const types::Value& fnarg,const types::Value& givenarg);
+  static bool checkArg(const types::Value& fnarg, const types::Value& givenarg);
   TypeEnv typeenv;
   bool has_return;
 };
