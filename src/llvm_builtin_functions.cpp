@@ -34,9 +34,7 @@ llvm::Value* LLVMBuiltin::print(std::vector<llvm::Value*>& args,
     auto* newfun = llvm::cast<llvm::Function>(
         generator->module->getOrInsertFunction("printf", ftype).getCallee());
     newfun->setCallingConv(llvm::CallingConv::C);
-    // newfun->dump();
     format = generator->builder->CreateGlobalStringPtr("%f\n", "printfformat");
-    // format->getType()->dump();
     fun = newfun;
   }
   auto* formatptr = generator->module->getGlobalVariable("printfformat",true);

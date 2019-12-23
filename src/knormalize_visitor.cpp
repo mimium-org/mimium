@@ -1,11 +1,6 @@
 #include "knormalize_visitor.hpp"
-
-#include <memory>
-#include <variant>
-
 #include "ast.hpp"
 #include "builtin_fn_types.hpp"
-#include "type.hpp"
 
 namespace mimium {
 

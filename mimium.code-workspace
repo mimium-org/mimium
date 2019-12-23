@@ -102,7 +102,8 @@
 		"clangd.arguments": [
 			"-clang-tidy",
 			"-background-index",
-			"-compile-commands-dir=build"
+			"-compile-commands-dir=build",
+			"-header-insertion=never"
 		]
 	}
 }
