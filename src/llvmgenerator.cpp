@@ -164,7 +164,7 @@ void LLVMGenerator::createTaskRegister() {
   typemap.emplace("addTask", fntype);
 }
 
-llvm::Type* LLVMGenerator::createTimeStruct(types::Value t) {
+llvm::Type* LLVMGenerator::getOrCreateTimeStruct(types::Value t) {
   llvm::StringRef name =
       "TimeType_" + std::visit([](auto& type) { return type.toString(); }, t);
   llvm::Type* res = module->getTypeByName(name);
@@ -174,7 +174,7 @@ llvm::Type* LLVMGenerator::createTimeStruct(types::Value t) {
                    [&](auto& v) { return builder->getVoidTy(); }},
         t);
     llvm::ArrayRef<llvm::Type*> elemtypes = {
-        builder->getDoubleTy(), llvm::PointerType::get(containtype, 0)};
+        builder->getDoubleTy(), containtype};
     res = llvm::StructType::create(ctx, elemtypes, name);
     typemap.emplace(name, res);
   }
@@ -215,7 +215,7 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
             auto resname = "ptr_" + i->lv_name;
             types::Time timetype =
                 std::get<recursive_wrapper<types::Time>>(i->type);
-            auto strtype = createTimeStruct(timetype.val);
+            auto strtype = getOrCreateTimeStruct(timetype.val);
             typemap.emplace(resname, strtype);
             auto* ptr = builder->CreateAlloca(strtype, nullptr, resname);
             auto* timepos = builder->CreateStructGEP(strtype, ptr, 0);
@@ -226,9 +226,8 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
             auto* time =
                 builder->CreateFPToUI(namemap[i->time], builder->getDoubleTy());
             builder->CreateStore(time, timepos);
-            auto* ptrtoval = namemap["ptr_" + i->val];
 
-            builder->CreateStore(ptrtoval, valpos);
+            builder->CreateStore(namemap.find(i->val)->second, valpos);
             namemap.emplace(resname, ptr);
           },
           [&, this](const std::shared_ptr<OpInst>& i) {
@@ -321,10 +320,9 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
               auto tvptr = namemap["ptr_" + i->args[0]];
               auto timeptr = builder->CreateStructGEP(
                   typemap["ptr_" + i->args[0]], tvptr, 0, "");
-              auto valptrptr = builder->CreateStructGEP(
+              auto valptr = builder->CreateStructGEP(
                   typemap["ptr_" + i->args[0]], tvptr, 1, "");
               auto timeval = builder->CreateLoad(timeptr);
-              auto valptr = builder->CreateLoad(valptrptr);
               auto val = builder->CreateLoad(valptr);
               auto ptrtofn = namemap[i->fname];
               auto taskfntype = llvm::FunctionType::get(

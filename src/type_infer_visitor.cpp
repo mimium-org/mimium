@@ -1,6 +1,4 @@
 #include "type_infer_visitor.hpp"
-
-#include <stdexcept>
 #include <variant>
 
 #include "type.hpp"
@@ -52,17 +50,32 @@ void TypeInferVisitor::visit(AssignAST& ast) {
   typeenv.emplace(lvar->getVal(), ltype);
   ast.getBody()->accept(*this);
   if (!unify(lvar->getVal(), res_stack)) {
-    throw std::logic_error("type " + lvar->getVal() + " did not matched to expression " +
+    throw std::logic_error("type " + lvar->getVal() +
+                           " did not matched to expression " +
                            ast.getBody()->toString());
   }
 }
 
 void TypeInferVisitor::visit(LvarAST& ast) {
   auto& ltype = ast.getType();
-  if (std::holds_alternative<types::None>(ltype)) {
+  ;
+  bool is_specified = !std::holds_alternative<types::None>(ltype);
+  bool is_exist = typeenv.exist(ast.getVal());
+  if (is_exist && is_specified) {
+    if (typeenv.find(ast.getVal()) != ltype) {
+      throw std::logic_error("assignment to different type is not allowed");
+      res_stack = types::None();
+    } else {
+      res_stack = ltype;
+    }
+  } else if (!is_exist && !is_specified) {
     res_stack = typeenv.createNewTypeVar();
-  } else {
+  } else if(!is_exist &&is_specified) {
     res_stack = ltype;
+  }else{//case of already declared variable that have not specified in source code
+  
+    res_stack = typeenv.find(ast.getVal());;
+;
   }
 }
 
