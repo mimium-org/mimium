@@ -29,7 +29,14 @@ using Instructions = std::variant<std::shared_ptr<NumberInst>,std::shared_ptr<Sy
 
 struct TypedVal{
   types::Value type;
-  std::string name; 
+  std::string name;
+  const std::string toString(){return name;}
+};
+static std::string join(std::deque<TypedVal>& vec, std::string delim) {
+   return std::accumulate(
+      std::next(vec.begin()), vec.end(),
+      vec.begin()->toString(), 
+      [&](std::string a, TypedVal& b) { return std::move(a) + delim + b.toString(); });
 };
 
 using SymbolEnv = Environment<std::string>;

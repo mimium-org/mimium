@@ -1,24 +1,7 @@
 #include "mir.hpp"
 
 namespace mimium {
-static std::string join(const std::deque<std::string>& vec, std::string delim) {
-  std::string s;
-  for (auto& elem : vec) {
-    s += elem;
-    auto endstr = vec.back();
-    if (elem != endstr) s += delim;
-  }
-  return s;
-};
-static std::string join(const std::deque<TypedVal>& vec, std::string delim) {
-  std::string s;
-  for (auto& elem : vec) {
-    s += elem.name;
-    auto endstr = vec.back();
-    if (elem.name != endstr.name) s += delim;
-  }
-  return s;
-};
+
 std::string MIRblock::toString() {
   std::string str;
   for (int i = 0; i < indent_level; i++) {
@@ -51,7 +34,7 @@ void MIRinstruction::gatherFV_raw(std::deque<TypedVal>& fvlist,
                                   std::shared_ptr<SymbolEnv> env,
                                   TypeEnv& typeenv, std::string& str) {
   if (isFreeVariable(env, str)) {
-    TypedVal tv = {typeenv.env.find(str)->second, str};
+    TypedVal tv = {typeenv.find(str), str};
     fvlist.push_back(tv);
     str  = "fv_" + str;//destructive
   }

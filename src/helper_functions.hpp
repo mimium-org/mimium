@@ -2,7 +2,10 @@
 
 #include <iostream>
 #include <map>
+#include <numeric>
 #include <string>
+#include <deque>
+
 #include "llvm/Support/Error.h"
 
 #ifdef _WIN32
@@ -12,13 +15,45 @@ SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE),
 
 namespace mimium {
 
-template<typename T, typename... U>
-size_t getAddressfromFun(std::function<T(U...)> f) {
-    typedef T(fnType)(U...);
-    fnType ** fnPointer = f.template target<fnType*>();
-    return (size_t) *fnPointer;
-}
+template <class ElementType>
+static std::string join(std::deque<ElementType>& vec, std::string delim) {
+  return std::accumulate(
+      std::next(vec.begin()), vec.end(),
+      vec.begin()->toString(), 
+      [&](std::string a, std::shared_ptr<ElementType>& b) { return std::move(a) + delim + b.toString(); });
+};
 
+
+static std::string join(std::deque<std::string>& vec, std::string delim) {
+  return std::accumulate(
+      std::next(vec.begin()), vec.end(),
+      *(vec.begin()), 
+      [&](std::string a, std::string b) { return std::move(a) + delim + b; });
+};
+template <class T>
+static std::string join(std::deque<std::shared_ptr<T>>& vec, std::string delim) {
+  return std::accumulate(
+      std::next(vec.begin()), vec.end(),
+      (*(vec.begin()))->toString(), 
+      [&](std::string a, std::shared_ptr<T>& b) { return std::move(a) + delim + b->toString(); });
+};
+
+// static std::string join(const std::deque<TypedVal>& vec, std::string delim) {
+//   std::string s;
+//   for (auto& elem : vec) {
+//     s += elem.name;
+//     auto endstr = vec.back();
+//     if (elem.name != endstr.name) s += delim;
+//   }
+//   return s;
+// };
+
+template <typename T, typename... U>
+size_t getAddressfromFun(std::function<T(U...)> f) {
+  typedef T(fnType)(U...);
+  fnType** fnPointer = f.template target<fnType*>();
+  return (size_t)*fnPointer;
+}
 
 class Logger {
  public:
@@ -28,16 +63,20 @@ class Logger {
   using REPORT_LEVEL = enum { FATAL = 1, ERROR, WARNING, INFO, DEBUG, TRACE };
   /// @callgraph
   static void debug_log(const std::string& str, REPORT_LEVEL report_level);
-  static void debug_log(llvm::Error& err,REPORT_LEVEL report_level){
-    if(bool(err) && report_level<=Logger::current_report_level){
-          llvm::errs() << report_str.at(report_level) << ": " << err << norm << "\n";
-      }
+  static void debug_log(llvm::Error& err, REPORT_LEVEL report_level) {
+    if (bool(err) && report_level <= Logger::current_report_level) {
+      llvm::errs() << report_str.at(report_level) << ": " << err << norm
+                   << "\n";
+    }
   }
-  template<typename T>
-  static void debug_log(llvm::Expected<T>& expected,REPORT_LEVEL report_level){
-      if(auto err = expected.takeError() && report_level<=Logger::current_report_level){
-          llvm::errs() << report_str.at(report_level) << ": " << err << norm << "\n";
-      }
+  template <typename T>
+  static void debug_log(llvm::Expected<T>& expected,
+                        REPORT_LEVEL report_level) {
+    if (auto err = expected.takeError() &&
+                   report_level <= Logger::current_report_level) {
+      llvm::errs() << report_str.at(report_level) << ": " << err << norm
+                   << "\n";
+    }
   }
 
   inline void setoutput(std::ostream& out) { Logger::output = &out; }
@@ -55,10 +94,9 @@ class Logger {
       {FATAL, red + "Fatal"},
       {ERROR, red + "Error"},
       {WARNING, yellow + "Warning"},
-      {INFO, green+ "Info"},
+      {INFO, green + "Info"},
       {DEBUG, "Debug"},
       {TRACE, "Trace"}};
 };
-
 
 }  // namespace mimium
