@@ -2,10 +2,18 @@
     "tasks": [
         {
             "type": "shell",
-            "label": "cmake file",
+            "label": "build",
             "command": "cmake",
             "args": [
-                ".."
+                "--build",
+                "/Users/tomoya/codes/mimium/build",
+                "--config",
+                "Debug",
+                "--target",
+                "mimium",
+                "--",
+                "-j",
+                "18"
             ],
             "options": {
                 "cwd": "${workspaceFolder}/build"
@@ -13,15 +21,6 @@
             "group": {
                 "kind": "build",
                 "isDefault": true
-            }
-        },
-        {
-            "type": "shell",
-            "label": "make file",
-            "command": "make",
-            "args": [],
-            "options": {
-                "cwd": "${workspaceFolder}/build"
             }
         }
     ],
