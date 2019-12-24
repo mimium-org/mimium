@@ -33,7 +33,7 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
  private:
   // std::string filename;
   std::shared_ptr<LLVMBuiltin> builtinfn;
-  bool isjit;
+  [[maybe_unused]]bool isjit;
   auto getType(const types::Value& type) -> llvm::Type*;
   auto getRawStructType(const types::Value& type) -> llvm::Type*;
   void preprocess();

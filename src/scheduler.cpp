@@ -73,7 +73,8 @@ SchedulerSndFile::~SchedulerSndFile(){
 }
 
 void SchedulerSndFile::start() {
-  if(fp = sf_open("temp.wav",SFM_WRITE,&sfinfo)){
+  fp = sf_open("temp.wav",SFM_WRITE,&sfinfo);
+  if(fp!=nullptr){
     std::runtime_error("opening file failed");
   };
     for(int i=0;i<20*48000;i++){
@@ -94,7 +95,7 @@ void SchedulerSndFile::start() {
 }
 
 void SchedulerSndFile::stop() { 
-  if(sf_close(fp)){
+  if(sf_close(fp) != 0){
         throw std::runtime_error("File is not correctly closed");
   }else{
         Logger::debug_log("File is closed",Logger::INFO);

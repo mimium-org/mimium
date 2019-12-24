@@ -32,7 +32,7 @@ struct TypedVal{
   std::string name;
   const std::string toString(){return name;}
 };
-static std::string join(std::deque<TypedVal>& vec, std::string delim) {
+[[maybe_unused]] static std::string join(std::deque<TypedVal>& vec, std::string delim) {
    return std::accumulate(
       std::next(vec.begin()), vec.end(),
       vec.begin()->toString(), 

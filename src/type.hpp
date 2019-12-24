@@ -150,7 +150,7 @@ inline bool operator!=(const Struct& t1, const Struct& t2) {
   return !(t1 == t2);
 }
 
-static bool isTypeVar(types::Value t) {
+[[maybe_unused]] static bool isTypeVar(types::Value t) {
   return std::holds_alternative<types::TypeVar>(t);
 }
 }  // namespace types
