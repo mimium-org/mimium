@@ -30,13 +30,27 @@ bool MIRinstruction::isFreeVariable(std::shared_ptr<SymbolEnv> env,
   return isfv;
 }
 
-void MIRinstruction::gatherFV_raw(std::deque<TypedVal>& fvlist,
+bool MIRinstruction::gatherFV_raw(std::deque<TypedVal>& fvlist,
                                   std::shared_ptr<SymbolEnv> env,
                                   TypeEnv& typeenv, std::string& str) {
-  if (isFreeVariable(env, str)) {
-    TypedVal tv = {typeenv.find(str), str};
-    fvlist.push_back(tv);
-    str  = "fv_" + str;//destructive
+  bool res = isFreeVariable(env, str);
+  if (res) {
+    fvlist.push_back({typeenv.find(str), str});
+    str = "fv_" + str;  // destructive
+  }
+  return res;
+}
+
+void MIRinstruction::checkLvalue(std::deque<TypedVal>& fvlist,
+                                 std::shared_ptr<ClosureConverter> cc) {
+  auto isvarset = cc->env->isVariableSet(lv_name);
+  if (isvarset) {
+    bool isfv = gatherFV_raw(fvlist, cc->env, cc->typeenv, lv_name);
+    if (!isfv) {
+      cc->env->setVariableRaw(lv_name, "tmp");
+    }
+  } else {
+    cc->env->setVariableRaw(lv_name, "tmp");
   }
 }
 
@@ -47,7 +61,7 @@ void NumberInst::closureConvert(std::deque<TypedVal>& fvlist,
                                 std::shared_ptr<ClosureConverter> cc,
                                 std::shared_ptr<MIRblock> mir,
                                 std::list<Instructions>::iterator it) {
-  cc->env->setVariableRaw(lv_name, std::to_string(val));
+  checkLvalue(fvlist, cc);
 }
 
 std::string SymbolInst::toString() { return lv_name + " = " + val; }
@@ -63,7 +77,8 @@ void RefInst::closureConvert(std::deque<TypedVal>& fvlist,
                              std::shared_ptr<ClosureConverter> cc,
                              std::shared_ptr<MIRblock> mir,
                              std::list<Instructions>::iterator it) {
-  cc->env->setVariableRaw(lv_name, val);
+  checkLvalue(fvlist, cc);
+  gatherFV_raw(fvlist, cc->env, cc->typeenv, val);
 }
 
 std::string TimeInst::toString() { return lv_name + " = " + val + +"@" + time; }
@@ -73,7 +88,7 @@ void TimeInst::closureConvert(std::deque<TypedVal>& fvlist,
                               std::list<Instructions>::iterator it) {
   gatherFV_raw(fvlist, cc->env, cc->typeenv, val);
   gatherFV_raw(fvlist, cc->env, cc->typeenv, time);
-  cc->env->setVariableRaw(lv_name, val);
+  checkLvalue(fvlist, cc);
 }
 std::string OpInst::toString() { return lv_name + " = " + lhs + op + rhs; }
 void OpInst::closureConvert(std::deque<TypedVal>& fvlist,
@@ -82,7 +97,7 @@ void OpInst::closureConvert(std::deque<TypedVal>& fvlist,
                             std::list<Instructions>::iterator it) {
   gatherFV_raw(fvlist, cc->env, cc->typeenv, lhs);
   gatherFV_raw(fvlist, cc->env, cc->typeenv, rhs);
-  cc->env->setVariableRaw(lv_name, "some_op");
+  checkLvalue(fvlist, cc);
 }
 std::string FunInst::toString() {
   std::string s;
@@ -124,13 +139,13 @@ void FunInst::closureConvert(std::deque<TypedVal>& fvlist,
     auto makecls = std::make_shared<MakeClosureInst>(
         newname, lv_name, this->freevariables, fvtype);
     mir->instructions.insert(++it, std::move(makecls));
-    types::Function newtype = 
+    types::Function newtype =
         std::get<recursive_wrapper<types::Function>>(this->type);
     newtype.arg_types.emplace_back(fvtype);
     this->type = newtype;
   }
   cc->env = tmpenv;
-  cc->env->setVariableRaw(lv_name, "some_fun");
+  checkLvalue(fvlist, cc);
   // post process?????
 }
 
@@ -192,7 +207,7 @@ void FcallInst::closureConvert(std::deque<TypedVal>& fvlist,
   for (auto& a : this->args) {
     gatherFV_raw(fvlist, cc->env, cc->typeenv, a);
   }
-  cc->env->setVariableRaw(lv_name, "some_fun");
+  checkLvalue(fvlist, cc);
 }
 
 std::string ArrayInst::toString() {
@@ -206,7 +221,7 @@ void ArrayInst::closureConvert(std::deque<TypedVal>& fvlist,
   for (auto& a : this->args) {
     gatherFV_raw(fvlist, cc->env, cc->typeenv, a);
   }
-  cc->env->setVariableRaw(lv_name, "some_array");
+  checkLvalue(fvlist, cc);
 }
 
 std::string ArrayAccessInst::toString() {
@@ -218,7 +233,7 @@ void ArrayAccessInst::closureConvert(std::deque<TypedVal>& fvlist,
                                      std::list<Instructions>::iterator it) {
   gatherFV_raw(fvlist, cc->env, cc->typeenv, name);
   gatherFV_raw(fvlist, cc->env, cc->typeenv, index);
-  cc->env->setVariableRaw(lv_name, "some_access");
+  checkLvalue(fvlist, cc);
 }
 
 std::string IfInst::toString() {

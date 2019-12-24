@@ -79,7 +79,13 @@ void KNormalizeVisitor::visit(OpAST& ast) {
 
 void KNormalizeVisitor::visit(AssignAST& ast) {
   tmpname = ast.getName()->getVal();
-  ast.getBody()->accept(*this);  // result is stored into res_stack
+  auto body = ast.getBody();
+  body->accept(*this);  // result is stored into res_stack
+  if(body->getid()==RVAR){//case of simply copying value
+    auto rvar = std::static_pointer_cast<RvarAST>(body);
+    Instructions newinst= std::make_shared<RefInst>(getVarName(),stackPopStr());
+    currentblock->addInst(newinst);
+  }
 }
 
 void KNormalizeVisitor::visit(NumberAST& ast) {
