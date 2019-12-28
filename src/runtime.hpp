@@ -16,9 +16,11 @@ namespace mimium {
   using dtodtype = double(*)(double);
 struct LLVMTaskType {
   dtodtype addresstofn;
+  int64_t tasktypeid;
   double arg;
   double* ptrtotarget;
 };
+
 template <typename TaskType>
 class Scheduler;
 
@@ -70,6 +72,8 @@ class Runtime : public std::enable_shared_from_this<Runtime<TaskType>> {
     current_working_directory = path;
     driver.setWorkingDirectory(path);
   }
+  virtual dtodtype getDspFn()=0;
+
   std::string current_working_directory = "";
 
  protected:
@@ -95,6 +99,8 @@ class Runtime_LLVM : public Runtime<LLVMTaskType> {
   auto llvmGenarate(std::shared_ptr<MIRblock> mir) -> std::string;
   int execute();
   void executeTask(const LLVMTaskType& task) override;
+  dtodtype getDspFn() override;
+
   AST_Ptr loadSourceFile(std::string filename) override;
   // virtual void loadAst(AST_Ptr _ast) override;
 

@@ -35,18 +35,18 @@ int SchedulerRT::audioCallback(void* outputBuffer, void* inputBuffer,
                                      void* userData) {
   auto data = static_cast<CallbackData*>(userData);
   auto sch = data->scheduler;
+  auto dspfn = data->runtime->getDspFn();
   // auto interpreter = data->interpreter;
   double* outputBuffer_d =static_cast<double*>(outputBuffer);
   if (status) Logger::debug_log("Stream underflow detected!", Logger::WARNING);
   // Write interleaved audio data.
-  // double d =0;
-  // double d2=0;
   for (int i = 0; i < nBufferFrames; i++) {
     sch->incrementTime();
-
-    // outputBuffer_d[i*2] = std::get<double>(interpreter->findVariable("dacL"));
-    // outputBuffer_d[i*2+1] =std::get<double>(interpreter->findVariable("dacR"));
-
+    if(dspfn!=nullptr){
+    outputBuffer_d[i*2] = dspfn((double)data->timeelapsed);
+    outputBuffer_d[i*2+1] =dspfn((double)data->timeelapsed);
+    }
+    ++data->timeelapsed;
   }
   return 0;
 }

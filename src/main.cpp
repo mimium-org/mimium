@@ -20,15 +20,22 @@ using Logger = mimium::Logger;
 extern "C" {
 
 mimium::Scheduler<mimium::LLVMTaskType>* global_sch;
-void addTask(double time, double (*addresstofn)(double), double arg,
+void addTask(double time, void* addresstofn, int64_t tasktypeid, double arg,
              double* ptrtotarget) {
-  global_sch->addTask(time, addresstofn, arg, ptrtotarget);
+  global_sch->addTask(time, addresstofn, tasktypeid, arg, ptrtotarget);
 }
 
 int myprint(double d) {
   std::cerr << d << std::endl;
   return 0;
 }
+// double asyncTaskCaller(double d,double(*fnptr)(double)){
+//  auto future = std::async(std::launch::deferred,fnptr,d);
+//  global_sch->addTask(time,future);//executeTask()でfuture.getする
+//  future.wait();
+//   return future.get();
+// }
+
 }
 
 std::function<void(int)> shutdown_handler;
@@ -65,9 +72,9 @@ auto main(int argc, char** argv) -> int {
                      "emit LLVM IR to stdout")),
       cl::cat(general_category));
   compile_stage.setInitialValue(CompileStage::EXECUTE);
-  cl::opt<bool> snd_file("sndfile",
+  cl::opt<bool> is_snd_file("sndfile",
                          cl::desc("write out a sound file as an output"));
-  snd_file.setInitialValue(false);
+  is_snd_file.setInitialValue(false);
   cl::ResetAllOptionOccurrences();
 
   cl::HideUnrelatedOptions(general_category);
@@ -87,7 +94,7 @@ auto main(int argc, char** argv) -> int {
     exit(0);
   };
 
-  runtime->addScheduler(snd_file);
+  runtime->addScheduler(is_snd_file);
   global_sch = runtime->getScheduler().get();
   if (!input.good()) {  // filename is empty:enter repl mode
     std::string line;
@@ -111,44 +118,44 @@ auto main(int argc, char** argv) -> int {
       std::string llvmir;
       auto stage = compile_stage.getValue();
       do {
-            ast = runtime->loadSourceFile(filename);
+        ast = runtime->loadSourceFile(filename);
         if (stage == CompileStage::AST) {
           std::cout << ast->toString() << std::endl;
-            break;
+          break;
         }
-            ast_u = runtime->alphaConvert(ast);
+        ast_u = runtime->alphaConvert(ast);
         if (stage == CompileStage::AST_UNIQUENAME) {
           std::cout << ast_u->toString() << std::endl;
-            break;
+          break;
         }
-            typeinfos = runtime->typeInfer(ast_u);
+        typeinfos = runtime->typeInfer(ast_u);
         if (stage == CompileStage::TYPEINFOS) {
           std::cout << typeinfos.dump() << std::endl;
-            break;
+          break;
         }
-            mir = runtime->kNormalize(ast_u);
+        mir = runtime->kNormalize(ast_u);
         if (stage == CompileStage::MIR) {
           std::cout << mir->toString() << std::endl;
-            break;
+          break;
         }
-            mir_cc = runtime->closureConvert(mir);
+        mir_cc = runtime->closureConvert(mir);
         if (stage == CompileStage::MIR_CC) {
           std::cout << mir_cc->toString() << std::endl;
-            break;
+          break;
         }
-            llvmir = runtime->llvmGenarate(mir_cc);
+        llvmir = runtime->llvmGenarate(mir_cc);
         if (stage == CompileStage::LLVMIR) {
           std::cout << llvmir << std::endl;
-            break;
+          break;
         }
-            returncode = runtime->execute();
-            runtime->start();
-            while (runtime->getScheduler()->hasTask()) {
-              sleep(20);
-            };  // todo : what is best way to wait infinitely? thread?
-            break;
+        returncode = runtime->execute();
+        runtime->start();
+        while (runtime->isrunning()) {
+          sleep(20);
+        };  // todo : what is best way to wait infinitely? thread?
+        break;
       } while (false);
-          std::cerr << "return code: " << returncode << std::endl;
+      std::cerr << "return code: " << returncode << std::endl;
 
     } catch (std::exception& e) {
       mimium::Logger::debug_log(e.what(), mimium::Logger::ERROR);

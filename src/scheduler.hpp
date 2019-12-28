@@ -66,10 +66,11 @@ class SchedulerRT : public Scheduler<LLVMTaskType> {
   struct CallbackData {
     Scheduler<LLVMTaskType>* scheduler;
     std::shared_ptr<Runtime<LLVMTaskType>> runtime;
-    CallbackData() : scheduler(), runtime(){};
+    int64_t timeelapsed;
+    CallbackData() : scheduler(), runtime(),timeelapsed(0){};
   };
   explicit SchedulerRT(std::shared_ptr<Runtime<LLVMTaskType>> runtime_i)
-      : Scheduler<LLVMTaskType>(runtime_i), audio() {
+      : Scheduler<LLVMTaskType>(runtime_i), audio(){
     userdata.scheduler = this;
     userdata.runtime = runtime;
   };

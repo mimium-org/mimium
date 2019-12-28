@@ -1,0 +1,3 @@
+fn dac(time::Float){
+    return sin(time/2+sin(time/200)*300)*sin(time/10000)
+}

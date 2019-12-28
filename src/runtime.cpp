@@ -1,5 +1,6 @@
 #include "runtime.hpp"
 #include <memory>
+#include <stdexcept>
 #include "closure_convert.hpp"
 #include "llvm/ExecutionEngine/JITSymbol.h"
 #include "llvm/ExecutionEngine/RTDyldMemoryManager.h"
@@ -31,17 +32,7 @@ void Runtime_LLVM::addScheduler(bool issoundfile){
   } else {
     sch = std::make_shared<SchedulerRT>(shared_from_this());
   }
-  auto& jit = llvmgenerator->getJitEngine();
-  auto addtaskaddress = &Scheduler<LLVMTaskType>::addTask;
-  auto mysize = sizeof(addtaskaddress);
-  auto* ptr = reinterpret_cast<char*>(sch.get());
-  auto*newptr = static_cast<void*>(ptr + mysize);
-  auto err = jit.addSymbol("addTask", newptr);
 
-
-  if(bool(err)){
-    llvm::errs()<<err <<"\n";
-  }
 }
 
 
@@ -79,18 +70,38 @@ int Runtime_LLVM::execute(){
 }
 
 void Runtime_LLVM::executeTask(const LLVMTaskType& task){
-  auto& [addresstofn,arg,ptrtotarget] = task;
+  auto& [addresstofn,tasktypeid,arg,ptrtotarget] = task;
     auto& jit = llvmgenerator->getJitEngine();
+  auto& type = llvmgenerator->getTaskInfoList()[tasktypeid];
 
-  auto fn = addresstofn;
-  // auto res = jit.lookup(fname);
-  // Logger::debug_log(res,Logger::ERROR);
-  // auto& symbol = res.get();
+  std::visit(overloaded{
+    [](recursive_wrapper<types::Function>& f){
+       auto ff= (types::Function)(f);
+       if(auto rettype = std::get_if<types::Float>(&ff.getReturnType())){
 
-  // auto fnptr = llvm::jitTargetAddressToPointer<void*>(symbol.getAddress());
+       }
+    },
+    [](auto& other){ throw std::runtime_error("invalid task type");}
+  },type);
+  auto fn = reinterpret_cast<double(*)(double)>(addresstofn);
+
   double res  = fn(arg);
   *ptrtotarget = res;//overwrite value....?
   }
 
+  dtodtype Runtime_LLVM::getDspFn(){
+  double(*res)(double);
+  auto& jit = llvmgenerator->getJitEngine();
+  auto symbol = jit.lookup("dac");
+  if(auto err = symbol.takeError()){
+    llvm::errs() << err <<"\n";
+    throw std::runtime_error("could not find dacfunction");
+   res = nullptr;
+    }
+  auto address = (double(*)(double))symbol->getAddress();
+  res= address;
+  return res;
+
+}
 
 }  // namespace mimium
