@@ -32,6 +32,7 @@ namespace mimium {
         LLVMBuiltin();
         ~LLVMBuiltin();
         static llvm::Value* print(std::vector<llvm::Value*>& args,std::string name,std::shared_ptr<LLVMGenerator> generator);
+        static llvm::Value* sin(std::vector<llvm::Value*>& args,std::string name,std::shared_ptr<LLVMGenerator> generator);
         const static bool isBuiltin(std::string str);
         const static std::map<std::string,builtintype> builtin_fntable; 
     };

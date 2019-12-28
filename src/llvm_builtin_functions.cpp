@@ -1,16 +1,16 @@
 #include "llvm_builtin_functions.hpp"
-
+#include "llvm/IR/DerivedTypes.h"
 
 namespace mimium {
 LLVMBuiltin::LLVMBuiltin() {}
 
-LLVMBuiltin::~LLVMBuiltin(){}
+LLVMBuiltin::~LLVMBuiltin() {}
 
 using builtintype = llvm::Value* (*)(std::vector<llvm::Value*>&, std::string,
                                      std::shared_ptr<LLVMGenerator>);
 
 const std::map<std::string, builtintype> LLVMBuiltin::builtin_fntable = {
-    {"print", &LLVMBuiltin::print}};
+    {"print", &LLVMBuiltin::print}, {"sin", &sin}};
 
 const bool LLVMBuiltin::isBuiltin(std::string str) {
   return (builtin_fntable.count(str) > 0);
@@ -37,11 +37,24 @@ llvm::Value* LLVMBuiltin::print(std::vector<llvm::Value*>& args,
     format = generator->builder->CreateGlobalStringPtr("%f\n", "printfformat");
     fun = newfun;
   }
-  auto* formatptr = generator->module->getGlobalVariable("printfformat",true);
-  auto* castedformat = generator->builder->CreatePointerCast(formatptr, fun->arg_begin()->getType(),"ptrto_format");
+  auto* formatptr = generator->module->getGlobalVariable("printfformat", true);
+  auto* castedformat = generator->builder->CreatePointerCast(
+      formatptr, fun->arg_begin()->getType(), "ptrto_format");
   args.insert(args.begin(), castedformat);
   llvm::ArrayRef<llvm::Value*> newargs(args);
   auto* res = generator->builder->CreateCall(fun, newargs, name);
   return res;
 }
+llvm::Value* LLVMBuiltin::sin(std::vector<llvm::Value*>& args,
+                                std::string name,
+                                std::shared_ptr<LLVMGenerator> generator) {
+  llvm::Value* format = nullptr;
+  auto* ftype = llvm::FunctionType::get(generator->builder->getDoubleTy(),generator->builder->getDoubleTy(),false);
+  auto* fun = llvm::cast<llvm::Function>(
+        generator->module->getOrInsertFunction("sin", ftype).getCallee());
+  llvm::ArrayRef<llvm::Value*> newargs(args);
+  auto* res = generator->builder->CreateCall(fun, newargs, name);
+  return res;
+}
+
 }  // namespace mimium
