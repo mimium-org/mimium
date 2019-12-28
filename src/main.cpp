@@ -43,7 +43,7 @@ auto main(int argc, char** argv) -> int {
     LLVMIR,
     EXECUTE
   };
-
+  int returncode=0;
   cl::OptionCategory general_category("General Options", "");
   cl::opt<std::string> input_filename(cl::Positional, cl::desc("<input file>"),
                                       cl::init("-"), cl::cat(general_category));
@@ -52,9 +52,9 @@ auto main(int argc, char** argv) -> int {
       cl::desc("Printing Debug Infomations"),
       cl::values(
           clEnumValN(CompileStage::AST, "emit-ast",
-                     "Enable trivial optimizations"),
+                     "Emit raw abstarct syntax tree to stdout"),
           clEnumValN(CompileStage::AST_UNIQUENAME, "emit-ast-u",
-                     "Enable default optimizations"),
+                     "Emit AST with unique symbol names to stdout"),
           clEnumValN(CompileStage::TYPEINFOS, "emit-types",
                      "emit type information for all variables to stdout"),
           clEnumValN(CompileStage::MIR, "emit-mir", "emit MIR to stdout"),
@@ -83,7 +83,7 @@ auto main(int argc, char** argv) -> int {
     if (runtime->isrunning()) {
       runtime->stop();
     }
-    std::cerr << std::endl << "Interuppted by key" << std::endl;
+    std::cerr << "Interuppted by key" << std::endl;
     exit(0);
   };
 
@@ -103,70 +103,57 @@ auto main(int argc, char** argv) -> int {
       std::string filename = input_filename.c_str();
       Logger::debug_log("Opening " + filename, Logger::INFO);
 
-      int stage = 0;
-      AST_Ptr ast, ast_u;
-      std::shared_ptr<mimium::MIRblock> mir, mir_cc;
+      AST_Ptr ast;
+      AST_Ptr ast_u;
+      std::shared_ptr<mimium::MIRblock> mir;
+      std::shared_ptr<mimium::MIRblock> mir_cc;
       mimium::TypeEnv& typeinfos = runtime->getTypeEnv();
       std::string llvmir;
-      int returncode;
-      while (stage <= static_cast<int>(compile_stage.getValue())) {
-        switch (static_cast<CompileStage>(stage)) {
-          case CompileStage::AST:
+      auto stage = compile_stage.getValue();
+      do {
             ast = runtime->loadSourceFile(filename);
+        if (stage == CompileStage::AST) {
+          std::cout << ast->toString() << std::endl;
             break;
-          case CompileStage::AST_UNIQUENAME:
+        }
             ast_u = runtime->alphaConvert(ast);
+        if (stage == CompileStage::AST_UNIQUENAME) {
+          std::cout << ast_u->toString() << std::endl;
             break;
-          case CompileStage::TYPEINFOS:
+        }
             typeinfos = runtime->typeInfer(ast_u);
+        if (stage == CompileStage::TYPEINFOS) {
+          std::cout << typeinfos.dump() << std::endl;
             break;
-          case CompileStage::MIR:
+        }
             mir = runtime->kNormalize(ast_u);
+        if (stage == CompileStage::MIR) {
+          std::cout << mir->toString() << std::endl;
             break;
-          case CompileStage::MIR_CC:
+        }
             mir_cc = runtime->closureConvert(mir);
+        if (stage == CompileStage::MIR_CC) {
+          std::cout << mir_cc->toString() << std::endl;
             break;
-          case CompileStage::LLVMIR:
+        }
             llvmir = runtime->llvmGenarate(mir_cc);
+        if (stage == CompileStage::LLVMIR) {
+          std::cout << llvmir << std::endl;
             break;
-          case CompileStage::EXECUTE:
+        }
             returncode = runtime->execute();
             runtime->start();
             while (runtime->getScheduler()->hasTask()) {
               sleep(20);
             };  // todo : what is best way to wait infinitely? thread?
             break;
-        }
-        stage++;
-      }
-      switch (compile_stage) {
-        case CompileStage::AST:
-          std::cout << ast->toString() << std::endl;
-          break;
-        case CompileStage::AST_UNIQUENAME:
-          std::cout << ast_u->toString() << std::endl;
-          break;
-        case CompileStage::TYPEINFOS:
-          std::cout << typeinfos.dump() << std::endl;
-          break;
-        case CompileStage::MIR:
-          std::cout << mir->toString() << std::endl;
-          break;
-        case CompileStage::MIR_CC:
-          std::cout << mir_cc->toString() << std::endl;
-          break;
-        case CompileStage::LLVMIR:
-          std::cout << llvmir << std::endl;
-          break;
-        case CompileStage::EXECUTE:
+      } while (false);
           std::cerr << "return code: " << returncode << std::endl;
-          break;
-      }
 
     } catch (std::exception& e) {
       mimium::Logger::debug_log(e.what(), mimium::Logger::ERROR);
       runtime->stop();
     }
   }
-  return 0;
+  return returncode;
 }
