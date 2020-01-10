@@ -1,34 +1,15 @@
-#include "llvmgenerator.hpp"
+ #include "llvmgenerator.hpp"
 
-#include <sys/types.h>
 
-#include <algorithm>
-#include <cstddef>
-#include <cstdint>
-#include <exception>
-#include <memory>
-#include <stdexcept>
-
-#include "jit_engine.hpp"
-#include "llvm/ADT/APInt.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ExecutionEngine/JITSymbol.h"
-#include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
-#include "llvm/IR/Attributes.h"
-#include "llvm/IR/CallingConv.h"
-#include "llvm/IR/DerivedTypes.h"
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/Type.h"
-#include "llvm/Support/Error.h"
-#include "type.hpp"
 namespace mimium {
 LLVMGenerator::LLVMGenerator(std::string filename, bool i_isjit)
-    : mainentry(nullptr),
-      isjit(i_isjit),
-      currentblock(nullptr),
+    : isjit(i_isjit),
+      taskfn_typeid(0),
+      tasktype_list(),
       jitengine(std::make_unique<llvm::orc::MimiumJIT>()),
-      ctx(jitengine->getContext()) {
+      ctx(jitengine->getContext()),
+      mainentry(nullptr),
+      currentblock(nullptr) {
   init(filename);
 }
 void LLVMGenerator::init(std::string filename) {
@@ -124,6 +105,12 @@ auto LLVMGenerator::getType(const types::Value& type) -> llvm::Type* {
 void LLVMGenerator::setBB(llvm::BasicBlock* newblock) {
   builder->SetInsertPoint(newblock);
 }
+void LLVMGenerator::createMiscDeclarations(){
+  //create malloc
+  auto* malloctype = llvm::FunctionType::get(builder->getInt8PtrTy(),{builder->getInt64Ty()},false);
+  auto res = module->getOrInsertFunction("malloc",malloctype).getCallee();
+  namemap.emplace("malloc",res);
+}
 void LLVMGenerator::createMainFun() {
   auto* fntype = llvm::FunctionType::get(llvm::Type::getInt64Ty(ctx), false);
   auto* mainfun = llvm::Function::Create(
@@ -141,14 +128,14 @@ void LLVMGenerator::createMainFun() {
   mainentry = llvm::BasicBlock::Create(ctx, "entry", mainfun);
 }
 void LLVMGenerator::createTaskRegister() {
-  // time,address to function(upcasted),argument(currently only double),address
-  // to target variable
-  auto taskfntype = llvm::FunctionType::get(builder->getDoubleTy(),
-                                            {builder->getDoubleTy()}, false);
 
   llvm::ArrayRef<llvm::Type*> argtypes = {
-      builder->getDoubleTy(), llvm::PointerType::get(taskfntype, 0),
-      builder->getDoubleTy(), llvm::Type::getDoublePtrTy(ctx)};
+      builder->getDoubleTy(),//time
+      builder->getInt8PtrTy(),//address to function
+     // builder->getInt64Ty(), // tasktypeid
+      builder->getDoubleTy(),//argument(single)
+      llvm::Type::getDoublePtrTy(ctx)//address to target variable for assignment
+      };
   auto* fntype = llvm::FunctionType::get(builder->getVoidTy(), argtypes, false);
   addtask = module->getOrInsertFunction("addTask", fntype);
   auto addtaskfun = llvm::cast<llvm::Function>(addtask.getCallee());
@@ -173,14 +160,15 @@ llvm::Type* LLVMGenerator::getOrCreateTimeStruct(types::Value t) {
         overloaded{[&](types::Float& f) { return builder->getDoubleTy(); },
                    [&](auto& v) { return builder->getVoidTy(); }},
         t);
-    llvm::ArrayRef<llvm::Type*> elemtypes = {
-        builder->getDoubleTy(), containtype};
+    llvm::ArrayRef<llvm::Type*> elemtypes = {builder->getDoubleTy(),
+                                             containtype};
     res = llvm::StructType::create(ctx, elemtypes, name);
     typemap.emplace(name, res);
   }
   return res;
 }
 void LLVMGenerator::preprocess() {
+  createMiscDeclarations();
   createTaskRegister();
   createMainFun();
   setBB(mainentry);
@@ -189,7 +177,7 @@ void LLVMGenerator::preprocess() {
 void LLVMGenerator::generateCode(std::shared_ptr<MIRblock> mir) {
   preprocess();
   for (auto& inst : mir->instructions) {
-    visitInstructions(inst);
+    visitInstructions(inst,true);
   }
   if (mainentry->getTerminator() ==
       nullptr) {  // insert empty return if no return
@@ -197,13 +185,27 @@ void LLVMGenerator::generateCode(std::shared_ptr<MIRblock> mir) {
   }
 }
 
-void LLVMGenerator::visitInstructions(const Instructions& inst) {
+//Creates Allocation instruction or call malloc function depends on context
+llvm::Value* LLVMGenerator::createAllocation(bool isglobal,llvm::Type* type,llvm::Value *ArraySize=nullptr,const llvm::Twine& name=""){
+  llvm::Value* res=nullptr;
+  if(isglobal){
+    auto size = module->getDataLayout().getTypeAllocSize(type);
+    auto sizeinst = llvm::ConstantInt::get(ctx,llvm::APInt(64,size,false));
+    auto rawres = builder->CreateCall(module->getFunction("malloc"),{sizeinst},"ptr_"+name+"_raw");
+    res = builder->CreatePointerCast(rawres, llvm::PointerType::get(type,0),"ptr_"+name);
+  }else{
+    res =builder->CreateAlloca(type, ArraySize ,"ptr_" + name);
+  }
+  return res;
+};
+
+
+void LLVMGenerator::visitInstructions(const Instructions& inst,bool isglobal) {
   std::visit(
       overloaded{
           [](auto i) {},
           [&, this](const std::shared_ptr<NumberInst>& i) {
-            auto* ptr = builder->CreateAlloca(llvm::Type::getDoubleTy(ctx),
-                                              nullptr, "ptr_" + i->lv_name);
+            auto* ptr = createAllocation(isglobal,builder->getDoubleTy(),nullptr,i->lv_name);
             auto* finst =
                 llvm::ConstantFP::get(this->ctx, llvm::APFloat(i->val));
             builder->CreateStore(finst, ptr);
@@ -217,7 +219,7 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
                 std::get<recursive_wrapper<types::Time>>(i->type);
             auto strtype = getOrCreateTimeStruct(timetype.val);
             typemap.emplace(resname, strtype);
-            auto* ptr = builder->CreateAlloca(strtype, nullptr, resname);
+            auto* ptr = createAllocation(isglobal,strtype, nullptr, i->lv_name);
             auto* timepos = builder->CreateStructGEP(strtype, ptr, 0);
             auto* valpos = builder->CreateStructGEP(strtype, ptr, 1);
 
@@ -284,9 +286,10 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
               namemap.try_emplace(newname, valload);
             }
             for (auto& cinsts : i->body->instructions) {
-              visitInstructions(cinsts);
+              visitInstructions(cinsts,false);
             }
-            if(currentblock->getTerminator()==nullptr && ft->getReturnType()->isVoidTy()){
+            if (currentblock->getTerminator() == nullptr &&
+                ft->getReturnType()->isVoidTy()) {
               builder->CreateRetVoid();
             }
             setBB(mainentry);
@@ -299,7 +302,7 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
                 llvm::cast<llvm::PointerType>((--it)->getType());  // NOLINT
             llvm::Type* strtype = ptrtype->getElementType();
             llvm::Value* cap_size =
-                builder->CreateAlloca(strtype, nullptr, i->lv_name);
+                createAllocation(isglobal,strtype, nullptr, i->lv_name);
             int idx = 0;
             for (auto& cap : i->captures) {
               llvm::Value* gep =
@@ -326,32 +329,35 @@ void LLVMGenerator::visitInstructions(const Instructions& inst) {
                   typemap["ptr_" + i->args[0]], tvptr, 1, "");
               auto timeval = builder->CreateLoad(timeptr);
               auto val = builder->CreateLoad(valptr);
-              auto ptrtofn = namemap[i->fname];
+              auto targetfn = llvm::cast<llvm::Function>(namemap[i->fname]);
+              auto ptrtofn = llvm::ConstantExpr::getBitCast(targetfn, builder->getInt8PtrTy());
+              auto taskid = taskfn_typeid++;
+              tasktype_list.emplace_back(i->type);
               auto taskfntype = llvm::FunctionType::get(
-                  builder->getDoubleTy(), {builder->getDoubleTy()}, false);
+                  builder->getDoubleTy(), builder->getDoubleTy(), false);
               auto lvptrname = "ptr_" + i->lv_name;
-              auto lvptr = builder->CreateAlloca(taskfntype->getReturnType(),nullptr,lvptrname);
-              namemap.emplace(lvptrname,lvptr);
-              auto addresstofn = builder->CreatePointerCast(
-                  ptrtofn, llvm::PointerType::get(taskfntype, 0));
+              auto lvptr = createAllocation(true, taskfntype->getReturnType(),
+                                                 nullptr, i->lv_name);
+              namemap.emplace(lvptrname, lvptr);
+
               // time,address to fun, arg(double), ptrtotarget,
-              llvm::ArrayRef<llvm::Value*> args = {
-                  timeval, addresstofn, val, lvptr};
-            
+              llvm::ArrayRef<llvm::Value*> args = {timeval, ptrtofn, val,
+                                                   lvptr};
+
               builder->CreateCall(addtask, args);
-            }else{
-            if (LLVMBuiltin::isBuiltin(i->fname)) {
-              auto it = LLVMBuiltin::builtin_fntable.find(i->fname);
-              builtintype fn = it->second;
-              res = fn(args, i->lv_name, this->shared_from_this());
             } else {
-              llvm::Function* fun = module->getFunction(i->fname);
-              if (fun == nullptr) {
-                throw std::logic_error("function could not be referenced");
+              if (LLVMBuiltin::isBuiltin(i->fname)) {
+                auto it = LLVMBuiltin::builtin_fntable.find(i->fname);
+                builtintype fn = it->second;
+                res = fn(args, i->lv_name, this->shared_from_this());
+              } else {
+                llvm::Function* fun = module->getFunction(i->fname);
+                if (fun == nullptr) {
+                  throw std::logic_error("function could not be referenced");
+                }
+                res = builder->CreateCall(fun, args, i->lv_name);
               }
-              res = builder->CreateCall(fun, args, i->lv_name);
-            }
-            namemap.emplace(i->lv_name, res);
+              namemap.emplace(i->lv_name, res);
             }
           },
           [&, this](const std::shared_ptr<ReturnInst>& i) {
@@ -371,7 +377,7 @@ int LLVMGenerator::execute() {
   Logger::debug_log(mainfun, Logger::ERROR);
   auto fnptr =
       llvm::jitTargetAddressToPointer<int64_t (*)()>(mainfun->getAddress());
-    
+
   int64_t res = fnptr();
   return res;
 }

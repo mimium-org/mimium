@@ -37,13 +37,17 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   auto getType(const types::Value& type) -> llvm::Type*;
   auto getRawStructType(const types::Value& type) -> llvm::Type*;
   void preprocess();
+  void createMiscDeclarations();
   void createMainFun();
   void createTaskRegister();
-  void visitInstructions(const Instructions& inst);
+  llvm::Value* createAllocation(bool isglobal,llvm::Type* type,llvm::Value *ArraySize,const llvm::Twine& name);
+
+  void visitInstructions(const Instructions& inst, bool isglobal);
   void dropAllReferences();
   std::unordered_map<std::string, llvm::Type*> typemap;
   llvm::FunctionCallee addtask;
-
+  unsigned int taskfn_typeid;
+  std::vector<types::Value> tasktype_list;
   void initJit();
   llvm::Error doJit(size_t opt_level = 1);
 
@@ -70,6 +74,7 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   int execute();
   void outputToStream(llvm::raw_ostream& ostream);
   llvm::orc::MimiumJIT& getJitEngine(){return *jitengine;}
+  auto& getTaskInfoList(){return tasktype_list;}
 };
 
 // struct InstructionVisitor{
