@@ -70,19 +70,19 @@ int Runtime_LLVM::execute(){
 }
 
 void Runtime_LLVM::executeTask(const LLVMTaskType& task){
-  auto& [addresstofn,tasktypeid,arg,ptrtotarget] = task;
+  auto& [addresstofn,arg,ptrtotarget] = task;
     auto& jit = llvmgenerator->getJitEngine();
-  auto& type = llvmgenerator->getTaskInfoList()[tasktypeid];
+  // auto& type = llvmgenerator->getTaskInfoList()[tasktypeid];
 
-  std::visit(overloaded{
-    [](recursive_wrapper<types::Function>& f){
-       auto ff= (types::Function)(f);
-       if(auto rettype = std::get_if<types::Float>(&ff.getReturnType())){
+  // std::visit(overloaded{
+  //   [](recursive_wrapper<types::Function>& f){
+  //      auto ff= (types::Function)(f);
+  //      if(auto rettype = std::get_if<types::Float>(&ff.getReturnType())){
 
-       }
-    },
-    [](auto& other){ throw std::runtime_error("invalid task type");}
-  },type);
+  //      }
+  //   },
+  //   [](auto& other){ throw std::runtime_error("invalid task type");}
+  // },type);
   auto fn = reinterpret_cast<double(*)(double)>(addresstofn);
 
   double res  = fn(arg);
@@ -92,16 +92,15 @@ void Runtime_LLVM::executeTask(const LLVMTaskType& task){
   dtodtype Runtime_LLVM::getDspFn(){
   double(*res)(double);
   auto& jit = llvmgenerator->getJitEngine();
-  auto symbol = jit.lookup("dac");
-  if(auto err = symbol.takeError()){
-    llvm::errs() << err <<"\n";
-    throw std::runtime_error("could not find dacfunction");
-   res = nullptr;
-    }
-  auto address = (double(*)(double))symbol->getAddress();
+  if(auto symbolorerror = jit.lookup("dac")){
+  auto address = (double(*)(double))symbolorerror->getAddress();
   res= address;
-  return res;
-
+  }else{
+    auto err = symbolorerror.takeError();
+    llvm::logAllUnhandledErrors(std::move(err), llvm::errs(), "Dsp function not found");
+    res = nullptr;
+  }
+return res;
 }
 
 }  // namespace mimium

@@ -84,10 +84,10 @@ class MimiumJIT {
       auto FPM = std::make_unique<legacy::FunctionPassManager>(M.getModule());
 
       // Add some optimizations.
-      FPM->add(createInstructionCombiningPass());
-      FPM->add(createReassociatePass());
-      FPM->add(createGVNPass());
-      FPM->add(createCFGSimplificationPass());
+      // FPM->add(createInstructionCombiningPass());
+      // FPM->add(createReassociatePass());
+      // FPM->add(createGVNPass());
+      // FPM->add(createCFGSimplificationPass());
       FPM->doInitialization();
 
       // Run the optimizations over all functions in the module being added to

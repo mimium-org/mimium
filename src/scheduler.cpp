@@ -22,6 +22,7 @@ namespace mimium{
 
 
 void SchedulerRT::start() {
+  userdata.dspfnptr = runtime->getDspFn();
   audio.setCallback(SchedulerRT::audioCallback,&userdata );
   audio.start();
 }
@@ -35,7 +36,7 @@ int SchedulerRT::audioCallback(void* outputBuffer, void* inputBuffer,
                                      void* userData) {
   auto data = static_cast<CallbackData*>(userData);
   auto sch = data->scheduler;
-  auto dspfn = data->runtime->getDspFn();
+  auto dspfn = data->dspfnptr;
   // auto interpreter = data->interpreter;
   double* outputBuffer_d =static_cast<double*>(outputBuffer);
   if (status) Logger::debug_log("Stream underflow detected!", Logger::WARNING);

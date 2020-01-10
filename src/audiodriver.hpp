@@ -9,7 +9,7 @@ namespace mimium{
 class AudioDriver{
     std::shared_ptr<RtAudio> rtaudio;
     RtAudio::StreamParameters parameters;
-    unsigned int sample_rate = 44100;
+    unsigned int sample_rate;
     unsigned int buffer_frames =4096; // 256 sample per frames
     int channels=2;
     // double tcount[2] ={0,0};

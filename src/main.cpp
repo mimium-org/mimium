@@ -20,9 +20,9 @@ using Logger = mimium::Logger;
 extern "C" {
 
 mimium::Scheduler<mimium::LLVMTaskType>* global_sch;
-void addTask(double time, void* addresstofn, int64_t tasktypeid, double arg,
+void addTask(double time, void* addresstofn,  double arg,
              double* ptrtotarget) {
-  global_sch->addTask(time, addresstofn, tasktypeid, arg, ptrtotarget);
+  global_sch->addTask(time, addresstofn, arg, ptrtotarget);
 }
 
 int myprint(double d) {

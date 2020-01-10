@@ -36,7 +36,7 @@ class Scheduler {  // scheduler interface
     }
   };
   // time,address to fun, arg(double), ptrtotarget,
-  void addTask(double time, double (*addresstofn)(double), double arg,
+  void addTask(double time, void *addresstofn ,double arg,
                double* ptrtotarget) {
     auto task = TaskType{addresstofn, arg, ptrtotarget};
     tasks.emplace(static_cast<int64_t>(time), task);
@@ -65,14 +65,14 @@ class SchedulerRT : public Scheduler<LLVMTaskType> {
  public:
   struct CallbackData {
     Scheduler<LLVMTaskType>* scheduler;
-    std::shared_ptr<Runtime<LLVMTaskType>> runtime;
+    //std::shared_ptr<Runtime<LLVMTaskType>> runtime;
+    double(*dspfnptr)(double){};
     int64_t timeelapsed;
-    CallbackData() : scheduler(), runtime(),timeelapsed(0){};
+    CallbackData() : scheduler(),timeelapsed(0){};
   };
   explicit SchedulerRT(std::shared_ptr<Runtime<LLVMTaskType>> runtime_i)
       : Scheduler<LLVMTaskType>(runtime_i), audio(){
     userdata.scheduler = this;
-    userdata.runtime = runtime;
   };
   virtual ~SchedulerRT(){};
 

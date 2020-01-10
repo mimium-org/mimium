@@ -15,8 +15,8 @@
 namespace mimium {
   using dtodtype = double(*)(double);
 struct LLVMTaskType {
-  dtodtype addresstofn;
-  int64_t tasktypeid;
+  void* addresstofn;
+  //int64_t tasktypeid;
   double arg;
   double* ptrtotarget;
 };

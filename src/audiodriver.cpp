@@ -26,6 +26,7 @@ bool AudioDriver::setCallback(RtAudioCallback cb, void* ud) {
 
 bool AudioDriver::start() {
   try {
+    sample_rate =   rtaudio->getDeviceInfo(parameters.deviceId).preferredSampleRate;
     rtaudio->openStream(&parameters, nullptr, RTAUDIO_FLOAT64, sample_rate,
                         &buffer_frames, callback, userdata);
     std::cerr << rtaudio->getStreamSampleRate() << std::endl;
