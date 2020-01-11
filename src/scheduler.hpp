@@ -19,8 +19,8 @@ class Runtime;
 template <typename TaskType>
 class Scheduler {  // scheduler interface
  public:
-  explicit Scheduler(std::shared_ptr<Runtime<TaskType>> runtime_i)
-      : runtime(runtime_i), time(0) {}
+  explicit Scheduler(std::shared_ptr<Runtime<TaskType>> runtime_i,WaitController& waitc)
+      : runtime(runtime_i), time(0) ,waitc(waitc){}
   Scheduler(Scheduler& sch) = default;   // copy
   Scheduler(Scheduler&& sch) = default;  // move
   Scheduler& operator=(const Scheduler&) = default;
@@ -28,15 +28,25 @@ class Scheduler {  // scheduler interface
   virtual ~Scheduler(){};
   virtual void start() = 0;
   virtual void stop() = 0;
-  bool hasTask(){return !tasks.empty();}
-  void incrementTime() {
-    time++;
-    if (!tasks.empty() && time > tasks.top().first) {
-      executeTask(tasks.top().second);
+  virtual void stopAudioDriver()=0;
+
+  bool hasTask() { return !tasks.empty(); }
+
+  //tick the time and return if scheduler should be stopped
+  bool incrementTime() {
+    bool res = false;
+    if (tasks.empty() && !runtime->hasDsp()) {
+      res=true;
+    } else {
+      time++;
+      if (time > tasks.top().first) {
+        executeTask(tasks.top().second);
+      }
     }
+    return res;
   };
   // time,address to fun, arg(double), ptrtotarget,
-  void addTask(double time, void *addresstofn ,double arg,
+  void addTask(double time, void* addresstofn, double arg,
                double* ptrtotarget) {
     auto task = TaskType{addresstofn, arg, ptrtotarget};
     tasks.emplace(static_cast<int64_t>(time), task);
@@ -44,8 +54,10 @@ class Scheduler {  // scheduler interface
   // static auto getAddTaskAddress(){
   //     void(Scheduler<TaskType>::*ptr)(double,double(*)(double),double,double*)
   //     = &Scheduler<TaskType>::addTask; return ptr; }
+  bool isactive=true;
 
  protected:
+  WaitController& waitc;
   std::shared_ptr<Runtime<TaskType>> runtime;
   using key_type = std::pair<int64_t, TaskType>;
   struct Greater {
@@ -65,13 +77,13 @@ class SchedulerRT : public Scheduler<LLVMTaskType> {
  public:
   struct CallbackData {
     Scheduler<LLVMTaskType>* scheduler;
-    //std::shared_ptr<Runtime<LLVMTaskType>> runtime;
-    double(*dspfnptr)(double){};
+    // std::shared_ptr<Runtime<LLVMTaskType>> runtime;
+    double (*dspfnptr)(double){};
     int64_t timeelapsed;
-    CallbackData() : scheduler(),timeelapsed(0){};
+    CallbackData() : scheduler(), timeelapsed(0){};
   };
-  explicit SchedulerRT(std::shared_ptr<Runtime<LLVMTaskType>> runtime_i)
-      : Scheduler<LLVMTaskType>(runtime_i), audio(){
+  explicit SchedulerRT(std::shared_ptr<Runtime<LLVMTaskType>> runtime_i,WaitController& waitc)
+      : Scheduler<LLVMTaskType>(runtime_i,waitc), audio() {
     userdata.scheduler = this;
   };
   virtual ~SchedulerRT(){};
@@ -83,7 +95,7 @@ class SchedulerRT : public Scheduler<LLVMTaskType> {
   static int audioCallback(void* outputBuffer, void* inputBuffer,
                            unsigned int nBufferFrames, double streamTime,
                            RtAudioStreamStatus status, void* userdata);
-
+  void stopAudioDriver()override {audio.stop();}
  private:
   void executeTask(const LLVMTaskType& task) override;
   AudioDriver audio;
@@ -92,11 +104,12 @@ class SchedulerRT : public Scheduler<LLVMTaskType> {
 
 class SchedulerSndFile : public Scheduler<LLVMTaskType> {
  public:
-  explicit SchedulerSndFile(std::shared_ptr<Runtime<LLVMTaskType>> runtime_i);
+  explicit SchedulerSndFile(std::shared_ptr<Runtime<LLVMTaskType>> runtime_i,WaitController& waitc);
   ~SchedulerSndFile();
 
   void start() override;
   void stop() override;
+  void stopAudioDriver() override{};
 
  private:
   SNDFILE* fp;

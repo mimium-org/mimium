@@ -31,25 +31,25 @@ class SchedulerSndFile;
 template <typename TaskType>
 class Runtime : public std::enable_shared_from_this<Runtime<TaskType>> {
  public:
-  Runtime(std::string filename_i = "untitled") : filename(filename_i) {}
+  Runtime(std::string filename_i = "untitled") : filename(filename_i) ,waitc(){}
 
   virtual ~Runtime() = default;
 
   virtual void addScheduler(bool issoundfile) {
     if (issoundfile) {
-      sch = std::make_shared<SchedulerSndFile>(this->shared_from_this());
+      sch = std::make_shared<SchedulerSndFile>(this->shared_from_this(),waitc);
     } else {
-      sch = std::make_shared<SchedulerRT>(this->shared_from_this());
+      sch = std::make_shared<SchedulerRT>(this->shared_from_this(),waitc);
     }
   };
   virtual void init(){};
   void clear() { clearDriver(); };
-  inline void clearDriver() { driver.clear(); };
-  void start() {
+  void clearDriver() { driver.clear(); };
+  virtual void start() {
     sch->start();
     running_status = true;
   };
-  inline bool isrunning() { return running_status; };
+  bool isrunning() { return running_status; };
   void stop() {
     sch->stop();
     running_status = false;
@@ -73,6 +73,7 @@ class Runtime : public std::enable_shared_from_this<Runtime<TaskType>> {
     driver.setWorkingDirectory(path);
   }
   virtual dtodtype getDspFn()=0;
+  bool hasDsp(){return hasdsp;}
 
   std::string current_working_directory = "";
 
@@ -82,6 +83,8 @@ class Runtime : public std::enable_shared_from_this<Runtime<TaskType>> {
   Mididriver midi;
   std::string filename;
   bool running_status = false;
+  bool hasdsp=false;
+  WaitController waitc;
 };
 
 class Runtime_LLVM : public Runtime<LLVMTaskType> {
@@ -97,6 +100,7 @@ class Runtime_LLVM : public Runtime<LLVMTaskType> {
   std::shared_ptr<MIRblock> kNormalize(AST_Ptr _ast);
   std::shared_ptr<MIRblock> closureConvert(std::shared_ptr<MIRblock> mir);
   auto llvmGenarate(std::shared_ptr<MIRblock> mir) -> std::string;
+  void start() override;
   int execute();
   void executeTask(const LLVMTaskType& task) override;
   dtodtype getDspFn() override;
@@ -111,5 +115,6 @@ class Runtime_LLVM : public Runtime<LLVMTaskType> {
   KNormalizeVisitor knormvisitor;
   std::shared_ptr<ClosureConverter> closureconverter;
   std::shared_ptr<LLVMGenerator> llvmgenerator;
+  dtodtype dspfn_address;
 };
 }  // namespace mimium

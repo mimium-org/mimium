@@ -5,6 +5,8 @@
 #include <numeric>
 #include <string>
 #include <deque>
+#include <mutex>
+#include <condition_variable>
 
 #include "llvm/Support/Error.h"
 
@@ -14,6 +16,13 @@ SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE),
 #endif
 
 namespace mimium {
+
+struct WaitController{
+  std::mutex mtx;
+  std::condition_variable cv;
+  bool isready =false;
+};
+
 
 template <class ElementType>
 static std::string join(std::deque<ElementType>& vec, std::string delim) {

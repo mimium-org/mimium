@@ -149,10 +149,7 @@ auto main(int argc, char** argv) -> int {
           break;
         }
         returncode = runtime->execute();
-        runtime->start();
-        while (runtime->isrunning()) {
-          sleep(20);
-        };  // todo : what is best way to wait infinitely? thread?
+        runtime->start();//start() blocks thread until scheduler stops
         break;
       } while (false);
       std::cerr << "return code: " << returncode << std::endl;

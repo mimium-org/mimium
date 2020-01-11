@@ -1,17 +1,16 @@
 #include "runtime.hpp"
+
 #include <memory>
 #include <stdexcept>
+
 #include "closure_convert.hpp"
 #include "llvm/ExecutionEngine/JITSymbol.h"
 #include "llvm/ExecutionEngine/RTDyldMemoryManager.h"
 #include "llvmgenerator.hpp"
 
-
 namespace mimium {
 
-
-
-Runtime_LLVM::Runtime_LLVM(std::string filename_i,bool isjit)
+Runtime_LLVM::Runtime_LLVM(std::string filename_i, bool isjit)
     : Runtime<LLVMTaskType>(filename_i),
       alphavisitor(),
       typevisitor(),
@@ -22,19 +21,17 @@ Runtime_LLVM::Runtime_LLVM(std::string filename_i,bool isjit)
   LLVMInitializeNativeTarget();
   LLVMInitializeNativeAsmPrinter();
   LLVMInitializeNativeAsmParser();
-        llvmgenerator = std::make_shared<LLVMGenerator>(filename_i,isjit);
-        closureconverter = std::make_shared<ClosureConverter>(typevisitor.getEnv());
-      } //temporary,jit is off
+  llvmgenerator = std::make_shared<LLVMGenerator>(filename_i, isjit);
+  closureconverter = std::make_shared<ClosureConverter>(typevisitor.getEnv());
+}  // temporary,jit is off
 
-void Runtime_LLVM::addScheduler(bool issoundfile){
-    if (issoundfile) {
-    sch = std::make_shared<SchedulerSndFile>(shared_from_this());
+void Runtime_LLVM::addScheduler(bool issoundfile) {
+  if (issoundfile) {
+    sch = std::make_shared<SchedulerSndFile>(shared_from_this(),waitc);
   } else {
-    sch = std::make_shared<SchedulerRT>(shared_from_this());
+    sch = std::make_shared<SchedulerRT>(shared_from_this(),waitc);
   }
-
 }
-
 
 AST_Ptr Runtime_LLVM::loadSourceFile(std::string filename) {
   this->filename = filename;
@@ -65,13 +62,34 @@ auto Runtime_LLVM::llvmGenarate(std::shared_ptr<MIRblock> mir) -> std::string {
   llvmgenerator->outputToStream(ss);
   return s;
 }
-int Runtime_LLVM::execute(){
+int Runtime_LLVM::execute() {
+  auto& jit = llvmgenerator->getJitEngine();
+  if (auto symbolorerror = jit.lookup("dac")) {
+    auto address = (double (*)(double))symbolorerror->getAddress();
+    dspfn_address = address;
+    hasdsp = true;
+  } else {
+    auto err = symbolorerror.takeError();
+    Logger::debug_log("dsp function not found", Logger::WARNING);
+    llvm::consumeError(std::move(err));
+    dspfn_address = nullptr;
+    hasdsp = false;
+  }
   return llvmgenerator->execute();
 }
+void Runtime_LLVM::start() {
+  sch->start();
+  {
+    std::unique_lock<std::mutex> uniq_lk(waitc.mtx);
+    // aynchronously wait until scheduler stops
+    waitc.cv.wait(uniq_lk, [&]() { return waitc.isready; });
+  }
+  sch->stopAudioDriver();
+}
 
-void Runtime_LLVM::executeTask(const LLVMTaskType& task){
-  auto& [addresstofn,arg,ptrtotarget] = task;
-    auto& jit = llvmgenerator->getJitEngine();
+void Runtime_LLVM::executeTask(const LLVMTaskType& task) {
+  auto& [addresstofn, arg, ptrtotarget] = task;
+  auto& jit = llvmgenerator->getJitEngine();
   // auto& type = llvmgenerator->getTaskInfoList()[tasktypeid];
 
   // std::visit(overloaded{
@@ -83,25 +101,12 @@ void Runtime_LLVM::executeTask(const LLVMTaskType& task){
   //   },
   //   [](auto& other){ throw std::runtime_error("invalid task type");}
   // },type);
-  auto fn = reinterpret_cast<double(*)(double)>(addresstofn);
+  auto fn = reinterpret_cast<double (*)(double)>(addresstofn);
 
-  double res  = fn(arg);
+  double res = fn(arg);
   *ptrtotarget = res;
-  }
-
-  dtodtype Runtime_LLVM::getDspFn(){
-  double(*res)(double);
-  auto& jit = llvmgenerator->getJitEngine();
-  if(auto symbolorerror = jit.lookup("dac")){
-  auto address = (double(*)(double))symbolorerror->getAddress();
-  res= address;
-  }else{
-    auto err = symbolorerror.takeError();
-    Logger::debug_log("dsp function not found",Logger::WARNING);
-    llvm::consumeError(std::move(err));
-    res = nullptr;
-  }
-return res;
 }
+
+dtodtype Runtime_LLVM::getDspFn() { return dspfn_address; }
 
 }  // namespace mimium
