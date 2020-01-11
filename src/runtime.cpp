@@ -89,7 +89,7 @@ void Runtime_LLVM::start() {
 
 void Runtime_LLVM::executeTask(const LLVMTaskType& task) {
   auto& [addresstofn, arg, ptrtotarget] = task;
-  auto& jit = llvmgenerator->getJitEngine();
+  // auto& jit = llvmgenerator->getJitEngine();
   // auto& type = llvmgenerator->getTaskInfoList()[tasktypeid];
 
   // std::visit(overloaded{

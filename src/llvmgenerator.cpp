@@ -336,7 +336,7 @@ void LLVMGenerator::visitInstructions(const Instructions& inst,bool isglobal) {
               auto taskfntype = llvm::FunctionType::get(
                   builder->getDoubleTy(), builder->getDoubleTy(), false);
               auto lvptrname = "ptr_" + i->lv_name;
-              auto lvptr = createAllocation(true, taskfntype->getReturnType(),
+              auto lvptr = createAllocation(isglobal, taskfntype->getReturnType(),
                                                  nullptr, i->lv_name);
               namemap.emplace(lvptrname, lvptr);
 
