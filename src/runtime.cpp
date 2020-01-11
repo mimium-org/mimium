@@ -86,7 +86,7 @@ void Runtime_LLVM::executeTask(const LLVMTaskType& task){
   auto fn = reinterpret_cast<double(*)(double)>(addresstofn);
 
   double res  = fn(arg);
-  *ptrtotarget = res;//overwrite value....?
+  *ptrtotarget = res;
   }
 
   dtodtype Runtime_LLVM::getDspFn(){
@@ -97,7 +97,8 @@ void Runtime_LLVM::executeTask(const LLVMTaskType& task){
   res= address;
   }else{
     auto err = symbolorerror.takeError();
-    llvm::logAllUnhandledErrors(std::move(err), llvm::errs(), "Dsp function not found");
+    Logger::debug_log("dsp function not found",Logger::WARNING);
+    llvm::consumeError(std::move(err));
     res = nullptr;
   }
 return res;

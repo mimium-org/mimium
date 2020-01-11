@@ -45,8 +45,8 @@ class MIRinstruction{  // base class for MIR instruction
  protected:
   virtual ~MIRinstruction()=default;
   bool isFreeVariable(std::shared_ptr<SymbolEnv> env,std::string str);
-  bool gatherFV_raw(std::deque<TypedVal>& fvlist,std::shared_ptr<SymbolEnv> env,TypeEnv& typeenv,std::string& str);
-  void checkLvalue(std::deque<TypedVal>& fvlist,std::shared_ptr<ClosureConverter> cc);
+  bool gatherFV_raw(std::deque<TypedVal>& fvlist,std::shared_ptr<SymbolEnv> env,TypeEnv& typeenv,std::string& str,std::string& parent_name);
+  void checkLvalue(std::deque<TypedVal>& fvlist,std::shared_ptr<ClosureConverter> cc,std::string& parent_name);
  public:
   std::string lv_name;
   types::Value type;

@@ -281,7 +281,7 @@ void LLVMGenerator::visitInstructions(const Instructions& inst,bool isglobal) {
               std::string newname = "fv_" + i->freevariables[id].name;
               llvm::Value* gep = builder->CreateStructGEP(lastarg, id, "fv");
               llvm::Value* ptrload =
-                  builder->CreateLoad(gep, "ptrto_" + newname);
+                  builder->CreateLoad(gep, "ptr_" + newname);
               llvm::Value* valload = builder->CreateLoad(ptrload, newname);
               namemap.try_emplace(newname, valload);
             }
