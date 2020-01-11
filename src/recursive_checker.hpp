@@ -8,10 +8,10 @@
 
 namespace mimium {
 
-class TypeInferVisitor : public ASTVisitor {
+class RecursiveChecker : public ASTVisitor {
  public:
-  TypeInferVisitor();
-  ~TypeInferVisitor() override = default;
+  RecursiveChecker();
+  ~RecursiveChecker() override = default;
   void init();
   void visit(OpAST& ast) override;
   void visit(ListAST& ast) override;
@@ -32,22 +32,11 @@ class TypeInferVisitor : public ASTVisitor {
   void visit(TimeAST& ast) override;
   void visit(StructAST& ast) override;
   void visit(StructAccessAST& ast) override;
-
-  bool typeCheck(types::Value& lt, types::Value& rt);
-  bool unify(types::Value& lt, types::Value& rt);
-  bool unify(std::string lname, std::string rname);
-  bool unify(std::string lname, types::Value& rt);
-  bool unifyArg(types::Value& target, types::Value& realarg);
-
-  mValue findVariable(std::string /*str*/) override { return 0.; }  //??
-  TypeEnv& getEnv() { return typeenv; };
-  types::Value getLastType() { return res_stack; }
-  std::string_view tmpfname;
+  mValue findVariable(std::string str) override{return 0.;};
 
  private:
-  types::Value res_stack;
-  static bool checkArg(const types::Value& fnarg, const types::Value& givenarg);
-  TypeEnv typeenv;
-  bool has_return;
+  bool isrecursive;
+  std::string_view target_fname;
+  std::string_view tmp_fname;
 };
 }  // namespace mimium

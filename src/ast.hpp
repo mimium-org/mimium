@@ -267,11 +267,12 @@ class LambdaAST : public AST {
   std::shared_ptr<ArgumentsAST> args;
   AST_Ptr body;  // statements
   mimium::types::Value type;
-
+  bool isrecursive=false;
   LambdaAST(std::shared_ptr<ArgumentsAST> Args, AST_Ptr Body,mimium::types::Value type = mimium::types::None())
       : args(std::move(Args)), body(std::move(Body)),type(std::move(type)) {
     id = LAMBDA;
   }
+
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
   auto getArgs() { return args; };
   AST_Ptr getBody() { return body; };

@@ -37,7 +37,12 @@ AST_Ptr Runtime_LLVM::loadSourceFile(std::string filename) {
   this->filename = filename;
   llvmgenerator->reset(filename);
   driver.parsefile(filename);
-  return driver.getMainAst();
+  auto mainast = driver.getMainAst();
+  checkRecursiveFuns(mainast);
+  return mainast;
+}
+void Runtime_LLVM::checkRecursiveFuns(AST_Ptr _ast){
+  _ast->accept(recursivechecker);
 }
 AST_Ptr Runtime_LLVM::alphaConvert(AST_Ptr _ast) {
   _ast->accept(alphavisitor);

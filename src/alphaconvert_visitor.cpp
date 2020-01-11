@@ -96,7 +96,8 @@ void AlphaConvertVisitor::visit(LambdaAST& ast) {
   ast.getBody()->accept(*this);
   auto newbody = stackPopPtr();
   auto newast =
-      std::make_unique<LambdaAST>(std::move(newargs), std::move(newbody));
+      std::make_unique<LambdaAST>(std::move(newargs), std::move(newbody),ast.type);
+  newast->isrecursive = ast.isrecursive;
   res_stack.push(std::move(newast));
   env = env->getParent();
 }

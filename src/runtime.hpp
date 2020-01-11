@@ -11,6 +11,7 @@
 #include "mididriver.hpp"
 #include "scheduler.hpp"
 #include "type_infer_visitor.hpp"
+#include "recursive_checker.hpp"
 
 namespace mimium {
   using dtodtype = double(*)(double);
@@ -94,6 +95,7 @@ class Runtime_LLVM : public Runtime<LLVMTaskType> {
 
   ~Runtime_LLVM() = default;
   void addScheduler(bool issoundfile) override;
+  void checkRecursiveFuns(AST_Ptr _ast);
   AST_Ptr alphaConvert(AST_Ptr _ast);
   TypeEnv& typeInfer(AST_Ptr _ast);
   TypeEnv& getTypeEnv() { return typevisitor.getEnv(); };
@@ -111,6 +113,7 @@ class Runtime_LLVM : public Runtime<LLVMTaskType> {
  private:
   AlphaConvertVisitor alphavisitor;
   TypeInferVisitor typevisitor;
+  RecursiveChecker recursivechecker;
   std::shared_ptr<TypeInferVisitor> ti_ptr;
   KNormalizeVisitor knormvisitor;
   std::shared_ptr<ClosureConverter> closureconverter;

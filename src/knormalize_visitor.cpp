@@ -109,6 +109,7 @@ void KNormalizeVisitor::visit(LambdaAST& ast) {
     arg->accept(*this);
     newargs.push_back(stackPopStr());
   }
+  typeinfer->tmpfname = name;
   ast.accept(*typeinfer);
   auto newinst = std::make_shared<FunInst>(name, std::move(newargs),
                                            typeinfer->getLastType());
