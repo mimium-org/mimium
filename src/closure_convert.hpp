@@ -7,6 +7,7 @@ namespace mimium {
 class NumberInst;
 class SymbolInst;
 class RefInst;
+class AssignInst;
 class TimeInst;
 class OpInst;
 class FunInst;
@@ -19,11 +20,11 @@ class ReturnInst;
 
 using Instructions =
     std::variant<std::shared_ptr<NumberInst>, std::shared_ptr<SymbolInst>,
-                 std::shared_ptr<RefInst>, std::shared_ptr<TimeInst>,
+                 std::shared_ptr<RefInst>, std::shared_ptr<AssignInst>,std::shared_ptr<TimeInst>,
                  std::shared_ptr<OpInst>, std::shared_ptr<FunInst>,
                  std::shared_ptr<FcallInst>, std::shared_ptr<MakeClosureInst>,
                  std::shared_ptr<ArrayInst>, std::shared_ptr<ArrayAccessInst>,
-                 std::shared_ptr<IfInst>, std::shared_ptr<ReturnInst>>;
+                 std::shared_ptr<IfInst>, std::shared_ptr<ReturnInst> >;
 class MIRblock;
 
 class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {

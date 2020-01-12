@@ -1,4 +1,5 @@
 #include "knormalize_visitor.hpp"
+
 #include "ast.hpp"
 #include "builtin_fn_types.hpp"
 
@@ -15,22 +16,19 @@ KNormalizeVisitor::KNormalizeVisitor(
 
 // }
 std::string KNormalizeVisitor::makeNewName() {
-  std::string name = "k" + std::to_string(var_counter);
-  var_counter++;
-  return name;
+  return "k" + std::to_string(++var_counter);
 }
 std::string KNormalizeVisitor::getVarName() {
   auto copiedname = tmpname;
-  if (!copiedname.empty()) {
-    tmpname = "";
-  } else {
+  if (copiedname.empty()) {
     copiedname = makeNewName();
   }
+  tmpname = "";  // reset
   return copiedname;
 }
 
 void KNormalizeVisitor::init() {
-  var_counter = 1;
+  var_counter = 0;
   rootblock.reset();
   rootblock = std::make_shared<MIRblock>("main");
   currentblock = rootblock;
@@ -78,13 +76,37 @@ void KNormalizeVisitor::visit(OpAST& ast) {
 }
 
 void KNormalizeVisitor::visit(AssignAST& ast) {
-  tmpname = ast.getName()->getVal();
+  auto name = ast.getName()->getVal();
   auto body = ast.getBody();
-  body->accept(*this);  // result is stored into res_stack
-  if(body->getid()==RVAR){//case of simply copying value
-    auto rvar = std::static_pointer_cast<RvarAST>(body);
-    Instructions newinst= std::make_shared<RefInst>(getVarName(),stackPopStr());
+  auto it = std::find(lvar_list.cbegin(), lvar_list.cend(), name);
+
+  bool is_overwrite = it != lvar_list.cend();
+  if (is_overwrite) {
+    body->accept(*this);  // result is stored into res_stack
+    auto newname = stackPopStr();
+    auto type = typeinfer->getEnv().find(name);
+    typeinfer->getEnv().emplace(newname,type );
+    tmpname = name;
+    auto assign = std::make_shared<AssignInst>(getVarName(), newname);
+    assign->type = type;
+    Instructions newinst = assign;
     currentblock->addInst(newinst);
+
+  } else {
+    tmpname = name;
+    body->accept(*this);
+    if (body->getid() == RVAR) {  // case of simply copying value
+      auto rvar = std::static_pointer_cast<RvarAST>(body);
+      rvar->accept(*this);
+      auto newname = getVarName();
+      auto targetname = stackPopStr();
+      typeinfer->getEnv().emplace(newname,
+                                  typeinfer->getEnv().find(targetname));
+
+      Instructions newinst = std::make_shared<RefInst>(newname, targetname);
+      currentblock->addInst(newinst);
+    }
+    lvar_list.push_back(name);
   }
 }
 
@@ -120,7 +142,7 @@ void KNormalizeVisitor::visit(LambdaAST& ast) {
   currentblock = newinst->body;  // move context
   ast.getBody()->accept(*this);
   currentblock = tmpcontext;  // switch back context
-  currentblock->indent_level--;
+  --currentblock->indent_level;
 }
 bool KNormalizeVisitor::isArgTime(FcallArgsAST& args) {
   auto& elems = args.getElements();
@@ -134,7 +156,8 @@ bool KNormalizeVisitor::isArgTime(FcallArgsAST& args) {
         break;
       case RVAR:
         res = std::holds_alternative<recursive_wrapper<types::Time>>(
-            typeinfer->getEnv().find(std::static_pointer_cast<RvarAST>(elems[0])->getVal()));
+            typeinfer->getEnv().find(
+                std::static_pointer_cast<RvarAST>(elems[0])->getVal()));
         break;
       default:
         res = false;

@@ -85,6 +85,15 @@ void RefInst::closureConvert(std::deque<TypedVal>& fvlist,
   checkLvalue(fvlist, cc,mir->label);
   gatherFV_raw(fvlist, cc->env, cc->typeenv, val,mir->label);
 }
+std::string AssignInst::toString() { return lv_name + " =(overwrite) " + val; }
+void AssignInst::closureConvert(std::deque<TypedVal>& fvlist,
+                             std::shared_ptr<ClosureConverter> cc,
+                             std::shared_ptr<MIRblock> mir,
+                             std::list<Instructions>::iterator it) {
+  checkLvalue(fvlist, cc,mir->label);
+  gatherFV_raw(fvlist, cc->env, cc->typeenv, val,mir->label);
+}
+
 
 std::string TimeInst::toString() { return lv_name + " = " + val + +"@" + time; }
 void TimeInst::closureConvert(std::deque<TypedVal>& fvlist,
