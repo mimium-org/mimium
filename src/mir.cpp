@@ -36,8 +36,12 @@ bool MIRinstruction::gatherFV_raw(std::deque<TypedVal>& fvlist,
 
   bool res = isFreeVariable(env, str);
   if (res) {
+    auto it = std::find_if(fvlist.cbegin(),fvlist.cend(),[&str](const TypedVal& v){return v.name == str;});
+    if(it == fvlist.cend()){ //duplication check
     fvlist.push_back({typeenv.find(str),str});
+    }
     str = "fv_" + str + "_" + parent_name ;// destructive
+
   }
   return res;
 }
