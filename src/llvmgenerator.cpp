@@ -198,6 +198,18 @@ llvm::Value* LLVMGenerator::createAllocation(bool isglobal,llvm::Type* type,llvm
   }
   return res;
 };
+//Create StoreInst if storing to already allocated value
+bool LLVMGenerator::createStoreOw(std::string varname,llvm::Value* val_to_store){
+  bool res=false;
+  auto ptrname = "ptr_"+varname;
+  auto it = namemap.find(varname);
+  auto it2 = namemap.find(ptrname);
+  if(it!=namemap.cend()&&it2!=namemap.cend()){
+    builder->CreateStore(val_to_store,namemap[ptrname]);
+    res=true;
+  }
+  return res;
+}
 
 
 void LLVMGenerator::visitInstructions(const Instructions& inst,bool isglobal) {
@@ -231,26 +243,30 @@ void LLVMGenerator::visitInstructions(const Instructions& inst,bool isglobal) {
             namemap.emplace(resname, ptr);
           },
           [&, this](const std::shared_ptr<OpInst>& i) {
-            llvm::Value* ptr;
+            llvm::Value* retvalue;
             auto* lhs = namemap[i->lhs];
             auto* rhs = namemap[i->rhs];
             switch (i->getOPid()) {
               case ADD:
-                ptr = builder->CreateFAdd(lhs, rhs, i->lv_name);
+                retvalue = builder->CreateFAdd(lhs, rhs, i->lv_name);
                 break;
               case SUB:
-                ptr = builder->CreateFSub(lhs, rhs, i->lv_name);
+                retvalue = builder->CreateFSub(lhs, rhs, i->lv_name);
                 break;
               case MUL:
-                ptr = builder->CreateFMul(lhs, rhs, i->lv_name);
+                retvalue = builder->CreateFMul(lhs, rhs, i->lv_name);
                 break;
               case DIV:
-                ptr = builder->CreateFDiv(lhs, rhs, i->lv_name);
+                retvalue = builder->CreateFDiv(lhs, rhs, i->lv_name);
                 break;
               default:
+                retvalue= builder->CreateUnreachable();
                 break;
             }
-            namemap.emplace(i->lv_name, ptr);
+            auto overwrite = createStoreOw(i->lv_name, retvalue);
+            if(!overwrite){
+              namemap.emplace(i->lv_name, retvalue);
+            }
           },
           [&, this](const std::shared_ptr<FunInst>& i) {
             bool hasfv = !i->freevariables.empty();
@@ -280,9 +296,11 @@ void LLVMGenerator::visitInstructions(const Instructions& inst,bool isglobal) {
             for (int id = 0; id < i->freevariables.size(); id++) {
               std::string newname = "fv_" + i->freevariables[id].name;
               llvm::Value* gep = builder->CreateStructGEP(lastarg, id, "fv");
+              auto ptrname = "ptr_" + newname;
               llvm::Value* ptrload =
-                  builder->CreateLoad(gep, "ptr_" + newname);
+                  builder->CreateLoad(gep, ptrname);
               llvm::Value* valload = builder->CreateLoad(ptrload, newname);
+              namemap.try_emplace(ptrname,ptrload);
               namemap.try_emplace(newname, valload);
             }
             for (auto& cinsts : i->body->instructions) {
@@ -357,7 +375,10 @@ void LLVMGenerator::visitInstructions(const Instructions& inst,bool isglobal) {
                 }
                 res = builder->CreateCall(fun, args, i->lv_name);
               }
+            auto overwrite = createStoreOw(i->lv_name, res);
+            if(!overwrite){
               namemap.emplace(i->lv_name, res);
+            }
             }
           },
           [&, this](const std::shared_ptr<ReturnInst>& i) {

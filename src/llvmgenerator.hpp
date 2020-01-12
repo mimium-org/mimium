@@ -41,8 +41,10 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   void createMainFun();
   void createTaskRegister();
   llvm::Value* createAllocation(bool isglobal,llvm::Type* type,llvm::Value *ArraySize,const llvm::Twine& name);
+  bool createStoreOw(std::string varname,llvm::Value* val_to_store);
 
   void visitInstructions(const Instructions& inst, bool isglobal);
+
   void dropAllReferences();
   std::unordered_map<std::string, llvm::Type*> typemap;
   llvm::FunctionCallee addtask;
