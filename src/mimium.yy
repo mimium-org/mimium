@@ -188,7 +188,7 @@ statement : assign {$$=std::move($1);}
          ;
 
 fdef : FUNC lvar arguments_top block {$$ = driver.add_assign(std::move($2),driver.add_lambda(std::move($3),std::move($4)));}
-      |FUNC lvar arguments_top ARROW types block {$$ = driver.add_assign(std::move($2),driver.add_lambda(std::move($3),std::move($6),std::move($5)));};
+      |FUNC lvar arguments_top ARROW types block {$$ = driver.add_assign(std::move($2),driver.add_lambda_only_with_returntype(std::move($3),std::move($6),std::move($5)));};
 
 ifstatement: IF '(' expr ')' block {$$ = driver.add_if(std::move($3),std::move($5),nullptr);}
             |IF '(' expr ')' block ELSE block {$$ = driver.add_if(std::move($3),std::move($5),std::move($7));}
