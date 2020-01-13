@@ -241,13 +241,11 @@ void LLVMGenerator::visitInstructions(const Instructions& inst, bool isglobal) {
               type = getType(i->type);
               typemap.try_emplace(ptrname, type);
             }
-            type->dump();
             auto* ptr = namemap[ptrname];
             if (ptr == nullptr) {
               ptr = createAllocation(isglobal, type, nullptr, i->lv_name);
               namemap[ptrname]=ptr;
             }
-            ptr->dump();
             auto* timepos = builder->CreateStructGEP(type, ptr, 0);
             auto* valpos = builder->CreateStructGEP(type, ptr, 1);
 
