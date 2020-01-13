@@ -115,16 +115,29 @@ void OpInst::closureConvert(std::deque<TypedVal>& fvlist,
 }
 std::string FunInst::toString() {
   std::string s;
-  s += lv_name + " = fun " + join(args, " , ");
+  s += lv_name + " = fun";
+  if(isrecursive){s+="[rec]";}
+  s+= " " + join(args, " , ");
   if (!freevariables.empty()) {
     s += " fv{ " + join(freevariables, " , ") + " }";
   }
   s += "\n";
-  body->indent_level++;
+  body->indent_level+=1;
   s += body->toString();
-  body->indent_level--;
+  body->indent_level-=1;
 
   return s;
+}
+void FunInst::closureConvertRaw(std::shared_ptr<ClosureConverter> cc) {
+  for (auto cit = body->instructions.begin(), end = body->instructions.end();
+       cit != end; cit++) {
+    auto& childinst = *cit;
+    std::visit(
+        [&](auto c) {
+          c->closureConvert(this->freevariables, cc, this->body, cit);
+        },
+        childinst);  // recursively visit;
+  }
 }
 void FunInst::closureConvert(std::deque<TypedVal>& fvlist,
                              std::shared_ptr<ClosureConverter> cc,
@@ -135,17 +148,12 @@ void FunInst::closureConvert(std::deque<TypedVal>& fvlist,
   for (auto& a : this->args) {
     cc->env->setVariableRaw(a, "arg");
   }
-  for (auto cit = body->instructions.begin(), end = body->instructions.end();
-       cit != end; cit++) {
-    auto& childinst = *cit;
-    std::visit(
-        [&](auto c) {
-          c->closureConvert(this->freevariables, cc, this->body, cit);
-        },
-        childinst);  // recursively visit;
-  }
+  closureConvertRaw(cc);
   if (this->freevariables.empty()) {
     cc->known_functions[lv_name] = shared_from_this();
+    if(this->isrecursive){
+      closureConvertRaw(cc);//to clear circular dependency of fcall and fdef
+    }
   } else {
     auto fvtype = getFvType(this->freevariables);
     std::string newname =

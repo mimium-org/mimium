@@ -187,9 +187,10 @@ class FunInst : public MIRinstruction,
   std::deque<std::string> args;
   std::shared_ptr<MIRblock> body;
   std::deque<TypedVal> freevariables;  // introduced in closure conversion;
+  bool isrecursive;
   FunInst(std::string name, std::deque<std::string> newargs,
-          types::Value _type = types::Void())
-      : MIRinstruction(name, _type), args(std::move(newargs)) {
+          types::Value _type = types::Void(),bool isrecursive =false)
+      : MIRinstruction(name, _type), args(std::move(newargs)),isrecursive(isrecursive) {
     body = std::make_shared<MIRblock>(name);
   };
   std::string toString() override;
@@ -197,6 +198,7 @@ class FunInst : public MIRinstruction,
                       std::shared_ptr<ClosureConverter> cc,
                       std::shared_ptr<MIRblock> mir,
                       std::list<Instructions>::iterator it) override;
+  void closureConvertRaw(std::shared_ptr<ClosureConverter> cc);
   void moveFunToTop(std::shared_ptr<ClosureConverter> cc,
                     std::shared_ptr<MIRblock> mir,
                     std::list<Instructions>::iterator it) override;

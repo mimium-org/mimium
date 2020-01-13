@@ -147,7 +147,7 @@ void KNormalizeVisitor::visit(LambdaAST& ast) {
   typeinfer->tmpfname = name;
   ast.accept(*typeinfer);
   auto newinst = std::make_shared<FunInst>(name, std::move(newargs),
-                                           typeinfer->getLastType());
+                                           typeinfer->getLastType(),ast.isrecursive);
   Instructions res = newinst;
   currentblock->indent_level++;
   currentblock->addInst(res);

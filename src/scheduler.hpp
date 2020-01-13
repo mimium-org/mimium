@@ -38,7 +38,7 @@ class Scheduler {  // scheduler interface
     if (tasks.empty() && !runtime->hasDsp()) {
       res=true;
     } else {
-      time++;
+      time+=1;
       if (time > tasks.top().first) {
         executeTask(tasks.top().second);
       }
@@ -48,8 +48,8 @@ class Scheduler {  // scheduler interface
   // time,address to fun, arg(double), addresstoclosure,
   void addTask(double time, void* addresstofn, double arg,
                void* addresstocls) {
-    auto task = TaskType{addresstofn, arg, addresstocls};
-    tasks.emplace(static_cast<int64_t>(time), task);
+    TaskType task ={addresstofn, arg, addresstocls};
+    tasks.emplace(static_cast<int64_t>(time), std::move(task));
   };
   // static auto getAddTaskAddress(){
   //     void(Scheduler<TaskType>::*ptr)(double,double(*)(double),double,double*)
