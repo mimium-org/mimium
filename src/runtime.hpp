@@ -14,12 +14,12 @@
 #include "recursive_checker.hpp"
 
 namespace mimium {
-  using dtodtype = double(*)(double);
+  using dtodtype= double(*)(double);
 struct LLVMTaskType {
   void* addresstofn;
   //int64_t tasktypeid;
   double arg;
-  double* ptrtotarget;
+  void* addresstocls;
 };
 
 template <typename TaskType>

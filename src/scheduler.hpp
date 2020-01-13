@@ -45,10 +45,10 @@ class Scheduler {  // scheduler interface
     }
     return res;
   };
-  // time,address to fun, arg(double), ptrtotarget,
+  // time,address to fun, arg(double), addresstoclosure,
   void addTask(double time, void* addresstofn, double arg,
-               double* ptrtotarget) {
-    auto task = TaskType{addresstofn, arg, ptrtotarget};
+               void* addresstocls) {
+    auto task = TaskType{addresstofn, arg, addresstocls};
     tasks.emplace(static_cast<int64_t>(time), task);
   };
   // static auto getAddTaskAddress(){

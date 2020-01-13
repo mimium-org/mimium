@@ -27,9 +27,9 @@ Runtime_LLVM::Runtime_LLVM(std::string filename_i, bool isjit)
 
 void Runtime_LLVM::addScheduler(bool issoundfile) {
   if (issoundfile) {
-    sch = std::make_shared<SchedulerSndFile>(shared_from_this(),waitc);
+    sch = std::make_shared<SchedulerSndFile>(shared_from_this(), waitc);
   } else {
-    sch = std::make_shared<SchedulerRT>(shared_from_this(),waitc);
+    sch = std::make_shared<SchedulerRT>(shared_from_this(), waitc);
   }
 }
 
@@ -39,9 +39,9 @@ AST_Ptr Runtime_LLVM::loadSourceFile(std::string filename) {
   driver.parsefile(filename);
   auto mainast = driver.getMainAst();
   checkRecursiveFuns(mainast);
-  return mainast;
+ return mainast;
 }
-void Runtime_LLVM::checkRecursiveFuns(AST_Ptr _ast){
+void Runtime_LLVM::checkRecursiveFuns(AST_Ptr _ast) {
   _ast->accept(recursivechecker);
 }
 AST_Ptr Runtime_LLVM::alphaConvert(AST_Ptr _ast) {
@@ -93,7 +93,7 @@ void Runtime_LLVM::start() {
 }
 
 void Runtime_LLVM::executeTask(const LLVMTaskType& task) {
-  auto& [addresstofn, arg, ptrtotarget] = task;
+  auto& [addresstofn, arg, addresstocls] = task;
   // auto& jit = llvmgenerator->getJitEngine();
   // auto& type = llvmgenerator->getTaskInfoList()[tasktypeid];
 
@@ -106,10 +106,13 @@ void Runtime_LLVM::executeTask(const LLVMTaskType& task) {
   //   },
   //   [](auto& other){ throw std::runtime_error("invalid task type");}
   // },type);
-  auto fn = reinterpret_cast<double (*)(double)>(addresstofn);
-
-  double res = fn(arg);
-  *ptrtotarget = res;
+  if (addresstocls == nullptr) {
+    auto fn = reinterpret_cast<void (*)(double)>(addresstofn);
+    fn(arg);
+  } else {
+    auto fn = reinterpret_cast<void (*)(double, void*)>(addresstofn);
+    fn(arg, addresstocls);
+  }
 }
 
 dtodtype Runtime_LLVM::getDspFn() { return dspfn_address; }

@@ -152,7 +152,7 @@ void FunInst::closureConvert(std::deque<TypedVal>& fvlist,
         lv_name + "_cls";  //+ std::to_string(cc->capturecount++);
     auto makecls = std::make_shared<MakeClosureInst>(
         newname, lv_name, this->freevariables, fvtype);
-    mir->instructions.insert(++it, std::move(makecls));
+    mir->instructions.insert(it, std::move(makecls));
     types::Function newtype =
         std::get<recursive_wrapper<types::Function>>(this->type);
     newtype.arg_types.emplace_back(fvtype);

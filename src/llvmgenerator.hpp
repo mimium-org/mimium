@@ -35,21 +35,26 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   std::shared_ptr<LLVMBuiltin> builtinfn;
   [[maybe_unused]]bool isjit;
   auto getType(const types::Value& type) -> llvm::Type*;
-  auto getRawStructType(const types::Value& type) -> llvm::Type*;
+  auto getRawStructType(const types::Struct& type) -> llvm::Type*;
   void preprocess();
   void createMiscDeclarations();
   void createMainFun();
-  void createTaskRegister();
+  void createTaskRegister(bool isclosure);
   llvm::Value* createAllocation(bool isglobal,llvm::Type* type,llvm::Value *ArraySize,const llvm::Twine& name);
   bool createStoreOw(std::string varname,llvm::Value* val_to_store);
+  void createAddTaskFn(std::shared_ptr<FcallInst> i, bool isclosure,bool isglobal);
 
   void visitInstructions(const Instructions& inst, bool isglobal);
 
   void dropAllReferences();
   std::unordered_map<std::string, llvm::Type*> typemap;
   llvm::FunctionCallee addtask;
+  llvm::FunctionCallee addtask_cls;
+
   unsigned int taskfn_typeid;
   std::vector<types::Value> tasktype_list;
+  int struct_index=0;
+  std::unordered_map<std::string,types::Struct> structtype_map;
   void initJit();
   llvm::Error doJit(size_t opt_level = 1);
 
