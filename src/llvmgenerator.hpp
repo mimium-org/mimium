@@ -53,7 +53,7 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   void initJit();
   llvm::Error doJit(size_t opt_level = 1);
 
-  llvm::Type* getOrCreateTimeStruct(types::Value t);
+  llvm::Type* getOrCreateTimeStruct(types::Time& t);
  public:
    std::unique_ptr<llvm::orc::MimiumJIT> jitengine;
   llvm::LLVMContext& ctx;

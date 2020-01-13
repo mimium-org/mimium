@@ -81,8 +81,7 @@ struct Time {
   Float time;
   Time() = default;
   std::string toString() {
-    return std::visit([](auto c) { return c.toString(); }, val);
-    +"@" + time.toString();
+    return "Time_of_"+std::visit([](auto& c) { return c.toString(); }, val);
   }
 };
 inline bool operator==(const Time& t1, const Time& t2) { return t1.val==t2.val; }

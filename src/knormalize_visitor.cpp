@@ -74,7 +74,28 @@ void KNormalizeVisitor::visit(OpAST& ast) {
   currentblock->addInst(newinst);
   res_stack_str.push(name);
 }
-
+void KNormalizeVisitor::insertOverWrite(AST_Ptr body, const std::string& name) {
+  body->accept(*this);  // result is stored into res_stack
+  auto newname = stackPopStr();
+  auto type = typeinfer->getEnv().find(name);
+  typeinfer->getEnv().emplace(newname, type);
+  tmpname = name;
+  auto assign = std::make_shared<AssignInst>(getVarName(), newname);
+  assign->type = type;
+  Instructions newinst = assign;
+  currentblock->addInst(newinst);
+}
+void KNormalizeVisitor::insertAlloca(AST_Ptr body, const std::string& name) {
+  Instructions alloca = std::make_shared<AllocaInst>(name,typeinfer->getEnv().find(name));
+  currentblock->addInst(alloca);
+}
+void KNormalizeVisitor::insertRef(AST_Ptr body, const std::string& name) {
+  auto rvar = std::static_pointer_cast<RvarAST>(body);
+  auto targetname = rvar->getVal();
+  typeinfer->getEnv().emplace(name, typeinfer->getEnv().find(targetname));
+  Instructions newinst = std::make_shared<RefInst>(name, targetname);
+  currentblock->addInst(newinst);
+}
 void KNormalizeVisitor::visit(AssignAST& ast) {
   auto name = ast.getName()->getVal();
   auto body = ast.getBody();
@@ -82,29 +103,21 @@ void KNormalizeVisitor::visit(AssignAST& ast) {
 
   bool is_overwrite = it != lvar_list.cend();
   if (is_overwrite) {
-    body->accept(*this);  // result is stored into res_stack
-    auto newname = stackPopStr();
-    auto type = typeinfer->getEnv().find(name);
-    typeinfer->getEnv().emplace(newname,type );
-    tmpname = name;
-    auto assign = std::make_shared<AssignInst>(getVarName(), newname);
-    assign->type = type;
-    Instructions newinst = assign;
-    currentblock->addInst(newinst);
-
+    insertOverWrite(body, name);
   } else {
-    tmpname = name;
-    body->accept(*this);
-    if (body->getid() == RVAR) {  // case of simply copying value
-      auto rvar = std::static_pointer_cast<RvarAST>(body);
-      rvar->accept(*this);
-      auto newname = getVarName();
-      auto targetname = stackPopStr();
-      typeinfer->getEnv().emplace(newname,
-                                  typeinfer->getEnv().find(targetname));
-
-      Instructions newinst = std::make_shared<RefInst>(newname, targetname);
-      currentblock->addInst(newinst);
+    switch (body->getid()) {
+     case RVAR:
+      insertRef(body, name);
+      break;
+    case LAMBDA: //do not insert allocate
+      tmpname = name;
+      body->accept(*this);
+      break;
+    default:
+      insertAlloca(body, name);
+      tmpname = name;
+      body->accept(*this);
+      break;
     }
     lvar_list.push_back(name);
   }

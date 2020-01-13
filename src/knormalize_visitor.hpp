@@ -46,6 +46,10 @@ class KNormalizeVisitor : public ASTVisitor {
   std::string tmpname;
   std::shared_ptr<ListAST> current_context;
   AST_Ptr insertAssign(AST_Ptr ast);
+  void insertOverWrite(AST_Ptr body,const std::string& name);
+  void insertAlloca(AST_Ptr body,const std::string& name);
+  void insertRef(AST_Ptr body,const std::string& name);
+
   std::stack<std::string> res_stack_str;
   std::vector<std::string> lvar_list;
   std::string stackPopStr() {

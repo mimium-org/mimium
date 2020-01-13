@@ -69,12 +69,12 @@ void NumberInst::closureConvert(std::deque<TypedVal>& fvlist,
   checkLvalue(fvlist, cc,mir->label);
 }
 
-std::string SymbolInst::toString() { return lv_name + " = " + val; }
-void SymbolInst::closureConvert(std::deque<TypedVal>& fvlist,
+std::string AllocaInst::toString() { return "alloca: "+lv_name+" (" +  std::visit([](auto t){return t.toString();},type) + ")"; }
+void AllocaInst::closureConvert(std::deque<TypedVal>& fvlist,
                                 std::shared_ptr<ClosureConverter> cc,
                                 std::shared_ptr<MIRblock> mir,
                                 std::list<Instructions>::iterator it) {
-  // do nothing
+  checkLvalue(fvlist, cc,mir->label);
 }
 
 std::string RefInst::toString() { return lv_name + " = ref " + val; }
