@@ -1,0 +1,16 @@
+globalvar = 2
+print(globalvar)
+fn newprint(hoge::Float)->Void{
+    print(hoge)
+}
+fn closurefun(time::Float)->Void{
+    newprint(globalvar)
+    newprint(globalvar)
+    newprint(globalvar)
+    newtime = time+44100
+    closurefun(newtime@newtime)
+}
+closurefun(0@0)
+
+
+

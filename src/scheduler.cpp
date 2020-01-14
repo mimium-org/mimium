@@ -20,7 +20,8 @@ namespace mimium {
 // }
 
 void SchedulerRT::start() {
-  userdata.dspfnptr = runtime->getDspFn();
+  userdata.dspfn_ptr = runtime->getDspFn();
+  userdata.dspfncls_ptr = runtime->getDspFnCls();
   audio.setCallback(SchedulerRT::audioCallback, &userdata);
   audio.start();
 }
@@ -39,7 +40,8 @@ int SchedulerRT::audioCallback(void* outputBuffer, void* inputBuffer,
                                RtAudioStreamStatus status, void* userData) {
   auto data = static_cast<CallbackData*>(userData);
   auto sch = data->scheduler;
-  auto dspfn = data->dspfnptr;
+  auto dspfn = data->dspfn_ptr;
+  auto dspfn_cls = data->dspfncls_ptr;
   // auto interpreter = data->interpreter;
   if (sch->isactive) {
     double* outputBuffer_d = static_cast<double*>(outputBuffer);
@@ -53,8 +55,9 @@ int SchedulerRT::audioCallback(void* outputBuffer, void* inputBuffer,
         break;
       }
       if (dspfn != nullptr) {
-        outputBuffer_d[i * 2] = dspfn((double)data->timeelapsed);
-        outputBuffer_d[i * 2 + 1] = dspfn((double)data->timeelapsed);
+          double res = dspfn((double)data->timeelapsed,dspfn_cls);
+        outputBuffer_d[i * 2] = res;
+        outputBuffer_d[i * 2 + 1] =res;
       }
       ++data->timeelapsed;
     }

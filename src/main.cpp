@@ -150,16 +150,18 @@ auto main(int argc, char** argv) -> int {
           std::cout << llvmir << std::endl;
           break;
         }
-        returncode = runtime->execute();
+        runtime->execute();
         runtime->start();//start() blocks thread until scheduler stops
+        returncode = 0;
         break;
       } while (false);
-      std::cerr << "return code: " << returncode << std::endl;
 
     } catch (std::exception& e) {
       mimium::Logger::debug_log(e.what(), mimium::Logger::ERROR);
       runtime->stop();
+      returncode=1;
     }
-  }
+  } 
+  std::cerr << "return code: " << returncode << std::endl;
   return returncode;
 }

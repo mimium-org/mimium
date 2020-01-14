@@ -23,6 +23,9 @@
 #include "llvm/Transforms/InstCombine/InstCombine.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Scalar/GVN.h"
+#include "llvm/Transforms/Vectorize.h"
+#include "llvm/Transforms/Utils.h"
+
 
 namespace llvm {
 namespace orc {
@@ -84,10 +87,13 @@ class MimiumJIT {
       auto FPM = std::make_unique<legacy::FunctionPassManager>(M.getModule());
 
       // Add some optimizations.
-      // FPM->add(createInstructionCombiningPass());
-      // FPM->add(createReassociatePass());
-      // FPM->add(createGVNPass());
-      // FPM->add(createCFGSimplificationPass());
+      // FPM->add(createPromoteMemoryToRegisterPass());//mem2reg
+      FPM->add(createDeadStoreEliminationPass());
+      FPM->add(createInstructionCombiningPass());
+      FPM->add(createReassociatePass());
+      FPM->add(createGVNPass());
+      FPM->add(createCFGSimplificationPass());
+      FPM->add(createLoopVectorizePass());
       FPM->doInitialization();
 
       // Run the optimizations over all functions in the module being added to

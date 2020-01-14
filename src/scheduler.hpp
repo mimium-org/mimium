@@ -35,11 +35,12 @@ class Scheduler {  // scheduler interface
   //tick the time and return if scheduler should be stopped
   bool incrementTime() {
     bool res = false;
-    if (tasks.empty() && !runtime->hasDsp()) {
+    bool hastask = !tasks.empty();
+    if (!hastask && !runtime->hasDsp()) {
       res=true;
     } else {
       time+=1;
-      if (time > tasks.top().first) {
+      if (hastask && time > tasks.top().first) {
         executeTask(tasks.top().second);
       }
     }
@@ -72,13 +73,15 @@ class Scheduler {  // scheduler interface
   queue_type tasks;
   virtual void executeTask(const TaskType& task) = 0;
 };
+using DspFnType = double(*)(double,void*);
 
 class SchedulerRT : public Scheduler<LLVMTaskType> {
  public:
   struct CallbackData {
     Scheduler<LLVMTaskType>* scheduler;
     // std::shared_ptr<Runtime<LLVMTaskType>> runtime;
-    double (*dspfnptr)(double){};
+    DspFnType dspfn_ptr;
+    void* dspfncls_ptr;
     int64_t timeelapsed;
     CallbackData() : scheduler(), timeelapsed(0){};
   };

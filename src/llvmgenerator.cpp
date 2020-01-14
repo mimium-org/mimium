@@ -123,10 +123,13 @@ void LLVMGenerator::createMiscDeclarations() {
   auto res = module->getOrInsertFunction("malloc", malloctype).getCallee();
   namemap.emplace("malloc", res);
 }
+
+//Create mimium_main() function it returns address of closure object for dsp() function if it exists.
+
 void LLVMGenerator::createMainFun() {
-  auto* fntype = llvm::FunctionType::get(llvm::Type::getInt64Ty(ctx), false);
+  auto* fntype = llvm::FunctionType::get(builder->getInt8PtrTy(), false);
   auto* mainfun = llvm::Function::Create(
-      fntype, llvm::Function::ExternalLinkage, "__mimium_main", module.get());
+      fntype, llvm::Function::ExternalLinkage, "mimium_main", module.get());
   mainfun->setCallingConv(llvm::CallingConv::C);
   using Akind = llvm::Attribute;
   std::vector<llvm::Attribute::AttrKind> attrs = {
@@ -195,8 +198,13 @@ void LLVMGenerator::generateCode(std::shared_ptr<MIRblock> mir) {
     visitInstructions(inst, true);
   }
   if (mainentry->getTerminator() ==
-      nullptr) {  // insert empty return if no return
-    builder->CreateRet(llvm::ConstantInt::get(builder->getInt64Ty(), 0));
+      nullptr) {  // insert return
+    auto dspaddress = namemap.find("dsp_cls");
+    if(dspaddress != namemap.end()){
+    builder->CreateRet(dspaddress->second);
+    }else{
+      builder->CreateRet(llvm::ConstantPointerNull::get(builder->getInt8PtrTy()));
+    }
   }
 }
 
@@ -355,7 +363,8 @@ void LLVMGenerator::visitInstructions(const Instructions& inst, bool isglobal) {
 
             std::for_each(i->args.begin(), i->args.end(),
                           [&](std::string s) { (f_it++)->setName(s); });
-            if (hasfv) {
+            //if function is closure,append closure argument, dsp function is forced to be closure function
+            if (hasfv || i->lv_name == "dsp") {
               auto it = f->args().end();
               auto lastelem = (--it);
               auto name = "clsarg_" + i->lv_name;
@@ -446,15 +455,15 @@ llvm::Error LLVMGenerator::doJit(const size_t opt_level) {
   return jitengine->addModule(
       std::move(module));  // do JIT compilation for module
 }
-int LLVMGenerator::execute() {
+void* LLVMGenerator::execute() {
   llvm::Error err = doJit();
   Logger::debug_log(err, Logger::ERROR);
-  auto mainfun = jitengine->lookup("__mimium_main");
+  auto mainfun = jitengine->lookup("mimium_main");
   Logger::debug_log(mainfun, Logger::ERROR);
   auto fnptr =
-      llvm::jitTargetAddressToPointer<int64_t (*)()>(mainfun->getAddress());
-
-  int64_t res = fnptr();
+      llvm::jitTargetAddressToPointer<void* (*)()>(mainfun->getAddress());
+  //
+  void* res = fnptr();
   return res;
 }
 void LLVMGenerator::outputToStream(llvm::raw_ostream& stream) {

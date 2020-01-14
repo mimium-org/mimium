@@ -14,7 +14,7 @@
 #include "recursive_checker.hpp"
 
 namespace mimium {
-  using dtodtype= double(*)(double);
+  using DspFnType= double(*)(double,void*);
 struct LLVMTaskType {
   void* addresstofn;
   //int64_t tasktypeid;
@@ -73,9 +73,10 @@ class Runtime : public std::enable_shared_from_this<Runtime<TaskType>> {
     current_working_directory = path;
     driver.setWorkingDirectory(path);
   }
-  virtual dtodtype getDspFn()=0;
+  virtual DspFnType getDspFn()=0;
+  virtual void* getDspFnCls()=0;
   bool hasDsp(){return hasdsp;}
-
+  bool hasDspCls(){return hasdspcls;}
   std::string current_working_directory = "";
 
  protected:
@@ -85,6 +86,7 @@ class Runtime : public std::enable_shared_from_this<Runtime<TaskType>> {
   std::string filename;
   bool running_status = false;
   bool hasdsp=false;
+  bool hasdspcls =false;
   WaitController waitc;
 };
 
@@ -103,9 +105,10 @@ class Runtime_LLVM : public Runtime<LLVMTaskType> {
   std::shared_ptr<MIRblock> closureConvert(std::shared_ptr<MIRblock> mir);
   auto llvmGenarate(std::shared_ptr<MIRblock> mir) -> std::string;
   void start() override;
-  int execute();
+  void execute();
   void executeTask(const LLVMTaskType& task) override;
-  dtodtype getDspFn() override;
+  DspFnType getDspFn() override;
+  void* getDspFnCls()override;
 
   AST_Ptr loadSourceFile(std::string filename) override;
   // virtual void loadAst(AST_Ptr _ast) override;
@@ -118,6 +121,7 @@ class Runtime_LLVM : public Runtime<LLVMTaskType> {
   KNormalizeVisitor knormvisitor;
   std::shared_ptr<ClosureConverter> closureconverter;
   std::shared_ptr<LLVMGenerator> llvmgenerator;
-  dtodtype dspfn_address;
+  DspFnType dspfn_address = nullptr;
+  void* dspfn_cls_address=nullptr;
 };
 }  // namespace mimium

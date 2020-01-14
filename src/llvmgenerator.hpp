@@ -78,7 +78,7 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   void setBB(llvm::BasicBlock* newblock);
 
   void generateCode(std::shared_ptr<MIRblock> mir);
-  int execute();
+  void* execute();
   void outputToStream(llvm::raw_ostream& ostream);
   llvm::orc::MimiumJIT& getJitEngine(){return *jitengine;}
   auto& getTaskInfoList(){return tasktype_list;}

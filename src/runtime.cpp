@@ -67,12 +67,16 @@ auto Runtime_LLVM::llvmGenarate(std::shared_ptr<MIRblock> mir) -> std::string {
   llvmgenerator->outputToStream(ss);
   return s;
 }
-int Runtime_LLVM::execute() {
+void Runtime_LLVM::execute() {
   auto& jit = llvmgenerator->getJitEngine();
-  if (auto symbolorerror = jit.lookup("dac")) {
-    auto address = (double (*)(double))symbolorerror->getAddress();
+  auto* dsp_cls_address = llvmgenerator->execute();
+  if (auto symbolorerror = jit.lookup("dsp")) {
+    auto address = (DspFnType)symbolorerror->getAddress();
     dspfn_address = address;
     hasdsp = true;
+    hasdspcls = dsp_cls_address!=nullptr;
+    if(hasdspcls){this->dspfn_cls_address = dsp_cls_address;}
+
   } else {
     auto err = symbolorerror.takeError();
     Logger::debug_log("dsp function not found", Logger::WARNING);
@@ -80,7 +84,6 @@ int Runtime_LLVM::execute() {
     dspfn_address = nullptr;
     hasdsp = false;
   }
-  return llvmgenerator->execute();
 }
 void Runtime_LLVM::start() {
   sch->start();
@@ -115,6 +118,7 @@ void Runtime_LLVM::executeTask(const LLVMTaskType& task) {
   }
 }
 
-dtodtype Runtime_LLVM::getDspFn() { return dspfn_address; }
+DspFnType Runtime_LLVM::getDspFn() { return dspfn_address; }
+void* Runtime_LLVM::getDspFnCls() { return dspfn_cls_address; }
 
 }  // namespace mimium
