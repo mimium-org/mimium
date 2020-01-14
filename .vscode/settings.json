@@ -91,5 +91,8 @@
         "-clang-tidy",
         "-background-index",
         "-compile-commands-dir=build"
-    ]
+    ],
+    "lldb.displayFormat": "auto",
+    "lldb.showDisassembly": "always",
+    "lldb.dereferencePointers": true
 }
