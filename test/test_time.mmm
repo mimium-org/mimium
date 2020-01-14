@@ -1,8 +1,8 @@
-myvalue = 0@0
-dummy::Fn(Float)->Float =  (input::Float)->{
-    print(input)
-    newtime = input+1000
-    myvalue = input@newtime
-    return dummy(myvalue)
+myvalue = 127
+dummy::Fn(Float)->Float=  (input::Float)->{
+    newtime = input+100
+    print(newtime)
+    res= dummy(newtime@newtime)
+    return 0
 }
 myres = dummy(1000@0)

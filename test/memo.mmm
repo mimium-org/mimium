@@ -1,0 +1,38 @@
+
+tasklist(time,future)
+
+
+(pitch,vel,chan) => midiout
+pitches = [66,67,68,69]
+times = [1000,1200,2500,4000]
+notes = zipwith(pitches,(pitch)->{return (pitch,127,0) })
+timednotes = tzipwith(notes,times)
+map(timednotes,(n)->{midiout(n)})//事前に全部がタスクスケジューラに入ることに
+
+n = hoge()@100
+
+//ループしたいときは？
+offset = 5000
+timednotes_inf = makeloop(timednotes,offset)//[1000,1200,2500,4000,5000,6200,7500,9000,...]
+
+↑このときtimednotes_infは時間変化する単一の数値として扱える
+
+
+list = [1 | ]
+
+map(timednotes_inf,(n)->{midiout(n)}) 
+//mapを標準関数としてもつか 配列のelem_typeがtimedだった場合は一要素ごとにストップする遅延評価に
+map(value,ptr_to_nextelem,fnptr)
+
+call map {value,ptr_to_nextelem,fnptr}
+
+*fnptr(value)
+addTask(ptr_to_nextelem->time, map(ptr_to_nextelem->value), )
+
+//midiディレイみたいなのどうしようかな
+
+fn middelay(input::midinote){
+
+}
+
+infinite vector
