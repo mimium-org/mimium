@@ -79,7 +79,7 @@ void Runtime_LLVM::execute() {
 
   } else {
     auto err = symbolorerror.takeError();
-    Logger::debug_log("dsp function not found", Logger::WARNING);
+    Logger::debug_log("dsp function not found", Logger::INFO);
     llvm::consumeError(std::move(err));
     dspfn_address = nullptr;
     hasdsp = false;

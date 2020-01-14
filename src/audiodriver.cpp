@@ -29,10 +29,12 @@ bool AudioDriver::start() {
     sample_rate =   rtaudio->getDeviceInfo(parameters.deviceId).preferredSampleRate;
     rtaudio->openStream(&parameters, nullptr, RTAUDIO_FLOAT64, sample_rate,
                         &buffer_frames, callback, userdata);
-    std::cerr << rtaudio->getStreamSampleRate() << std::endl;
+    std::string deviceinfo ="Audio Device : ";
     auto device = rtaudio->getDeviceInfo(rtaudio->getDefaultOutputDevice());
-    std::cerr << device.name << std::endl;
-    std::cerr << device.outputChannels << std::endl;
+    deviceinfo += device.name;
+    deviceinfo+=  ", Sampling Rate : " + std::to_string(rtaudio->getStreamSampleRate());
+    deviceinfo += ", Output Channels : " + std::to_string(device.outputChannels);
+    Logger::debug_log(deviceinfo,Logger::INFO);
     rtaudio->startStream();
   } catch (RtAudioError& e) {
     e.printMessage();
