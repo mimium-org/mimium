@@ -85,7 +85,9 @@ void Runtime_LLVM::execute() {
     hasdsp = false;
   }
 }
+//run audio driver and scheduler if theres some task, dsp function, or both.
 void Runtime_LLVM::start() {
+  if(hasdsp || sch->hasTask()){
   sch->start();
   {
     std::unique_lock<std::mutex> uniq_lk(waitc.mtx);
@@ -93,6 +95,7 @@ void Runtime_LLVM::start() {
     waitc.cv.wait(uniq_lk, [&]() { return waitc.isready; });
   }
   sch->stopAudioDriver();
+  }
 }
 
 void Runtime_LLVM::executeTask(const LLVMTaskType& task) {
