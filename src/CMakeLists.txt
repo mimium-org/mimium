@@ -1,20 +1,23 @@
 cmake_minimum_required(VERSION 3.4)
-PROJECT(MainCode CXX)
+PROJECT(mimium CXX)
 
-BISON_TARGET(MyParser mimium.yy ${CMAKE_CURRENT_BINARY_DIR}/mimium_parser.cpp)
-FLEX_TARGET(MyScanner mimium.l ${CMAKE_CURRENT_BINARY_DIR}/tokens.cpp)
-ADD_FLEX_BISON_DEPENDENCY(MyScanner MyParser)
+add_subdirectory(basic)
 
-add_executable(mimium ${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} main.cpp helper_functions.cpp ast.cpp environment.cpp runtime.cpp  driver.cpp audiodriver.cpp mididriver.cpp scheduler.cpp mir.cpp recursive_checker.cpp alphaconvert_visitor.cpp knormalize_visitor.cpp type_infer_visitor.cpp closure_convert.cpp llvmgenerator.cpp ffi.cpp compiler.cpp)
+add_subdirectory(compiler)
+
+add_subdirectory(runtime)
+
+add_executable(mimium main.cpp)
+
 
 target_include_directories(mimium
-    PRIVATE
-    ${CMAKE_CURRENT_BINARY_DIR}
-    )
+PRIVATE
+${CMAKE_CURRENT_BINARY_DIR}
+)
+
 target_link_libraries(mimium
-    PRIVATE
-    rtaudio
-    rtmidi
-    ${SNDFILE_LIBRARIES}
-      ${llvm_libs}
+    mimium_utils
+    mimium_compiler
+    mimium_runtime
+    LLVMSupport #for commandline library
     )

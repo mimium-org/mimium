@@ -1,8 +1,8 @@
 #include "gtest/gtest.h"
 #include "gtest/internal/gtest-port.h"
-#include "helper_functions.hpp"
-#include "alphaconvert_visitor.hpp"
-#include "runtime.hpp"
+#include "basic/helper_functions.hpp"
+#include "compiler/alphaconvert_visitor.hpp"
+#include "runtime/runtime.hpp"
 
 static mimium::Runtime runtime;
 static std::shared_ptr<mimium::AlphaConvertVisitor> visitor;

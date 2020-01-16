@@ -1,12 +1,12 @@
-#include "alphaconvert_visitor.hpp"
-#include "closure_convert.hpp"
-#include "llvmgenerator.hpp"
+#include "compiler/alphaconvert_visitor.hpp"
+#include "compiler/closure_convert.hpp"
+#include "compiler/llvmgenerator.hpp"
 #include "gtest/gtest.h"
 #include "gtest/internal/gtest-port.h"
-#include "helper_functions.hpp"
-#include "knormalize_visitor.hpp"
-#include "runtime.hpp"
-#include "type_infer_visitor.hpp"
+#include "basic/helper_functions.hpp"
+#include "compiler/knormalize_visitor.hpp"
+#include "runtime/runtime.hpp"
+#include "compiler/type_infer_visitor.hpp"
 
 static mimium::Runtime runtime;
 static std::shared_ptr<mimium::KNormalizeVisitor> knormvisitor;

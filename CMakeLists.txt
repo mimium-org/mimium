@@ -12,6 +12,7 @@ message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
+
 llvm_map_components_to_libnames(llvm_libs core orcjit native irreader support )
 
 
@@ -32,7 +33,6 @@ SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 # for macOS SDK Root
 
 
-project (mimium CXX)
 
 
 # Including custom cmake rules for clang-tidy and clang-format
@@ -59,4 +59,4 @@ include_directories(src ${FLEX_INCLUDE_DIRS} libs/rtaudio libs/rtmidi ${SNDFILE_
 
 add_subdirectory( src )
 
-add_subdirectory( test )
+#add_subdirectory( test )

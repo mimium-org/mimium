@@ -9,13 +9,13 @@
 #include <fstream>
 #include <string>
 
-#include "helper_functions.hpp"
+#include "basic/helper_functions.hpp"
 // #include "cli_tools.cpp"
 #include "llvm/Support/CommandLine.h"
 namespace cl = llvm::cl;
 using Logger = mimium::Logger;
-#include "compiler.hpp"
-#include "runtime.hpp"
+#include "compiler/compiler.hpp"
+#include "runtime/runtime.hpp"
 
 extern "C" {
 
