@@ -33,6 +33,8 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
  private:
   // std::string filename;
   [[maybe_unused]]bool isjit;
+  llvm::LLVMContext& ctx;
+  std::unique_ptr<llvm::orc::MimiumJIT> jitengine;
   auto getType(types::Value& type) -> llvm::Type*;
   auto getRawStructType( types::Struct& type) -> llvm::Type*;
   void preprocess();
@@ -62,19 +64,24 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
 
   llvm::Type* getOrCreateTimeStruct(types::Time& t);
  public:
-   std::unique_ptr<llvm::orc::MimiumJIT> jitengine;
-  llvm::LLVMContext& ctx;
+
   std::unique_ptr<llvm::Function> curfunc;
   std::unique_ptr<llvm::Module> module;
   std::unique_ptr<llvm::IRBuilder<>> builder;
   std::unordered_map<std::string, llvm::Value*> namemap;
   llvm::BasicBlock* mainentry;
   llvm::BasicBlock* currentblock;
-  explicit LLVMGenerator(std::string filename,bool i_isjit=true);
+   LLVMGenerator(llvm::LLVMContext& ctx);
+  //old
+  // explicit LLVMGenerator(std::string filename,bool i_isjit=true);
   // explicit LLVMGenerator(llvm::LLVMContext& _cts,std::string filename);
-
+  llvm::Module& getModule(){return *module;}
+  auto moveModule(){return std::move(module);}
   ~LLVMGenerator();
   void init(std::string filename);
+  void setDataLayout();
+  void setDataLayout(const llvm::DataLayout& dl);
+
   void reset(std::string filename);
 
   void setBB(llvm::BasicBlock* newblock);

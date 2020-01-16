@@ -42,7 +42,7 @@ class MimiumJIT {
 
  public:
   MimiumJIT()
-      : lllazyjit(cantFail(createEngine())),
+      : lllazyjit(createEngine()),
         ES(lllazyjit->getExecutionSession()),
         DL(lllazyjit->getDataLayout()),
         MainJD(lllazyjit->getMainJITDylib()),
@@ -53,11 +53,11 @@ class MimiumJIT {
         cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(
             DL.getGlobalPrefix())));
   }
-  static Expected<std::unique_ptr<LLLazyJIT>> createEngine() {
+  static std::unique_ptr<LLLazyJIT> createEngine() {
     auto builder = LLLazyJITBuilder();
     auto jit = builder.create();
-    
-    return jit;
+    llvm::logAllUnhandledErrors(jit.takeError(),llvm::errs());
+    return std::move(jit.get());
   }
   Error addModule(std::unique_ptr<Module> M) {
     return lllazyjit->addLazyIRModule(ThreadSafeModule(std::move(M), Ctx));

@@ -1,21 +1,37 @@
 #include "llvmgenerator.hpp"
 
 namespace mimium {
-LLVMGenerator::LLVMGenerator(std::string filename, bool i_isjit)
-    : isjit(i_isjit),
+// LLVMGenerator::LLVMGenerator(std::string filename, bool i_isjit)
+//     : isjit(i_isjit),
+//       taskfn_typeid(0),
+//       tasktype_list(),
+//       mainentry(nullptr),
+//       currentblock(nullptr) {
+//   init(filename);
+// }
+LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx)
+    : isjit(true),
       taskfn_typeid(0),
       tasktype_list(),
-      jitengine(std::make_unique<llvm::orc::MimiumJIT>()),
-      ctx(jitengine->getContext()),
+      ctx(ctx),
       mainentry(nullptr),
       currentblock(nullptr) {
-  init(filename);
+  builder = std::make_unique<llvm::IRBuilder<>>(ctx);
+
 }
 void LLVMGenerator::init(std::string filename) {
-  builder = std::make_unique<llvm::IRBuilder<>>(ctx);
   module = std::make_unique<llvm::Module>(filename, ctx);
-  module->setDataLayout(jitengine->getDataLayout());
+  // module->setDataLayout(LLVMGetDefaultTargetTriple());
 }
+void LLVMGenerator::setDataLayout(){
+    module->setDataLayout(LLVMGetDefaultTargetTriple());
+
+}
+void LLVMGenerator::setDataLayout(const llvm::DataLayout& dl) {
+  module->setDataLayout(dl);
+}
+
+
 void LLVMGenerator::reset(std::string filename) {
   dropAllReferences();
   init(filename);
@@ -31,6 +47,7 @@ void LLVMGenerator::initJit() {}
 LLVMGenerator::~LLVMGenerator() { dropAllReferences(); }
 void LLVMGenerator::dropAllReferences() {
   namemap.clear();
+  if(module!=nullptr){
   auto& flist = module->getFunctionList();
   auto f = flist.begin();
   while (!flist.empty()) {
@@ -50,6 +67,7 @@ void LLVMGenerator::dropAllReferences() {
     f->dropAllReferences();
     flist.erase(f);
     f = flist.begin();
+  }
   }
 }
 

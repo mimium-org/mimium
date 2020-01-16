@@ -7,7 +7,7 @@
 namespace mimium {
 class KNormalizeVisitor : public ASTVisitor {
  public:
-  explicit KNormalizeVisitor(std::shared_ptr<TypeInferVisitor> typeinfer_init);
+  explicit KNormalizeVisitor(TypeInferVisitor& typeinfer);
   ~KNormalizeVisitor() override = default;
   void init();
 
@@ -35,7 +35,7 @@ class KNormalizeVisitor : public ASTVisitor {
   std::shared_ptr<MIRblock> getResult();
 
  private:
-  std::shared_ptr<TypeInferVisitor>
+  TypeInferVisitor&
       typeinfer;  // to resolve anonymous function type;
 
   std::shared_ptr<MIRblock> rootblock;

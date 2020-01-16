@@ -1,7 +1,4 @@
 #include "ffi.hpp"
-
-#include "llvm/IR/DerivedTypes.h"
-
 extern "C" {
 
 void printdouble(double d) { std::cerr << d; }
@@ -48,11 +45,6 @@ std::unordered_map<std::string, BuiltinFnInfo> LLVMBuiltin::ftable = {
 
     {"min", FI{Function(Float(), {Float(),Float()}), "fmin"}},
     {"max", FI{Function(Float(), {Float(),Float()}), "fmax"}},
-
-
-
-
-
 
 };
 

@@ -14,7 +14,7 @@
 #include "llvm/Support/CommandLine.h"
 namespace cl = llvm::cl;
 using Logger = mimium::Logger;
-
+#include "compiler.hpp"
 #include "runtime.hpp"
 
 extern "C" {
@@ -85,9 +85,8 @@ auto main(int argc, char** argv) -> int {
   std::ifstream input(input_filename.c_str());
   signal(SIGINT, signalHandler);
   Logger::current_report_level = Logger::INFO;
-
-  auto runtime = std::make_shared<mimium::Runtime_LLVM>();
-  runtime->init();
+    auto runtime = std::make_shared<mimium::Runtime_LLVM>();
+  auto compiler = std::make_unique<mimium::Compiler>(runtime->getLLVMContext());
   shutdown_handler = [&runtime](int /*signal*/) {
     if (runtime->isrunning()) {
       runtime->stop();
@@ -111,46 +110,42 @@ auto main(int argc, char** argv) -> int {
     try {
       std::string filename = input_filename.c_str();
       Logger::debug_log("Opening " + filename, Logger::INFO);
+      compiler->setFilePath(filename);
+      compiler->setDataLayout(runtime->getJitEngine().getDataLayout());
 
-      AST_Ptr ast;
-      AST_Ptr ast_u;
-      std::shared_ptr<mimium::MIRblock> mir;
-      std::shared_ptr<mimium::MIRblock> mir_cc;
-      mimium::TypeEnv& typeinfos = runtime->getTypeEnv();
-      std::string llvmir;
       auto stage = compile_stage.getValue();
       do {
-        ast = runtime->loadSourceFile(filename);
+        auto ast = compiler->loadSourceFile(filename);
         if (stage == CompileStage::AST) {
           std::cout << ast->toString() << std::endl;
           break;
         }
-        ast_u = runtime->alphaConvert(ast);
+        auto ast_u = compiler->alphaConvert(ast);
         if (stage == CompileStage::AST_UNIQUENAME) {
           std::cout << ast_u->toString() << std::endl;
           break;
         }
-        typeinfos = runtime->typeInfer(ast_u);
+        auto& typeinfos = compiler->typeInfer(ast_u);
         if (stage == CompileStage::TYPEINFOS) {
           std::cout << typeinfos.dump() << std::endl;
           break;
         }
-        mir = runtime->kNormalize(ast_u);
+        auto mir = compiler->generateMir(ast_u);
         if (stage == CompileStage::MIR) {
           std::cout << mir->toString() << std::endl;
           break;
         }
-        mir_cc = runtime->closureConvert(mir);
+        auto mir_cc = compiler->closureConvert(mir);
         if (stage == CompileStage::MIR_CC) {
           std::cout << mir_cc->toString() << std::endl;
           break;
         }
-        llvmir = runtime->llvmGenarate(mir_cc);
+        auto& llvm_module = compiler->generateLLVMIr(mir_cc);
         if (stage == CompileStage::LLVMIR) {
-          std::cout << llvmir << std::endl;
+          llvm_module.print(llvm::outs(),nullptr, false, true);
           break;
         }
-        runtime->execute();
+        runtime->executeModule(compiler->moveLLVMModule());
         runtime->start();//start() blocks thread until scheduler stops
         returncode = 0;
         break;

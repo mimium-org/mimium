@@ -13,16 +13,17 @@ namespace mimium {
 Runtime_LLVM::Runtime_LLVM(std::string filename_i, bool isjit)
     : Runtime<LLVMTaskType>(filename_i),
       alphavisitor(),
-      typevisitor(),
-      ti_ptr(&typevisitor),
-      knormvisitor(ti_ptr),
-      closureconverter(),
-      llvmgenerator() {
+      // typevisitor(),
+      closureconverter()
+      // llvmgenerator() 
+       {
   LLVMInitializeNativeTarget();
   LLVMInitializeNativeAsmPrinter();
   LLVMInitializeNativeAsmParser();
-  llvmgenerator = std::make_shared<LLVMGenerator>(filename_i, isjit);
-  closureconverter = std::make_shared<ClosureConverter>(typevisitor.getEnv());
+  jitengine = std::make_unique<llvm::orc::MimiumJIT>();
+  // llvm_ctx = std::make_shared<llvm::LLVMContext>(jitengine->getContext());
+  // llvmgenerator = std::make_shared<LLVMGenerator>(filename_i, isjit);
+  // closureconverter = std::make_shared<ClosureConverter>(typevisitor.getEnv());
 }  // temporary,jit is off
 
 void Runtime_LLVM::addScheduler(bool issoundfile) {
@@ -48,14 +49,14 @@ AST_Ptr Runtime_LLVM::alphaConvert(AST_Ptr _ast) {
   _ast->accept(alphavisitor);
   return alphavisitor.getResult();
 }
-TypeEnv& Runtime_LLVM::typeInfer(AST_Ptr _ast) {
-  _ast->accept(typevisitor);
-  return typevisitor.getEnv();
-}
-std::shared_ptr<MIRblock> Runtime_LLVM::kNormalize(AST_Ptr _ast) {
-  _ast->accept(knormvisitor);
-  return knormvisitor.getResult();
-}
+// TypeEnv& Runtime_LLVM::typeInfer(AST_Ptr _ast) {
+//   _ast->accept(typevisitor);
+//   return typevisitor.getEnv();
+// }
+// std::shared_ptr<MIRblock> Runtime_LLVM::kNormalize(AST_Ptr _ast) {
+//   _ast->accept(knormvisitor);
+//   return knormvisitor.getResult();
+// }
 std::shared_ptr<MIRblock> Runtime_LLVM::closureConvert(
     std::shared_ptr<MIRblock> mir) {
   return closureconverter->convert(mir);
@@ -71,6 +72,31 @@ void Runtime_LLVM::execute() {
   auto& jit = llvmgenerator->getJitEngine();
   auto* dsp_cls_address = llvmgenerator->execute();
   if (auto symbolorerror = jit.lookup("dsp")) {
+    auto address = (DspFnType)symbolorerror->getAddress();
+    dspfn_address = address;
+    hasdsp = true;
+    hasdspcls = dsp_cls_address!=nullptr;
+    if(hasdspcls){this->dspfn_cls_address = dsp_cls_address;}
+
+  } else {
+    auto err = symbolorerror.takeError();
+    Logger::debug_log("dsp function not found", Logger::INFO);
+    llvm::consumeError(std::move(err));
+    dspfn_address = nullptr;
+    hasdsp = false;
+  }
+}
+void Runtime_LLVM::executeModule(std::unique_ptr<llvm::Module> module) {
+  llvm::Error err = jitengine->addModule(std::move(module));
+  Logger::debug_log(err, Logger::ERROR);
+  auto mainfun = jitengine->lookup("mimium_main");
+  Logger::debug_log(mainfun, Logger::ERROR);
+  auto fnptr =
+      llvm::jitTargetAddressToPointer<void* (*)()>(mainfun->getAddress());
+  //
+  auto dsp_cls_address =fnptr();
+  //
+  if (auto symbolorerror = jitengine->lookup("dsp")) {
     auto address = (DspFnType)symbolorerror->getAddress();
     dspfn_address = address;
     hasdsp = true;

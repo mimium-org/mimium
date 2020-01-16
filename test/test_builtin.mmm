@@ -29,6 +29,7 @@ println(round(1.4))
 println(round(1.5))
 
 println(fmod(245.22,25 ))
+println(124.555%1)
 println(remainder(2345.234563,1))
 
 println(min(100,200))

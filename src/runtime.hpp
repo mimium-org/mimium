@@ -43,7 +43,6 @@ class Runtime : public std::enable_shared_from_this<Runtime<TaskType>> {
       sch = std::make_shared<SchedulerRT>(this->shared_from_this(),waitc);
     }
   };
-  virtual void init(){};
   void clear() { clearDriver(); };
   void clearDriver() { driver.clear(); };
   virtual void start() {
@@ -99,29 +98,32 @@ class Runtime_LLVM : public Runtime<LLVMTaskType> {
   void addScheduler(bool issoundfile) override;
   void checkRecursiveFuns(AST_Ptr _ast);
   AST_Ptr alphaConvert(AST_Ptr _ast);
-  TypeEnv& typeInfer(AST_Ptr _ast);
-  TypeEnv& getTypeEnv() { return typevisitor.getEnv(); };
-  std::shared_ptr<MIRblock> kNormalize(AST_Ptr _ast);
+  // TypeEnv& typeInfer(AST_Ptr _ast);
+  // TypeEnv& getTypeEnv() { return typevisitor.getEnv(); };
+  // std::shared_ptr<MIRblock> kNormalize(AST_Ptr _ast);
   std::shared_ptr<MIRblock> closureConvert(std::shared_ptr<MIRblock> mir);
   auto llvmGenarate(std::shared_ptr<MIRblock> mir) -> std::string;
   void start() override;
   void execute();
+  void executeModule(std::unique_ptr<llvm::Module> module);
   void executeTask(const LLVMTaskType& task) override;
   DspFnType getDspFn() override;
   void* getDspFnCls()override;
-
+  auto& getJitEngine(){return *jitengine;}
+  llvm::LLVMContext& getLLVMContext(){return jitengine->getContext();}
   AST_Ptr loadSourceFile(std::string filename) override;
   // virtual void loadAst(AST_Ptr _ast) override;
-
  private:
   AlphaConvertVisitor alphavisitor;
-  TypeInferVisitor typevisitor;
+  // TypeInferVisitor typevisitor;
   RecursiveChecker recursivechecker;
-  std::shared_ptr<TypeInferVisitor> ti_ptr;
-  KNormalizeVisitor knormvisitor;
+  // std::shared_ptr<TypeInferVisitor> ti_ptr;
+  // KNormalizeVisitor knormvisitor;
   std::shared_ptr<ClosureConverter> closureconverter;
   std::shared_ptr<LLVMGenerator> llvmgenerator;
   DspFnType dspfn_address = nullptr;
   void* dspfn_cls_address=nullptr;
+  std::unique_ptr<llvm::orc::MimiumJIT> jitengine;
+
 };
 }  // namespace mimium
