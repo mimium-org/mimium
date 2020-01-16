@@ -97,15 +97,9 @@ auto main(int argc, char** argv) -> int {
 
   runtime->addScheduler(is_snd_file);
   global_sch = runtime->getScheduler().get();
-  if (!input.good()) {  // filename is empty:enter repl mode
-    std::string line;
-    Logger::debug_log("start", Logger::INFO);
-    while (std::getline(std::cin, line)) {
-      runtime->clearDriver();
-      runtime->loadSource(line);
-      // now load source is void function, how to debug print?
-      // std::cout << resstr << std::endl;
-    }
+  if (!input.good()) {  
+    Logger::debug_log("Specify file name, repl mode is not implemented yet",Logger::ERROR);
+// filename is empty:enter repl mode
   } else {  // try to parse and exec input file
     try {
       std::string filename = input_filename.c_str();

@@ -11,20 +11,12 @@
 namespace mimium {
 
 Runtime_LLVM::Runtime_LLVM(std::string filename_i, bool isjit)
-    : Runtime<LLVMTaskType>(filename_i),
-      alphavisitor(),
-      // typevisitor(),
-      closureconverter()
-      // llvmgenerator() 
-       {
+    : Runtime<LLVMTaskType>(filename_i) {
   LLVMInitializeNativeTarget();
   LLVMInitializeNativeAsmPrinter();
   LLVMInitializeNativeAsmParser();
   jitengine = std::make_unique<llvm::orc::MimiumJIT>();
-  // llvm_ctx = std::make_shared<llvm::LLVMContext>(jitengine->getContext());
-  // llvmgenerator = std::make_shared<LLVMGenerator>(filename_i, isjit);
-  // closureconverter = std::make_shared<ClosureConverter>(typevisitor.getEnv());
-}  // temporary,jit is off
+}
 
 void Runtime_LLVM::addScheduler(bool issoundfile) {
   if (issoundfile) {
@@ -34,58 +26,8 @@ void Runtime_LLVM::addScheduler(bool issoundfile) {
   }
 }
 
-AST_Ptr Runtime_LLVM::loadSourceFile(std::string filename) {
-  this->filename = filename;
-  llvmgenerator->reset(filename);
-  driver.parsefile(filename);
-  auto mainast = driver.getMainAst();
-  checkRecursiveFuns(mainast);
- return mainast;
-}
-void Runtime_LLVM::checkRecursiveFuns(AST_Ptr _ast) {
-  _ast->accept(recursivechecker);
-}
-AST_Ptr Runtime_LLVM::alphaConvert(AST_Ptr _ast) {
-  _ast->accept(alphavisitor);
-  return alphavisitor.getResult();
-}
-// TypeEnv& Runtime_LLVM::typeInfer(AST_Ptr _ast) {
-//   _ast->accept(typevisitor);
-//   return typevisitor.getEnv();
-// }
-// std::shared_ptr<MIRblock> Runtime_LLVM::kNormalize(AST_Ptr _ast) {
-//   _ast->accept(knormvisitor);
-//   return knormvisitor.getResult();
-// }
-std::shared_ptr<MIRblock> Runtime_LLVM::closureConvert(
-    std::shared_ptr<MIRblock> mir) {
-  return closureconverter->convert(mir);
-}
-auto Runtime_LLVM::llvmGenarate(std::shared_ptr<MIRblock> mir) -> std::string {
-  llvmgenerator->generateCode(mir);
-  std::string s;
-  llvm::raw_string_ostream ss(s);
-  llvmgenerator->outputToStream(ss);
-  return s;
-}
-void Runtime_LLVM::execute() {
-  auto& jit = llvmgenerator->getJitEngine();
-  auto* dsp_cls_address = llvmgenerator->execute();
-  if (auto symbolorerror = jit.lookup("dsp")) {
-    auto address = (DspFnType)symbolorerror->getAddress();
-    dspfn_address = address;
-    hasdsp = true;
-    hasdspcls = dsp_cls_address!=nullptr;
-    if(hasdspcls){this->dspfn_cls_address = dsp_cls_address;}
 
-  } else {
-    auto err = symbolorerror.takeError();
-    Logger::debug_log("dsp function not found", Logger::INFO);
-    llvm::consumeError(std::move(err));
-    dspfn_address = nullptr;
-    hasdsp = false;
-  }
-}
+
 void Runtime_LLVM::executeModule(std::unique_ptr<llvm::Module> module) {
   llvm::Error err = jitengine->addModule(std::move(module));
   Logger::debug_log(err, Logger::ERROR);
@@ -94,14 +36,16 @@ void Runtime_LLVM::executeModule(std::unique_ptr<llvm::Module> module) {
   auto fnptr =
       llvm::jitTargetAddressToPointer<void* (*)()>(mainfun->getAddress());
   //
-  auto dsp_cls_address =fnptr();
+  auto dsp_cls_address = fnptr();
   //
   if (auto symbolorerror = jitengine->lookup("dsp")) {
     auto address = (DspFnType)symbolorerror->getAddress();
     dspfn_address = address;
     hasdsp = true;
-    hasdspcls = dsp_cls_address!=nullptr;
-    if(hasdspcls){this->dspfn_cls_address = dsp_cls_address;}
+    hasdspcls = dsp_cls_address != nullptr;
+    if (hasdspcls) {
+      this->dspfn_cls_address = dsp_cls_address;
+    }
 
   } else {
     auto err = symbolorerror.takeError();
@@ -111,33 +55,22 @@ void Runtime_LLVM::executeModule(std::unique_ptr<llvm::Module> module) {
     hasdsp = false;
   }
 }
-//run audio driver and scheduler if theres some task, dsp function, or both.
+// run audio driver and scheduler if theres some task, dsp function, or both.
 void Runtime_LLVM::start() {
-  if(hasdsp || sch->hasTask()){
-  sch->start();
-  {
-    std::unique_lock<std::mutex> uniq_lk(waitc.mtx);
-    // aynchronously wait until scheduler stops
-    waitc.cv.wait(uniq_lk, [&]() { return waitc.isready; });
-  }
-  sch->stopAudioDriver();
+  if (hasdsp || sch->hasTask()) {
+    sch->start();
+    {
+      std::unique_lock<std::mutex> uniq_lk(waitc.mtx);
+      // aynchronously wait until scheduler stops
+      waitc.cv.wait(uniq_lk, [&]() { return waitc.isready; });
+    }
+    sch->stopAudioDriver();
   }
 }
 
 void Runtime_LLVM::executeTask(const LLVMTaskType& task) {
   auto& [addresstofn, arg, addresstocls] = task;
-  // auto& jit = llvmgenerator->getJitEngine();
-  // auto& type = llvmgenerator->getTaskInfoList()[tasktypeid];
 
-  // std::visit(overloaded{
-  //   [](recursive_wrapper<types::Function>& f){
-  //      auto ff= (types::Function)(f);
-  //      if(auto rettype = std::get_if<types::Float>(&ff.getReturnType())){
-
-  //      }
-  //   },
-  //   [](auto& other){ throw std::runtime_error("invalid task type");}
-  // },type);
   if (addresstocls == nullptr) {
     auto fn = reinterpret_cast<void (*)(double)>(addresstofn);
     fn(arg);
