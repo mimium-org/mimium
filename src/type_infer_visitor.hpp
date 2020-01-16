@@ -1,6 +1,6 @@
 #pragma once
 #include "ast.hpp"
-#include "llvm_builtin_functions.hpp"
+#include "ffi.hpp"
 #include "helper_functions.hpp"
 #include "type.hpp"
 // type inference ... assumed to be visited after finished alpha-conversion(each

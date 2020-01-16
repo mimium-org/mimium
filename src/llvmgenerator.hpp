@@ -23,7 +23,7 @@
 #include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
 
 
-#include "llvm_builtin_functions.hpp"
+#include "ffi.hpp"
 #include "jit_engine.hpp"
 
 namespace mimium {
@@ -38,6 +38,7 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   void preprocess();
   void createMiscDeclarations();
   void createMainFun();
+  void createFcall(std::shared_ptr<FcallInst> i,std::vector<llvm::Value*>& args);
   void createTaskRegister(bool isclosure);
   llvm::Value* createAllocation(bool isglobal,llvm::Type* type,llvm::Value *ArraySize,const llvm::Twine& name);
   bool createStoreOw(std::string varname,llvm::Value* val_to_store);

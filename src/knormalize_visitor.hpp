@@ -2,7 +2,7 @@
 #include "ast.hpp"
 #include "mir.hpp"
 #include "type_infer_visitor.hpp"
-#include "llvm_builtin_functions.hpp"
+#include "ffi.hpp"
 
 namespace mimium {
 class KNormalizeVisitor : public ASTVisitor {

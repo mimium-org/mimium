@@ -263,6 +263,31 @@ void LLVMGenerator::createAddTaskFn(const std::shared_ptr<FcallInst> i,
   auto* res = builder->CreateCall(addtask_fn, args);
   namemap.emplace(i->lv_name, res);
 }
+void LLVMGenerator::createFcall(std::shared_ptr<FcallInst> i,
+                                std::vector<llvm::Value*>& args) {
+  llvm::Function* fun;
+  if (LLVMBuiltin::isBuiltin(i->fname)) {
+    auto it = LLVMBuiltin::ftable.find(i->fname);
+    BuiltinFnInfo& fninfo = it->second;
+    auto* fntype = llvm::cast<llvm::FunctionType>(getType(fninfo.mmmtype));
+    auto fn = module->getOrInsertFunction(fninfo.target_fnname, fntype);
+    fun = llvm::cast<llvm::Function>(fn.getCallee());
+    fun->setCallingConv(llvm::CallingConv::C);
+
+  } else {
+    fun = module->getFunction(i->fname);
+    if (fun == nullptr) {
+      throw std::logic_error("function could not be referenced");
+    }
+  }
+
+  if (std::holds_alternative<types::Void>(i->type)) {
+    builder->CreateCall(fun, args);
+  } else {
+    auto res = builder->CreateCall(fun, args, i->lv_name);
+    namemap.emplace(i->lv_name, res);
+  }
+}
 void LLVMGenerator::visitInstructions(const Instructions& inst, bool isglobal) {
   std::visit(
       overloaded{
@@ -424,27 +449,7 @@ void LLVMGenerator::visitInstructions(const Instructions& inst, bool isglobal) {
             if (i->istimed) {  // if arguments is timed value, call addTask
               createAddTaskFn(i, isclosure, isglobal);
             } else {
-              if (LLVMBuiltin::isBuiltin(i->fname)) {
-                auto it = LLVMBuiltin::ftable.find(i->fname);
-                BuiltinFnInfo& fninfo = it->second;
-                auto* fntype = llvm::cast<llvm::FunctionType>(getType(fninfo.mmmtype));
-                auto fn = module->getOrInsertFunction(fninfo.target_fnname,fntype);
-                llvm::cast<llvm::Function>(fn.getCallee())->setCallingConv(llvm::CallingConv::C);
-                auto* res =
-                    builder->CreateCall(fn.getCallee(), args, i->lv_name);
-                namemap.emplace(i->lv_name, res);
-              } else {
-                llvm::Function* fun = module->getFunction(i->fname);
-                if (fun == nullptr) {
-                  throw std::logic_error("function could not be referenced");
-                }
-                if (std::holds_alternative<types::Void>(i->type)) {
-                  builder->CreateCall(fun, args);
-                } else {
-                  auto res = builder->CreateCall(fun, args, i->lv_name);
-                  namemap.emplace(i->lv_name, res);
-                }
-              }
+              createFcall(i, args);
             }
           },
           [&, this](const std::shared_ptr<ReturnInst>& i) {
