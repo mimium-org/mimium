@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.4)
+cmake_minimum_required(VERSION 3.8)
 PROJECT(mimium CXX)
 
 add_subdirectory(basic)
@@ -9,6 +9,7 @@ add_subdirectory(runtime)
 
 add_executable(mimium main.cpp)
 
+target_compile_options(mimium PUBLIC -std=c++17)
 
 target_include_directories(mimium
 PRIVATE

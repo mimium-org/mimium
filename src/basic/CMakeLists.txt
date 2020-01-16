@@ -1,6 +1,8 @@
-cmake_minimum_required(VERSION 3.4)
 
 add_library(mimium_utils STATIC helper_functions.cpp ast.cpp mir.cpp)
+
+target_compile_options(mimium_utils PUBLIC -std=c++17)
+
 
 target_include_directories(mimium_utils
     PRIVATE
