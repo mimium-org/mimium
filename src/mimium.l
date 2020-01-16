@@ -19,7 +19,7 @@ NONZERO  [1-9]
 DIGIT    [[:digit:]]
 FLOAT    ({NONZERO}{DIGIT}*\.?|0\.|\.{DIGIT}){DIGIT}*|0
 EXPONENT [eE](-|\+?){DIGIT}+
-NUMBER   {FLOAT}{EXPONENT}?
+NUMBER   (-|\+?){FLOAT}{EXPONENT}?
 SYMBOL   [[:alpha:]][[:alnum:]_]*
 STRING  "\""[[:alnum:][:graph:]]+"\""
 DELIMITER "{"|"}"|"("|")"|"["|"]"|","|"\""|"\."|"/"
