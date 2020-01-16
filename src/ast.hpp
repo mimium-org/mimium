@@ -67,7 +67,6 @@ class FcallAST;
 class StructAST;  // currently internally used for closure conversion;
 class StructAccessAST;
 
-
 using AST_Ptr = std::shared_ptr<AST>;
 
 class ASTVisitor {
@@ -94,12 +93,13 @@ class ASTVisitor {
   virtual void visit(StructAST& ast) = 0;
   virtual void visit(StructAccessAST& ast) = 0;
 
-
  protected:
 };
 
 class AST {
  public:
+  AST() : id(BASE){};
+  explicit AST(AST_ID id) : id(id) {}
   virtual ~AST() = default;
   virtual std::string toString() = 0;
   virtual std::string toJson() = 0;
@@ -108,7 +108,7 @@ class AST {
   AST_ID getid() { return id; }
 
  protected:
-  AST_ID id = BASE;
+  AST_ID id;
 };
 
 enum class OP_ID {
@@ -144,11 +144,6 @@ class OpAST : public AST {
   AST_Ptr lhs, rhs;
 
   OpAST(std::string Op, AST_Ptr LHS, AST_Ptr RHS);
-  // OpAST(OP_ID Op_id, AST_Ptr LHS, AST_Ptr RHS)
-  //     : op_id(Op_id), lhs(std::move(LHS)), rhs(std::move(RHS)) {
-  //   id = OP;
-
-  // }
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
   std::string toString() override;
   std::string toJson() override;
@@ -156,33 +151,10 @@ class OpAST : public AST {
   std::string getOpStr() { return op; };
 };
 
-// class ListAST : public AST {
-//  public:
-//   std::deque<AST_Ptr> asts;
-//   ListAST() {  // empty constructor
-//     id = LIST;
-//   }
-
-//   explicit ListAST(AST_Ptr _asts) {
-//     asts.push_back(std::move(_asts));  // push_front
-//     id = LIST;
-//   }
-//   void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
-//   void addAST(AST_Ptr ast) override { asts.push_front(std::move(ast)); }
-//   void appendAST(AST_Ptr ast) {  // for knorm
-//     asts.push_back(std::move(ast));
-//   }
-//   inline auto& getElements() { return asts; };
-//   std::string toString() override;
-//   std::string toJson() override;
-// };
 class NumberAST : public AST {
  public:
   double val;
-  explicit NumberAST(double input) {
-    val = input;
-    id = NUMBER;
-  }
+  explicit NumberAST(double input) : AST(NUMBER),val(input) {}
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
   double getVal() { return val; };
   std::string toString() override;
@@ -193,9 +165,7 @@ class SymbolAST : public AST {
  public:
   std::string val;
   explicit SymbolAST(std::string input) : val(std::move(input)) {}
-  // void accept(ASTVisitor& visitor) override{
-  //     visitor.visit(*this);
-  // };
+
   std::string& getVal() { return val; };
   std::string toString() override;
   std::string toJson() override;
@@ -405,4 +375,4 @@ class StructAccessAST : public AST {
   std::string toJson() override;
 };
 
-}//namespace mimium
+}  // namespace mimium
