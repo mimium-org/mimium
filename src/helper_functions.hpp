@@ -33,7 +33,7 @@ static std::string join(std::deque<ElementType>& vec, std::string delim) {
 };
 
 
-static std::string join(std::deque<std::string>& vec, std::string delim) {
+[[maybe_unused]] static std::string join(std::deque<std::string>& vec, std::string delim) {
   return std::accumulate(
       std::next(vec.begin()), vec.end(),
       *(vec.begin()), 

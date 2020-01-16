@@ -6,8 +6,8 @@
 
 namespace mimium {
 TypeInferVisitor::TypeInferVisitor() : has_return(false) {
-  for (const auto& [key, val] : builtin::types_map) {
-    typeenv.emplace(key, val);
+  for (const auto& [key, val] : LLVMBuiltin::ftable) {
+    typeenv.emplace(key, val.mmmtype);
   }
 }
 
@@ -37,6 +37,7 @@ bool TypeInferVisitor::unify(types::Value& lt, types::Value& rt) {
   }
   return res;
 }
+
 bool TypeInferVisitor::unify(std::string lname, types::Value& rt) {
   return unify(typeenv.find(lname), rt);
 }
@@ -146,7 +147,7 @@ bool TypeInferVisitor::checkArg(const types::Value& fnarg,
                                 const types::Value& givenarg) {
   bool res;
   if (std::holds_alternative<recursive_wrapper<types::Time>>(givenarg)) {
-    types::Time v = std::get<recursive_wrapper<types::Time>>(givenarg);
+    const types::Time v = std::get<recursive_wrapper<types::Time>>(givenarg);
     res = fnarg.index() == v.val.index();  // currently
   } else {
     res = fnarg.index() == givenarg.index();
@@ -177,7 +178,6 @@ void TypeInferVisitor::visit(FcallAST& ast) {
 void TypeInferVisitor::visit(LambdaAST& ast) {
   auto args = ast.getArgs();
   std::vector<types::Value> argtypes;
-  types::Function fntype;
   for (const auto& a : args->getElements()) {
     a->accept(*this);
     typeenv.emplace(a->getVal(), res_stack);
@@ -189,7 +189,7 @@ void TypeInferVisitor::visit(LambdaAST& ast) {
   types::Value res_type;
 
   if (isspecified) {
-    fntype = std::get<recursive_wrapper<types::Function>>(ast.type);
+    types::Function& fntype = std::get<recursive_wrapper<types::Function>>(ast.type);
     fntype.arg_types = argtypes;  // overwrite
     std::string s(tmpfname);
     types::Value f = fntype;
@@ -197,16 +197,17 @@ void TypeInferVisitor::visit(LambdaAST& ast) {
     ast.getBody()->accept(*this);
     auto tmp_res_type = (has_return) ? res_stack : types::Void();
     typeCheck(tmp_res_type, fntype.ret_type);
+    res_type = f;
   } else {
     if (ast.isrecursive) {
       throw std::logic_error("recursive function need to specify return type.");
     }
-    fntype.arg_types = argtypes;  // overwrite
     ast.getBody()->accept(*this);
-    fntype.ret_type = (has_return) ? res_stack : types::Void();
+    types::Value ret_type = (has_return) ? res_stack : types::Void();
+    res_type = types::Function(ret_type,argtypes);
   }
 
-  res_stack = fntype;
+  res_stack = res_type;
   tmpfname="";
   has_return = false;  // switch back flag
 }

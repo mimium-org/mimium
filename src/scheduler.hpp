@@ -20,7 +20,7 @@ template <typename TaskType>
 class Scheduler {  // scheduler interface
  public:
   explicit Scheduler(std::shared_ptr<Runtime<TaskType>> runtime_i,WaitController& waitc)
-      : runtime(runtime_i), time(0) ,waitc(waitc){}
+      : waitc(waitc),runtime(runtime_i),time(0){}
   Scheduler(Scheduler& sch) = default;   // copy
   Scheduler(Scheduler&& sch) = default;  // move
   Scheduler& operator=(const Scheduler&) = default;

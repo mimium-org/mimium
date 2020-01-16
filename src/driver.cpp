@@ -95,7 +95,7 @@ AST_Ptr MimiumDriver::add_lambda(std::shared_ptr<ArgumentsAST> args,AST_Ptr body
    return std::make_unique<LambdaAST>(std::move(args),std::move(body),std::move(type));
 }
 AST_Ptr MimiumDriver::add_lambda_only_with_returntype(std::shared_ptr<ArgumentsAST> args,AST_Ptr body,mimium::types::Value rettype){
-   mimium::types::Function ftype({},std::move(rettype));
+   mimium::types::Function ftype(std::move(rettype),{});
    return std::make_unique<LambdaAST>(std::move(args),std::move(body),std::move(ftype));
 }
 

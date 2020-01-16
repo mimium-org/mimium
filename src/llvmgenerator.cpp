@@ -14,7 +14,6 @@ LLVMGenerator::LLVMGenerator(std::string filename, bool i_isjit)
 void LLVMGenerator::init(std::string filename) {
   builder = std::make_unique<llvm::IRBuilder<>>(ctx);
   module = std::make_unique<llvm::Module>(filename, ctx);
-  builtinfn = std::make_shared<LLVMBuiltin>();
   module->setDataLayout(jitengine->getDataLayout());
 }
 void LLVMGenerator::reset(std::string filename) {
@@ -54,7 +53,7 @@ void LLVMGenerator::dropAllReferences() {
   }
 }
 
-auto LLVMGenerator::getRawStructType(const types::Struct& type) -> llvm::Type* {
+auto LLVMGenerator::getRawStructType(types::Struct& type) -> llvm::Type* {
   llvm::Type* res;
 
   // prevent from type duplication(more efficient impl?)
@@ -78,38 +77,35 @@ auto LLVMGenerator::getRawStructType(const types::Struct& type) -> llvm::Type* {
   }
   return res;
 }
-auto LLVMGenerator::getType(const types::Value& type) -> llvm::Type* {
+auto LLVMGenerator::getType(types::Value& type) -> llvm::Type* {
   return std::visit(
-      overloaded{[this](const types::Float& /*f*/) {
-                   return llvm::Type::getDoubleTy(ctx);
-                 },
-                 [this](const recursive_wrapper<types::Function>& rf) {
-                   auto f = types::Function(rf);
-                   std::vector<llvm::Type*> args;
-                   auto* rettype = getType(f.getReturnType());
-                   for (auto& a : f.getArgTypes()) {
-                     auto* atype = getType(a);
-                     args.emplace_back(atype);
-                   }
-                   return llvm::cast<llvm::Type>(
-                       llvm::FunctionType::get(rettype, args, false));
-                 },
-                 [this](const recursive_wrapper<types::Struct>& rs) {
-                   return llvm::cast<llvm::Type>(llvm::PointerType::get(
-                       getRawStructType((types::Struct)rs), 0));
-                 },
-                 [this](const types::Void& /* t */) {
-                   return llvm::Type::getVoidTy(ctx);
-                 },
-                 [this](const recursive_wrapper<types::Time>& time) {
-                   types::Time t = time;
-                   return getOrCreateTimeStruct(t);
-                 },
-                 [this](auto& t) {  // NOLINT
-                   throw std::logic_error("invalid type");
-                   return llvm::Type::getVoidTy(ctx);
-                   ;
-                 }},
+      overloaded{
+          [this](types::Float& /*f*/) { return llvm::Type::getDoubleTy(ctx); },
+          [this](recursive_wrapper<types::Function>& rf) {
+            types::Function f = rf;
+            std::vector<llvm::Type*> args;
+            auto* rettype = getType(f.getReturnType());
+            std::for_each(f.arg_types.begin(), f.arg_types.end(),
+                          [&](auto& a) { args.emplace_back(getType(a)); });
+            return llvm::cast<llvm::Type>(
+                llvm::FunctionType::get(rettype, args, false));
+          },
+          [this](recursive_wrapper<types::Struct>& rs) {
+            types::Struct& s = rs;
+            return llvm::cast<llvm::Type>(llvm::PointerType::get(
+
+                getRawStructType(s), 0));
+          },
+          [this](types::Void& /* t */) { return llvm::Type::getVoidTy(ctx); },
+          [this](recursive_wrapper<types::Time>& time) {
+            types::Time t = time;
+            return getOrCreateTimeStruct(t);
+          },
+          [this](auto& t) {  // NOLINT
+            throw std::logic_error("invalid type");
+            return llvm::Type::getVoidTy(ctx);
+            ;
+          }},
       type);
 }
 
@@ -124,7 +120,8 @@ void LLVMGenerator::createMiscDeclarations() {
   namemap.emplace("malloc", res);
 }
 
-//Create mimium_main() function it returns address of closure object for dsp() function if it exists.
+// Create mimium_main() function it returns address of closure object for dsp()
+// function if it exists.
 
 void LLVMGenerator::createMainFun() {
   auto* fntype = llvm::FunctionType::get(builder->getInt8PtrTy(), false);
@@ -197,13 +194,13 @@ void LLVMGenerator::generateCode(std::shared_ptr<MIRblock> mir) {
   for (auto& inst : mir->instructions) {
     visitInstructions(inst, true);
   }
-  if (mainentry->getTerminator() ==
-      nullptr) {  // insert return
+  if (mainentry->getTerminator() == nullptr) {  // insert return
     auto dspaddress = namemap.find("dsp_cls");
-    if(dspaddress != namemap.end()){
-    builder->CreateRet(dspaddress->second);
-    }else{
-      builder->CreateRet(llvm::ConstantPointerNull::get(builder->getInt8PtrTy()));
+    if (dspaddress != namemap.end()) {
+      builder->CreateRet(dspaddress->second);
+    } else {
+      builder->CreateRet(
+          llvm::ConstantPointerNull::get(builder->getInt8PtrTy()));
     }
   }
 }
@@ -363,7 +360,8 @@ void LLVMGenerator::visitInstructions(const Instructions& inst, bool isglobal) {
 
             std::for_each(i->args.begin(), i->args.end(),
                           [&](std::string s) { (f_it++)->setName(s); });
-            //if function is closure,append closure argument, dsp function is forced to be closure function
+            // if function is closure,append closure argument, dsp function is
+            // forced to be closure function
             if (hasfv || i->lv_name == "dsp") {
               auto it = f->args().end();
               auto lastelem = (--it);
@@ -427,9 +425,13 @@ void LLVMGenerator::visitInstructions(const Instructions& inst, bool isglobal) {
               createAddTaskFn(i, isclosure, isglobal);
             } else {
               if (LLVMBuiltin::isBuiltin(i->fname)) {
-                auto it = LLVMBuiltin::builtin_fntable.find(i->fname);
-                builtintype fn = it->second;
-                auto* res = fn(args, i->lv_name, this->shared_from_this());
+                auto it = LLVMBuiltin::ftable.find(i->fname);
+                BuiltinFnInfo& fninfo = it->second;
+                auto* fntype = llvm::cast<llvm::FunctionType>(getType(fninfo.mmmtype));
+                auto fn = module->getOrInsertFunction(fninfo.target_fnname,fntype);
+                llvm::cast<llvm::Function>(fn.getCallee())->setCallingConv(llvm::CallingConv::C);
+                auto* res =
+                    builder->CreateCall(fn.getCallee(), args, i->lv_name);
                 namemap.emplace(i->lv_name, res);
               } else {
                 llvm::Function* fun = module->getFunction(i->fname);

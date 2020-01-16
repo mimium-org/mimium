@@ -1,5 +1,5 @@
 mytime = 0
 fn dsp(time::Float)->Float{
     mytime=mytime+1
-    return sin(mytime)
+    return sin(mytime)*0.01
 }

@@ -27,15 +27,14 @@
 #include "jit_engine.hpp"
 
 namespace mimium {
-class LLVMBuiltin;
+struct LLVMBuiltin;
 
 class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
  private:
   // std::string filename;
-  std::shared_ptr<LLVMBuiltin> builtinfn;
   [[maybe_unused]]bool isjit;
-  auto getType(const types::Value& type) -> llvm::Type*;
-  auto getRawStructType(const types::Struct& type) -> llvm::Type*;
+  auto getType(types::Value& type) -> llvm::Type*;
+  auto getRawStructType( types::Struct& type) -> llvm::Type*;
   void preprocess();
   void createMiscDeclarations();
   void createMainFun();
@@ -51,7 +50,7 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   llvm::FunctionCallee addtask;
   llvm::FunctionCallee addtask_cls;
 
-  unsigned int taskfn_typeid;
+  [[maybe_unused]] unsigned int taskfn_typeid;
   std::vector<types::Value> tasktype_list;
   int struct_index=0;
   std::unordered_map<std::string,types::Struct> structtype_map;

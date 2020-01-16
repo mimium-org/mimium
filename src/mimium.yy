@@ -286,8 +286,7 @@ types : TYPEFLOAT {
       | fntype;
 
 fntype: TYPEFN '(' fntype_args ')' ARROW types {
-      mimium::types::Function f;
-      f.init(std::move($3),std::move($6));
+      mimium::types::Function f(std::move($6),std::move($3));
       mimium::types::Value v = std::move(f);
       $$ = std::move(v);
       };

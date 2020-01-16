@@ -1,6 +1,6 @@
 #pragma once
 #include "ast.hpp"
-#include "builtin_fn_types.hpp"
+#include "llvm_builtin_functions.hpp"
 #include "helper_functions.hpp"
 #include "type.hpp"
 // type inference ... assumed to be visited after finished alpha-conversion(each
@@ -35,6 +35,7 @@ class TypeInferVisitor : public ASTVisitor {
 
   bool typeCheck(types::Value& lt, types::Value& rt);
   bool unify(types::Value& lt, types::Value& rt);
+
   bool unify(std::string lname, std::string rname);
   bool unify(std::string lname, types::Value& rt);
   bool unifyArg(types::Value& target, types::Value& realarg);

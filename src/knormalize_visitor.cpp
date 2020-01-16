@@ -1,7 +1,6 @@
 #include "knormalize_visitor.hpp"
 
 #include "ast.hpp"
-#include "builtin_fn_types.hpp"
 
 namespace mimium {
 
@@ -189,8 +188,7 @@ void KNormalizeVisitor::visit(FcallAST& ast) {
     newarg.push_back(stackPopStr());
   }
   ast.accept(*typeinfer);
-  auto tm = builtin::types_map;
-  auto fnkind = (tm.find(fname) != tm.end()) ? EXTERNAL : CLOSURE;
+  auto fnkind = (LLVMBuiltin::ftable.find(fname) != LLVMBuiltin::ftable.end()) ? EXTERNAL : CLOSURE;
   Instructions newinst =
       std::make_shared<FcallInst>(newname, fname, std::move(newarg), fnkind,
                                   typeinfer->getLastType(), isArgTime(*args));
