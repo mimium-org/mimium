@@ -1,19 +1,8 @@
 #pragma once
 
-#include <deque>
-#include <iostream>
-#include <map>
-#include <memory>
-#include <sstream>
-#include <stack>
-#include <string>
-#include <unordered_map>
-#include <utility>  //pair
-#include <variant>
-#include <vector>
-
 #include "basic/helper_functions.hpp"
 #include "basic/type.hpp"
+
 namespace mimium {
 
 enum AST_ID {

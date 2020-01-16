@@ -1,32 +1,51 @@
-#define _USE_MATH_DEFINES
 #include "runtime/scheduler.hpp"
 
-#include <cmath>
-#include <cstdlib>
 namespace mimium {
 
-// void Scheduler::executeTask() {
-//   tasks.top().second->accept(*interpreter);
-//   // current_task_index->second->accept(*interpreter);
-//   // const auto deleteitr = current_task_index;
-//   // current_task_index++;
-//   tasks.pop();
-//   // tasks.erase(deleteitr);
-//   if (time > tasks.top().first) {
-//     executeTask();  // recursively execute if multiple tasks exist at the
-//     same
-//                     // time
-//   }
-// }
-
-void SchedulerRT::start() {
-  userdata.dspfn_ptr = runtime->getDspFn();
-  userdata.dspfncls_ptr = runtime->getDspFnCls();
-  audio.setCallback(SchedulerRT::audioCallback, &userdata);
-  audio.start();
+bool Scheduler::Greater::operator()(const key_type &l, const key_type &r)const{
+      return l.first > r.first;
 }
 
-void SchedulerRT::stop() {
+bool Scheduler::incrementTime() {
+  bool res = false;
+  bool hastask = !tasks.empty();
+  if (!hastask && !runtime->hasDsp()) {
+    res = true;
+  } else {
+    time += 1;
+    if (hastask && time > tasks.top().first) {
+      executeTask(tasks.top().second);
+    }
+  }
+  return res;
+};
+void Scheduler::addTask(double time, void* addresstofn, double arg,
+                        void* addresstocls) {
+  tasks.emplace(static_cast<int64_t>(time),
+                LLVMTaskType{addresstofn, arg, addresstocls});
+}
+
+void Scheduler::executeTask(const LLVMTaskType& task) {
+  // todo
+  auto& [addresstofn, arg, addresstocls] = task;
+
+  if (addresstocls == nullptr) {
+    auto fn = reinterpret_cast<void (*)(double)>(addresstofn);
+    fn(arg);
+  } else {
+    auto fn = reinterpret_cast<void (*)(double, void*)>(addresstofn);
+    fn(arg, addresstocls);
+  }
+  tasks.pop();
+  if (tasks.empty() && !runtime->hasDsp()) {
+    stop();
+  } else {
+    if (time > tasks.top().first) {
+      this->executeTask(tasks.top().second);
+    }
+  }
+}
+void Scheduler::haltRuntime(){
   isactive = false;
   {
     std::lock_guard<std::mutex> lock(waitc.mtx);
@@ -35,59 +54,36 @@ void SchedulerRT::stop() {
   waitc.cv.notify_all();  // notify to exit runtime;
 }
 
-int SchedulerRT::audioCallback(void* outputBuffer, void* inputBuffer,
-                               unsigned int nBufferFrames, double streamTime,
-                               RtAudioStreamStatus status, void* userData) {
-  auto data = static_cast<CallbackData*>(userData);
-  auto sch = data->scheduler;
-  auto dspfn = data->dspfn_ptr;
-  auto dspfn_cls = data->dspfncls_ptr;
-  // auto interpreter = data->interpreter;
-  if (sch->isactive) {
-    double* outputBuffer_d = static_cast<double*>(outputBuffer);
-    if (status)
-      Logger::debug_log("Stream underflow detected!", Logger::WARNING);
-    // Write interleaved audio data.
-    for (int i = 0; i < nBufferFrames; i++) {
-      auto shouldstop = sch->incrementTime();
-      if (shouldstop) {
-        sch->stop();        
-        break;
-      }
-      if (dspfn != nullptr) {
-          double res = dspfn((double)data->timeelapsed,dspfn_cls);
-        outputBuffer_d[i * 2] = res;
-        outputBuffer_d[i * 2 + 1] =res;
-      }
-      ++data->timeelapsed;
+SchedulerRT::SchedulerRT(std::shared_ptr<Runtime_LLVM> runtime_i,
+                         WaitController& waitc)
+    : Scheduler(runtime_i, waitc) {
+      audio= std::make_shared<AudioDriverRtAudio>(*this);
     }
-  }
-  return 0;
-}
-void SchedulerRT::executeTask(const LLVMTaskType& task) {
-  // todo
-  runtime->executeTask(task);
-  tasks.pop();
-  if (tasks.empty() && !runtime->hasDsp()) {
-    runtime->stop();
-  } else {
-    if (time > tasks.top().first) {
-      this->executeTask(tasks.top().second);
-    }
-  }
-}
 
+void SchedulerRT::start() { audio->start(); }
+
+void SchedulerRT::stop() {
+  audio->stop();
+  //cannnot call haltRuntime()???
+  isactive = false;
+  {
+    std::lock_guard<std::mutex> lock(waitc.mtx);
+    waitc.isready = true;
+  }
+  waitc.cv.notify_all();  // notify to exit runtime;
+}
+void SchedulerRT::setDsp(DspFnType fn, void *cls){
+    audio->setDspFn(fn,cls);
+  }
 SchedulerSndFile::SchedulerSndFile(
-    std::shared_ptr<Runtime<LLVMTaskType>> runtime_i, WaitController& waitc)
+    std::shared_ptr<Runtime_LLVM> runtime_i, WaitController& waitc)
     : Scheduler(runtime_i, waitc) {
   sfinfo.channels = 2;
   sfinfo.format = (SF_FORMAT_WAV | SF_FORMAT_PCM_16);
   sfinfo.samplerate = 48000;
   sfinfo.frames = 20 * 48000;  // temporary 20sec
-  buffer = new double[sfinfo.channels * sfinfo.frames];
+  buffer.reserve(sfinfo.channels * sfinfo.frames);
 }
-
-SchedulerSndFile::~SchedulerSndFile() { delete buffer; }
 
 void SchedulerSndFile::start() {
   fp = sf_open("temp.wav", SFM_WRITE, &sfinfo);
@@ -106,7 +102,7 @@ void SchedulerSndFile::start() {
       }
     }
   }
-  auto res = sf_writef_double(fp, buffer, 20 * 48000);
+  auto res = sf_writef_double(fp, buffer.data(), 20 * 48000);
   std::cout << res << std::endl;
   stop();
 }
@@ -118,9 +114,6 @@ void SchedulerSndFile::stop() {
     Logger::debug_log("File is closed", Logger::INFO);
     std::exit(0);
   }
-}
-void SchedulerSndFile::executeTask(const LLVMTaskType& task) {
-  // todo
 }
 
 }  // namespace mimium

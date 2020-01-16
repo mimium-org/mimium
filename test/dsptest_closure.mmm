@@ -1,5 +1,10 @@
 mytime = 0
+mytime2 = 0
+fn freq(time::Float)->Float{
+    return 3.14159*2*time/48000
+}
 fn dsp(time::Float)->Float{
-    mytime=mytime+1
-    return sin(mytime)*0.01
+
+    mytime=mytime+freq(1000)
+    return 0.02*(sin(mytime) + sin(mytime*2)+ sin(mytime*3)+ sin(mytime*4)+ sin(mytime*5)+ sin(mytime*6)+ sin(mytime*6)+ sin(mytime*8)+ sin(mytime*9)+ sin(mytime*10)+ sin(mytime*11)+ sin(mytime*12)+ sin(mytime*13)+ sin(mytime*14)+ sin(mytime*15)+ sin(mytime*16)+ sin(mytime*17)+ sin(mytime*18)+ sin(mytime*19)+ sin(mytime*20)+ sin(mytime*21)+ sin(mytime*22)+ sin(mytime*23)+ sin(mytime*24)+ sin(mytime*25)+ sin(mytime*26)+ sin(mytime*27)+ sin(mytime*28)+ sin(mytime*29))
 }

@@ -1,13 +1,12 @@
 #pragma once
-#include <memory>
-
-#include "basic/ast.hpp"
-#include "compiler/llvmgenerator.hpp"
+#include "basic/helper_functions.hpp"
+#include "jit_engine.hpp"
 #include "runtime/scheduler.hpp"
-#include "compiler/type_infer_visitor.hpp"
-#include "compiler/recursive_checker.hpp"
 
-namespace mimium {
+namespace mimium{
+class Scheduler;
+class SchedulerRT;
+class SchedulerSndFile;
   using DspFnType= double(*)(double,void*);
 struct LLVMTaskType {
   void* addresstofn;
@@ -15,42 +14,28 @@ struct LLVMTaskType {
   double arg;
   void* addresstocls;
 };
+}
+
+namespace mimium {
+
 
 template <typename TaskType>
-class Scheduler;
-
-
-class SchedulerRT;
-class SchedulerSndFile;
-
-template <typename TaskType>
-class Runtime : public std::enable_shared_from_this<Runtime<TaskType>> {
+class Runtime {
  public:
   Runtime(std::string filename_i = "untitled") :waitc(){}
 
   virtual ~Runtime() = default;
 
-  virtual void addScheduler(bool issoundfile) {
-    if (issoundfile) {
-      sch = std::make_shared<SchedulerSndFile>(this->shared_from_this(),waitc);
-    } else {
-      sch = std::make_shared<SchedulerRT>(this->shared_from_this(),waitc);
-    }
-  };
+  virtual void addScheduler(bool issoundfile)=0;
 
-  virtual void start() {
-    sch->start();
-    running_status = true;
-  };
+  virtual void start()=0;
   bool isrunning() { return running_status; };
   void stop() {
-    sch->stop();
     running_status = false;
   };
 
 
   auto getScheduler() { return sch; };
-  virtual void executeTask(const TaskType& task) = 0;
 
   virtual DspFnType getDspFn()=0;
   virtual void* getDspFnCls()=0;
@@ -58,26 +43,25 @@ class Runtime : public std::enable_shared_from_this<Runtime<TaskType>> {
   bool hasDspCls(){return hasdspcls;}
 
  protected:
-  std::shared_ptr<Scheduler<TaskType>> sch;
+  std::shared_ptr<Scheduler> sch;
   bool running_status = false;
   bool hasdsp=false;
   bool hasdspcls =false;
   WaitController waitc;
 };
 
-class Runtime_LLVM : public Runtime<LLVMTaskType> {
+class Runtime_LLVM : public Runtime<LLVMTaskType> , public std::enable_shared_from_this<Runtime_LLVM>{
  public:
   explicit Runtime_LLVM(std::string filename = "untitled.mmm",
                         bool isjit = true);
 
   ~Runtime_LLVM() = default;
-  void addScheduler(bool issoundfile) override;
-
+void addScheduler(bool is_soundfile)override;
   void start() override;
-  void executeModule(std::unique_ptr<llvm::Module> module);
-  void executeTask(const LLVMTaskType& task) override;
   DspFnType getDspFn() override;
   void* getDspFnCls()override;
+
+  void executeModule(std::unique_ptr<llvm::Module> module);
   auto& getJitEngine(){return *jitengine;}
   llvm::LLVMContext& getLLVMContext(){return jitengine->getContext();}
 

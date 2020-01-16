@@ -1,10 +1,19 @@
 #pragma once
 
-#include <iostream>
-#include <map>
 #include <numeric>
+
+#include <iostream>
+#include <stack>
+#include <map>
+#include <unordered_map>
+#include <memory>
 #include <string>
+#include <sstream>
+#include <utility>  //pair
+#include <variant>
+#include <vector>
 #include <deque>
+
 #include <mutex>
 #include <condition_variable>
 

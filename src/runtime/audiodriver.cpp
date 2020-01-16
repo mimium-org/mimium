@@ -1,34 +1,66 @@
 #include "runtime/audiodriver.hpp"
 
-#include <memory>
-
 namespace mimium {
-AudioDriver::AudioDriver() {
+
+AudioDriver::AudioDriver(Scheduler& sch, unsigned int sr, unsigned int bs,
+                       unsigned int chs)
+      : sample_rate(sr), buffer_size(bs), channels(chs), sch(sch) {
+    dspfn = sch.getRuntime().getDspFn();
+    dspfn_cls_address = sch.getRuntime().getDspFnCls();
+  }
+
+AudioDriverRtAudio::AudioDriverRtAudio(Scheduler& sch, unsigned int sr,
+                              unsigned int bs, unsigned int chs)
+      : AudioDriver(sch, sr, bs, chs),callbackdata{ &sch,sch.getRuntime().getDspFn(),sch.getRuntime().getDspFnCls(),0} {
   try {
-    rtaudio = std::make_shared<RtAudio>();
+    rtaudio = std::make_unique<RtAudio>();
   } catch (RtAudioError& e) {
     e.printMessage();
   }
 
   if (rtaudio->getDeviceCount() < 1) {
-    Logger::debug_log("No audio devices found!", Logger::WARNING);
+    throw std::runtime_error("No audio devices found!");
   }
   parameters.deviceId = rtaudio->getDefaultOutputDevice();
-  parameters.nChannels = channels;
+  parameters.nChannels = chs;
   parameters.firstChannel = 0;
 }
 
-bool AudioDriver::setCallback(RtAudioCallback cb, void* ud) {
-  callback = cb;
-  userdata = ud;
-  return true;
-}
+RtAudioCallback AudioDriverRtAudio::callback = [](void* output,void* input,unsigned int nFrames,double time, RtAudioStreamStatus status,void* userdata)->int{
+   auto data = static_cast<CallbackData*>(userdata);
+  auto sch = data->scheduler;
+  auto dspfn = data->dspfn_ptr;
+  auto dspfn_cls = data->dspfncls_ptr;
 
-bool AudioDriver::start() {
+  if (sch->isactive) {
+    auto* output_buffer_d = static_cast<double*>(output);
+    if (status)
+      Logger::debug_log("Stream underflow detected!", Logger::WARNING);
+    // Write interleaved audio data.
+    for (int i = 0; i < nFrames; i++) {
+      auto shouldstop = sch->incrementTime();
+      if (shouldstop) {
+        sch->stop();        
+        break;
+      }
+      if (dspfn != nullptr) {
+          double res = dspfn((double)data->timeelapsed,dspfn_cls);
+        output_buffer_d[i * 2] = res;
+        output_buffer_d[i * 2 + 1] =res;
+      }
+      ++data->timeelapsed;
+    }
+  }
+  return 0;
+};
+
+bool AudioDriverRtAudio::start() {
   try {
+    callbackdata.dspfn_ptr = dspfn;
+    callbackdata.dspfncls_ptr = dspfn_cls_address;
     sample_rate =   rtaudio->getDeviceInfo(parameters.deviceId).preferredSampleRate;
     rtaudio->openStream(&parameters, nullptr, RTAUDIO_FLOAT64, sample_rate,
-                        &buffer_frames, callback, userdata);
+                        &buffer_size, AudioDriverRtAudio::callback, &callbackdata);
     std::string deviceinfo ="Audio Device : ";
     auto device = rtaudio->getDeviceInfo(rtaudio->getDefaultOutputDevice());
     deviceinfo += device.name;
@@ -42,7 +74,7 @@ bool AudioDriver::start() {
   }
   return true;
 }
-bool AudioDriver::stop() {
+bool AudioDriverRtAudio::stop() {
   try {
     rtaudio->stopStream();
     if (rtaudio->isStreamOpen()) {
@@ -54,30 +86,15 @@ bool AudioDriver::stop() {
   }
   return true;
 }
-
-int AudioDriver::test_audiocallback(void* output_buffer, void* input_buffer,
-                                    unsigned int n_buffer_frames,
-                                    double stream_time,
-                                    RtAudioStreamStatus status,
-                                    void* user_data) {
-  auto* tcount = static_cast<double*>(user_data);
-  unsigned int i;
-  unsigned int j;
-  auto* buffer = static_cast<double*>(output_buffer);
-  // double *lastValues = (double *) userData;
-  if (status != 0u) {
-    std::cout << "Stream underflow detected!" << std::endl;
-  }
-  // Write interleaved audio data.
-  for (i = 0; i < n_buffer_frames / 2; i++) {
-    for (j = 0; j < 2; j++) {
-      buffer[i * 2 + j] = (j) ? std::sin(tcount[0]) : std::sin(tcount[1]);
-    }
-    tcount[0] = std::fmod(tcount[0] + 0.1, M_PI * 2);
-    tcount[1] = std::fmod(tcount[1] + 0.2, M_PI * 2);
-  }
-
-  return 0;
-}
+// int AudioDriver::process(double** input, double** output, unsigned int samplerate,
+//               unsigned int buffersize, unsigned int channels,
+//               void* userdata){
+//     for(int ch=0;ch<channels;++ch){
+//       for(int s = 0;s<buffersize;++s){
+//         sch.incrementTime();
+//         output[s][ch] = dspfn(sch.getTime(),dspfn_cls_address);
+//       }
+//     }
+// }
 
 }  // namespace mimium

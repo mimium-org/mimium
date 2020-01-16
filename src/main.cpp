@@ -19,7 +19,7 @@ using Logger = mimium::Logger;
 
 extern "C" {
 
-mimium::Scheduler<mimium::LLVMTaskType>* global_sch;
+mimium::Scheduler* global_sch;
 void addTask(double time, void* addresstofn,  double arg) {
   global_sch->addTask(time, addresstofn, arg, nullptr);
 }
@@ -42,6 +42,7 @@ int myprint(double d) {
 
 std::function<void(int)> shutdown_handler;
 void signalHandler(int signo) { shutdown_handler(signo); }
+
 auto main(int argc, char** argv) -> int {
   enum class CompileStage : int {
     AST = 0,

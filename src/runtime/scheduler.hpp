@@ -1,124 +1,86 @@
 #pragma once
-#include <map>
-#include <memory>
-#include <queue>
-#include <utility>
 
 #include "basic/ast.hpp"
-#include "runtime/audiodriver.hpp"
 #include "basic/helper_functions.hpp"
-#include "llvm/IR/DerivedTypes.h"
+#include "runtime/audiodriver.hpp"
 #include "runtime/runtime.hpp"
 #include "sndfile.h"
 
 namespace mimium {
 struct LLVMTaskType;
 
-template <typename TaskType>
-class Runtime;
-template <typename TaskType>
+class AudioDriver;
+class Runtime_LLVM;
+
 class Scheduler {  // scheduler interface
  public:
-  explicit Scheduler(std::shared_ptr<Runtime<TaskType>> runtime_i,WaitController& waitc)
-      : waitc(waitc),runtime(runtime_i),time(0){}
-  Scheduler(Scheduler& sch) = default;   // copy
-  Scheduler(Scheduler&& sch) = default;  // move
-  Scheduler& operator=(const Scheduler&) = default;
-  Scheduler& operator=(Scheduler&&) = default;
-  virtual ~Scheduler(){};
+  explicit Scheduler(std::shared_ptr<Runtime_LLVM> runtime_i,
+                     WaitController& waitc)
+      : waitc(waitc), runtime(runtime_i), time(0) {}
+
+  virtual ~Scheduler()=default;
   virtual void start() = 0;
   virtual void stop() = 0;
-  virtual void stopAudioDriver()=0;
+  void haltRuntime();
 
   bool hasTask() { return !tasks.empty(); }
 
-  //tick the time and return if scheduler should be stopped
-  bool incrementTime() {
-    bool res = false;
-    bool hastask = !tasks.empty();
-    if (!hastask && !runtime->hasDsp()) {
-      res=true;
-    } else {
-      time+=1;
-      if (hastask && time > tasks.top().first) {
-        executeTask(tasks.top().second);
-      }
-    }
-    return res;
-  };
+  // tick the time and return if scheduler should be stopped
+  bool incrementTime();
+
   // time,address to fun, arg(double), addresstoclosure,
-  void addTask(double time, void* addresstofn, double arg,
-               void* addresstocls) {
-    TaskType task ={addresstofn, arg, addresstocls};
-    tasks.emplace(static_cast<int64_t>(time), std::move(task));
-  };
-  // static auto getAddTaskAddress(){
-  //     void(Scheduler<TaskType>::*ptr)(double,double(*)(double),double,double*)
-  //     = &Scheduler<TaskType>::addTask; return ptr; }
-  bool isactive=true;
+  void addTask(double time, void* addresstofn, double arg, void* addresstocls);
+
+  virtual void setDsp(DspFnType fn,void* cls)=0;
+
+  bool isactive = true;
+  Runtime_LLVM& getRuntime() { return *runtime; };
+  auto getTime() { return time; };
 
  protected:
   WaitController& waitc;
-  std::shared_ptr<Runtime<TaskType>> runtime;
-  using key_type = std::pair<int64_t, TaskType>;
+  std::shared_ptr<Runtime_LLVM> runtime;
+  using key_type = std::pair<int64_t, LLVMTaskType>;
   struct Greater {
-    bool operator()(const key_type& l, const key_type& r) const {
-      return l.first > r.first;
-    }
+    bool operator()(const key_type& l, const key_type& r) const;
   };
 
   using queue_type =
       std::priority_queue<key_type, std::vector<key_type>, Greater>;
   int64_t time;
   queue_type tasks;
-  virtual void executeTask(const TaskType& task) = 0;
+  virtual void executeTask(const LLVMTaskType& task);
 };
-using DspFnType = double(*)(double,void*);
+using DspFnType = double (*)(double, void*);
 
-class SchedulerRT : public Scheduler<LLVMTaskType> {
+class SchedulerRT : public Scheduler {
  public:
-  struct CallbackData {
-    Scheduler<LLVMTaskType>* scheduler;
-    // std::shared_ptr<Runtime<LLVMTaskType>> runtime;
-    DspFnType dspfn_ptr;
-    void* dspfncls_ptr;
-    int64_t timeelapsed;
-    CallbackData() : scheduler(), timeelapsed(0){};
-  };
-  explicit SchedulerRT(std::shared_ptr<Runtime<LLVMTaskType>> runtime_i,WaitController& waitc)
-      : Scheduler<LLVMTaskType>(runtime_i,waitc), audio() {
-    userdata.scheduler = this;
-  };
-  virtual ~SchedulerRT(){};
+  explicit SchedulerRT(std::shared_ptr<Runtime_LLVM> runtime_i,
+                       WaitController& waitc);
+  ~SchedulerRT()override =default;
 
   void start() override;
   void stop() override;
-
-  inline int64_t getTime() { return time; }
-  static int audioCallback(void* outputBuffer, void* inputBuffer,
-                           unsigned int nBufferFrames, double streamTime,
-                           RtAudioStreamStatus status, void* userdata);
-  void stopAudioDriver()override {audio.stop();}
+  void setDsp(DspFnType fn,void* cls)override;
  private:
-  void executeTask(const LLVMTaskType& task) override;
-  AudioDriver audio;
-  CallbackData userdata;
+  std::shared_ptr<AudioDriver> audio;
 };
 
-class SchedulerSndFile : public Scheduler<LLVMTaskType> {
+class SchedulerSndFile : public Scheduler {
  public:
-  explicit SchedulerSndFile(std::shared_ptr<Runtime<LLVMTaskType>> runtime_i,WaitController& waitc);
-  ~SchedulerSndFile();
+  explicit SchedulerSndFile(std::shared_ptr<Runtime_LLVM> runtime_i,
+                            WaitController& waitc);
+  ~SchedulerSndFile()=default;
 
   void start() override;
   void stop() override;
-  void stopAudioDriver() override{};
-
+  void setDsp(DspFnType fn,void* cls)override{
+// later
+  }
  private:
   SNDFILE* fp;
   SF_INFO sfinfo;
-  double* buffer;
-  void executeTask(const LLVMTaskType& task) override;
+  std::vector<double> buffer;
 };
 
 }  // namespace mimium
