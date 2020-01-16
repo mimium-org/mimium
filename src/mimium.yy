@@ -233,6 +233,7 @@ expr : expr ADD    expr  {$$ = driver.add_op("+" , std::move($1),std::move($3));
      | expr LSHIFT expr  {$$ = driver.add_op("<<", std::move($1),std::move($3));}
      | expr RSHIFT expr  {$$ = driver.add_op(">>", std::move($1),std::move($3));}
      | expr NOT expr  {$$ = driver.add_op("!", std::move($1),std::move($3));}
+     | SUB expr {$$ = driver.add_op("-" ,driver.add_number(0),std::move($2));}
      | term_time {$$ = std::move($1);};
 
 term_time : term AT term {$$ = driver.set_time(std::move($1),std::move($3));}
