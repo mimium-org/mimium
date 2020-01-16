@@ -30,9 +30,7 @@ void KNormalizeVisitor::init() {
   rootblock = std::make_shared<MIRblock>("main");
   currentblock = rootblock;
   current_context = nullptr;
-  while (!res_stack.empty()) {
-    res_stack.pop();  // make stack empty
-  }
+
 }
 // AST_Ptr KNormalizeVisitor::insertAssign(AST_Ptr ast) {
 //   if (ast->getid() == OP) {
@@ -54,10 +52,7 @@ void KNormalizeVisitor::visit(ListAST& ast) {
   for (auto& elem : ast.getElements()) {
     elem->accept(*this);
   }
-  // //res_stack.push(current_context);
-  // if(tempctx!=nullptr){//if top level, keep currentcontext to return
-  //   current_context = tempctx;//switch back ctx
-  // }
+
 }
 
 void KNormalizeVisitor::visit(OpAST& ast) {
@@ -72,7 +67,7 @@ void KNormalizeVisitor::visit(OpAST& ast) {
   res_stack_str.push(name);
 }
 void KNormalizeVisitor::insertOverWrite(AST_Ptr body, const std::string& name) {
-  body->accept(*this);  // result is stored into res_stack
+  body->accept(*this);  
   auto newname = stackPopStr();
   auto type = typeinfer.getEnv().find(name);
   typeinfer.getEnv().emplace(newname, type);

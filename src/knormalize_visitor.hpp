@@ -30,7 +30,6 @@ class KNormalizeVisitor : public ASTVisitor {
   void visit(TimeAST& ast) override;
   void visit(StructAST& ast) override;
   void visit(StructAccessAST& ast) override;
-  mValue findVariable(std::string /*str*/) override { return 0.; }  //??
 
   std::shared_ptr<MIRblock> getResult();
 
@@ -55,7 +54,6 @@ class KNormalizeVisitor : public ASTVisitor {
   std::vector<std::string> lvar_list;
   std::string stackPopStr() {
     auto ret = res_stack_str.top();
-    res_stack_str.pop();
     return ret;
   }
 };

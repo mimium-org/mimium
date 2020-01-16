@@ -6,6 +6,7 @@
   #define YY_DECL int mmmpsr::MimiumScanner::yylex( mmmpsr::MimiumParser::semantic_type * const lval, mmmpsr::MimiumParser::location_type *loc )
   
   using token = mmmpsr::MimiumParser::token;
+  using namespace mimium;
   #define yyterminate() return ( token::ENDFILE )
   #define YY_USER_ACTION loc->step(); loc->columns(yyleng);
 %}

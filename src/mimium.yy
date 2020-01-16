@@ -23,10 +23,13 @@
       class MimiumScanner;
    }
   #include <memory>
+  
   #include <sstream>
+
 #include "ast.hpp"
 #include "helper_functions.hpp"
-  using AST_Ptr = std::shared_ptr<AST>;
+using namespace mimium;
+
   #define YYDEBUG 1
 
 }
@@ -35,6 +38,7 @@
 
 %code {
     #include "driver.hpp"
+  using namespace mimium;
 
   #undef yylex
   #define yylex scanner.yylex

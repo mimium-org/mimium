@@ -3,14 +3,16 @@
 #include <utility>
 
 #include "ast.hpp"
-#include "closure_convert.hpp"
 #include "environment.hpp"
+#include "closure_convert.hpp"
 #include "type.hpp"
 
 namespace mimium {
+
 enum FCALLTYPE { DIRECT, CLOSURE, EXTERNAL };
 static std::map<FCALLTYPE, std::string> fcalltype_str = {
     {DIRECT, ""}, {CLOSURE, "cls"}, {EXTERNAL, "ext"}};
+
 class ClosureConverter;  // forward decl
 class MIRblock;
 
@@ -113,7 +115,8 @@ class NumberInst : public MIRinstruction {
 class AllocaInst : public MIRinstruction {  // unused??
 
  public:
-  AllocaInst(std::string lv,types::Value type = types::Float()) : MIRinstruction(lv,type) {}
+  AllocaInst(std::string lv, types::Value type = types::Float())
+      : MIRinstruction(lv, type) {}
   std::string toString() override;
   void closureConvert(std::deque<TypedVal>& fvlist,
                       std::shared_ptr<ClosureConverter> cc,
@@ -189,8 +192,10 @@ class FunInst : public MIRinstruction,
   std::deque<TypedVal> freevariables;  // introduced in closure conversion;
   bool isrecursive;
   FunInst(std::string name, std::deque<std::string> newargs,
-          types::Value _type = types::Void(),bool isrecursive =false)
-      : MIRinstruction(name, _type), args(std::move(newargs)),isrecursive(isrecursive) {
+          types::Value _type = types::Void(), bool isrecursive = false)
+      : MIRinstruction(name, _type),
+        args(std::move(newargs)),
+        isrecursive(isrecursive) {
     body = std::make_shared<MIRblock>(name);
   };
   std::string toString() override;
@@ -261,8 +266,9 @@ class ArrayAccessInst : public MIRinstruction {
 
  public:
   ArrayAccessInst(std::string _lv, std::string _name, std::string _index)
-      : MIRinstruction(_lv,types::Float()),name(std::move(_name)), index(std::move(_index)) {
-  }
+      : MIRinstruction(_lv, types::Float()),
+        name(std::move(_name)),
+        index(std::move(_index)) {}
   std::string toString() override;
   void closureConvert(std::deque<TypedVal>& fvlist,
                       std::shared_ptr<ClosureConverter> cc,
@@ -274,7 +280,8 @@ class IfInst : public MIRinstruction {
   std::string cond;
   std::shared_ptr<MIRblock> thenblock;
   std::shared_ptr<MIRblock> elseblock;
-  IfInst(std::string name, std::string _cond) : MIRinstruction(name,types::Void()),cond(std::move(_cond)) {
+  IfInst(std::string name, std::string _cond)
+      : MIRinstruction(name, types::Void()), cond(std::move(_cond)) {
     thenblock = std::make_shared<MIRblock>(name + "$then");
     elseblock = std::make_shared<MIRblock>(name + "$else");
   }
@@ -289,12 +296,12 @@ class ReturnInst : public MIRinstruction {
   std::string val;
   ReturnInst(std::string name, std::string _val,
              types::Value _type = types::Float())
-      : MIRinstruction(name,_type),val(std::move(_val)) {
-  }
+      : MIRinstruction(name, _type), val(std::move(_val)) {}
   std::string toString() override;
   void closureConvert(std::deque<TypedVal>& fvlist,
                       std::shared_ptr<ClosureConverter> cc,
                       std::shared_ptr<MIRblock> mir,
                       std::list<Instructions>::iterator it) override;
 };
+
 }  // namespace mimium

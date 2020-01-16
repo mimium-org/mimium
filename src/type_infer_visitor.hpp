@@ -40,7 +40,6 @@ class TypeInferVisitor : public ASTVisitor {
   bool unify(std::string lname, types::Value& rt);
   bool unifyArg(types::Value& target, types::Value& realarg);
 
-  mValue findVariable(std::string /*str*/) override { return 0.; }  //??
   TypeEnv& getEnv() { return typeenv; };
   types::Value getLastType() { return res_stack; }
   std::string_view tmpfname;

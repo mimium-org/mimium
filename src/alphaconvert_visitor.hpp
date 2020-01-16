@@ -31,8 +31,8 @@ class AlphaConvertVisitor : public ASTVisitor {
   void visit(StructAST& ast)override;
   void visit(StructAccessAST& ast)override;
   auto getResult() -> std::shared_ptr<ListAST>;
-  mValue findVariable(std::string str)override{return 0.;};
  private:
+ std::stack<AST_Ptr>  res_stack;
   template <class T>
   void defaultvisit(T& ast) {
     res_stack.push(std::make_unique<T>(ast));  // move by copy constructor;
@@ -53,7 +53,11 @@ class AlphaConvertVisitor : public ASTVisitor {
   std::shared_ptr<Environment<std::string>> env;
   int namecount;
   int envcount;
-  auto stackPopPtr() -> AST_Ptr { return std::get<AST_Ptr>(stack_pop()); }
+  auto stackPopPtr() -> AST_Ptr { 
+    auto r = res_stack.top();
+    res_stack.pop();
+    return r;
+     }
 };
 
 }  // namespace mimium

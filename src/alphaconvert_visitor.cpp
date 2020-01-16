@@ -15,7 +15,7 @@ void AlphaConvertVisitor::init() {
 
 AlphaConvertVisitor::~AlphaConvertVisitor() = default;
 auto AlphaConvertVisitor::getResult() -> std::shared_ptr<ListAST> {
-  return std::static_pointer_cast<ListAST>(std::get<AST_Ptr>(res_stack.top()));
+  return std::static_pointer_cast<ListAST>(res_stack.top());
 };
 
 auto AlphaConvertVisitor::createNewLVar(LvarAST& ast)
@@ -47,7 +47,7 @@ void AlphaConvertVisitor::visit(RvarAST& ast) {
     newname = ast.getVal();
     Logger::debug_log("symbol "+ast.getVal()+" not found, assumed to be external/builtin function", Logger::DEBUG);
   }
-  auto newast = std::make_unique<RvarAST>(newname);
+  AST_Ptr newast = std::make_shared<RvarAST>(newname);
   res_stack.push(std::move(newast));
 }
 void AlphaConvertVisitor::visit(OpAST& ast) {

@@ -1,6 +1,6 @@
 
 #include "ast.hpp"
-
+namespace mimium{
 std::string NumberAST::toString() {
   std::stringstream ss;
   ss << val;
@@ -118,3 +118,4 @@ std::string StructAccessAST::toString() {
 std::string StructAccessAST::toJson() {
     return "[structaccess , " + key->toString() + " , " + val->toString()+"]";
 }
+}//namespace mimium

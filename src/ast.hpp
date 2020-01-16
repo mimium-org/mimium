@@ -14,6 +14,7 @@
 
 #include "helper_functions.hpp"
 #include "type.hpp"
+namespace mimium {
 
 enum AST_ID {
   BASE,
@@ -66,14 +67,8 @@ class FcallAST;
 class StructAST;  // currently internally used for closure conversion;
 class StructAccessAST;
 
-namespace mimium {
-struct Closure;  // forward
-};
-using mClosure_ptr = std::shared_ptr<mimium::Closure>;
 
 using AST_Ptr = std::shared_ptr<AST>;
-using mValue = std::variant<double, std::shared_ptr<AST>, mClosure_ptr,
-                            std::vector<double>, std::string>;
 
 class ASTVisitor {
  public:
@@ -98,15 +93,9 @@ class ASTVisitor {
   virtual void visit(TimeAST& ast) = 0;
   virtual void visit(StructAST& ast) = 0;
   virtual void visit(StructAccessAST& ast) = 0;
-  virtual mValue findVariable(std::string str) = 0;
-  mValue stack_pop() {  // helper
-    auto res = res_stack.top();
-    res_stack.pop();
-    return res;
-  }
+
 
  protected:
-  std::stack<mValue> res_stack;
 };
 
 class AST {
@@ -415,3 +404,5 @@ class StructAccessAST : public AST {
   std::string toString() override;
   std::string toJson() override;
 };
+
+}//namespace mimium

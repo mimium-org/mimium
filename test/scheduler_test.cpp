@@ -10,7 +10,6 @@ int main() {
     interpreter.init();
      driver.parsefile("test_time.mmm");
      runtime->start();
-     mValue res = runtime->loadAst(driver.getMainAst());
      sleep(20);
     runtime->stop();
     return 0;

@@ -31,7 +31,6 @@ class RecursiveChecker : public ASTVisitor {
   void visit(TimeAST& ast) override;
   void visit(StructAST& ast) override;
   void visit(StructAccessAST& ast) override;
-  mValue findVariable(std::string str) override{return 0.;};
 
  private:
   bool isrecursive;
