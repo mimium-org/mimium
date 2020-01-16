@@ -12,8 +12,8 @@
 #include <variant>
 #include <vector>
 
-#include "type.hpp"
 #include "helper_functions.hpp"
+#include "type.hpp"
 
 enum AST_ID {
   BASE,
@@ -48,15 +48,13 @@ class LvarAST;
 class RvarAST;
 class AssignAST;
 class LambdaAST;
-template<typename T,AST_ID IDTYPE>
+template <typename T, AST_ID IDTYPE>
 class AbstractListAST;
-using ArgumentsAST = AbstractListAST<std::shared_ptr<LvarAST>,ARGS>;
-using FcallArgsAST = AbstractListAST<std::shared_ptr<AST>,FCALLARGS>;
-using ListAST = AbstractListAST<std::shared_ptr<AST>,LIST>;
+using ArgumentsAST = AbstractListAST<std::shared_ptr<LvarAST>, ARGS>;
+using FcallArgsAST = AbstractListAST<std::shared_ptr<AST>, FCALLARGS>;
+using ListAST = AbstractListAST<std::shared_ptr<AST>, LIST>;
 
-
-using ArrayAST = AbstractListAST<std::shared_ptr<AST>,ARRAY>;
-
+using ArrayAST = AbstractListAST<std::shared_ptr<AST>, ARRAY>;
 
 class ArrayAccessAST;
 class TimeAST;
@@ -119,12 +117,12 @@ class AST {
   virtual void accept(ASTVisitor& visitor) = 0;
 
   AST_ID getid() { return id; }
-  
+
  protected:
   AST_ID id = BASE;
 };
 
-enum OP_ID {
+enum class OP_ID {
   ADD,
   SUB,
   MUL,
@@ -143,10 +141,12 @@ enum OP_ID {
   RSHIFT
 };
 static std::map<std::string, OP_ID> optable = {
-    {"+", ADD},     {"-", SUB},    {"*", MUL},     {"/", DIV},
-    {"^", EXP},     {"%", MOD},    {"&", AND},     {"|", OR},
-    {"&&", BITAND}, {"||", BITOR}, {"<", LT},      {">", GT},
-    {"<=", LE},     {">=", GE},    {"<<", LSHIFT}, {">>", RSHIFT}};
+    {"+", OP_ID::ADD},    {"-", OP_ID::SUB}, {"*", OP_ID::MUL},
+    {"/", OP_ID::DIV},    {"^", OP_ID::EXP}, {"%", OP_ID::MOD},
+    {"&", OP_ID::AND},    {"|", OP_ID::OR},  {"&&", OP_ID::BITAND},
+    {"||", OP_ID::BITOR}, {"<", OP_ID::LT},  {">", OP_ID::GT},
+    {"<=", OP_ID::LE},    {">=", OP_ID::GE}, {"<<", OP_ID::LSHIFT},
+    {">>", OP_ID::RSHIFT}};
 
 class OpAST : public AST {
  public:
@@ -158,13 +158,13 @@ class OpAST : public AST {
   // OpAST(OP_ID Op_id, AST_Ptr LHS, AST_Ptr RHS)
   //     : op_id(Op_id), lhs(std::move(LHS)), rhs(std::move(RHS)) {
   //   id = OP;
-  
+
   // }
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
   std::string toString() override;
   std::string toJson() override;
   OP_ID getOpId() { return op_id; };
-  std::string getOpStr(){ return op;};
+  std::string getOpStr() { return op; };
 };
 
 // class ListAST : public AST {
@@ -203,7 +203,7 @@ class NumberAST : public AST {
 class SymbolAST : public AST {
  public:
   std::string val;
-  explicit SymbolAST(std::string input) : val(std::move(input)) { }
+  explicit SymbolAST(std::string input) : val(std::move(input)) {}
   // void accept(ASTVisitor& visitor) override{
   //     visitor.visit(*this);
   // };
@@ -214,38 +214,43 @@ class SymbolAST : public AST {
 class LvarAST : public SymbolAST {
  public:
   mimium::types::Value type;
-  explicit LvarAST(std::string input) : SymbolAST(input){
-    type = mimium::types::None();//default type is Float
-    id =LVAR;
+  explicit LvarAST(std::string input) : SymbolAST(input) {
+    type = mimium::types::None();  // default type is Float
+    id = LVAR;
   };
-  explicit LvarAST(std::string input, mimium::types::Value _type):SymbolAST(input){
+  explicit LvarAST(std::string input, mimium::types::Value _type)
+      : SymbolAST(input) {
     type = _type;
   }
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
-  auto& getType(){return type;}
+  auto& getType() { return type; }
 };
 class RvarAST : public SymbolAST {
  public:
-  explicit RvarAST(std::string input) : SymbolAST(input){id = RVAR;};
+  explicit RvarAST(std::string input) : SymbolAST(input) { id = RVAR; };
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
 };
 
-template<typename T,AST_ID IDTYPE>
-class AbstractListAST: public AST{
-  protected:
+template <typename T, AST_ID IDTYPE>
+class AbstractListAST : public AST {
+ protected:
   AST_ID id = IDTYPE;
+
  public:
   std::deque<T> elements;
-  
-  AbstractListAST() =default;// do nothing
+
+  AbstractListAST() = default;  // do nothing
   explicit AbstractListAST(T arg) { elements.push_front(std::move(arg)); }
   void addAST(T arg) { elements.push_front(std::move(arg)); };
   void appendAST(T arg) { elements.push_back(std::move(arg)); };
   auto& getElements() { return elements; }
-  std::string toString() override{ return "(" + mimium::join(elements," ") +")"; };
-  std::string toJson() override{ return "[" + mimium::join(elements," , ") +"]";};
+  std::string toString() override {
+    return "(" + mimium::join(elements, " ") + ")";
+  };
+  std::string toJson() override {
+    return "[" + mimium::join(elements, " , ") + "]";
+  };
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
-
 };
 
 class ArrayAccessAST : public AST {
@@ -267,9 +272,10 @@ class LambdaAST : public AST {
   std::shared_ptr<ArgumentsAST> args;
   AST_Ptr body;  // statements
   mimium::types::Value type;
-  bool isrecursive=false;
-  LambdaAST(std::shared_ptr<ArgumentsAST> Args, AST_Ptr Body,mimium::types::Value type = mimium::types::None())
-      : args(std::move(Args)), body(std::move(Body)),type(std::move(type)) {
+  bool isrecursive = false;
+  LambdaAST(std::shared_ptr<ArgumentsAST> Args, AST_Ptr Body,
+            mimium::types::Value type = mimium::types::None())
+      : args(std::move(Args)), body(std::move(Body)), type(std::move(type)) {
     id = LAMBDA;
   }
 

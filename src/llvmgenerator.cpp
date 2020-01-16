@@ -109,6 +109,14 @@ auto LLVMGenerator::getType(types::Value& type) -> llvm::Type* {
       type);
 }
 
+llvm::Function* LLVMGenerator::getForeignFunction(std::string name){
+  auto& [type,targetname] = LLVMBuiltin::ftable.find(name)->second;
+  auto fnc = module->getOrInsertFunction(name,llvm::cast<llvm::FunctionType>(getType(type)));
+  auto* fn = llvm::cast<llvm::Function>(fnc.getCallee());
+  fn->setCallingConv(llvm::CallingConv::C);
+  return fn;
+}
+
 void LLVMGenerator::setBB(llvm::BasicBlock* newblock) {
   builder->SetInsertPoint(newblock);
 }
@@ -357,17 +365,20 @@ void LLVMGenerator::visitInstructions(const Instructions& inst, bool isglobal) {
             auto* lhs = namemap[i->lhs];
             auto* rhs = namemap[i->rhs];
             switch (i->getOPid()) {
-              case ADD:
+              case OP_ID::ADD:
                 retvalue = builder->CreateFAdd(lhs, rhs, i->lv_name);
                 break;
-              case SUB:
+              case OP_ID::SUB:
                 retvalue = builder->CreateFSub(lhs, rhs, i->lv_name);
                 break;
-              case MUL:
+              case OP_ID::MUL:
                 retvalue = builder->CreateFMul(lhs, rhs, i->lv_name);
                 break;
-              case DIV:
+              case OP_ID::DIV:
                 retvalue = builder->CreateFDiv(lhs, rhs, i->lv_name);
+                break;
+              case OP_ID::MOD:
+                retvalue = builder->CreateCall(getForeignFunction("fmod"),{lhs,rhs},i->lv_name);
                 break;
               default:
                 retvalue = builder->CreateUnreachable();

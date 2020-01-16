@@ -36,6 +36,8 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   auto getType(types::Value& type) -> llvm::Type*;
   auto getRawStructType( types::Struct& type) -> llvm::Type*;
   void preprocess();
+  llvm::Function* getForeignFunction(std::string name);
+
   void createMiscDeclarations();
   void createMainFun();
   void createFcall(std::shared_ptr<FcallInst> i,std::vector<llvm::Value*>& args);
