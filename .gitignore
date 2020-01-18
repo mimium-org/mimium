@@ -7,7 +7,8 @@ Debug/
 build/*
 *.xcodeproj
 
-docs/
+docs/_*
+docs/api
 
 .vscode/*
 !.vscode/settings.json
