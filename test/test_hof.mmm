@@ -1,4 +1,4 @@
-fn hof(x, func::Fn(Float)->Float){
+fn hof(x, func::Fn(Float)->float){
     return func(x)
 }
 

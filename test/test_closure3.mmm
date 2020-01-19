@@ -1,9 +1,9 @@
 globalvar = 2
 print(globalvar)
-fn newprint(hoge::Float)->Void{
+fn newprint(hoge:float)->void{
     print(hoge)
 }
-fn closurefun(time::Float)->Void{
+fn closurefun(time:float)->void{
     newprint(globalvar)
     newprint(globalvar)
     newprint(globalvar)

@@ -1,5 +1,5 @@
 myvalue = 127
-dummy::Fn(Float)->Float=  (input::Float)->{
+dummy::Fn(Float)->float=  (input:float)->{
     newtime = input+100
     print(newtime)
     res= dummy(newtime@newtime)

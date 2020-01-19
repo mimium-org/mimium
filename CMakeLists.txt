@@ -32,7 +32,10 @@ SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
 # for macOS SDK Root
 
-
+list(APPEND CMAKE_PREFIX_PATH /usr/local/opt/flex)
+list(APPEND CMAKE_PREFIX_PATH /usr/local/opt/bison)
+find_package(BISON 3.2 REQUIRED VERBOSE REPORT_FILE ${CMAKE_CURRENT_BINARY_DIR}/bison.log)
+find_package(Flex REQUIRED)
 
 
 # Including custom cmake rules for clang-tidy and clang-format

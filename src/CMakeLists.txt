@@ -1,9 +1,4 @@
 cmake_minimum_required(VERSION 3.8)
-list(APPEND CMAKE_PREFIX_PATH /usr/local/opt/flex)
-list(APPEND CMAKE_PREFIX_PATH /usr/local/opt/bison)
-find_package(BISON 3.2 REQUIRED VERBOSE REPORT_FILE ${CMAKE_CURRENT_BINARY_DIR}/bison.log)
-find_package(Flex REQUIRED)
-
 
 add_subdirectory(basic)
 
@@ -26,5 +21,5 @@ target_link_libraries(mimium
     mimium_utils
     mimium_compiler
     mimium_runtime
-    LLVMSupport
+    LLVM
     )

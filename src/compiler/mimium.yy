@@ -271,7 +271,7 @@ single : rvar{$$=std::move($1);}
       | string{$$=std::move($1);}
       |  num   {$$=std::move($1);};
 
-string : STRING {$$ = driver.add_lvar($1);}
+string : STRING {$$ = driver.add_lvar($1,mimium::types::String());}
 ;
 
 num :NUM {$$ = driver.add_number($1);};
@@ -282,26 +282,23 @@ lvar : SYMBOL {$$ = driver.add_lvar($1);}
 
 rvar : SYMBOL {$$ = driver.add_rvar($1);}
 
-types : TYPEFLOAT {
-      mimium::types::Float f;
-      $$ =std::move(f);}
+types : TYPEFLOAT {;
+      $$ =mimium::types::Float();}
       | TYPEVOID{
-            mimium::types::Void v;
-            $$ = std::move(v);}
+            $$ = mimium::types::Void();}
       | fntype;
 
-fntype: TYPEFN '(' fntype_args ')' ARROW types {
-      mimium::types::Function f(std::move($6),std::move($3));
+fntype: '(' fntype_args ')' ARROW types {
+      mimium::types::Function f(std::move($5),std::move($2));
       mimium::types::Value v = std::move(f);
       $$ = std::move(v);
       };
 
 fntype_args  :  fntype_args ',' types {
-                  $1.push_back($3);
+                  $1.push_back(std::move($3));
                   $$ = std::move($1);}
             |   types  {
-                  std::vector<mimium::types::Value> v= {$1};
-                  $$ = std::move(v);}
+                  $$ = std::vector<mimium::types::Value>{$1};}
 ; 
 
 %%

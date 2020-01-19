@@ -1,11 +1,11 @@
 globalvar = 2
 globalvar2 = 5
 gv3 = 100
-fn closurefun(hoge::Float)->Float{
+fn closurefun(hoge:float)->float{
     return globalvar+globalvar2+hoge
 }
 
-fn myfun2(test::Float)->Float{
+fn myfun2(test:float)->float{
     return globalvar2+gv3*test
 }
 

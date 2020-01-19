@@ -139,7 +139,7 @@ void TypeInferVisitor::visit(ArrayAccessAST& ast) {
   types::Value res;
   types::Array arr =
       std::get<recursive_wrapper<types::Array>>(type);  // implicit cast
-  res = arr.getElemType();
+  res = arr.elem_type;
 
   res_stack = res;
 }
@@ -189,7 +189,7 @@ void TypeInferVisitor::visit(LambdaAST& ast) {
   types::Value res_type;
 
   if (isspecified) {
-    types::Function& fntype = std::get<recursive_wrapper<types::Function>>(ast.type);
+    types::Function fntype = std::get<recursive_wrapper<types::Function>>(ast.type);
     fntype.arg_types = argtypes;  // overwrite
     std::string s(tmpfname);
     types::Value f = fntype;

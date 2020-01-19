@@ -55,11 +55,11 @@ NEWLINE {BREAK}* | ";"
     return token::NUM;
 };
 
-"Float" return token::TYPEFLOAT;
-"Void" return token::TYPEVOID;
+"float" return token::TYPEFLOAT;
+"void" return token::TYPEVOID;
 "Fn" return token::TYPEFN;
 
-"::" return token::TYPE_DELIM;
+":" return token::TYPE_DELIM;
 
 "include" return token::INCLUDE;
 

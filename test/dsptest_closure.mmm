@@ -1,10 +1,17 @@
-mytime = 0
-mytime2 = 0
-fn freq(time::Float)->Float{
-    return 3.14159*2*time/48000
-}
-fn dsp(time::Float)->Float{
+SR= 48000
+freq=1000
+phase = 0
+PI=3.1415956
 
-    mytime=mytime+freq(1000)
-    return 0.02*(sin(mytime) + sin(mytime*2)+ sin(mytime*3)+ sin(mytime*4)+ sin(mytime*5)+ sin(mytime*6)+ sin(mytime*6)+ sin(mytime*8)+ sin(mytime*9)+ sin(mytime*10)+ sin(mytime*11)+ sin(mytime*12)+ sin(mytime*13)+ sin(mytime*14)+ sin(mytime*15)+ sin(mytime*16)+ sin(mytime*17)+ sin(mytime*18)+ sin(mytime*19)+ sin(mytime*20)+ sin(mytime*21)+ sin(mytime*22)+ sin(mytime*23)+ sin(mytime*24)+ sin(mytime*25)+ sin(mytime*26)+ sin(mytime*27)+ sin(mytime*28)+ sin(mytime*29))
+fn changeFreq(time:float)->void{
+    freq = (freq+12587)%4500
+    nt = time+freq*1
+    changeFreq(nt@nt)
 }
+
+fn dsp(time:float)->float{
+    phase = phase+ 2*PI*freq/SR
+    return sin(phase+10*sin(time/100))*atan(100*(sin(time/4000)+1)/4 )
+}
+
+changeFreq(0@0)

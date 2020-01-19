@@ -17,20 +17,17 @@ LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx)
       mainentry(nullptr),
       currentblock(nullptr) {
   builder = std::make_unique<llvm::IRBuilder<>>(ctx);
-
 }
 void LLVMGenerator::init(std::string filename) {
   module = std::make_unique<llvm::Module>(filename, ctx);
   // module->setDataLayout(LLVMGetDefaultTargetTriple());
 }
-void LLVMGenerator::setDataLayout(){
-    module->setDataLayout(LLVMGetDefaultTargetTriple());
-
+void LLVMGenerator::setDataLayout() {
+  module->setDataLayout(LLVMGetDefaultTargetTriple());
 }
 void LLVMGenerator::setDataLayout(const llvm::DataLayout& dl) {
   module->setDataLayout(dl);
 }
-
 
 void LLVMGenerator::reset(std::string filename) {
   dropAllReferences();
@@ -47,89 +44,64 @@ void LLVMGenerator::initJit() {}
 LLVMGenerator::~LLVMGenerator() { dropAllReferences(); }
 void LLVMGenerator::dropAllReferences() {
   namemap.clear();
-  if(module!=nullptr){
-  auto& flist = module->getFunctionList();
-  auto f = flist.begin();
-  while (!flist.empty()) {
-    auto& bbs = f->getBasicBlockList();
-    while (!bbs.empty()) {
-      auto bb = bbs.begin();
-      auto inst = bb->begin();
-      while (!bb->getInstList().empty()) {
-        inst->replaceAllUsesWith(llvm::UndefValue::get(inst->getType()));
-        // inst->dropAllReferences();
-        inst = inst->eraseFromParent();
+  if (module != nullptr) {
+    auto& flist = module->getFunctionList();
+    auto f = flist.begin();
+    while (!flist.empty()) {
+      auto& bbs = f->getBasicBlockList();
+      while (!bbs.empty()) {
+        auto bb = bbs.begin();
+        auto inst = bb->begin();
+        while (!bb->getInstList().empty()) {
+          inst->replaceAllUsesWith(llvm::UndefValue::get(inst->getType()));
+          // inst->dropAllReferences();
+          inst = inst->eraseFromParent();
+        }
+        bb->dropAllReferences();
+        bb = bb->eraseFromParent();
+        bb = bbs.begin();
       }
-      bb->dropAllReferences();
-      bb = bb->eraseFromParent();
-      bb = bbs.begin();
+      f->dropAllReferences();
+      flist.erase(f);
+      f = flist.begin();
     }
-    f->dropAllReferences();
-    flist.erase(f);
-    f = flist.begin();
-  }
   }
 }
-
-auto LLVMGenerator::getRawStructType(types::Struct& type) -> llvm::Type* {
-  llvm::Type* res;
-
-  // prevent from type duplication(more efficient impl?)
-  auto search = std::find_if(structtype_map.begin(), structtype_map.end(),
-                             [&](auto& s2) { return s2.second == type; });
-  if (search == structtype_map.end()) {
-    std::vector<llvm::Type*> field;
-    for (auto& a : type.arg_types) {
-      // TODO(Tomoya): need to identify case of free variable(pointer) and user
-      // defined structs
-      field.push_back(llvm::PointerType::get(getType(a), 0));
-    }
-    auto newname = "fvtype." + std::to_string(struct_index++);
-    res = llvm::StructType::create(ctx, field, newname);
-    structtype_map.emplace(newname, type);
-  } else {
-    res = module->getTypeByName(search->first);
-  }
-  if (res == nullptr) {
-    throw std::runtime_error("could not find struct type");
-  }
-  return res;
-}
+// auto LLVMGenerator::getRawStructType(types::Struct& type) -> llvm::Type* {
+//   auto ttype = static_cast<types::Tuple>(type);
+//   return getRawTupleType(ttype);
+// }
+// auto LLVMGenerator::getRawTupleType(types::Tuple& type) -> llvm::Type* {
+//   llvm::Type* res;
+//   // prevent from type duplication(more efficient impl?)
+//   auto search = std::find_if(structtype_map.begin(), structtype_map.end(),
+//                              [&](auto& s2) { return s2.second == type; });
+//   if (search == structtype_map.end()) {
+//     std::vector<llvm::Type*> field;
+//     for (auto& a : type.arg_types) {
+//       // TODO(Tomoya): need to identify case of free variable(pointer) and user
+//       // defined structs
+//       field.push_back(getType(a));
+//     }
+//     auto newname = "fvtype." + std::to_string(struct_index++);
+//     res = llvm::StructType::create(ctx, field, newname);
+//     structtype_map.emplace(newname, type);
+//   } else {
+//     res = module->getTypeByName(search->first);
+//   }
+//   if (res == nullptr) {
+//     throw std::runtime_error("could not find struct type");
+//   }
+//   return res;
+// }
 auto LLVMGenerator::getType(types::Value& type) -> llvm::Type* {
-  return std::visit(
-      overloaded{
-          [this](types::Float& /*f*/) { return llvm::Type::getDoubleTy(ctx); },
-          [this](recursive_wrapper<types::Function>& rf) {
-            types::Function f = rf;
-            std::vector<llvm::Type*> args;
-            auto* rettype = getType(f.getReturnType());
-            std::for_each(f.arg_types.begin(), f.arg_types.end(),
-                          [&](auto& a) { args.emplace_back(getType(a)); });
-            return llvm::cast<llvm::Type>(
-                llvm::FunctionType::get(rettype, args, false));
-          },
-          [this](recursive_wrapper<types::Struct>& rs) {
-            types::Struct& s = rs;
-            return llvm::cast<llvm::Type>(llvm::PointerType::get(
-
-                getRawStructType(s), 0));
-          },
-          [this](types::Void& /* t */) { return llvm::Type::getVoidTy(ctx); },
-          [this](recursive_wrapper<types::Time>& time) {
-            types::Time t = time;
-            return getOrCreateTimeStruct(t);
-          },
-          [this](auto& t) {  // NOLINT
-            throw std::logic_error("invalid type");
-            return llvm::Type::getVoidTy(ctx);
-            ;
-          }},
-      type);
+  return std::visit(TypeConverter(*builder, *module), type);
 }
 
-llvm::Function* LLVMGenerator::getForeignFunction(std::string name){
-  auto& [type,targetname] = LLVMBuiltin::ftable.find(name)->second;
-  auto fnc = module->getOrInsertFunction(name,llvm::cast<llvm::FunctionType>(getType(type)));
+llvm::Function* LLVMGenerator::getForeignFunction(std::string name) {
+  auto& [type, targetname] = LLVMBuiltin::ftable.find(name)->second;
+  auto fnc = module->getOrInsertFunction(
+      name, llvm::cast<llvm::FunctionType>(getType(type)));
   auto* fn = llvm::cast<llvm::Function>(fnc.getCallee());
   fn->setCallingConv(llvm::CallingConv::C);
   return fn;
@@ -194,7 +166,7 @@ void LLVMGenerator::createTaskRegister(bool isclosure = false) {
 }
 
 llvm::Type* LLVMGenerator::getOrCreateTimeStruct(types::Time& t) {
-  llvm::StringRef name = t.toString();
+  llvm::StringRef name = types::toString(t);
   llvm::Type* res = module->getTypeByName(name);
   if (res == nullptr) {
     llvm::Type* containtype = std::visit(
@@ -396,7 +368,8 @@ void LLVMGenerator::visitInstructions(const Instructions& inst, bool isglobal) {
                 retvalue = builder->CreateFDiv(lhs, rhs, i->lv_name);
                 break;
               case OP_ID::MOD:
-                retvalue = builder->CreateCall(getForeignFunction("fmod"),{lhs,rhs},i->lv_name);
+                retvalue = builder->CreateCall(getForeignFunction("fmod"),
+                                               {lhs, rhs}, i->lv_name);
                 break;
               default:
                 retvalue = builder->CreateUnreachable();
@@ -408,6 +381,8 @@ void LLVMGenerator::visitInstructions(const Instructions& inst, bool isglobal) {
             bool hasfv = !i->freevariables.empty();
             auto* ft =
                 llvm::cast<llvm::FunctionType>(getType(i->type));  // NOLINT
+                std::cerr<< types::toString(i->type)<<"\n";
+                ft->dump();
             llvm::Function* f = llvm::Function::Create(
                 ft, llvm::Function::ExternalLinkage, i->lv_name, module.get());
             auto f_it = f->args().begin();
@@ -420,6 +395,8 @@ void LLVMGenerator::visitInstructions(const Instructions& inst, bool isglobal) {
               auto it = f->args().end();
               auto lastelem = (--it);
               auto name = "clsarg_" + i->lv_name;
+              std::cerr <<"---\n";
+              lastelem->getType()->dump();
               lastelem->setName(name);
               namemap.emplace(name, (llvm::Value*)lastelem);
             }
@@ -435,9 +412,13 @@ void LLVMGenerator::visitInstructions(const Instructions& inst, bool isglobal) {
             llvm::Value* lastarg = --arg_end;
             for (int id = 0; id < i->freevariables.size(); id++) {
               std::string newname = "fv_" + i->freevariables[id].name;
+              lastarg->dump();
+              lastarg->getType()->dump();
               llvm::Value* gep = builder->CreateStructGEP(lastarg, id, "fv");
               auto ptrname = "ptr_" + newname;
+              gep->dump();
               llvm::Value* ptrload = builder->CreateLoad(gep, ptrname);
+              ptrload->dump();
               llvm::Value* valload = builder->CreateLoad(ptrload, newname);
               namemap.try_emplace(ptrname, ptrload);
               namemap.try_emplace(newname, valload);
@@ -453,15 +434,15 @@ void LLVMGenerator::visitInstructions(const Instructions& inst, bool isglobal) {
             currentblock = mainentry;
           },
           [&, this](const std::shared_ptr<MakeClosureInst>& i) {
-            types::Struct s =
-                std::get<recursive_wrapper<types::Struct>>(i->type);
-            auto* structtype = getRawStructType(s);
+            auto* structtype = (llvm::PointerType*)getType(i->type);
+            std::cerr << types::toString(i->type);
+            structtype->dump();
             llvm::Value* capture_ptr =
-                createAllocation(isglobal, structtype, nullptr, i->lv_name);
+                createAllocation(isglobal, structtype->getElementType(), nullptr, i->lv_name);
             int idx = 0;
             for (auto& cap : i->captures) {
               llvm::Value* gep =
-                  builder->CreateStructGEP(structtype, capture_ptr, idx, "");
+                  builder->CreateStructGEP(structtype->getElementType(), capture_ptr, idx, "");
               builder->CreateStore(namemap["ptr_" + cap.name], gep);
               idx += 1;
             }

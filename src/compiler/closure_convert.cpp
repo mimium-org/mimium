@@ -18,7 +18,7 @@ std::shared_ptr<MIRblock> ClosureConverter::convertRaw(std::shared_ptr<MIRblock>
     
     for(auto it = mir->instructions.begin(),end =mir->instructions.end();it!=end; it++){
         auto& inst = *it;
-        std::deque<TypedVal> fvlist;
+        std::vector<TypedVal> fvlist;
         auto type =  std::visit([](auto i){return i->type;},inst);
         std::visit([&,this](auto c){
                 c->closureConvert(fvlist, this->shared_from_this(),mir,it);

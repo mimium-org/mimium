@@ -10,4 +10,4 @@ PRIVATE
 ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-target_link_libraries(mimium_runtime mimium_utils rtaudio ${SNDFILE_LIBRARIES} ${llvmruntime})
+target_link_libraries(mimium_runtime mimium_utils rtaudio ${SNDFILE_LIBRARIES} LLVM)

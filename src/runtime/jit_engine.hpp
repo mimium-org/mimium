@@ -49,7 +49,8 @@ class MimiumJIT {
         Mangle(ES, this->DL),
         Ctx(std::make_unique<LLVMContext>()) {
     lllazyjit->setLazyCompileTransform(optimizeModule);
-    MainJD.setGenerator(
+    // MainJD.getExecutionSession()
+    MainJD.addGenerator(
         cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(
             DL.getGlobalPrefix())));
   }
@@ -84,7 +85,7 @@ class MimiumJIT {
       ThreadSafeModule M, const MaterializationResponsibility& R) {
       // Create a function pass manager.
 
-      auto FPM = std::make_unique<legacy::FunctionPassManager>(M.getModule());
+      auto FPM = std::make_unique<legacy::FunctionPassManager>(M.getModuleUnlocked());
 
       // Add some optimizations.
       // FPM->add(createPromoteMemoryToRegisterPass());//mem2reg
@@ -98,9 +99,9 @@ class MimiumJIT {
 
       // Run the optimizations over all functions in the module being added to
       // the JIT.
-      for (auto& fun : *M.getModule()) {
-        FPM->run(fun);
-      }
+      M.withModuleDo([&](Module& m){
+        std::for_each(m.begin(), m.end(), [&](auto& f){FPM->run(f);});
+      });
       return M;
   }
   [[nodiscard]] const DataLayout& getDataLayout() const {

@@ -12,4 +12,4 @@ PRIVATE
 ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-target_link_libraries(mimium_compiler mimium_utils LLVMCore LLVMOrcJIT)
+target_link_libraries(mimium_compiler mimium_utils LLVM)

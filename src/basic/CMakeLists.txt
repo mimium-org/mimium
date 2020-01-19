@@ -10,4 +10,4 @@ target_include_directories(mimium_utils
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-target_link_libraries(mimium_utils LLVMSupport)
+target_link_libraries(mimium_utils LLVM)

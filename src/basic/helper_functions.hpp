@@ -32,7 +32,7 @@ struct WaitController{
   bool isready =false;
 };
 
-
+//for ast
 template <class ElementType>
 static std::string join(std::deque<ElementType>& vec, std::string delim) {
   return std::accumulate(
@@ -56,7 +56,7 @@ static std::string join(std::deque<std::shared_ptr<T>>& vec, std::string delim) 
       [&](std::string a, std::shared_ptr<T>& b) { return std::move(a) + delim + b->toString(); });
 };
 
-// static std::string join(const std::deque<TypedVal>& vec, std::string delim) {
+// static std::string join(const std::vector<TypedVal>& vec, std::string delim) {
 //   std::string s;
 //   for (auto& elem : vec) {
 //     s += elem.name;

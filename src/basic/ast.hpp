@@ -161,12 +161,12 @@ class SymbolAST : public AST {
 };
 class LvarAST : public SymbolAST {
  public:
-  mimium::types::Value type;
+  types::Value type;
   explicit LvarAST(std::string input) : SymbolAST(input) {
-    type = mimium::types::None();  // default type is Float
+    type = types::None();  // default type is Float
     id = LVAR;
   };
-  explicit LvarAST(std::string input, mimium::types::Value _type)
+  explicit LvarAST(std::string input, types::Value _type)
       : SymbolAST(input) {
     type = _type;
   }
@@ -193,10 +193,10 @@ class AbstractListAST : public AST {
   void appendAST(T arg) { elements.push_back(std::move(arg)); };
   auto& getElements() { return elements; }
   std::string toString() override {
-    return "(" + mimium::join(elements, " ") + ")";
+    return "(" + join(elements, " ") + ")";
   };
   std::string toJson() override {
-    return "[" + mimium::join(elements, " , ") + "]";
+    return "[" + join(elements, " , ") + "]";
   };
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
 };
@@ -219,10 +219,10 @@ class LambdaAST : public AST {
  public:
   std::shared_ptr<ArgumentsAST> args;
   AST_Ptr body;  // statements
-  mimium::types::Value type;
+  types::Value type;
   bool isrecursive = false;
   LambdaAST(std::shared_ptr<ArgumentsAST> Args, AST_Ptr Body,
-            mimium::types::Value type = mimium::types::None())
+            types::Value type = types::None())
       : args(std::move(Args)), body(std::move(Body)), type(std::move(type)) {
     id = LAMBDA;
   }
