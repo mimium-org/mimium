@@ -1,9 +1,7 @@
 cmake_minimum_required(VERSION 3.8)
-
 add_subdirectory(basic)
 
 add_subdirectory(compiler)
-
 add_subdirectory(runtime)
 
 add_executable(mimium main.cpp)
@@ -14,6 +12,10 @@ message(STATUS "Components mapped by llvm_config: ${mimiumllvm}")
 
 target_include_directories(mimium
 PRIVATE
+${FLEX_INCLUDE_DIR}
+${CMAKE_SOURCE_DIR}/libs/rtaudio
+${CMAKE_SOURCE_DIR}/libs/rtmidi
+${SNDFILE_INCLUDE_DIRS}
 ${CMAKE_CURRENT_BINARY_DIR}
 )
 

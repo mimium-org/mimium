@@ -31,13 +31,6 @@ SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
 
 # for macOS SDK Root
-
-list(APPEND CMAKE_PREFIX_PATH /usr/local/opt/flex)
-list(APPEND CMAKE_PREFIX_PATH /usr/local/opt/bison)
-find_package(BISON 3.2 REQUIRED VERBOSE REPORT_FILE ${CMAKE_CURRENT_BINARY_DIR}/bison.log)
-find_package(Flex REQUIRED)
-
-
 # Including custom cmake rules for clang-tidy and clang-format
 include(cmake/clang-cxx-dev-tools.cmake)
 
@@ -48,12 +41,8 @@ set(RTMIDI_BUILD_TESTING FALSE)
 set(RTMIDI_TARGETNAME_UNINSTALL "uninstall_rtmidi" CACHE STRING "Name of 'uninstall' build target")
 add_subdirectory( libs/rtmidi )
 
-
-
 find_package(SndFile REQUIRED)
-
-include_directories(src ${FLEX_INCLUDE_DIRS} libs/rtaudio libs/rtmidi ${SNDFILE_INCLUDE_DIRS})
-
+include_directories(src)
 
 add_subdirectory( src )
 
