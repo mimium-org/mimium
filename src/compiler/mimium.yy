@@ -73,6 +73,8 @@ using namespace mimium;
    RBRACE "}"
 
    ARROW "->"
+   PIPE "|>"
+
    FUNC "fn"
    IF "if"
    ELSE "ELSE"
@@ -80,7 +82,7 @@ using namespace mimium;
    FOR "for"
    IN "in"
 
-   TYPE_DELIM "::"
+   TYPE_DELIM ":"
    TYPEFLOAT "float_typetoken"
    TYPEVOID "void_typetoken"
    TYPEFN "fn_typetoken"
@@ -107,8 +109,10 @@ using namespace mimium;
 
 %type <AST_Ptr> num "number"
 %type <std::shared_ptr<LvarAST>> lvar "left value"
+%type <std::shared_ptr<LvarAST>> fname "function prototype name"
+
 %type <std::shared_ptr<RvarAST>> rvar "right value"
-%type <AST_Ptr> string "string"
+// %type <AST_Ptr> string "string" //temporary comment out
 
 %type <AST_Ptr> single "symbol or number"
 
@@ -191,8 +195,10 @@ statement : assign {$$=std::move($1);}
          | expr {$$ = std::move($1);}//for void function
          ;
 
-fdef : FUNC lvar arguments_top block {$$ = driver.add_assign(std::move($2),driver.add_lambda(std::move($3),std::move($4)));}
-      |FUNC lvar arguments_top ARROW types block {$$ = driver.add_assign(std::move($2),driver.add_lambda_only_with_returntype(std::move($3),std::move($6),std::move($5)));};
+fdef : FUNC fname arguments_top block {$$ = driver.add_assign(std::move($2),driver.add_lambda(std::move($3),std::move($4)));}
+      |FUNC fname arguments_top ARROW types block {$$ = driver.add_assign(std::move($2),driver.add_lambda_only_with_returntype(std::move($3),std::move($6),std::move($5)));};
+
+fname : SYMBOL {$$ = driver.add_lvar($1);};
 
 ifstatement: IF '(' expr ')' block {$$ = driver.add_if(std::move($3),std::move($5),nullptr);}
             |IF '(' expr ')' block ELSE block {$$ = driver.add_if(std::move($3),std::move($5),std::move($7));}
@@ -202,7 +208,7 @@ forloop: FOR lvar IN expr block {$$ = driver.add_forloop(std::move($2),std::move
 
 /* end : END; */
 
-lambda: arguments_top ARROW block {$$ = driver.add_lambda(std::move($1),std::move($3));};
+lambda: '|' arguments '|' ARROW block {$$ = driver.add_lambda(std::move($2),std::move($5));};
 
 assign : lvar ASSIGN expr {$$ = driver.add_assign(std::move($1),std::move($3));}
 ;
@@ -212,6 +218,7 @@ arguments_top: '(' arguments ')' {$$=std::move($2);};
 arguments : lvar ',' arguments   {$3->addAST(std::move($1));
                                     $$ = std::move($3); }
          |  lvar {$$ = driver.add_arguments(std::move($1));}
+         | {$$ = driver.add_arguments();}
          ;
 
 
@@ -257,7 +264,8 @@ declaration : include {$$=std::move($1);}
 include : INCLUDE '(' arguments_fcall ')' {$$ = driver.add_declaration("include",std::move($3)); }
 ;
 
-fcall : rvar '(' arguments_fcall ')' {$$ = driver.add_fcall(std::move($1),std::move($3));};
+fcall : rvar '(' arguments_fcall ')' {$$ = driver.add_fcall(std::move($1),std::move($3));}
+        | '(' arguments_fcall ')' PIPE rvar {$$ = driver.add_fcall(std::move($5),std::move($2));} ;
       
 
 array : '[' array_elems ']' {$$ = std::move($2);}
@@ -269,11 +277,10 @@ array_elems : single ',' array_elems   {$3->addAST(std::move($1));
 array_access: rvar '[' term ']' {$$ = driver.add_array_access(std::move($1),std::move($3));}; 
 
 single : rvar{$$=std::move($1);}
-      | string{$$=std::move($1);}
+      // | string{$$=std::move($1);}
       |  num   {$$=std::move($1);};
 
-string : STRING {$$ = driver.add_lvar($1,mimium::types::String());}
-;
+// string : STRING {$$ = driver.add_rvar($1,mimium::types::String());};
 
 num :NUM {$$ = driver.add_number($1);};
 

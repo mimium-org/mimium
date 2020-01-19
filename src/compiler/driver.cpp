@@ -90,6 +90,9 @@ std::shared_ptr<FcallArgsAST> MimiumDriver::add_fcallargs(AST_Ptr arg){
 std::shared_ptr<ArgumentsAST> MimiumDriver::add_arguments(std::shared_ptr<LvarAST> arg){
    return std::make_unique<ArgumentsAST>(std::move(arg));
 }
+std::shared_ptr<ArgumentsAST> MimiumDriver::add_arguments(){
+   return std::make_unique<ArgumentsAST>();
+}
 
 
 AST_Ptr MimiumDriver::add_lambda(std::shared_ptr<ArgumentsAST> args,AST_Ptr body,mimium::types::Value type){

@@ -87,7 +87,7 @@ NEWLINE {BREAK}* | ";"
 };
 
 "->" return token::ARROW;
-
+"|>" return token::PIPE;
 
 "/"  return token::DIV; 
 "*"  return token::MUL; 

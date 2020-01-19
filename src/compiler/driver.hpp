@@ -40,6 +40,8 @@ class MimiumDriver {
   AST_Ptr add_op(std::string op, AST_Ptr lhs, AST_Ptr rhs);
 
   std::shared_ptr<ArgumentsAST> add_arguments(std::shared_ptr<LvarAST> arg);
+    std::shared_ptr<ArgumentsAST> add_arguments();
+
   std::shared_ptr<FcallArgsAST> add_fcallargs(AST_Ptr arg);
   std::shared_ptr<FcallArgsAST> add_fcallargs();
 
