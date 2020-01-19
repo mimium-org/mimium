@@ -233,12 +233,14 @@ class MakeClosureInst : public MIRinstruction {
  public:
   std::string fname;
   std::vector<TypedVal> captures;
+  types::Value capturetype;
   std::string toString() override;
   MakeClosureInst(std::string _lv, std::string _fname,
-                  std::vector<TypedVal> _captures, types::Value _type)
-      : MIRinstruction(_lv, _type),
+                  std::vector<TypedVal> _captures, types::Value _captype)
+      : MIRinstruction(_lv, types::Ref()),
         fname(std::move(_fname)),
-        captures(std::move(_captures)) {}
+        captures(std::move(_captures)),
+        capturetype(std::move(_captype)) {}
   void closureConvert(std::vector<TypedVal>& fvlist,
                       std::shared_ptr<ClosureConverter> cc,
                       std::shared_ptr<MIRblock> mir,

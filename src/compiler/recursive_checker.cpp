@@ -49,9 +49,12 @@ void RecursiveChecker::visit(ArrayAccessAST& ast) {
 }
 
 void RecursiveChecker::visit(FcallAST& ast) {
-  auto fname = ast.getFname()->getVal();
+  if(ast.getFname()->getid() == RVAR){
+    // todo: how to check anonymous recursive lambda?(Z combinator)
+  auto fname = std::static_pointer_cast<RvarAST>(ast.getFname())->getVal();
   if (target_fname == fname) {
     isrecursive = true;
+  }
   }
 }
 void RecursiveChecker::visit(LambdaAST& ast) {

@@ -408,9 +408,11 @@ void LLVMGenerator::visitInstructions(const Instructions& inst, bool isglobal) {
             currentblock = mainentry;
           },
           [&, this](const std::shared_ptr<MakeClosureInst>& i) {
-            auto* structtype = (llvm::PointerType*)getType(i->type);
+            //store the capture address to memory
+            auto* structtype = (llvm::PointerType*)getType(i->capturetype);
             llvm::Value* capture_ptr =
-                createAllocation(isglobal, structtype->getElementType(), nullptr, i->lv_name);
+                createAllocation(isglobal, structtype->getElementType(), nullptr, i->fname+"_cap");
+            module->dump();
             int idx = 0;
             for (auto& cap : i->captures) {
               llvm::Value* gep =
@@ -418,7 +420,15 @@ void LLVMGenerator::visitInstructions(const Instructions& inst, bool isglobal) {
               builder->CreateStore(namemap["ptr_" + cap.name], gep);
               idx += 1;
             }
-            namemap.emplace(i->lv_name, capture_ptr);
+            //store the pointer to function(1 size array type)
+            auto* ptrtofntype = getType(i->type);
+            llvm::Value* fn_ptr = createAllocation(isglobal,ptrtofntype,nullptr,i->fname+"_cls");
+            llvm::Value* f = module->getFunction(i->fname);
+            auto res = builder->CreateInsertValue(fn_ptr, f, 0);
+
+            namemap.emplace(i->fname+"_cap", capture_ptr);
+            namemap.emplace(i->fname+"_cls",res);
+
           },
           [&, this](const std::shared_ptr<FcallInst>& i) {
             bool isclosure = i->ftype == CLOSURE;
@@ -426,7 +436,7 @@ void LLVMGenerator::visitInstructions(const Instructions& inst, bool isglobal) {
             std::for_each(i->args.begin(), i->args.end(),
                           [&](auto& a) { args.emplace_back(namemap[a]); });
             if (isclosure) {
-              args.emplace_back(namemap[i->fname + "_cls"]);
+              args.emplace_back(namemap[i->fname + "_cap"]);
             }
             if (i->istimed) {  // if arguments is timed value, call addTask
               createAddTaskFn(i, isclosure, isglobal);

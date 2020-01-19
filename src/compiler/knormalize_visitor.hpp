@@ -54,6 +54,7 @@ class KNormalizeVisitor : public ASTVisitor {
   std::vector<std::string> lvar_list;
   std::string stackPopStr() {
     auto ret = res_stack_str.top();
+    res_stack_str.pop();
     return ret;
   }
 };

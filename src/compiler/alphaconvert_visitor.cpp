@@ -81,7 +81,7 @@ void AlphaConvertVisitor::visit(ArrayAccessAST& ast) {
 }
 void AlphaConvertVisitor::visit(FcallAST& ast) {
   ast.getFname()->accept(*this);
-  auto newname = std::static_pointer_cast<RvarAST>(stackPopPtr());
+  auto newname = stackPopPtr();
   ast.getArgs()->accept(*this);
   auto newargs = std::static_pointer_cast<FcallArgsAST>(stackPopPtr());
   auto newast =

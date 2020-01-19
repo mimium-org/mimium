@@ -251,9 +251,9 @@ class AssignAST : public AST {
 
 class FcallAST : public AST {
  public:
-  std::shared_ptr<RvarAST> fname;
+  std::shared_ptr<AST> fname;
   std::shared_ptr<FcallArgsAST> args;
-  FcallAST(std::shared_ptr<RvarAST> Fname, std::shared_ptr<FcallArgsAST> Args)
+  FcallAST(std::shared_ptr<AST> Fname, std::shared_ptr<FcallArgsAST> Args)
       : fname(std::move(Fname)), args(std::move(Args)) {
     id = FCALL;
   }

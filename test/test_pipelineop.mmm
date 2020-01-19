@@ -1,0 +1,8 @@
+100 |> sin |> println
+fn mul(x:float)->(float)->float{
+    return |y:float|->float{return x*y}
+}
+
+fn dsp(time:float)->float{
+    return mul(100)(200)
+}

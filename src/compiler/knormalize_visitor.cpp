@@ -148,6 +148,7 @@ void KNormalizeVisitor::visit(LambdaAST& ast) {
   ast.getBody()->accept(*this);
   currentblock = tmpcontext;  // switch back context
   --currentblock->indent_level;
+  res_stack_str.push(name);
 }
 bool KNormalizeVisitor::isArgTime(FcallArgsAST& args) {
   auto& elems = args.getElements();
@@ -171,7 +172,8 @@ bool KNormalizeVisitor::isArgTime(FcallArgsAST& args) {
   return res;
 }
 void KNormalizeVisitor::visit(FcallAST& ast) {
-  auto fname = ast.getFname()->getVal();
+  ast.getFname()->accept(*this);
+  auto resfname = stackPopStr();  
   auto newname = getVarName();
   auto args = ast.getArgs();
   std::deque<std::string> newarg;
@@ -181,11 +183,11 @@ void KNormalizeVisitor::visit(FcallAST& ast) {
     newarg.push_back(stackPopStr());
   }
   ast.accept(typeinfer);
-  auto fnkind = (LLVMBuiltin::ftable.find(fname) != LLVMBuiltin::ftable.end())
+  auto fnkind = (LLVMBuiltin::ftable.find(resfname) != LLVMBuiltin::ftable.end())
                     ? EXTERNAL
                     : CLOSURE;
   Instructions newinst =
-      std::make_shared<FcallInst>(newname, fname, std::move(newarg), fnkind,
+      std::make_shared<FcallInst>(newname, resfname, std::move(newarg), fnkind,
                                   typeinfer.getLastType(), isArgTime(*args));
   currentblock->addInst(newinst);
   res_stack_str.push(newname);
@@ -237,11 +239,11 @@ void KNormalizeVisitor::visit(IfAST& ast) {
 void KNormalizeVisitor::visit(ReturnAST& ast) {
   ast.getExpr()->accept(*this);
   ast.accept(typeinfer);
-  auto newname = getVarName();
-  Instructions newinst = std::make_shared<ReturnInst>(newname, stackPopStr(),
+  // auto newname = getVarName();
+  Instructions newinst = std::make_shared<ReturnInst>("ret", stackPopStr(),
                                                       typeinfer.getLastType());
   currentblock->addInst(newinst);
-  res_stack_str.push(newname);
+  // res_stack_str.push(newname);
 }
 void KNormalizeVisitor::visit(ForAST& ast) {
   //後回し

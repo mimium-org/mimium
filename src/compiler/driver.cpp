@@ -103,8 +103,14 @@ AST_Ptr MimiumDriver::add_lambda_only_with_returntype(std::shared_ptr<ArgumentsA
    return std::make_unique<LambdaAST>(std::move(args),std::move(body),std::move(ftype));
 }
 
-std::shared_ptr<FcallAST> MimiumDriver::add_fcall(std::shared_ptr<RvarAST> fname,std::shared_ptr<FcallArgsAST> args){
+
+
+std::shared_ptr<FcallAST> MimiumDriver::add_fcall(std::shared_ptr<AST> fname,std::shared_ptr<FcallArgsAST> args){
    return std::make_unique<FcallAST>(std::move(fname),std::move(args));
+}
+std::shared_ptr<FcallAST> MimiumDriver::add_fcall(std::shared_ptr<AST> fname,std::shared_ptr<AST> term){
+      auto a = std::make_unique<FcallArgsAST>(std::move(term));
+   return std::make_unique<FcallAST>(std::move(fname),std::move(a));
 };
 
 std::shared_ptr<ArrayAST> MimiumDriver::add_array(AST_Ptr array){

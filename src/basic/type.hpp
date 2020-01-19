@@ -152,6 +152,7 @@ inline bool operator!=(const Time& t1, const Time& t2) {
   return t1.val != t2.val;
 }
 struct Function {
+  Function() =default;
   explicit Function(Value ret_type_p, std::vector<Value> arg_types_p)
       : arg_types(std::move(arg_types_p)), ret_type(std::move(ret_type_p)){};
   void init(std::vector<Value> arg_types_p, Value ret_type_p) {

@@ -115,8 +115,12 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
       return builder.getInt8PtrTy();
     }
     llvm::Type* operator()(const types::Ref& r) const {
+      if(std::holds_alternative<recursive_wrapper<types::Function>>(r.val)){
+      return (llvm::Type*)llvm::ArrayType::get(std::visit(*this, r.val), 0);
+      }
       return (llvm::Type*)llvm::PointerType::get(std::visit(*this, r.val), 0);
-    }
+      
+      }
     llvm::Type* operator()(const types::Pointer& r) const {
       return (llvm::Type*)llvm::PointerType::get(std::visit(*this, r.val), 0);
     }
@@ -125,7 +129,11 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
       for (auto& a : f.arg_types) {
         ar.push_back(std::visit(*this, a));
       }
-      return (llvm::Type*)llvm::FunctionType::get(std::visit(*this, f.ret_type),
+      llvm::Type* res = std::visit(*this, f.ret_type);
+      if(std::holds_alternative<recursive_wrapper<types::Function>>(f.ret_type)){
+          res = llvm::PointerType::get(res,0);
+      }
+      return (llvm::Type*)llvm::FunctionType::get(res,
                                                   ar, false);
     }
     llvm::Type* operator()(const types::Closure& c) const {

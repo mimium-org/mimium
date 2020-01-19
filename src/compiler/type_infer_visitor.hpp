@@ -41,11 +41,16 @@ class TypeInferVisitor : public ASTVisitor {
   bool unifyArg(types::Value& target, types::Value& realarg);
 
   TypeEnv& getEnv() { return typeenv; };
-  types::Value getLastType() { return res_stack; }
+  types::Value getLastType() { return res_stack.top(); }
+  types::Value stackPop(){
+    auto res = res_stack.top();
+    res_stack.pop();
+    return res;
+  }
   std::string_view tmpfname;
 
  private:
-  types::Value res_stack;
+  std::stack<types::Value> res_stack;
   static bool checkArg(const types::Value& fnarg, const types::Value& givenarg);
   TypeEnv typeenv;
   bool has_return;

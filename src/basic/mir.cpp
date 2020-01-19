@@ -160,12 +160,16 @@ void FunInst::closureConvert(std::vector<TypedVal>& fvlist,
         lv_name + "_cls";  //+ std::to_string(cc->capturecount++);
     auto makecls = std::make_shared<MakeClosureInst>(
         newname, lv_name, this->freevariables, fvtype);
-    mir->instructions.insert(it, std::move(makecls));
-    types::Function newtype =
+    types::Function newfntype =
         std::get<recursive_wrapper<types::Function>>(this->type);
-    newtype.arg_types.emplace_back(fvtype);
-    this->type = newtype;
+    newfntype.arg_types.emplace_back(fvtype);
+    this->type = newfntype;
     std::for_each(freevariables.begin(),freevariables.end(),[this](TypedVal& v){v.name = v.name+"_"+lv_name;});
+
+    makecls->type = types::Closure(types::Ref(newfntype),lv_name);
+
+    mir->instructions.insert(it, std::move(makecls));
+
   }
   cc->env = tmpenv;
   checkLvalue(fvlist, cc,mir->label);

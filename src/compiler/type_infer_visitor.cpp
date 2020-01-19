@@ -57,14 +57,15 @@ bool TypeInferVisitor::unifyArg(types::Value& target, types::Value& realarg) {
 void TypeInferVisitor::visit(AssignAST& ast) {
   auto lvar = ast.getName();
   ast.getName()->accept(*this);
-  auto ltype = res_stack;
+  auto ltype =stackPop();;
   typeenv.emplace(lvar->getVal(), ltype);
   auto body = ast.getBody();
   if(body->getid() == LAMBDA){
     tmpfname = lvar->getVal();
   }
   body->accept(*this);
-  if (!unify(lvar->getVal(), res_stack)) {
+  auto r =stackPop() ;
+  if (!unify(lvar->getVal(),r)) {
     throw std::logic_error("type " + lvar->getVal() +
                            " did not matched to expression " +
                            ast.getBody()->toString());
@@ -79,43 +80,41 @@ void TypeInferVisitor::visit(LvarAST& ast) {
   if (is_exist && is_specified) {
     if (typeenv.find(ast.getVal()) != ltype) {
       throw std::logic_error("assignment to different type is not allowed");
-      res_stack = types::None();
+      res_stack.push(types::None());
     } else {
-      res_stack = ltype;
+      res_stack.push(ltype);
     }
   } else if (!is_exist && !is_specified) {
-    res_stack = typeenv.createNewTypeVar();
+    res_stack.push(typeenv.createNewTypeVar());
   } else if (!is_exist && is_specified) {
-    res_stack = ltype;
+    res_stack.push(ltype);
   } else {  // case of already declared variable that have not specified in
             // source code
 
-    res_stack = typeenv.find(ast.getVal());
-    ;
-    ;
+    res_stack.push(typeenv.find(ast.getVal()));
   }
 }
 
 void TypeInferVisitor::visit(RvarAST& ast) {
-  res_stack = typeenv.find(ast.getVal());
+  res_stack.push(typeenv.find(ast.getVal()));
 }
 void TypeInferVisitor::visit(OpAST& ast) {
   ast.lhs->accept(*this);
-  types::Value lhstype = res_stack;
+  types::Value lhstype =stackPop();;
   ast.rhs->accept(*this);
-  types::Value rhstype = res_stack;
+  types::Value rhstype =stackPop();;
   if (unify(lhstype, rhstype)) {
     std::logic_error("type of lhs and rhs is not matched");
   }
   // anyway return type is float for now
-  res_stack = types::Float();
+  res_stack.push(types::Float());
 }
 void TypeInferVisitor::visit(ListAST& ast) {
   for (auto& line : ast.getElements()) {
     line->accept(*this);
   }
 }
-void TypeInferVisitor::visit(NumberAST& /*ast*/) { res_stack = types::Float(); }
+void TypeInferVisitor::visit(NumberAST& /*ast*/) { res_stack.push(types::Float()); }
 
 void TypeInferVisitor::visit(ArgumentsAST& ast) {
   //
@@ -124,15 +123,21 @@ void TypeInferVisitor::visit(FcallArgsAST& ast) {
   //
 }
 void TypeInferVisitor::visit(ArrayAST& ast) {
-  auto tmpres = res_stack;
-  for (const auto& v : ast.getElements()) {
+  auto& elms =ast.getElements();
+  auto tmpres = types::Value();
+  int c= 0;
+  bool res = true;
+  for (const auto& v : elms) {
     v->accept(*this);
-    if (tmpres.index() != res_stack.index()) {
+    auto mr = stackPop();
+    res &= (c) ? true :(tmpres.index() ==mr.index());
+    if (!res) {
       throw std::logic_error("array contains different types.");
     }
-    tmpres = res_stack;
+    tmpres =mr;
+    ++c;
   }
-  res_stack = types::Array(tmpres);
+  res_stack.push(types::Array(tmpres));
 }
 void TypeInferVisitor::visit(ArrayAccessAST& ast) {
   auto type = typeenv.find(ast.getName()->getVal());
@@ -141,7 +146,7 @@ void TypeInferVisitor::visit(ArrayAccessAST& ast) {
       std::get<recursive_wrapper<types::Array>>(type);  // implicit cast
   res = arr.elem_type;
 
-  res_stack = res;
+  res_stack.push(res);
 }
 bool TypeInferVisitor::checkArg(const types::Value& fnarg,
                                 const types::Value& givenarg) {
@@ -156,32 +161,34 @@ bool TypeInferVisitor::checkArg(const types::Value& fnarg,
 }
 
 void TypeInferVisitor::visit(FcallAST& ast) {
-  auto fname = ast.getFname()->getVal();
-  auto type = typeenv.find(fname);
-  types::Function fn = std::get<recursive_wrapper<types::Function>>(type);
-  types::Value res;
+  ast.getFname()->accept(*this);
+  auto ftype = stackPop();
+  types::Function fn = std::get<recursive_wrapper<types::Function>>(ftype);
   auto fnargtypes = fn.getArgTypes();
+  types::Value res;
   auto args = ast.getArgs()->getElements();
 
   std::vector<types::Value> argtypes;
   bool checkflag = true;
   for (int i = 0; i < args.size(); i++) {
     args[i]->accept(*this);
-    checkflag &= unifyArg(fnargtypes[i], res_stack);
+    auto r = stackPop();
+    checkflag &= unifyArg(fnargtypes[i], r);
   }
   if (!checkflag) {
     throw std::invalid_argument("argument types were invalid");
   }
-  res_stack = fn.getReturnType();
-  ;
+  res_stack.push(fn.getReturnType());
 }
 void TypeInferVisitor::visit(LambdaAST& ast) {
+  //type registoration for each arguments
   auto args = ast.getArgs();
   std::vector<types::Value> argtypes;
   for (const auto& a : args->getElements()) {
     a->accept(*this);
-    typeenv.emplace(a->getVal(), res_stack);
-    argtypes.push_back(res_stack);
+    auto r = stackPop();
+    typeenv.emplace(a->getVal(),r);
+    argtypes.push_back(r);
   }
   bool isspecified =
       std::holds_alternative<recursive_wrapper<types::Function>>(ast.type);
@@ -191,11 +198,10 @@ void TypeInferVisitor::visit(LambdaAST& ast) {
   if (isspecified) {
     types::Function fntype = std::get<recursive_wrapper<types::Function>>(ast.type);
     fntype.arg_types = argtypes;  // overwrite
-    std::string s(tmpfname);
     types::Value f = fntype;
-    unify(s,f);
+    // unify(s,f);
     ast.getBody()->accept(*this);
-    auto tmp_res_type = (has_return) ? res_stack : types::Void();
+    auto tmp_res_type = (has_return) ? stackPop() : types::Void();
     typeCheck(tmp_res_type, fntype.ret_type);
     res_type = f;
   } else {
@@ -203,11 +209,11 @@ void TypeInferVisitor::visit(LambdaAST& ast) {
       throw std::logic_error("recursive function need to specify return type.");
     }
     ast.getBody()->accept(*this);
-    types::Value ret_type = (has_return) ? res_stack : types::Void();
+    types::Value ret_type = (has_return) ? stackPop() : types::Void();
     res_type = types::Function(ret_type,argtypes);
   }
 
-  res_stack = res_type;
+  res_stack.push(res_type);
   tmpfname="";
   has_return = false;  // switch back flag
 }
@@ -248,17 +254,17 @@ void TypeInferVisitor::visit(DeclarationAST& ast) {
 void TypeInferVisitor::visit(TimeAST& ast) {
   types::Time t;
   ast.getExpr()->accept(*this);
-  if(std::holds_alternative<recursive_wrapper<types::Time>>(res_stack)){
+  if(std::holds_alternative<recursive_wrapper<types::Time>>(stackPop())){
     throw std::logic_error("Time type can not be nested.");
   }
 
-  t.val = res_stack;
+  t.val =stackPop();;
   ast.getTime()->accept(*this);
-
+auto r =stackPop();
   types::Value tmpf = types::Float();
-  typeCheck(res_stack,tmpf);
+  typeCheck(r,tmpf);
   t.time = types::Float();
-  res_stack = t;
+  res_stack.push(t);
 }
 
 void TypeInferVisitor::visit(StructAST& ast) {}

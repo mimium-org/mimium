@@ -13,7 +13,11 @@
 %{
 #define YYDEBUG 1
 #define YYERROR_VERBOSE 1
-
+#define YY_INPUT(buf,result,max_size)  {\
+    result = GetNextChar(buf, max_size); \
+    if (  result <= 0  ) \
+      result = YY_NULL; \
+    }
 
 %}
 
@@ -152,7 +156,10 @@ using namespace mimium;
 
 %locations
 
-
+%left PIPE
+%left ARROW
+%left LSHIFT RSHIFT
+%left LE GE GT LT
 %left  OR BITOR
 %left  AND BITAND
 %nonassoc  EQ NEQ
@@ -168,7 +175,6 @@ using namespace mimium;
 %left ','
 
 %left NEWLINE 
-
 
 %start top
 
@@ -208,7 +214,8 @@ forloop: FOR lvar IN expr block {$$ = driver.add_forloop(std::move($2),std::move
 
 /* end : END; */
 
-lambda: '|' arguments '|' ARROW block {$$ = driver.add_lambda(std::move($2),std::move($5));};
+lambda: OR arguments OR ARROW block {$$ = driver.add_lambda(std::move($2),std::move($5));};
+       |OR arguments OR ARROW types block{$$=driver.add_lambda_only_with_returntype(std::move($2),std::move($6),std::move($5));};
 
 assign : lvar ASSIGN expr {$$ = driver.add_assign(std::move($1),std::move($3));}
 ;
@@ -227,6 +234,12 @@ arguments_fcall : expr ',' arguments_fcall   {$3->addAST(std::move($1));
          | expr {$$ = driver.add_fcallargs(std::move($1));}
          | {$$ = driver.add_fcallargs();}
          ;
+
+fcall : term '(' arguments_fcall ')' {$$ = driver.add_fcall(std::move($1),std::move($3));}
+        |  term PIPE term {$$ = driver.add_fcall(std::move($3),std::move($1));} ;
+      
+
+
 
 expr : expr ADD    expr  {$$ = driver.add_op("+" , std::move($1),std::move($3));}
      | expr SUB    expr  {$$ = driver.add_op("-" , std::move($1),std::move($3));}
@@ -264,9 +277,6 @@ declaration : include {$$=std::move($1);}
 include : INCLUDE '(' arguments_fcall ')' {$$ = driver.add_declaration("include",std::move($3)); }
 ;
 
-fcall : rvar '(' arguments_fcall ')' {$$ = driver.add_fcall(std::move($1),std::move($3));}
-        | '(' arguments_fcall ')' PIPE rvar {$$ = driver.add_fcall(std::move($5),std::move($2));} ;
-      
 
 array : '[' array_elems ']' {$$ = std::move($2);}
 
@@ -317,5 +327,5 @@ mmmpsr::MimiumParser::error( const location_type &l, const std::string &err_mess
 {
       std::stringstream ss;
       ss  <<  "Parse Error: " << err_message << " at " << l << "\n";
-mimium::Logger::debug_log(ss.str(),mimium::Logger::ERROR);
+      throw std::logic_error(ss.str());
 }
