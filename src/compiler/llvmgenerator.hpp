@@ -115,9 +115,9 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
       return builder.getInt8PtrTy();
     }
     llvm::Type* operator()(const types::Ref& r) const {
-      if(std::holds_alternative<recursive_wrapper<types::Function>>(r.val)){
-      return (llvm::Type*)llvm::ArrayType::get(std::visit(*this, r.val), 0);
-      }
+      // if(std::holds_alternative<recursive_wrapper<types::Function>>(r.val)){
+      // return (llvm::Type*)llvm::ArrayType::get(std::visit(*this, r.val), 0);
+      // }
       return (llvm::Type*)llvm::PointerType::get(std::visit(*this, r.val), 0);
       
       }

@@ -174,7 +174,7 @@ void LLVMGenerator::generateCode(std::shared_ptr<MIRblock> mir) {
     visitInstructions(inst, true);
   }
   if (mainentry->getTerminator() == nullptr) {  // insert return
-    auto dspaddress = namemap.find("dsp_cls");
+    auto dspaddress = namemap.find("dsp_cap");
     if (dspaddress != namemap.end()) {
       builder->CreateRet(dspaddress->second);
     } else {
@@ -231,7 +231,7 @@ void LLVMGenerator::createAddTaskFn(const std::shared_ptr<FcallInst> i,
   llvm::Value* addtask_fn;
   if (isclosure) {
     llvm::Value* clsptr =
-        (isglobal) ? namemap[i->fname + "_cls"] : namemap["clsarg_" + i->fname];
+        (isglobal) ? namemap[i->fname + "_cap"] : namemap["clsarg_" + i->fname];
 
     auto* upcasted = builder->CreateBitCast(clsptr, builder->getInt8PtrTy());
     namemap.emplace(i->fname + "_cls_i8", upcasted);
@@ -420,14 +420,15 @@ void LLVMGenerator::visitInstructions(const Instructions& inst, bool isglobal) {
               builder->CreateStore(namemap["ptr_" + cap.name], gep);
               idx += 1;
             }
-            //store the pointer to function(1 size array type)
-            auto* ptrtofntype = getType(i->type);
-            llvm::Value* fn_ptr = createAllocation(isglobal,ptrtofntype,nullptr,i->fname+"_cls");
-            llvm::Value* f = module->getFunction(i->fname);
-            auto res = builder->CreateInsertValue(fn_ptr, f, 0);
+                        namemap.emplace(i->fname+"_cap", capture_ptr);
 
-            namemap.emplace(i->fname+"_cap", capture_ptr);
-            namemap.emplace(i->fname+"_cls",res);
+            //store the pointer to function(1 size array type)
+            // auto* ptrtofntype = getType(i->type);
+            // llvm::Value* fn_ptr = createAllocation(isglobal,ptrtofntype,nullptr,i->fname+"_cls");
+            // llvm::Value* f = module->getFunction(i->fname);
+            // auto res = builder->CreateInsertValue(fn_ptr, f, 0);
+            // namemap.emplace(i->fname+"_cls",res);
+
 
           },
           [&, this](const std::shared_ptr<FcallInst>& i) {

@@ -199,7 +199,11 @@ void TypeInferVisitor::visit(LambdaAST& ast) {
     types::Function fntype = std::get<recursive_wrapper<types::Function>>(ast.type);
     fntype.arg_types = argtypes;  // overwrite
     types::Value f = fntype;
-    // unify(s,f);
+    if(!tmpfname.empty()){
+      std::string s(tmpfname);
+      unify(s,f);
+      tmpfname="";
+    }
     ast.getBody()->accept(*this);
     auto tmp_res_type = (has_return) ? stackPop() : types::Void();
     typeCheck(tmp_res_type, fntype.ret_type);
@@ -211,10 +215,10 @@ void TypeInferVisitor::visit(LambdaAST& ast) {
     ast.getBody()->accept(*this);
     types::Value ret_type = (has_return) ? stackPop() : types::Void();
     res_type = types::Function(ret_type,argtypes);
+    tmpfname="";
   }
 
   res_stack.push(res_type);
-  tmpfname="";
   has_return = false;  // switch back flag
 }
 void TypeInferVisitor::visit(IfAST& ast) {
@@ -254,11 +258,12 @@ void TypeInferVisitor::visit(DeclarationAST& ast) {
 void TypeInferVisitor::visit(TimeAST& ast) {
   types::Time t;
   ast.getExpr()->accept(*this);
-  if(std::holds_alternative<recursive_wrapper<types::Time>>(stackPop())){
+  auto res = stackPop();
+  if(std::holds_alternative<recursive_wrapper<types::Time>>(res)){
     throw std::logic_error("Time type can not be nested.");
   }
 
-  t.val =stackPop();;
+  t.val =res;
   ast.getTime()->accept(*this);
 auto r =stackPop();
   types::Value tmpf = types::Float();
