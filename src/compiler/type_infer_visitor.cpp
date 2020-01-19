@@ -164,10 +164,10 @@ void TypeInferVisitor::visit(FcallAST& ast) {
   auto args = ast.getArgs()->getElements();
 
   std::vector<types::Value> argtypes;
-  bool checkflag = false;
+  bool checkflag = true;
   for (int i = 0; i < args.size(); i++) {
     args[i]->accept(*this);
-    checkflag |= unifyArg(fnargtypes[i], res_stack);
+    checkflag &= unifyArg(fnargtypes[i], res_stack);
   }
   if (!checkflag) {
     throw std::invalid_argument("argument types were invalid");

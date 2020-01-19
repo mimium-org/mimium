@@ -1,7 +1,7 @@
 phase  = 0
 freq = 1000
 fn changef(t:float)->void{
-    freq = (random(0)+1)*4000
+    freq = (random()+1)*4000
     nt = t+4000
     changef(nt@nt)
 }

@@ -41,6 +41,7 @@ class MimiumDriver {
 
   std::shared_ptr<ArgumentsAST> add_arguments(std::shared_ptr<LvarAST> arg);
   std::shared_ptr<FcallArgsAST> add_fcallargs(AST_Ptr arg);
+  std::shared_ptr<FcallArgsAST> add_fcallargs();
 
   AST_Ptr add_lambda(std::shared_ptr<ArgumentsAST> args, AST_Ptr body,mimium::types::Value type = mimium::types::Value());
   AST_Ptr add_lambda_only_with_returntype(std::shared_ptr<ArgumentsAST> args, AST_Ptr body,mimium::types::Value rettype);

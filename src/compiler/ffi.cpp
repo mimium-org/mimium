@@ -3,7 +3,7 @@ extern "C" {
 
 void printdouble(double d) { std::cerr << d; }
 void printlndouble(double d) { std::cerr << d << "\n"; }
-double mimiumrand(double d){return ((double)rand()/RAND_MAX)*2 -1  ;}
+double mimiumrand(){return ((double)rand()/RAND_MAX)*2 -1  ;}
 }
 
 namespace mimium {
@@ -31,7 +31,7 @@ std::unordered_map<std::string, BuiltinFnInfo> LLVMBuiltin::ftable = {
 
     {"log", FI{Function(Float(), {Float()}), "log"}},
     {"log10", FI{Function(Float(), {Float()}), "log10"}},
-    {"random", FI{Function(Float(), {Float()}), "mimiumrand"}},
+    {"random", FI{Function(Float(), {}), "mimiumrand"}},
 
     {"sqrt", FI{Function(Float(), {Float()}), "sqrt"}},
     {"abs", FI{Function(Float(), {Float()}), "fabs"}},

@@ -218,6 +218,7 @@ arguments : lvar ',' arguments   {$3->addAST(std::move($1));
 arguments_fcall : expr ',' arguments_fcall   {$3->addAST(std::move($1));
                                           $$ = std::move($3); }
          | expr {$$ = driver.add_fcallargs(std::move($1));}
+         | {$$ = driver.add_fcallargs();}
          ;
 
 expr : expr ADD    expr  {$$ = driver.add_op("+" , std::move($1),std::move($3));}
@@ -256,8 +257,8 @@ declaration : include {$$=std::move($1);}
 include : INCLUDE '(' arguments_fcall ')' {$$ = driver.add_declaration("include",std::move($3)); }
 ;
 
-fcall : rvar '(' arguments_fcall ')' {$$ = driver.add_fcall(std::move($1),std::move($3));}
-;
+fcall : rvar '(' arguments_fcall ')' {$$ = driver.add_fcall(std::move($1),std::move($3));};
+      
 
 array : '[' array_elems ']' {$$ = std::move($2);}
 

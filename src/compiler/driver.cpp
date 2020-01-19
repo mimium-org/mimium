@@ -83,6 +83,9 @@ std::shared_ptr<AssignAST> MimiumDriver::add_assign(std::shared_ptr<LvarAST> sym
 std::shared_ptr<FcallArgsAST> MimiumDriver::add_fcallargs(AST_Ptr arg){
    return std::make_unique<FcallArgsAST>(std::move(arg));
 }
+  std::shared_ptr<FcallArgsAST> MimiumDriver::add_fcallargs(){
+   return std::make_unique<FcallArgsAST>();
+  }
 
 std::shared_ptr<ArgumentsAST> MimiumDriver::add_arguments(std::shared_ptr<LvarAST> arg){
    return std::make_unique<ArgumentsAST>(std::move(arg));
