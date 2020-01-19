@@ -23,7 +23,7 @@ void LLVMGenerator::init(std::string filename) {
   // module->setDataLayout(LLVMGetDefaultTargetTriple());
 }
 void LLVMGenerator::setDataLayout() {
-  module->setDataLayout(LLVMGetDefaultTargetTriple());
+  module->setDataLayout(llvm::sys::getProcessTriple());
 }
 void LLVMGenerator::setDataLayout(const llvm::DataLayout& dl) {
   module->setDataLayout(dl);
@@ -44,27 +44,8 @@ void LLVMGenerator::initJit() {}
 LLVMGenerator::~LLVMGenerator() { dropAllReferences(); }
 void LLVMGenerator::dropAllReferences() {
   namemap.clear();
-  if (module != nullptr) {
-    auto& flist = module->getFunctionList();
-    auto f = flist.begin();
-    while (!flist.empty()) {
-      auto& bbs = f->getBasicBlockList();
-      while (!bbs.empty()) {
-        auto bb = bbs.begin();
-        auto inst = bb->begin();
-        while (!bb->getInstList().empty()) {
-          inst->replaceAllUsesWith(llvm::UndefValue::get(inst->getType()));
-          // inst->dropAllReferences();
-          inst = inst->eraseFromParent();
-        }
-        bb->dropAllReferences();
-        bb = bb->eraseFromParent();
-        bb = bbs.begin();
-      }
-      f->dropAllReferences();
-      flist.erase(f);
-      f = flist.begin();
-    }
+  if(module!=nullptr){
+  module->dropAllReferences();
   }
 }
 // auto LLVMGenerator::getRawStructType(types::Struct& type) -> llvm::Type* {
@@ -209,12 +190,14 @@ llvm::Value* LLVMGenerator::createAllocation(bool isglobal, llvm::Type* type,
                                              const llvm::Twine& name = "") {
   llvm::Value* res = nullptr;
   if (isglobal) {
+    auto rawname ="ptr_" + name.str() + "_raw";
     auto size = module->getDataLayout().getTypeAllocSize(type);
     auto sizeinst = llvm::ConstantInt::get(ctx, llvm::APInt(64, size, false));
     auto rawres = builder->CreateCall(module->getFunction("malloc"), {sizeinst},
-                                      "ptr_" + name + "_raw");
+                                      rawname);
     res = builder->CreatePointerCast(rawres, llvm::PointerType::get(type, 0),
                                      "ptr_" + name);
+    namemap.try_emplace(rawname,rawres);
   } else {
     res = builder->CreateAlloca(type, ArraySize, "ptr_" + name);
   }
@@ -243,8 +226,7 @@ void LLVMGenerator::createAddTaskFn(const std::shared_ptr<FcallInst> i,
       llvm::ConstantExpr::getBitCast(targetfn, builder->getInt8PtrTy());
   // auto taskid = taskfn_typeid++;
   tasktype_list.emplace_back(i->type);
-  // timeval->dump();
-  // val->dump();
+
   std::vector<llvm::Value*> args = {timeval, ptrtofn, val};
   llvm::Value* addtask_fn;
   if (isclosure) {
@@ -381,8 +363,6 @@ void LLVMGenerator::visitInstructions(const Instructions& inst, bool isglobal) {
             bool hasfv = !i->freevariables.empty();
             auto* ft =
                 llvm::cast<llvm::FunctionType>(getType(i->type));  // NOLINT
-                std::cerr<< types::toString(i->type)<<"\n";
-                ft->dump();
             llvm::Function* f = llvm::Function::Create(
                 ft, llvm::Function::ExternalLinkage, i->lv_name, module.get());
             auto f_it = f->args().begin();
@@ -395,8 +375,6 @@ void LLVMGenerator::visitInstructions(const Instructions& inst, bool isglobal) {
               auto it = f->args().end();
               auto lastelem = (--it);
               auto name = "clsarg_" + i->lv_name;
-              std::cerr <<"---\n";
-              lastelem->getType()->dump();
               lastelem->setName(name);
               namemap.emplace(name, (llvm::Value*)lastelem);
             }
@@ -412,13 +390,9 @@ void LLVMGenerator::visitInstructions(const Instructions& inst, bool isglobal) {
             llvm::Value* lastarg = --arg_end;
             for (int id = 0; id < i->freevariables.size(); id++) {
               std::string newname = "fv_" + i->freevariables[id].name;
-              lastarg->dump();
-              lastarg->getType()->dump();
               llvm::Value* gep = builder->CreateStructGEP(lastarg, id, "fv");
               auto ptrname = "ptr_" + newname;
-              gep->dump();
               llvm::Value* ptrload = builder->CreateLoad(gep, ptrname);
-              ptrload->dump();
               llvm::Value* valload = builder->CreateLoad(ptrload, newname);
               namemap.try_emplace(ptrname, ptrload);
               namemap.try_emplace(newname, valload);
@@ -435,8 +409,6 @@ void LLVMGenerator::visitInstructions(const Instructions& inst, bool isglobal) {
           },
           [&, this](const std::shared_ptr<MakeClosureInst>& i) {
             auto* structtype = (llvm::PointerType*)getType(i->type);
-            std::cerr << types::toString(i->type);
-            structtype->dump();
             llvm::Value* capture_ptr =
                 createAllocation(isglobal, structtype->getElementType(), nullptr, i->lv_name);
             int idx = 0;
