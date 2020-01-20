@@ -76,8 +76,6 @@ using namespace mimium;
    LBRACE "{"
    RBRACE "}"
 
-   ARROW "->"
-   PIPE "|>"
 
    FUNC "fn"
    IF "if"
@@ -214,7 +212,7 @@ forloop: FOR lvar IN expr block {$$ = driver.add_forloop(std::move($2),std::move
 
 /* end : END; */
 
-lambda: OR arguments OR ARROW block {$$ = driver.add_lambda(std::move($2),std::move($5));};
+lambda: OR arguments OR block {$$ = driver.add_lambda(std::move($2),std::move($4));};
        |OR arguments OR ARROW types block{$$=driver.add_lambda_only_with_returntype(std::move($2),std::move($6),std::move($5));};
 
 assign : lvar ASSIGN expr {$$ = driver.add_assign(std::move($1),std::move($3));}
@@ -235,8 +233,7 @@ arguments_fcall : expr ',' arguments_fcall   {$3->addAST(std::move($1));
          | {$$ = driver.add_fcallargs();}
          ;
 
-fcall : term '(' arguments_fcall ')' {$$ = driver.add_fcall(std::move($1),std::move($3));}
-        |  term PIPE term {$$ = driver.add_fcall(std::move($3),std::move($1));} ;
+fcall : term '(' arguments_fcall ')' {$$ = driver.add_fcall(std::move($1),std::move($3));};
       
 
 
@@ -259,6 +256,7 @@ expr : expr ADD    expr  {$$ = driver.add_op("+" , std::move($1),std::move($3));
      | expr RSHIFT expr  {$$ = driver.add_op(">>", std::move($1),std::move($3));}
      | expr NOT expr  {$$ = driver.add_op("!", std::move($1),std::move($3));}
      | SUB expr {$$ = driver.add_op("-" ,driver.add_number(0),std::move($2));}
+     | expr PIPE expr {$$ = driver.add_fcall(std::move($3),std::move($1));}
      | term_time {$$ = std::move($1);};
 
 term_time : term AT term {$$ = driver.set_time(std::move($1),std::move($3));}

@@ -1,13 +1,7 @@
 phase  = 0
 freq = 1000
-fn changef(t:float)->void{
-    freq = (random()+1)*4000
-    nt = t+4000
-    changef(nt@nt)
-}
+hoge =  phase
 fn dsp(time:float)->float{
-    period = 48000/freq
-    phase = (phase+1) % period
-    return  sin(2*3.141595 *phase/period)
+    return  sin(freq)
 }
-changef(0@0)
+//changef(0@0)

@@ -3,8 +3,10 @@
 #include <memory>
 #include <unordered_map>
 
+#include "basic/variant_visitor_helper.hpp"
 #include "basic/ast.hpp"
 #include "basic/mir.hpp"
+#include "basic/helper_functions.hpp"
 #include "compiler/ffi.hpp"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"

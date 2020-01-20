@@ -101,7 +101,7 @@ void KNormalizeVisitor::visit(AssignAST& ast) {
       case RVAR:
         insertRef(body, name);
         break;
-      case LAMBDA:  // do not insert allocate
+      case LAMBDA:  // do not insert allocate,,but how closure is
         tmpname = name;
         body->accept(*this);
         break;
@@ -136,7 +136,7 @@ void KNormalizeVisitor::visit(LambdaAST& ast) {
     arg->accept(*this);
     newargs.push_back(stackPopStr());
   }
-  typeinfer.tmpfname = name;
+  // typeinfer.tmpfname = name;
   ast.accept(typeinfer);
   auto newinst = std::make_shared<FunInst>(
       name, std::move(newargs), typeinfer.getLastType(), ast.isrecursive);
@@ -238,12 +238,13 @@ void KNormalizeVisitor::visit(IfAST& ast) {
 }
 void KNormalizeVisitor::visit(ReturnAST& ast) {
   ast.getExpr()->accept(*this);
+  auto newname = stackPopStr();
+  auto type =typeinfer.getLastType();
+    typeinfer.getEnv().emplace(newname, type);
   ast.accept(typeinfer);
-  // auto newname = getVarName();
-  Instructions newinst = std::make_shared<ReturnInst>("ret", stackPopStr(),
-                                                      typeinfer.getLastType());
+  Instructions newinst = std::make_shared<ReturnInst>("ret", newname,
+                                                      type);
   currentblock->addInst(newinst);
-  // res_stack_str.push(newname);
 }
 void KNormalizeVisitor::visit(ForAST& ast) {
   //後回し

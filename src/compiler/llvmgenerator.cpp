@@ -389,7 +389,7 @@ void LLVMGenerator::visitInstructions(const Instructions& inst, bool isglobal) {
             auto arg_end = f->arg_end();
             llvm::Value* lastarg = --arg_end;
             for (int id = 0; id < i->freevariables.size(); id++) {
-              std::string newname = "fv_" + i->freevariables[id].name;
+              std::string newname = "fv_" + i->freevariables[id];
               llvm::Value* gep = builder->CreateStructGEP(lastarg, id, "fv");
               auto ptrname = "ptr_" + newname;
               llvm::Value* ptrload = builder->CreateLoad(gep, ptrname);
@@ -417,17 +417,23 @@ void LLVMGenerator::visitInstructions(const Instructions& inst, bool isglobal) {
             for (auto& cap : i->captures) {
               llvm::Value* gep =
                   builder->CreateStructGEP(structtype->getElementType(), capture_ptr, idx, "");
-              builder->CreateStore(namemap["ptr_" + cap.name], gep);
+              builder->CreateStore(namemap["ptr_" + cap], gep);
               idx += 1;
             }
                         namemap.emplace(i->fname+"_cap", capture_ptr);
-
+              auto* atype =llvm::ArrayType::get(getType(i->type),1);
+            auto* gptr = (llvm::GlobalVariable*)module->getOrInsertGlobal("ptr_to_"+i->fname,atype);
+            gptr->setInitializer(llvm::ConstantArray::get(atype,{module->getFunction(i->fname)}));
+            gptr->setConstant(true);
+            gptr->setLinkage(llvm::GlobalValue::LinkageTypes::PrivateLinkage);
+            auto ptrtoptr = builder->CreateInBoundsGEP(atype,gptr,llvm::ConstantInt::get(ctx,llvm::APInt(32,0)),"ptrptr_"+i->fname);
+            auto ptr = builder->CreateLoad(ptrtoptr,"ptr_"+i->fname);
             //store the pointer to function(1 size array type)
             // auto* ptrtofntype = getType(i->type);
             // llvm::Value* fn_ptr = createAllocation(isglobal,ptrtofntype,nullptr,i->fname+"_cls");
             // llvm::Value* f = module->getFunction(i->fname);
             // auto res = builder->CreateInsertValue(fn_ptr, f, 0);
-            // namemap.emplace(i->fname+"_cls",res);
+            namemap.emplace("ptr_"+i->fname,ptr);
 
 
           },

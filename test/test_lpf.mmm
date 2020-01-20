@@ -1,0 +1,13 @@
+fn lpf(fb:float){
+    self  = 0
+    fn perform(input:float){
+        res = input*(1-fb) + self*fb
+        self = res
+        return res
+    }
+    return perform
+}
+
+fn dsp(time:float,input:float)->float{
+    return time|> lpf(1250)
+}

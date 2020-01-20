@@ -9,7 +9,8 @@ performance-*,\
 portability-*,\
 -performance-unnecessary-value-param,\
 -modernize-use-trailing-return-type,\
--misc-non-private-member-variables-in-classes\
+-misc-non-private-member-variables-in-classes,\
+-google-runtime-references\
 "
 HeaderFilterRegex: 'src.*\.(hpp|h)'
 CheckOptions:

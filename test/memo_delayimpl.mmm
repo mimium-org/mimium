@@ -129,16 +129,16 @@ fn perform(in,delay) {buffer,writeindex} { //5: lifetime "perform" start
     writeindex++
     return buffer[readindex]
 } // this is closure
-fn delay(maxsize){//3:lifetime "delay" start
-    buffer = Array(maxsize) //lifetime is "delay" thus "main"
+fn delay(maxsize){//3:lifetime "delay" is "main"
+    buffer = Array(maxsize) //4:lifetime is "delay" thus "main"
     writeindex = 0
-    makeCls perform{buffer, writeindex}  //lifetime is "delay" thus main
-    return perform
-} // this does not contains free variable, but return value is closure thus closure
-fn mydelay(x){//lifetime "mydelay"  thus "main"
-    myperform = delay(48000)
-    return myperform(x,1500)
-}// this does not contains free variable, but return value is closure thus closure
+    perform_cls = makeCls perform{buffer,writeindex}
+    return perform_cls
+} // this is not a closure but returns closure
+fn mydelay(x){delay_clsfn,dtime}{//4:lifetime "mydelay" is "main"
+        myperform = delay_clsfn(dtime) //delay is not top level function,freevar
+        return myperform(x,1500)
+}
 int main(){
     delay_cls = makeCls delay //lifetime "delay" is "main"
     mydelay_cls = makeCls mydelay // lifetime "mydelay" is "main"
