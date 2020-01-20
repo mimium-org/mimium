@@ -80,6 +80,7 @@ struct FunInst : public MIRinstruction{
   std::deque<std::string> args;
   std::shared_ptr<MIRblock> body;
   std::vector<std::string> freevariables;  // introduced in closure conversion;
+  bool ccflag = false;//utility for closure conversion
   bool isrecursive;
   explicit FunInst(std::string name, std::deque<std::string> newargs,
                    types::Value _type = types::Void(),
@@ -161,6 +162,7 @@ using Instructions =
 
 class MIRblock : public std::enable_shared_from_this<MIRblock> {
  public:
+  MIRblock(MIRblock& origin)=default;
   explicit MIRblock(std::string _label)
       : label(std::move(_label)), prev(nullptr), next(nullptr) {
     indent_level = 0;

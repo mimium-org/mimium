@@ -1,3 +1,5 @@
+hoge=100
+
 fn lpf(fb:float){
     self  = 0
     fn perform(input:float){

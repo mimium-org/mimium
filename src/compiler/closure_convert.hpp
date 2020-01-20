@@ -1,5 +1,5 @@
 #pragma once
-#include "basic/environment.hpp"
+#include "compiler/ffi.hpp"
 #include "basic/mir.hpp"
 #include "basic/variant_visitor_helper.hpp"
 namespace mimium {
@@ -22,13 +22,13 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
   void moveFunToTop(std::shared_ptr<MIRblock> mir);
 
   struct CCVisitor {
-    explicit CCVisitor(ClosureConverter& cc, std::vector<std::string>& fvlist,
+    explicit CCVisitor(ClosureConverter& cc, std::vector<std::string>& fvlist,std::vector<std::string>& localvlist,
                        std::list<Instructions>::iterator& position)
-        : cc(cc), fvlist(fvlist), position(position) {}
+        : cc(cc), fvlist(fvlist), localvlist(localvlist),position(position) {}
 
     ClosureConverter& cc;
     std::vector<std::string>& fvlist;
-    std::vector<std::string> localvlist;
+    std::vector<std::string> &localvlist;
     std::list<Instructions>::iterator position;
     void updatepos(){++position;}
     void operator()(std::shared_ptr<NumberInst> i);
