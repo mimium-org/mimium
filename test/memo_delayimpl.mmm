@@ -1,0 +1,152 @@
+fn delay(maxsize:c:float){
+    buffer = Array(maxsize)
+    writeindex:float = 0
+    fn perform(input:float,delay:float){
+        readindex = (writeindex+delay)%maxsize
+        buffer[writeindex] = input
+        writeindex++
+        return buffer[readindex]
+    }
+    return perform
+}
+dtime = 48000
+mydelay = |x|{ delay(48000)(x,dtime) }
+
+fn dsp(time:float,input:float)->float{
+    return input|> mydelay
+}
+
+/////// the above will be....
+int main(){ //1.lifetime "main" start
+    fn delay(maxsize){//2:lifetime "delay" start
+        buffer = Array(maxsize) //3:lifetime is "delay"
+        writeindex = 0
+        fn perform(in,delay){ //4: lifetime "perform" start
+            readindex = (writeindex+delay)%maxsize
+            buffer[writeindex] = input
+            writeindex++
+            return buffer[readindex]
+        } // this is closure
+        return perform
+    } // this does not contains free variable, but return value is closure thus closure
+    dtime = 48000
+    fn mydelay(x){//5:lifetime "mydelay" start
+        myperform = delay(dtime) //delay is not top level function,freevar
+        return myperform(x,1500)
+    }// this is closure
+}//lifetime "main" ends up at here
+fn dsp(time:float,input:float)->float{ //6"lifetime "dsp" start
+    return input|> mydelay
+} // this is closure
+
+
+/////// let's closure convert!!,first move delay& mydelay to outer 
+fn delay(maxsize){//3:lifetime "delay" start
+    buffer = Array(maxsize) //4:lifetime is "delay"
+    writeindex = 0
+    fn perform(in,delay){ //5: lifetime "perform" start
+        readindex = (writeindex+delay)%maxsize
+        buffer[writeindex] = input
+        writeindex++
+        return buffer[readindex]
+    } // this is closure
+    return perform
+} // this does not contain freevars but return closure,so it's closure
+fn mydelay(x){delay:fn,dtime:float}{//6:lifetime "mydelay" start
+        myperform = delay(dtime) //delay is not top level function,freevar
+        return myperform(x,1500)
+}
+
+int main(){
+    dtime = 48000
+    delay_cls = makeCls delay
+    myperform_ptr = makeCls mydelay {delay_cls.fn,dtime}
+    makeCls dsp {myperform_ptr}
+}
+fn dsp(time:float,input:float)->float {delay}{ //1"lifetime "dsp" start
+    return input|> mydelay
+}
+
+/////// second move "perform"
+fn perform(in,delay) {buffer,writeindex} { //5: lifetime "perform" start
+    readindex = (writeindex+delay)%maxsize
+    buffer[writeindex] = input
+    writeindex++
+    return buffer[readindex]
+} // this is closure
+fn delay(maxsize){//3:lifetime "delay" start
+    buffer = Array(maxsize) //4:lifetime is "delay"
+    writeindex = 0
+    perform_cls = makeCls perform{buffer,writeindex}
+    return perform_cls
+} // this is not a closure
+fn mydelay(x){delay_clsfn,dtime}{//6:lifetime "mydelay" start
+        myperform = delay_clsfn(dtime) //delay is not top level function,freevar
+        return myperform(x,1500)
+}
+int main(){
+    dtime = 48000
+    delay_cls = makeCls delay
+    mydelay_cls = makeCls mydelay {delay_cls.fn,dtime}
+    makeCls dsp {mydelay_cls.fn}
+}
+fn dsp(time:float,input:float)->float {mydelay}{ //1"lifetime "dsp" start
+    return input|> mydelay
+}
+
+///////let's unify lifetime 
+
+fn perform(in,delay) {buffer,writeindex} { //5: lifetime "perform" start
+    readindex = (writeindex+delay)%maxsize
+    buffer[writeindex] = input
+    writeindex++
+    return buffer[readindex]
+} // this is closure
+fn delay(maxsize){//3:lifetime "delay" is "main"
+    buffer = Array(maxsize) //4:lifetime is "delay" thus "main"
+    writeindex = 0
+    perform_cls = makeCls perform{buffer,writeindex}
+    return perform_cls
+} // this is not a closure
+fn mydelay(x){delay_clsfn,dtime}{//4:lifetime "mydelay" is "main"
+        myperform = delay_clsfn(dtime) //delay is not top level function,freevar
+        return myperform(x,1500)
+}
+int main(){
+    dtime = 48000
+    delay_cls = makeCls delay //3.lifetime "delay" is "main"
+    mydelay_cls = makeCls mydelay {delay_cls.fn,dtime} //2.lifetime "mydelay" is "main"
+    makeCls dsp {mydelay_cls.fn} //1.lifetime "dsp" is main
+}
+fn dsp(time:float,input:float)->float {mydelay}{ //"lifetime "dsp" start
+    return input|> mydelay
+}
+///////so free the memory for closure at the end of lifetime,,, this time every thing was "main" 
+
+fn perform(in,delay) {buffer,writeindex} { //5: lifetime "perform" start
+    readindex = (writeindex+delay)%maxsize
+    buffer[writeindex] = input
+    writeindex++
+    return buffer[readindex]
+} // this is closure
+fn delay(maxsize){//3:lifetime "delay" start
+    buffer = Array(maxsize) //lifetime is "delay" thus "main"
+    writeindex = 0
+    makeCls perform{buffer, writeindex}  //lifetime is "delay" thus main
+    return perform
+} // this does not contains free variable, but return value is closure thus closure
+fn mydelay(x){//lifetime "mydelay"  thus "main"
+    myperform = delay(48000)
+    return myperform(x,1500)
+}// this does not contains free variable, but return value is closure thus closure
+int main(){
+    delay_cls = makeCls delay //lifetime "delay" is "main"
+    mydelay_cls = makeCls mydelay // lifetime "mydelay" is "main"
+    makeCls dsp {mydelay_cls} // lifetime "dsp" is "main"
+
+    free ""
+
+}
+fn dsp(time:float,input:float)->float {delay}{ //1"lifetime "dsp" start
+    return input|> mydelay
+}
