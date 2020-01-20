@@ -20,7 +20,7 @@
             "type": "lldb",
             "request": "launch",
             "program": "${workspaceFolder}/build/src/mimium",
-            "args": [ "/Users/tomoya/codes/mimium/test/dsp_demo.mmm" ], 
+            "args": [ "/Users/tomoya/codes/mimium/test/test_lpf.mmm" ], 
             "cwd": "${workspaceFolder}/build", 
         },
 

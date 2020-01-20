@@ -16,19 +16,21 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
   std::shared_ptr<MIRblock> toplevel;
   int capturecount;
   std::unordered_map<std::string, std::shared_ptr<FunInst>> known_functions;
+  FunInst tmp_globalfn;
 
  private:
   void moveFunToTop(std::shared_ptr<MIRblock> mir);
 
   struct CCVisitor {
     explicit CCVisitor(ClosureConverter& cc, std::vector<std::string>& fvlist,
-                       std::list<Instructions>::iterator position)
+                       std::list<Instructions>::iterator& position)
         : cc(cc), fvlist(fvlist), position(position) {}
 
     ClosureConverter& cc;
     std::vector<std::string>& fvlist;
     std::vector<std::string> localvlist;
     std::list<Instructions>::iterator position;
+    void updatepos(){++position;}
     void operator()(std::shared_ptr<NumberInst> i);
     void operator()(std::shared_ptr<AllocaInst> i);
     void operator()(std::shared_ptr<RefInst> i);

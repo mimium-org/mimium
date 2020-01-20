@@ -7,10 +7,6 @@ KNormalizeVisitor::KNormalizeVisitor(TypeInferVisitor& typeinfer)
     :typeinfer(typeinfer), var_counter(0) {
   init();
 }
-
-// KNormalizeVisitor::~KNormalizeVisitor(){
-
-// }
 std::string KNormalizeVisitor::makeNewName() {
   return "k" + std::to_string(++var_counter);
 }
@@ -31,19 +27,6 @@ void KNormalizeVisitor::init() {
   current_context = nullptr;
 
 }
-// AST_Ptr KNormalizeVisitor::insertAssign(AST_Ptr ast) {
-//   if (ast->getid() == OP) {
-//     auto tmpsymbol =
-//         std::make_shared<LvarAST>(makeNewName());
-//     ast->accept(*this);
-
-//     auto assign = std::make_unique<AssignAST>(tmpsymbol, ast);  //
-//     recursive!! var_counter++; current_context->appendAST(std::move(assign));
-//     return std::make_shared<RvarAST>(ast->);
-//   } else {
-//     return ast;
-//   }
-// }
 
 void KNormalizeVisitor::visit(ListAST& ast) {
   auto tempctx = current_context;
@@ -64,6 +47,8 @@ void KNormalizeVisitor::visit(OpAST& ast) {
       name, ast.getOpStr(), std::move(nextlhs), std::move(nextrhs));
   currentblock->addInst(newinst);
   res_stack_str.push(name);
+  typeinfer.getEnv().emplace(name, types::Float());
+
 }
 void KNormalizeVisitor::insertOverWrite(AST_Ptr body, const std::string& name) {
   body->accept(*this);  
@@ -120,6 +105,7 @@ void KNormalizeVisitor::visit(NumberAST& ast) {
   Instructions newinst = std::make_shared<NumberInst>(name, ast.getVal());
   currentblock->addInst(newinst);
   res_stack_str.push(name);
+  typeinfer.getEnv().emplace(name, types::Float());
 }
 void KNormalizeVisitor::visit(LvarAST& ast) {
   res_stack_str.push(ast.getVal());
