@@ -40,17 +40,17 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
 
   void createMiscDeclarations();
   void createMainFun();
-  void createFcall(std::shared_ptr<FcallInst> i,
+  void createFcall(FcallInst& i,
                    std::vector<llvm::Value*>& args);
   void createTaskRegister(bool isclosure);
   llvm::Value* createAllocation(bool isglobal, llvm::Type* type,
                                 llvm::Value* ArraySize,
                                 const llvm::Twine& name);
   bool createStoreOw(std::string varname, llvm::Value* val_to_store);
-  void createAddTaskFn(std::shared_ptr<FcallInst> i, bool isclosure,
+  void createAddTaskFn(FcallInst& i, bool isclosure,
                        bool isglobal);
 
-  void visitInstructions(const Instructions& inst, bool isglobal);
+  void visitInstructions(Instructions& inst, bool isglobal);
 
   void dropAllReferences();
   std::unordered_map<std::string, llvm::Type*> typemap;

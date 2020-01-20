@@ -152,13 +152,13 @@ struct ReturnInst : public MIRinstruction {
   std::string toString() override;
 };
 using Instructions =
-    std::variant<std::shared_ptr<NumberInst>, std::shared_ptr<AllocaInst>,
-                 std::shared_ptr<RefInst>, std::shared_ptr<AssignInst>,
-                 std::shared_ptr<TimeInst>, std::shared_ptr<OpInst>,
-                 std::shared_ptr<FunInst>, std::shared_ptr<FcallInst>,
-                 std::shared_ptr<MakeClosureInst>, std::shared_ptr<ArrayInst>,
-                 std::shared_ptr<ArrayAccessInst>, std::shared_ptr<IfInst>,
-                 std::shared_ptr<ReturnInst> >;
+    std::variant<NumberInst, AllocaInst,
+                 RefInst, AssignInst,
+                 TimeInst, OpInst,
+                 FunInst, FcallInst,
+                 MakeClosureInst, ArrayInst,
+                 ArrayAccessInst, IfInst,
+                 ReturnInst >;
 
 class MIRblock : public std::enable_shared_from_this<MIRblock> {
  public:
@@ -170,13 +170,13 @@ class MIRblock : public std::enable_shared_from_this<MIRblock> {
   auto begin() { return instructions.begin(); }
   auto end() { return instructions.end(); }
   void addInst(Instructions& inst) {
-    instructions.push_back(inst);
     std::visit(
         [&](auto& i) -> void {
-          std::static_pointer_cast<MIRinstruction>(i)->setParent(
-              shared_from_this());
+          i.setParent(shared_from_this());
         },
         inst);
+   instructions.push_back(inst);
+
   }
   void changeIndent(int level) { indent_level += level; }
   std::string label;

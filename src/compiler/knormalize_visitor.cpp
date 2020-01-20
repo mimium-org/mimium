@@ -43,7 +43,7 @@ void KNormalizeVisitor::visit(OpAST& ast) {
   auto nextlhs = stackPopStr();
   ast.rhs->accept(*this);
   auto nextrhs = stackPopStr();
-  Instructions newinst = std::make_shared<OpInst>(
+  Instructions newinst =OpInst(
       name, ast.getOpStr(), std::move(nextlhs), std::move(nextrhs));
   currentblock->addInst(newinst);
   res_stack_str.push(name);
@@ -56,21 +56,20 @@ void KNormalizeVisitor::insertOverWrite(AST_Ptr body, const std::string& name) {
   auto type = typeinfer.getEnv().find(name);
   typeinfer.getEnv().emplace(newname, type);
   tmpname = name;
-  auto assign = std::make_shared<AssignInst>(getVarName(), newname);
-  assign->type = type;
+  auto assign = AssignInst(getVarName(), newname);
+  assign.type = type;
   Instructions newinst = assign;
   currentblock->addInst(newinst);
 }
 void KNormalizeVisitor::insertAlloca(AST_Ptr body, const std::string& name) {
-  Instructions alloca =
-      std::make_shared<AllocaInst>(name, typeinfer.getEnv().find(name));
+  Instructions alloca =AllocaInst(name, typeinfer.getEnv().find(name));
   currentblock->addInst(alloca);
 }
 void KNormalizeVisitor::insertRef(AST_Ptr body, const std::string& name) {
   auto rvar = std::static_pointer_cast<RvarAST>(body);
   auto targetname = rvar->getVal();
   typeinfer.getEnv().emplace(name, typeinfer.getEnv().find(targetname));
-  Instructions newinst = std::make_shared<RefInst>(name, targetname);
+  Instructions newinst = RefInst(name, targetname);
   currentblock->addInst(newinst);
 }
 void KNormalizeVisitor::visit(AssignAST& ast) {
@@ -102,7 +101,7 @@ void KNormalizeVisitor::visit(AssignAST& ast) {
 
 void KNormalizeVisitor::visit(NumberAST& ast) {
   auto name = getVarName();
-  Instructions newinst = std::make_shared<NumberInst>(name, ast.getVal());
+  Instructions newinst = NumberInst(name, ast.getVal());
   currentblock->addInst(newinst);
   res_stack_str.push(name);
   typeinfer.getEnv().emplace(name, types::Float());
@@ -124,13 +123,12 @@ void KNormalizeVisitor::visit(LambdaAST& ast) {
   }
   // typeinfer.tmpfname = name;
   ast.accept(typeinfer);
-  auto newinst = std::make_shared<FunInst>(
-      name, std::move(newargs), typeinfer.getLastType(), ast.isrecursive);
+  FunInst newinst (name, std::move(newargs), typeinfer.getLastType(), ast.isrecursive);
   Instructions res = newinst;
   currentblock->indent_level++;
   currentblock->addInst(res);
-  newinst->body->indent_level = currentblock->indent_level;
-  currentblock = newinst->body;  // move context
+  newinst.body->indent_level = currentblock->indent_level;
+  currentblock = newinst.body;  // move context
   ast.getBody()->accept(*this);
   currentblock = tmpcontext;  // switch back context
   --currentblock->indent_level;
@@ -172,8 +170,7 @@ void KNormalizeVisitor::visit(FcallAST& ast) {
   auto fnkind = (LLVMBuiltin::ftable.find(resfname) != LLVMBuiltin::ftable.end())
                     ? EXTERNAL
                     : CLOSURE;
-  Instructions newinst =
-      std::make_shared<FcallInst>(newname, resfname, std::move(newarg), fnkind,
+  Instructions newinst = FcallInst(newname, resfname, std::move(newarg), fnkind,
                                   typeinfer.getLastType(), isArgTime(*args));
   currentblock->addInst(newinst);
   res_stack_str.push(newname);
@@ -188,7 +185,7 @@ void KNormalizeVisitor::visit(ArrayAST& ast) {
   }
   auto newname = getVarName();
 
-  auto newinst = std::make_shared<ArrayInst>(newname, std::move(newelem));
+  ArrayInst newinst ( newname, std::move(newelem));
   Instructions res = newinst;
   currentblock->addInst(res);
   res_stack_str.push(newname);
@@ -197,8 +194,7 @@ void KNormalizeVisitor::visit(ArrayAccessAST& ast) {  // access index may be
                                                       // expr
   ast.getIndex()->accept(*this);
   auto newname = getVarName();
-  auto newinst = std::make_shared<ArrayAccessInst>(
-      newname, ast.getName()->getVal(), stackPopStr());
+  ArrayAccessInst newinst (      newname, ast.getName()->getVal(), stackPopStr());
   Instructions res = newinst;
 
   currentblock->addInst(res);
@@ -208,15 +204,15 @@ void KNormalizeVisitor::visit(IfAST& ast) {
   auto tmpcontext = currentblock;
   ast.getCond()->accept(*this);
   auto newname = getVarName();
-  auto newinst = std::make_shared<IfInst>(newname, stackPopStr());
+  IfInst newinst (newname, stackPopStr());
   Instructions res = newinst;
   currentblock->indent_level++;
-  newinst->thenblock->indent_level = currentblock->indent_level;
-  newinst->elseblock->indent_level = currentblock->indent_level;
+  newinst.thenblock->indent_level = currentblock->indent_level;
+  newinst.elseblock->indent_level = currentblock->indent_level;
   currentblock->addInst(res);
-  currentblock = newinst->thenblock;
+  currentblock = newinst.thenblock;
   ast.getThen()->accept(*this);
-  currentblock = newinst->elseblock;
+  currentblock = newinst.elseblock;
   ast.getElse()->accept(*this);
   res_stack_str.push(newname);
   currentblock = tmpcontext;
@@ -228,8 +224,7 @@ void KNormalizeVisitor::visit(ReturnAST& ast) {
   auto type =typeinfer.getLastType();
     typeinfer.getEnv().emplace(newname, type);
   ast.accept(typeinfer);
-  Instructions newinst = std::make_shared<ReturnInst>("ret", newname,
-                                                      type);
+  Instructions newinst = ReturnInst("ret", newname,type);
   currentblock->addInst(newinst);
 }
 void KNormalizeVisitor::visit(ForAST& ast) {
@@ -246,8 +241,7 @@ void KNormalizeVisitor::visit(TimeAST& ast) {
   ast.getTime()->accept(*this);
   ast.getExpr()->accept(*this);
   ast.accept(typeinfer);
-  auto newinst = std::make_shared<TimeInst>(
-      newname, stackPopStr(), stackPopStr(), typeinfer.getLastType());
+  TimeInst newinst (newname, stackPopStr(), stackPopStr(), typeinfer.getLastType());
   Instructions res = newinst;
 
   currentblock->addInst(res);

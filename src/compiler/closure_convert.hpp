@@ -15,7 +15,7 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
   TypeEnv& typeenv;
   std::shared_ptr<MIRblock> toplevel;
   int capturecount;
-  std::unordered_map<std::string, std::shared_ptr<FunInst>> known_functions;
+  std::unordered_map<std::string, int> known_functions;
   FunInst tmp_globalfn;
 
  private:
@@ -31,19 +31,19 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
     std::vector<std::string> &localvlist;
     std::list<Instructions>::iterator position;
     void updatepos(){++position;}
-    void operator()(std::shared_ptr<NumberInst> i);
-    void operator()(std::shared_ptr<AllocaInst> i);
-    void operator()(std::shared_ptr<RefInst> i);
-    void operator()(std::shared_ptr<AssignInst> i);
-    void operator()(std::shared_ptr<TimeInst> i);
-    void operator()(std::shared_ptr<OpInst> i);
-    void operator()(std::shared_ptr<FunInst> i);
-    void operator()(std::shared_ptr<FcallInst> i);
-    void operator()(std::shared_ptr<MakeClosureInst> i);
-    void operator()(std::shared_ptr<ArrayInst> i);
-    void operator()(std::shared_ptr<ArrayAccessInst> i);
-    void operator()(std::shared_ptr<IfInst> i);
-    void operator()(std::shared_ptr<ReturnInst> i);
+    void operator()(NumberInst& i);
+    void operator()(AllocaInst& i);
+    void operator()(RefInst& i);
+    void operator()(AssignInst& i);
+    void operator()(TimeInst& i);
+    void operator()(OpInst& i);
+    void operator()(FunInst& i);
+    void operator()(FcallInst& i);
+    void operator()(MakeClosureInst& i);
+    void operator()(ArrayInst& i);
+    void operator()(ArrayAccessInst& i);
+    void operator()(IfInst& i);
+    void operator()(ReturnInst& i);
     bool isFreeVar(const std::string& name);
   };
 };

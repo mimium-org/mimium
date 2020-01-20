@@ -15,7 +15,7 @@ std::string MIRblock::toString() {
       str += "  ";  // indent
     }
 
-    str += std::visit([](const auto& val) -> std::string { return val->toString(); },
+    str += std::visit([](auto& val) -> std::string { return val.toString(); },
                       inst) +
            "\n";
   }
