@@ -31,7 +31,6 @@ void MimiumDriver::parsestring(const std::string str){
 void MimiumDriver::parsefile(const std::string filename){
    std::ifstream ifs;
    ifs.exceptions(std::fstream::failbit | std::fstream::badbit);
-
    try{
       if(filename[0] == '/'){ // check if absolute path or not
          ifs.open(filename);

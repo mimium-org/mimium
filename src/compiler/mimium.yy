@@ -49,6 +49,7 @@ using namespace mimium;
 }
 %define api.value.type variant
 %define parse.assert
+%define parse.error verbose
 %token
    ADD "+"
    SUB "-"
@@ -79,23 +80,23 @@ using namespace mimium;
 
    FUNC "fn"
    IF "if"
-   ELSE "ELSE"
+   ELSE "else"
 
    FOR "for"
    IN "in"
 
    TYPE_DELIM ":"
-   TYPEFLOAT "float_typetoken"
-   TYPEVOID "void_typetoken"
-   TYPEFN "fn_typetoken"
+   TYPEFLOAT "typeid:float"
+   TYPEVOID "typeid:void"
+   TYPEFN "typeid:fn"
 
-   INCLUDE "include_token"
+   INCLUDE "include"
 
    /*END "end_token"*/
-   RETURN "return_token"
+   RETURN "return"
 
    ENDFILE    0     "end of file"
-   NEWLINE "newline"
+   NEWLINE "line break"
 ;
 %token <double> NUM "number_token"
 %token  <std::string> SYMBOL "symbol_token"
@@ -178,14 +179,18 @@ using namespace mimium;
 
 %%
 
-top :statements ENDFILE {driver.add_top(std::move($1));}
+top : opt_nl statements ENDFILE {driver.add_top(std::move($2));}
     ;
 
 statements :statement NEWLINE statements {$3->addAST(std::move($1));
                                            $$ = std::move($3);  }
-            | statement opt_nl{  $$ = driver.add_statements(std::move($1));}
-      ;
-block: LBRACE  opt_nl statements opt_nl RBRACE {$$ = $$ = std::move($3);};
+      | statement opt_nl{  $$ = driver.add_statements(std::move($1));}
+
+            
+      
+block: LBRACE  NEWLINE statements opt_nl RBRACE {$$ = std::move($3);}
+      |LBRACE expr RBRACE {$$ = std::move($2);}
+      |LBRACE RETURN expr RBRACE {$$ = driver.add_return(std::move($3));}
 
 opt_nl: {}
       | NEWLINE {};
@@ -213,6 +218,7 @@ forloop: FOR lvar IN expr block {$$ = driver.add_forloop(std::move($2),std::move
 /* end : END; */
 
 lambda: OR arguments OR block {$$ = driver.add_lambda(std::move($2),std::move($4));};
+      |OR arguments OR expr {$$ = driver.add_lambda(std::move($2),std::move($4));};
        |OR arguments OR ARROW types block{$$=driver.add_lambda_only_with_returntype(std::move($2),std::move($6),std::move($5));};
 
 assign : lvar ASSIGN expr {$$ = driver.add_assign(std::move($1),std::move($3));}
@@ -238,7 +244,7 @@ fcall : term '(' arguments_fcall ')' {$$ = driver.add_fcall(std::move($1),std::m
 
 
 
-expr : expr ADD    expr  {$$ = driver.add_op("+" , std::move($1),std::move($3));}
+expr : expr ADD    expr  {$$ = driver.add_op("+" , std::move($1),std::move($3)); }
      | expr SUB    expr  {$$ = driver.add_op("-" , std::move($1),std::move($3));}
      | expr MUL    expr  {$$ = driver.add_op("*" , std::move($1),std::move($3));}
      | expr DIV    expr  {$$ = driver.add_op("/" , std::move($1),std::move($3));}
@@ -267,13 +273,12 @@ term : single {$$ = std::move($1);}
       |array {$$ = std::move($1);}
       |array_access {$$ = std::move($1);}
       |lambda {$$ = std::move($1);}
-      | '(' expr ')' {$$ =std::move($2);};
+      | '(' expr ')' {$$ =std::move($2);}
+
 
 declaration : include {$$=std::move($1);} 
-;
 
 include : INCLUDE '(' arguments_fcall ')' {$$ = driver.add_declaration("include",std::move($3)); }
-;
 
 
 array : '[' array_elems ']' {$$ = std::move($2);}
@@ -281,20 +286,19 @@ array : '[' array_elems ']' {$$ = std::move($2);}
 array_elems : single ',' array_elems   {$3->addAST(std::move($1));
                                     $$ = std::move($3); }
          |  single {$$ = driver.add_array(std::move($1));}
-         ;
-array_access: rvar '[' term ']' {$$ = driver.add_array_access(std::move($1),std::move($3));}; 
+array_access: rvar '[' term ']' {$$ = driver.add_array_access(std::move($1),std::move($3));}
 
 single : rvar{$$=std::move($1);}
       // | string{$$=std::move($1);}
-      |  num   {$$=std::move($1);};
+      |  num   {$$=std::move($1);}
 
-// string : STRING {$$ = driver.add_rvar($1,mimium::types::String());};
+// string : STRING {$$ = driver.add_rvar($1,mimium::types::String());}
 
-num :NUM {$$ = driver.add_number($1);};
+num :NUM {$$ = driver.add_number($1);}
 
 
 lvar : SYMBOL {$$ = driver.add_lvar($1);}
-      |SYMBOL TYPE_DELIM types {$$ = driver.add_lvar($1,$3);};
+      |SYMBOL TYPE_DELIM types {$$ = driver.add_lvar($1,$3);}
 
 rvar : SYMBOL {$$ = driver.add_rvar($1);}
 
@@ -302,28 +306,26 @@ types : TYPEFLOAT {;
       $$ =mimium::types::Float();}
       | TYPEVOID{
             $$ = mimium::types::Void();}
-      | fntype;
+      | fntype
 
 fntype: '(' fntype_args ')' ARROW types {
       mimium::types::Function f(std::move($5),std::move($2));
       mimium::types::Value v = std::move(f);
       $$ = std::move(v);
-      };
+      }
 
 fntype_args  :  fntype_args ',' types {
                   $1.push_back(std::move($3));
                   $$ = std::move($1);}
             |   types  {
                   $$ = std::vector<mimium::types::Value>{$1};}
-; 
 
 %%
-
 
 void 
 mmmpsr::MimiumParser::error( const location_type &l, const std::string &err_message )
 {
-      std::stringstream ss;
-      ss  <<  "Parse Error: " << err_message << " at " << l << "\n";
-      throw std::logic_error(ss.str());
+       std::stringstream ss;
+      ss  << err_message << " at " << l << "\n";
+      mimium::Logger::debug_log(ss.str(),mimium::Logger::ERROR);
 }
