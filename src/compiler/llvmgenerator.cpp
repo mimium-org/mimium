@@ -9,11 +9,13 @@ LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx)
       ctx(ctx),
       mainentry(nullptr),
       currentblock(nullptr),
+      module(std::make_unique<llvm::Module>("no_file_name.mmm", ctx)),
       builder(std::make_unique<llvm::IRBuilder<>>(ctx)),
       typeconverter(*builder, *module) {
 }
 void LLVMGenerator::init(std::string filename) {
-  module = std::make_unique<llvm::Module>(filename, ctx);
+  module->setSourceFileName(filename);
+  module->setModuleIdentifier(filename);
   // module->setDataLayout(LLVMGetDefaultTargetTriple());
 }
 void LLVMGenerator::setDataLayout() {
@@ -235,24 +237,17 @@ void LLVMGenerator::createFcall(FcallInst& i, std::vector<llvm::Value*>& args) {
       fun = f;
     } break;
     case DIRECT:
+    case CLOSURE:
       fun = module->getFunction(i.fname);
       if (fun == nullptr) {
         throw std::logic_error("function could not be referenced");
       }
       break;
-    case CLOSURE: {
-      auto* arrptr = findValue("ptr_" + i.fname);
-      auto* v = builder->CreateExtractValue(arrptr, 0);
-      fun = v;
-
-    } break;
     default:
       break;
   }
 
   if (std::holds_alternative<types::Void>(i.type)) {
-    fun->dump();
-    for (auto& a : args) a->dump();
     builder->CreateCall(fun, args);
   } else {
     auto res = builder->CreateCall(fun, args, i.lv_name);
@@ -385,12 +380,10 @@ void LLVMGenerator::visitInstructions(Instructions& inst, bool isglobal) {
               llvm::Value* lastarg_str = builder->CreateLoad(lastarg);
               for (int id = 0; id < i.freevariables.size(); id++) {
                 std::string newname = "fv_" + i.freevariables[id];
-                // llvm::Value* gep =
-                // builder->CreateStructGEP(lastarg_str->getType(), lastarg_str,
-                // id, "fv");
+                llvm::Value* gep =
+                builder->CreateStructGEP(lastarg, id, "fv");
                 auto ptrname = "ptr_" + newname;
-                llvm::Value* ptrload = builder->CreateExtractValue(
-                    lastarg_str, id, "ptr_" + newname);
+                llvm::Value* ptrload = builder->CreateLoad(gep,ptrname);
                 namemap.try_emplace(ptrname, ptrload);
                 auto* ptype = llvm::cast<llvm::PointerType>(ptrload->getType());
                 if (ptype->getElementType()->isFirstClassType()) {
@@ -411,9 +404,8 @@ void LLVMGenerator::visitInstructions(Instructions& inst, bool isglobal) {
           },
           [&, this](MakeClosureInst& i) {
             // store the capture address to memory
-            auto* structptrtype = (llvm::PointerType*)getType(i.capturetype);
-            auto* structty = structptrtype->getElementType();
-            auto capptrname = "ptr_" + i.fname + "_cap";
+            auto* structty = getType(i.capturetype);
+            auto capptrname = i.fname + "_cap";
             llvm::Value* capture_ptr =
                 createAllocation(isglobal, structty, nullptr, capptrname);
             auto* capturetuple =
@@ -421,25 +413,27 @@ void LLVMGenerator::visitInstructions(Instructions& inst, bool isglobal) {
             unsigned int idx = 0;
             for (auto& cap : i.captures) {
               llvm::Value* fvptr = findValue("ptr_" + cap);
-              if (fvptr == nullptr) {
-                auto v = findValue(cap);
-                // heap allocation! possibly memory leak
-                fvptr = createAllocation(true, v->getType(), nullptr, cap);
-                builder->CreateStore(v, fvptr);
-              }
-              llvm::Value* insert =
-                  builder->CreateInsertValue(capturetuple, fvptr, {idx}, "");
+              // if (fvptr == nullptr) {
+              //   auto v = findValue(cap);
+              //   // heap allocation! possibly memory leak
+              //   fvptr = createAllocation(true, v->getType(), nullptr, cap);
+              //   builder->CreateStore(v, fvptr);
+              // }
+              auto pp = builder->CreateStructGEP(capture_ptr,idx);
+
+              builder->CreateStore(findValue("ptr_"+cap), pp);
               idx += 1;
             }
             namemap.try_emplace(capptrname, capture_ptr);
 
             auto f = module->getFunction(i.fname);
-            auto* atype = llvm::ArrayType::get(f->getType(), 1);
+           
+            auto* atype =  llvm::StructType::create({f->getType()},"container_"+i.fname);
             auto* gptr = (llvm::GlobalVariable*)module->getOrInsertGlobal(
                 "ptr_to_" + i.fname, atype);
-            gptr->setInitializer(llvm::ConstantArray::get(atype, {f}));
+            gptr->setInitializer(llvm::ConstantStruct::get(atype, {f}));
             gptr->setConstant(true);
-            gptr->setLinkage(llvm::GlobalValue::LinkageTypes::PrivateLinkage);
+            gptr->setLinkage(llvm::GlobalValue::LinkageTypes::ExternalLinkage);
             auto ptrtoptr = builder->CreateInBoundsGEP(
                 atype, gptr, llvm::ConstantInt::get(ctx, llvm::APInt(32, 0)),
                 "ptrptr_" + i.fname);
@@ -458,7 +452,7 @@ void LLVMGenerator::visitInstructions(Instructions& inst, bool isglobal) {
             std::for_each(i.args.begin(), i.args.end(),
                           [&](auto& a) { args.emplace_back(findValue(a)); });
             if (isclosure) {
-              args.emplace_back(findValue("ptr_" + i.fname + "_cap"));
+              args.emplace_back(findValue( i.fname + "_cap"));
             }
             if (i.istimed) {  // if arguments is timed value, call addTask
               createAddTaskFn(i, isclosure, isglobal);

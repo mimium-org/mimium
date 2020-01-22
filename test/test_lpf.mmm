@@ -1,6 +1,5 @@
-hoge=100
 
-fn lpf(fb:float){
+fn lpf(fb:float){    
     self  = 0
     fn perform(input:float){
         res = input*(1-fb) + self*fb
@@ -9,7 +8,8 @@ fn lpf(fb:float){
     }
     return perform
 }
-
-fn dsp(time:float,input:float)->float{
-    return time|> lpf(1250)
+//myfn = |x:float| x+2 
+mylpf = lpf(1250)
+fn dsp(time:float)->float{
+    return time|> mylpf
 }

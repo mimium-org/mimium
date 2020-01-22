@@ -91,6 +91,11 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   void* execute();
   void outputToStream(llvm::raw_ostream& ostream);
   llvm::orc::MimiumJIT& getJitEngine() { return *jitengine; }
+  void dumpvars(){
+    for(auto& [key,val]:namemap){
+      llvm::errs() << key <<" : " << val<<"\n";
+    }
+  }
   auto& getTaskInfoList() { return tasktype_list; }
   struct TypeConverter {
     explicit TypeConverter(llvm::IRBuilder<>& b, llvm::Module& m)
@@ -117,10 +122,12 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
       return builder.getInt8PtrTy();
     }
     llvm::Type* operator()(const types::Ref& r) {
-      return (llvm::Type*)llvm::PointerType::get(std::visit(*this, r.val), 0);
+      llvm::Type* res = llvm::PointerType::get(std::visit(*this, r.val), 0);
+      return res;
     }
     llvm::Type* operator()(const types::Pointer& r) {
-      return (llvm::Type*)llvm::PointerType::get(std::visit(*this, r.val), 0);
+      llvm::Type* res = llvm::PointerType::get(std::visit(*this, r.val), 0);
+      return res;
     }
     llvm::Type* operator()(const types::Function& f) {
       std::vector<llvm::Type*> ar;
@@ -151,8 +158,11 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
       if (tmpname.empty()) {
         res = llvm::StructType::get(builder.getContext(), ar);
       } else {
-        res =
-            llvm::StructType::create(builder.getContext(), ar, consumeAlias());
+        auto n = consumeAlias();
+        res = tryGetNamedType(n);
+        if (res == nullptr) {
+          res = llvm::StructType::create(builder.getContext(), ar, n, false);
+        }
       }
       return res;
     }
@@ -163,10 +173,13 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
         ar.push_back(std::visit(*this, a));
       }
       if (tmpname.empty()) {
-        res = llvm::StructType::get(builder.getContext(), ar);
+        res = llvm::StructType::get(builder.getContext(), ar, false);
       } else {
-        res =
-            llvm::StructType::create(builder.getContext(), ar, consumeAlias());
+        auto n = consumeAlias();
+        res = tryGetNamedType(n);
+        if (res == nullptr) {
+          res = llvm::StructType::create(builder.getContext(), ar, n, false);
+        }
       }
       return res;
     }
@@ -177,9 +190,13 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
             builder.getContext(),
             {builder.getDoubleTy(), std::visit(*this, t.val)});
       } else {
-        res = llvm::StructType::create(
-            builder.getContext(),
-            {builder.getDoubleTy(), std::visit(*this, t.val)}, consumeAlias());
+        auto n = consumeAlias();
+        res = tryGetNamedType(n);
+        if (res == nullptr) {
+          res = llvm::StructType::create(
+              builder.getContext(),
+              {builder.getDoubleTy(), std::visit(*this, t.val)}, n);
+        }
       }
       return res;
     }
@@ -189,7 +206,7 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
         tmpname = a.name;
         res = std::visit(*this, a.target);
       }
-      if(!tmpname.empty()){
+      if (!tmpname.empty()) {
         tmpname.clear();
       }
       return res;
@@ -201,6 +218,7 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
       tmpname = "";
       return t;
     }
+    llvm::Type* tryGetNamedType(std::string name) { return module.getTypeByName(name); }
   } typeconverter;
 };
 

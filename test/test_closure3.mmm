@@ -1,16 +1,13 @@
 globalvar = 2
-print(globalvar)
-fn newprint(hoge:float)->void{
-    print(hoge)
+println(globalvar)
+
+fn myprint(a:float)->void{
+    println(a)
 }
+
 fn closurefun(time:float)->void{
-    newprint(globalvar)
-    newprint(globalvar)
-    newprint(globalvar)
-    newtime = time+44100
-    closurefun(newtime@newtime)
+    myprint(100)
+    myprint(time)
+    myprint(globalvar)
 }
-closurefun(0@0)
-
-
-
+closurefun(20)

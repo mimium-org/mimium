@@ -1,7 +1,7 @@
-fn delay(maxsize:c:float){
+fn delay(maxsize:c:float,delay:float){
     buffer = Array(maxsize)
     writeindex:float = 0
-    fn perform(input:float,delay:float){
+    fn perform(input:float){
         readindex = (writeindex+delay)%maxsize
         buffer[writeindex] = input
         writeindex++

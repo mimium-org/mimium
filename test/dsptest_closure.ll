@@ -5,6 +5,7 @@ target datalayout = "e-m:o-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16
 %fvtype.0 = type { double*, double* }
 %fvtype.1 = type { double*, double*, double*, double* }
 %Time_of_Float = type { double, double }
+@.str = private unnamed_addr constant [2 x i8] c"%s", align 1
 
 declare i8* @malloc(i64 %0)
 

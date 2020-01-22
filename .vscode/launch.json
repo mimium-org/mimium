@@ -5,7 +5,23 @@
     "version": "0.2.0",
     "configurations": [
 
+        {
+            "name": "LLDebugLoad",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/src/mimium_llloader",
+            "args": [ "${workspaceFolder}/debuginfo.bc"],
+            "cwd": "${workspaceFolder}"
+        },
 
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "lltobc",
+            "program": "llvm-as",
+            "args": [ "${workspaceFolder}/debuginfo.ll","-o","${workspaceFolder}/debuginfo.bc"],
+            "cwd": "${workspaceFolder}"
+        },
 
         {
             "name": "MidiDebug",
@@ -20,7 +36,7 @@
             "type": "lldb",
             "request": "launch",
             "program": "${workspaceFolder}/build/src/mimium",
-            "args": [ "/Users/tomoya/codes/mimium/test/test_lpf.mmm" ], 
+            "args": [ "/Users/tomoya/codes/mimium/test/test_closure3.mmm" ], 
             "cwd": "${workspaceFolder}/build", 
         },
 

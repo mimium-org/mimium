@@ -99,6 +99,14 @@ void ClosureConverter::CCVisitor::operator()(FunInst& i) {
     i.parent->instructions.insert(std::next(position), std::move(makecls));
     auto& ft = std::get<recursive_wrapper<types::Function>>(i.type).getraw();
     ft.arg_types.emplace_back(fvtype);
+      //re-scan to resolve recursive closure application
+    for (auto & cinst : *i.body) {
+     if(auto f =std::get_if<FcallInst>(&cinst)){
+      if(cc.known_functions.count(f->fname)==0 &&f->ftype!=EXTERNAL){
+        f->ftype = CLOSURE;
+      }
+      }
+    }
   }
 }
 
