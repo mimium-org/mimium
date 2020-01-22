@@ -29,8 +29,11 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
     ClosureConverter& cc;
     std::vector<std::string>& fvlist;
     std::vector<std::string> &localvlist;
+    std::vector<std::string> funlist;
+
     std::list<Instructions>::iterator position;
     void updatepos(){++position;}
+    void registerFv(std::string& name);
     void operator()(NumberInst& i);
     void operator()(AllocaInst& i);
     void operator()(RefInst& i);

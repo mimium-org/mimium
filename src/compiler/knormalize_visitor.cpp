@@ -241,11 +241,14 @@ void KNormalizeVisitor::visit(TimeAST& ast) {
   ast.getTime()->accept(*this);
   ast.getExpr()->accept(*this);
   ast.accept(typeinfer);
-  TimeInst newinst (newname, stackPopStr(), stackPopStr(), typeinfer.getLastType());
+  auto t = typeinfer.getLastType();
+  TimeInst newinst (newname, stackPopStr(), stackPopStr(), t);
   Instructions res = newinst;
 
   currentblock->addInst(res);
   res_stack_str.push(newname);
+    typeinfer.getEnv().emplace(newname, t);
+
 }
 
 void KNormalizeVisitor::visit(StructAST& ast) {

@@ -78,6 +78,7 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   // explicit LLVMGenerator(std::string filename,bool i_isjit=true);
   // explicit LLVMGenerator(llvm::LLVMContext& _cts,std::string filename);
   llvm::Module& getModule() { return *module; }
+  llvm::Value* findValue(std::string name);
   auto moveModule() { return std::move(module); }
   ~LLVMGenerator();
   void init(std::string filename);
@@ -146,36 +147,34 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
                                                a.size);
     }
     llvm::Type* operator()(const types::Struct& s) const {
-      llvm::StringRef name = types::toString(s);
+      // llvm::StringRef name = types::toString(s);
       std::vector<llvm::Type*> ar;
       llvm::Type* res;
-      auto* defined = module.getTypeByName(name);
-      if(defined==nullptr){
+      // auto* defined = module.getTypeByName(name);
+      // if(defined==nullptr){
       auto t = static_cast<const types::Tuple>(s);
       for (const auto& a : t.arg_types) {
         ar.push_back(std::visit(*this, a));
       }
-      res = (llvm::Type*)llvm::StructType::create(builder.getContext(), ar,
-                                                   name);
-      }else{
-        res= defined;
-      }
+      res = (llvm::Type*)llvm::StructType::create(builder.getContext(), ar,"struct");
+      // }else{
+        // res= defined;
+      // }
       return res;
     }
     llvm::Type* operator()(const types::Tuple& t) const {
-      llvm::StringRef name = types::toString(t);
-      auto* defined = module.getTypeByName(name);
+      // llvm::StringRef name = types::toString(t);
+      // auto* defined = module.getTypeByName(name);
             llvm::Type* res;
       std::vector<llvm::Type*> ar;
-      if(defined==nullptr){
+      // if(defined==nullptr){
       for (const auto& a : t.arg_types) {
         ar.push_back(std::visit(*this, a));
       }
-      res = (llvm::Type*)llvm::StructType::create(builder.getContext(), ar,
-                                                   name);
-      }else{
-        res=defined;
-      }
+      res = (llvm::Type*)llvm::StructType::create(builder.getContext(), ar,"tuple");
+      // }else{
+        // res=defined;
+      // }
       return res;
     }
     llvm::Type* operator()(const types::Time& t) const {
