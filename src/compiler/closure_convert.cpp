@@ -44,6 +44,8 @@ std::shared_ptr<MIRblock> ClosureConverter::convert(
   auto ccvis = CCVisitor(*this, fvlist, localvlist, pos);
   for (auto it = inss.begin(), end = inss.end(); it != end; ++it) {
     auto& cinst = *it;
+    ccvis.position = it;
+    
     std::visit(ccvis, cinst);
   }
   moveFunToTop(this->toplevel);

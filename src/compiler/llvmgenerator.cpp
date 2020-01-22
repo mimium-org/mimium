@@ -11,8 +11,7 @@ LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx)
       currentblock(nullptr),
       module(std::make_unique<llvm::Module>("no_file_name.mmm", ctx)),
       builder(std::make_unique<llvm::IRBuilder<>>(ctx)),
-      typeconverter(*builder, *module) {
-}
+      typeconverter(*builder, *module) {}
 void LLVMGenerator::init(std::string filename) {
   module->setSourceFileName(filename);
   module->setModuleIdentifier(filename);
@@ -31,9 +30,9 @@ void LLVMGenerator::reset(std::string filename) {
 }
 llvm::Value* LLVMGenerator::findValue(std::string name) {
   llvm::Value* res;
-  auto rawval = namemap.find(name);
+  auto rawval = namemap.find("fv_"+name);
   if (rawval == namemap.end()) {
-    auto fvname = namemap.find("fv_" + name);
+    auto fvname = namemap.find(name);
     res = (fvname == namemap.end()) ? nullptr : fvname->second;
   } else {
     res = rawval->second;
@@ -199,9 +198,13 @@ bool LLVMGenerator::createStoreOw(std::string varname,
 }
 void LLVMGenerator::createAddTaskFn(FcallInst& i, const bool isclosure,
                                     const bool isglobal) {
-  auto tv = findValue(i.args[0]);
-  auto timeval = builder->CreateExtractValue(tv, 0);
-  auto val = builder->CreateExtractValue(tv, 1);
+  auto tv = findValue("ptr_"+i.args[0]);
+                
+  auto timeptr = builder->CreateStructGEP(tv,0);
+  auto timeval =builder->CreateLoad(timeptr);
+  auto valptr = builder->CreateStructGEP(tv,1);
+    auto val =builder->CreateLoad(valptr);
+
   auto targetfn = llvm::cast<llvm::Function>(findValue(i.fname));
   auto ptrtofn =
       llvm::ConstantExpr::getBitCast(targetfn, builder->getInt8PtrTy());
@@ -211,7 +214,7 @@ void LLVMGenerator::createAddTaskFn(FcallInst& i, const bool isclosure,
   std::vector<llvm::Value*> args = {timeval, ptrtofn, val};
   llvm::Value* addtask_fn;
   if (isclosure) {
-    llvm::Value* clsptr = (isglobal) ? findValue("ptr_" + i.fname + "_cap")
+    llvm::Value* clsptr = (isglobal) ? findValue(i.fname + "_cap")
                                      : findValue("clsarg_" + i.fname);
 
     auto* upcasted = builder->CreateBitCast(clsptr, builder->getInt8PtrTy());
@@ -278,20 +281,32 @@ void LLVMGenerator::visitInstructions(Instructions& inst, bool isglobal) {
             }
           },
           [&, this](TimeInst& i) {
-            auto* type = typemap[i.lv_name];
-            if (type == nullptr) {
-              type = getType(i.type);
-              typemap.try_emplace(i.lv_name, type);
-            }
-            auto* time = builder->CreateFPToUI(findValue(i.time),
-                                               builder->getDoubleTy());
+
+//  auto resname = "ptr_" + i->lv_name;
+            // types::Time timetype =
+            //     std::get<recursive_wrapper<types::Time>>(i->type);
+            // auto strtype = getOrCreateTimeStruct(timetype.val);
+            // typemap.emplace(resname, strtype);
+            // auto* ptr = createAllocation(isglobal,strtype, nullptr, i->lv_name);
+            // auto* timepos = builder->CreateStructGEP(strtype, ptr, 0);
+            // auto* valpos = builder->CreateStructGEP(strtype, ptr, 1);
+
+            // auto* time =
+            //     builder->CreateFPToUI(namemap[i->time], builder->getDoubleTy());
+            // builder->CreateStore(time, timepos);
+
+            // builder->CreateStore(namemap.find(i->val)->second, valpos);
+            // namemap.emplace(resname, ptr);
+            ///
+            auto* type = getType(i.type);
+            auto* time = findValue(i.time);
             auto* val = findValue(i.val);
-            auto* fpzero = llvm::ConstantFP::get(builder->getDoubleTy(), 0.);
-            auto* struct_p = llvm::ConstantStruct::get(
-                llvm::cast<llvm::StructType>(type), {fpzero, fpzero});
-            auto tmp1 = builder->CreateInsertValue(struct_p, time, 0);
-            auto tmp2 = builder->CreateInsertValue(tmp1, val, 1);
-            namemap.emplace(i.lv_name, tmp2);
+            auto* struct_p = createAllocation(isglobal, type,nullptr,i.lv_name);
+            auto gep0 = builder->CreateStructGEP(type,struct_p, 0);
+            auto gep1 = builder->CreateStructGEP(type,struct_p, 1);
+            builder->CreateStore(time,gep0);
+            builder->CreateStore( val,gep1);
+            namemap.emplace("ptr_"+i.lv_name, struct_p);
           },
           [&, this](RefInst& i) {  // TODO
             auto ptrname = "ptr_" + i.lv_name;
@@ -380,10 +395,9 @@ void LLVMGenerator::visitInstructions(Instructions& inst, bool isglobal) {
               llvm::Value* lastarg_str = builder->CreateLoad(lastarg);
               for (int id = 0; id < i.freevariables.size(); id++) {
                 std::string newname = "fv_" + i.freevariables[id];
-                llvm::Value* gep =
-                builder->CreateStructGEP(lastarg, id, "fv");
+                llvm::Value* gep = builder->CreateStructGEP(lastarg, id, "fv");
                 auto ptrname = "ptr_" + newname;
-                llvm::Value* ptrload = builder->CreateLoad(gep,ptrname);
+                llvm::Value* ptrload = builder->CreateLoad(gep, ptrname);
                 namemap.try_emplace(ptrname, ptrload);
                 auto* ptype = llvm::cast<llvm::PointerType>(ptrload->getType());
                 if (ptype->getElementType()->isFirstClassType()) {
@@ -419,32 +433,32 @@ void LLVMGenerator::visitInstructions(Instructions& inst, bool isglobal) {
               //   fvptr = createAllocation(true, v->getType(), nullptr, cap);
               //   builder->CreateStore(v, fvptr);
               // }
-              auto pp = builder->CreateStructGEP(capture_ptr,idx);
-
-              builder->CreateStore(findValue("ptr_"+cap), pp);
+              auto pp = builder->CreateStructGEP(capture_ptr, idx);
+              builder->CreateStore(findValue("ptr_" + cap), pp);
               idx += 1;
             }
             namemap.try_emplace(capptrname, capture_ptr);
 
-            auto f = module->getFunction(i.fname);
-           
-            auto* atype =  llvm::StructType::create({f->getType()},"container_"+i.fname);
-            auto* gptr = (llvm::GlobalVariable*)module->getOrInsertGlobal(
-                "ptr_to_" + i.fname, atype);
-            gptr->setInitializer(llvm::ConstantStruct::get(atype, {f}));
-            gptr->setConstant(true);
-            gptr->setLinkage(llvm::GlobalValue::LinkageTypes::ExternalLinkage);
-            auto ptrtoptr = builder->CreateInBoundsGEP(
-                atype, gptr, llvm::ConstantInt::get(ctx, llvm::APInt(32, 0)),
-                "ptrptr_" + i.fname);
-            auto ptr = builder->CreateLoad(ptrtoptr, "ptr_" + i.fname);
-            // store the pointer to function(1 size array type)
-            // auto* ptrtofntype = getType(i.type);
-            // llvm::Value* fn_ptr =
-            // createAllocation(isglobal,ptrtofntype,nullptr,i.fname+"_cls");
-            // llvm::Value* f = module->getFunction(i.fname);
-            // auto res = builder->CreateInsertValue(fn_ptr, f, 0);
-            namemap.emplace("ptr_" + i.fname, ptr);
+            // auto f = module->getFunction(i.fname);
+
+            // auto* atype =
+            // llvm::StructType::create({f->getType()},"container_"+i.fname);
+            // auto* gptr = (llvm::GlobalVariable*)module->getOrInsertGlobal(
+            //     "ptr_to_" + i.fname, atype);
+            // gptr->setInitializer(llvm::ConstantStruct::get(atype, {f}));
+            // gptr->setConstant(true);
+            // gptr->setLinkage(llvm::GlobalValue::LinkageTypes::ExternalLinkage);
+            // auto ptrtoptr = builder->CreateInBoundsGEP(
+            //     atype, gptr, llvm::ConstantInt::get(ctx, llvm::APInt(32, 0)),
+            //     "ptrptr_" + i.fname);
+            // auto ptr = builder->CreateLoad(ptrtoptr, "ptr_" + i.fname);
+            // // store the pointer to function(1 size array type)
+            // // auto* ptrtofntype = getType(i.type);
+            // // llvm::Value* fn_ptr =
+            // // createAllocation(isglobal,ptrtofntype,nullptr,i.fname+"_cls");
+            // // llvm::Value* f = module->getFunction(i.fname);
+            // // auto res = builder->CreateInsertValue(fn_ptr, f, 0);
+            // namemap.emplace("ptr_" + i.fname, ptr);
           },
           [&, this](FcallInst& i) {
             bool isclosure = i.ftype == CLOSURE;
@@ -452,7 +466,7 @@ void LLVMGenerator::visitInstructions(Instructions& inst, bool isglobal) {
             std::for_each(i.args.begin(), i.args.end(),
                           [&](auto& a) { args.emplace_back(findValue(a)); });
             if (isclosure) {
-              args.emplace_back(findValue( i.fname + "_cap"));
+              args.emplace_back(findValue(i.fname + "_cap"));
             }
             if (i.istimed) {  // if arguments is timed value, call addTask
               createAddTaskFn(i, isclosure, isglobal);
