@@ -27,10 +27,10 @@ void ClosureConverter::moveFunToTop(std::shared_ptr<MIRblock> mir) {
       });
     }
   }
-  toplevel->instructions.sort([](Instructions& i1, Instructions& i2) -> bool {
-    auto fn = [](auto& i) { return i.isFunction(); };
-    return std::visit(fn, i1) == true && std::visit(fn, i2) == false;
-  });
+  // toplevel->instructions.sort([](Instructions& i1, Instructions& i2) -> bool {
+  //   auto fn = [](auto& i) { return i.isFunction(); };
+  //   return std::visit(fn, i1) == true && std::visit(fn, i2) == false;
+  // });
 }
 
 std::shared_ptr<MIRblock> ClosureConverter::convert(
