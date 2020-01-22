@@ -23,9 +23,8 @@
 #include "llvm/Transforms/InstCombine/InstCombine.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Scalar/GVN.h"
-#include "llvm/Transforms/Vectorize.h"
 #include "llvm/Transforms/Utils.h"
-
+#include "llvm/Transforms/Vectorize.h"
 
 namespace llvm {
 namespace orc {
@@ -49,15 +48,21 @@ class MimiumJIT {
         Mangle(ES, this->DL),
         Ctx(std::make_unique<LLVMContext>()) {
     lllazyjit->setLazyCompileTransform(optimizeModule);
-    // MainJD.getExecutionSession()
+// MainJD.getExecutionSession()
+#if LLVM_VERSION_MAJOR >= 10
     MainJD.addGenerator(
         cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(
             DL.getGlobalPrefix())));
+#else
+    MainJD.setGenerator(
+        cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(
+            DL.getGlobalPrefix())));
+#endif
   }
   static std::unique_ptr<LLLazyJIT> createEngine() {
     auto builder = LLLazyJITBuilder();
     auto jit = builder.create();
-    llvm::logAllUnhandledErrors(jit.takeError(),llvm::errs());
+    llvm::logAllUnhandledErrors(jit.takeError(), llvm::errs());
     return std::move(jit.get());
   }
   Error addModule(std::unique_ptr<Module> M) {
@@ -68,46 +73,54 @@ class MimiumJIT {
   }
 
   Error addSymbol(StringRef name, void* ptr) {
-    // auto symbol = JITEvaluatedSymbol(pointerToJITTargetAddress(&puts), JITSymbolFlags::Absolute);
-    // auto res =    MainJD.define(absoluteSymbols({{ Mangle("puts"), symbol}}));
+    // auto symbol = JITEvaluatedSymbol(pointerToJITTargetAddress(&puts),
+    // JITSymbolFlags::Absolute); auto res =    MainJD.define(absoluteSymbols({{
+    // Mangle("puts"), symbol}}));
     // symbol.setFlags(JITSymbolFlags::FlagNames::Callable);
     // auto res = lllazyjit->defineAbsolute(name, symbol);
     auto res = lllazyjit->lookup("addTask");
     ES.dump(errs());
 
-
-    // auto address = jitTargetAddressToPointer<int(*)(char*)>(test->getAddress());
+    // auto address =
+    // jitTargetAddressToPointer<int(*)(char*)>(test->getAddress());
     MainJD.dump(errs());
     return res.takeError();
   }
 
   static Expected<ThreadSafeModule> optimizeModule(
       ThreadSafeModule M, const MaterializationResponsibility& R) {
-      // Create a function pass manager.
+// Create a function pass manager.
+#if LLVM_VERSION_MAJOR >= 10
+    auto FPM =
+        std::make_unique<legacy::FunctionPassManager>(M.getModuleUnlocked());
+#else
+    auto FPM = std::make_unique<legacy::FunctionPassManager>(M.getModule());
+#endif
+    // Add some optimizations.
+    // FPM->add(createPromoteMemoryToRegisterPass());//mem2reg
+    // FPM->add(createDeadStoreEliminationPass());
+    // FPM->add(createInstructionCombiningPass());
+    // FPM->add(createReassociatePass());
+    // FPM->add(createGVNPass());
+    // FPM->add(createCFGSimplificationPass());
+    // FPM->add(createLoopVectorizePass());
+    FPM->doInitialization();
 
-      auto FPM = std::make_unique<legacy::FunctionPassManager>(M.getModuleUnlocked());
-
-      // Add some optimizations.
-      // FPM->add(createPromoteMemoryToRegisterPass());//mem2reg
-      FPM->add(createDeadStoreEliminationPass());
-      FPM->add(createInstructionCombiningPass());
-      FPM->add(createReassociatePass());
-      FPM->add(createGVNPass());
-      FPM->add(createCFGSimplificationPass());
-      FPM->add(createLoopVectorizePass());
-      FPM->doInitialization();
-
-      // Run the optimizations over all functions in the module being added to
-      // the JIT.
-      M.withModuleDo([&](Module& m){
-        std::for_each(m.begin(), m.end(), [&](auto& f){FPM->run(f);});
-      });
-      return M;
+// Run the optimizations over all functions in the module being added to
+// the JIT.
+#if LLVM_VERSION_MAJOR >= 10
+    M.withModuleDo([&](Module& m) {
+      std::for_each(m.begin(), m.end(), [&](auto& f) { FPM->run(f); });
+    });
+#else
+    for (auto& f : M.getModule()->functions()) {
+      FPM->run(f);
+    }
+#endif
+    return M;
   }
-  [[nodiscard]] const DataLayout& getDataLayout() const {
-      return DL; }
-  LLVMContext& getContext() {
-      return *Ctx.getContext(); }
-  };
+  [[nodiscard]] const DataLayout& getDataLayout() const { return DL; }
+  LLVMContext& getContext() { return *Ctx.getContext(); }
+};
 }  // namespace orc
-}  // namespace orc
+}  // namespace llvm
