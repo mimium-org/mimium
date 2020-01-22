@@ -33,6 +33,8 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   std::unique_ptr<llvm::orc::MimiumJIT> jitengine;
   auto getType(types::Value& type) -> llvm::Type*;
     llvm::Value* findValue(std::string name);
+        llvm::Value* tryfindValue(std::string name);
+
     void setValuetoMap(std::string name,llvm::Value* val);
 
   // auto getRawTupleType(types::Tuple& type) -> llvm::Type*;

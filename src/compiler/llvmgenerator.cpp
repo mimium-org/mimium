@@ -27,18 +27,25 @@ void LLVMGenerator::reset(std::string filename) {
   dropAllReferences();
   init(filename);
 }
+llvm::Value* LLVMGenerator::tryfindValue(std::string name) {
+  auto map = variable_map[curfunc];
+  auto res = map->find(name);
+
+  return (res == map->end()) ? nullptr : res->second;
+}
 llvm::Value* LLVMGenerator::findValue(std::string name) {
-  auto map  = variable_map[curfunc];
-  auto res  = map->find(name);
-  if(res==map->end()){
-    throw std::runtime_error("variable " + name + " cannot be found in llvm conversion");
+
+    auto* res= tryfindValue(name);
+    if(res==nullptr){
+    throw std::runtime_error("variable " + name +
+                             " cannot be found in llvm conversion");
   }
-  return res->second;
+  return res;
 }
 
-void LLVMGenerator::setValuetoMap(std::string name,llvm::Value* val) {
+void LLVMGenerator::setValuetoMap(std::string name, llvm::Value* val) {
   auto map = variable_map[curfunc];
-  map->try_emplace(name,val);
+  map->try_emplace(name, val);
 }
 
 void LLVMGenerator::initJit() {}
@@ -140,7 +147,7 @@ void LLVMGenerator::createTaskRegister(bool isclosure = false) {
 //   return res;
 // }
 void LLVMGenerator::preprocess() {
-    createMainFun();
+  createMainFun();
   createMiscDeclarations();
   createTaskRegister(true);   // for non-closure function
   createTaskRegister(false);  // for closure
@@ -191,7 +198,7 @@ bool LLVMGenerator::createStoreOw(std::string varname,
                                   llvm::Value* val_to_store) {
   bool res = false;
   auto ptrname = "ptr_" + varname;
-  auto& map =variable_map[curfunc];
+  auto& map = variable_map[curfunc];
   auto it = map->find(varname);
   auto it2 = map->find(ptrname);
   if (it != map->cend() && it2 != map->cend()) {
@@ -209,7 +216,7 @@ void LLVMGenerator::createAddTaskFn(FcallInst& i, const bool isclosure,
   auto valptr = builder->CreateStructGEP(tv, 1);
   auto val = builder->CreateLoad(valptr);
 
-  auto targetfn = llvm::cast<llvm::Function>(findValue(i.fname));
+  auto targetfn = module->getFunction(i.fname);
   auto ptrtofn =
       llvm::ConstantExpr::getBitCast(targetfn, builder->getInt8PtrTy());
   // auto taskid = taskfn_typeid++;
@@ -224,9 +231,9 @@ void LLVMGenerator::createAddTaskFn(FcallInst& i, const bool isclosure,
     auto* upcasted = builder->CreateBitCast(clsptr, builder->getInt8PtrTy());
     setValuetoMap(i.fname + "_cls_i8", upcasted);
     args.push_back(upcasted);
-    addtask_fn = findValue("addTask_cls");
+    addtask_fn = variable_map[mainentry->getParent()]->find("addTask_cls")->second;
   } else {
-    addtask_fn = findValue("addTask");
+    addtask_fn =variable_map[mainentry->getParent()]->find("addTask")->second;
   }
   auto* res = builder->CreateCall(addtask_fn, args);
   setValuetoMap(i.lv_name, res);
@@ -275,8 +282,9 @@ void LLVMGenerator::visitInstructions(Instructions& inst, bool isglobal) {
             auto ptrkey = variable_map[curfunc]->find("ptr_" + i.lv_name);
             auto* finst =
                 llvm::ConstantFP::get(this->ctx, llvm::APFloat(i.val));
-            if (ptrkey != variable_map[curfunc]->end()) {  // case of temporary value
-            auto ptr = ptrkey->second;
+            if (ptrkey !=
+                variable_map[curfunc]->end()) {  // case of temporary value
+              auto ptr = ptrkey->second;
               builder->CreateStore(finst, ptr);
               auto res = builder->CreateLoad(ptr, i.lv_name);
               setValuetoMap(i.lv_name, res);
@@ -372,7 +380,7 @@ void LLVMGenerator::visitInstructions(Instructions& inst, bool isglobal) {
                 ft, llvm::Function::ExternalLinkage, i.lv_name, module.get());
             auto f_it = f->args().begin();
             curfunc = f;
-            variable_map.emplace(f,std::make_shared<namemaptype>());
+            variable_map.emplace(f, std::make_shared<namemaptype>());
             std::for_each(i.args.begin(), i.args.end(),
                           [&](std::string s) { (f_it++)->setName(s); });
             // if function is closure,append closure argument, dsp function is
@@ -424,19 +432,20 @@ void LLVMGenerator::visitInstructions(Instructions& inst, bool isglobal) {
             auto capptrname = i.fname + "_cap";
             llvm::Value* capture_ptr =
                 createAllocation(isglobal, structty, nullptr, capptrname);
-            auto* capturetuple =
-                builder->CreateLoad(capture_ptr, i.fname + "_cap");
+
             unsigned int idx = 0;
             for (auto& cap : i.captures) {
-              llvm::Value* fvptr = findValue("ptr_" + cap);
-              // if (fvptr == nullptr) {
-              //   auto v = findValue(cap);
-              //   // heap allocation! possibly memory leak
-              //   fvptr = createAllocation(true, v->getType(), nullptr, cap);
-              //   builder->CreateStore(v, fvptr);
-              // }
+              auto ptrname = "ptr_" + cap;
+              llvm::Value* fvptr =  tryfindValue(ptrname);
+              if (fvptr == nullptr) {
+                auto v = findValue(cap);
+                // heap allocation! possibly memory leak
+                fvptr = createAllocation(true, v->getType(), nullptr, cap);
+                setValuetoMap(ptrname, fvptr);
+                builder->CreateStore(v, fvptr);
+              }
               auto pp = builder->CreateStructGEP(capture_ptr, idx);
-              builder->CreateStore(findValue("ptr_" + cap), pp);
+              builder->CreateStore(findValue(ptrname), pp);
               idx += 1;
             }
             setValuetoMap(capptrname, capture_ptr);
@@ -465,10 +474,26 @@ void LLVMGenerator::visitInstructions(Instructions& inst, bool isglobal) {
           [&, this](FcallInst& i) {
             bool isclosure = i.ftype == CLOSURE;
             std::vector<llvm::Value*> args;
-            std::for_each(i.args.begin(), i.args.end(),
-                          [&](auto& a) { args.emplace_back(findValue(a)); });
+            auto m = variable_map[curfunc];
+            for (auto& a : i.args) {
+              // TODO(tomoya): need to add type infomation to argument...
+              auto it = m->find(a);
+              if (it != m->end()) {
+                args.emplace_back(it->second);
+              } else {
+                args.emplace_back(findValue("ptr_" + a));
+              }
+            }
+
             if (isclosure) {
-              args.emplace_back(findValue(i.fname + "_cap"));
+              auto m = variable_map[curfunc];
+              auto it = m->find(i.fname + "_cap");
+              if(it == m->end()){
+                dumpvars();
+              args.emplace_back(findValue("clsarg_" + i.fname));
+              }else{
+                args.emplace_back(it->second);
+              }
             }
             if (i.istimed) {  // if arguments is timed value, call addTask
               createAddTaskFn(i, isclosure, isglobal);
@@ -476,7 +501,14 @@ void LLVMGenerator::visitInstructions(Instructions& inst, bool isglobal) {
               createFcall(i, args);
             }
           },
-          [&, this](ReturnInst& i) { builder->CreateRet(findValue(i.val)); }},
+          [&, this](ReturnInst& i) { 
+            auto v= tryfindValue(i.val);
+            if(v==nullptr){
+              //case of returning function;
+              v= module->getFunction(i.val);
+            }
+            builder->CreateRet(v);
+             }},
       inst);
 }
 
