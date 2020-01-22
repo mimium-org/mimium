@@ -32,6 +32,9 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   llvm::LLVMContext& ctx;
   std::unique_ptr<llvm::orc::MimiumJIT> jitengine;
   auto getType(types::Value& type) -> llvm::Type*;
+    llvm::Value* findValue(std::string name);
+    void setValuetoMap(std::string name,llvm::Value* val);
+
   // auto getRawTupleType(types::Tuple& type) -> llvm::Type*;
   // auto getRawStructType(types::Struct& type) -> llvm::Type*;
 
@@ -51,32 +54,28 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   void visitInstructions(Instructions& inst, bool isglobal);
 
   void dropAllReferences();
-  std::unordered_map<std::string, llvm::Type*> typemap;
   llvm::FunctionCallee addtask;
   llvm::FunctionCallee addtask_cls;
 
   [[maybe_unused]] unsigned int taskfn_typeid;
-  std::vector<types::Value> tasktype_list;
-  int struct_index = 0;
-  std::unordered_map<std::string, types::Tuple> structtype_map;
+  // std::vector<types::Value> tasktype_list;
   void initJit();
   llvm::Error doJit(size_t opt_level = 1);
 
   llvm::Type* getOrCreateTimeStruct(types::Time& t);
-
+  // std::unordered_map<std::string, llvm::Value*> namemap;
+  using namemaptype = std::unordered_map<std::string, llvm::Value*>;
+  std::unordered_map<llvm::Function*,std::shared_ptr<namemaptype>> variable_map;
  public:
-  std::unique_ptr<llvm::Function> curfunc;
+  llvm::Function* curfunc;
   std::unique_ptr<llvm::Module> module;
   std::unique_ptr<llvm::IRBuilder<>> builder;
-  std::unordered_map<std::string, llvm::Value*> namemap;
+
   llvm::BasicBlock* mainentry;
   llvm::BasicBlock* currentblock;
   LLVMGenerator(llvm::LLVMContext& ctx);
-  // old
-  // explicit LLVMGenerator(std::string filename,bool i_isjit=true);
-  // explicit LLVMGenerator(llvm::LLVMContext& _cts,std::string filename);
+
   llvm::Module& getModule() { return *module; }
-  llvm::Value* findValue(std::string name);
   auto moveModule() { return std::move(module); }
   ~LLVMGenerator();
   void init(std::string filename);
@@ -92,11 +91,13 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   void outputToStream(llvm::raw_ostream& ostream);
   llvm::orc::MimiumJIT& getJitEngine() { return *jitengine; }
   void dumpvars(){
-    for(auto& [key,val]:namemap){
-      llvm::errs() << key <<" : " << val<<"\n";
+    for(auto& [f,map]:variable_map){
+      llvm::errs() << f->getName() <<":\n";
+      for(auto& [key,val]:*map){
+        llvm::errs() << "   " << key <<" :  "<<val->getName()<<"\n";
+      }
     }
   }
-  auto& getTaskInfoList() { return tasktype_list; }
   struct TypeConverter {
     explicit TypeConverter(llvm::IRBuilder<>& b, llvm::Module& m)
         : builder(b), module(m), tmpname(""){};
