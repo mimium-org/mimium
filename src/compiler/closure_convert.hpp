@@ -12,6 +12,9 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
   std::shared_ptr<MIRblock> convert(std::shared_ptr<MIRblock> toplevel);
   void reset();
   bool isKnownFunction(const std::string& name);
+  std::string makeCaptureName(){
+    return "capture" + std::to_string(capturecount++);
+  }
   TypeEnv& typeenv;
   std::shared_ptr<MIRblock> toplevel;
   int capturecount;
@@ -20,7 +23,6 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
 
  private:
   void moveFunToTop(std::shared_ptr<MIRblock> mir);
-
   struct CCVisitor {
     explicit CCVisitor(ClosureConverter& cc, std::vector<std::string>& fvlist,std::vector<std::string>& localvlist,
                        std::list<Instructions>::iterator& position)

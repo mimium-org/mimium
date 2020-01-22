@@ -117,9 +117,10 @@ struct MakeClosureInst : public MIRinstruction {
 };
 struct ArrayInst : public MIRinstruction {
   std::string name;
+  int size;
   std::deque<std::string> args;
   ArrayInst(std::string _lv, std::deque<std::string> _args)
-      : MIRinstruction(_lv, types::Array(types::Float())),
+      : MIRinstruction(_lv, types::Array(types::Float(),_args.size())),
         args(std::move(_args)) {}
 
   std::string toString() override;

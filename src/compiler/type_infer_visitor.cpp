@@ -137,7 +137,7 @@ void TypeInferVisitor::visit(ArrayAST& ast) {
     tmpres =mr;
     ++c;
   }
-  res_stack.push(types::Array(tmpres));
+  res_stack.push(types::Array(tmpres,elms.size()));
 }
 void TypeInferVisitor::visit(ArrayAccessAST& ast) {
   auto type = typeenv.find(ast.getName()->getVal());

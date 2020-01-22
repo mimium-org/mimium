@@ -44,13 +44,19 @@ inline bool operator!=(const recursive_wrapper<T>& t1,
   return !(t1 == t2);
 }
 namespace types {
-
+enum class Kind{
+  VOID,
+  PRIMITIVE,
+  POINTER,
+  AGGREGATE,
+  INTERMEDIATE
+};
 template <class T>
 constexpr bool is_recursive_type = T::is_aggregatetype;
 
 struct PrimitiveType {
   PrimitiveType() = default;
-  constexpr static bool is_aggregate = false;
+  constexpr inline static Kind kind = Kind::PRIMITIVE;
 };
 
 inline bool operator==(const PrimitiveType& t1, const PrimitiveType& t2) {
@@ -72,7 +78,7 @@ struct TypeVar {
   int index;
   int getIndex() { return index; }
   void setIndex(int newindex) { index = newindex; }
-  constexpr static bool is_aggregate = false;
+  constexpr inline static Kind kind = Kind::INTERMEDIATE;
 };
 inline bool operator==(const TypeVar& t1, const TypeVar& t2) {
   return t1.index == t2.index;
@@ -89,6 +95,9 @@ struct Array;
 struct Struct;
 struct Tuple;
 struct Time;
+
+struct Alias;
+
 using Value =
     std::variant<std::monostate, None, TypeVar, Void, Float, String,
                  recursive_wrapper<Ref>,recursive_wrapper<Pointer>,
@@ -96,30 +105,16 @@ using Value =
                  ,recursive_wrapper<Closure>
                   ,recursive_wrapper<Array>
                  , recursive_wrapper<Struct>
-                 , recursive_wrapper<Tuple>, recursive_wrapper<Time>
+                 , recursive_wrapper<Tuple>, recursive_wrapper<Time>, recursive_wrapper<Alias>
                  >;
 
-// // helper function that can get recursive content from variant
-// template <class T>
-// struct RecVar {
-//   static auto get(Value& v) {
-//     if constexpr (T::is_aggregate) {
-//       return std::get<recursive_wrapper<T>>(v).getraw();
-//     } else {
-//       return std::get<T>(v);
-//     }
-//   }
-//   static bool checkType(Value& v){
-//     if constexpr (T::is_aggregate){
-//       return std::holds_alternative<recursive_wrapper<T>>(v);
-//     }else{
-//       return std::holds_alternative<T>(v);
-//     }
-//   }
-// };
 struct ToStringVisitor;
 
-struct Ref {
+
+struct PointerBase{
+    constexpr inline static Kind kind = Kind::POINTER;
+};
+struct Ref :PointerBase{
   Ref()=default;
   explicit Ref(Value v):val(std::move(v)){};
   Value val;
@@ -131,7 +126,7 @@ inline bool operator==(const Ref& t1, const Ref& t2) {
 inline bool operator!=(const Ref& t1, const Ref& t2) {
   return t1.val != t2.val;
 }
-struct Pointer {
+struct Pointer:PointerBase {
   Value val;
 };
 inline bool operator==(const Pointer& t1, const Pointer& t2) {
@@ -140,10 +135,12 @@ inline bool operator==(const Pointer& t1, const Pointer& t2) {
 inline bool operator!=(const Pointer& t1, const Pointer& t2) {
   return t1.val != t2.val;
 }
-struct Time {
+struct Aggregate{
+  constexpr inline static Kind kind = Kind::AGGREGATE;
+};
+struct Time:Aggregate {
   Value val;
   Float time;
-  constexpr static bool is_aggregate = true;
 };
 inline bool operator==(const Time& t1, const Time& t2) {
   return t1.val == t2.val;
@@ -151,22 +148,21 @@ inline bool operator==(const Time& t1, const Time& t2) {
 inline bool operator!=(const Time& t1, const Time& t2) {
   return t1.val != t2.val;
 }
-struct Function {
+struct Function:Aggregate {
   Function() =default;
   explicit Function(Value ret_type_p, std::vector<Value> arg_types_p)
       : arg_types(std::move(arg_types_p)), ret_type(std::move(ret_type_p)){};
-  void init(std::vector<Value> arg_types_p, Value ret_type_p) {
+  [[maybe_unused]]void init(std::vector<Value> arg_types_p, Value ret_type_p) {
     arg_types = std::move(arg_types_p);
     ret_type = std::move(ret_type_p);
   }
   std::vector<Value> arg_types;
   Value ret_type;
-  constexpr static bool is_aggregate = true;
 
   Value& getReturnType() { return ret_type; }
   std::vector<Value>& getArgTypes() { return arg_types; }
 
-  static Function create(const types::Value& ret,
+  [[maybe_unused]]static Function create(const types::Value& ret,
                          const std::vector<types::Value>& arg) {
     return Function(ret, arg);
   }
@@ -184,7 +180,7 @@ inline bool operator!=(const Function& t1, const Function& t2) {
   return !(t1 == t2);
 }
 
-struct Closure {
+struct Closure:Aggregate {
   Value fun;
   std::string context;
   explicit Closure(Value fun,std::string context):fun(std::move(fun)),context(std::move(context)){}
@@ -195,11 +191,10 @@ inline bool operator==(const Closure& t1, const Closure& t2) {
 inline bool operator!=(const Closure& t1, const Closure& t2) {
   return !(t1 == t2);
 }
-struct Array {
+struct Array :Aggregate{
   Value elem_type;
   int size;
-  constexpr static bool is_aggregate = true;
-  explicit Array(Value elem) : elem_type(std::move(elem)) {}
+  explicit Array(Value elem,int size) : elem_type(std::move(elem)),size(size) {}
 };
 inline bool operator==(const Array& t1, const Array& t2) {
   return( t1.elem_type == t2.elem_type)&&(t1.size==t2.size);
@@ -207,9 +202,8 @@ inline bool operator==(const Array& t1, const Array& t2) {
 inline bool operator!=(const Array& t1, const Array& t2) {
   return !(t1==t2);
 }
-struct Tuple {
+struct Tuple :Aggregate{
   std::vector<Value> arg_types;
-  constexpr static bool is_aggregate = true;
   explicit Tuple(std::vector<Value> types) : arg_types(std::move(types)) {}
 };
 
@@ -219,25 +213,25 @@ inline bool operator==(const Tuple& t1, const Tuple& t2) {
 inline bool operator!=(const Tuple& t1, const Tuple& t2) {
   return !(t1 == t2);
 }
-struct Struct {
+struct Struct:Aggregate {
   struct Keytype {
     std::string field;
     Value val;
   };
   std::vector<Keytype> arg_types;
-  constexpr static bool is_aggregate = true;
   explicit Struct(std::vector<Keytype> types) : arg_types(std::move(types)) {}
   explicit operator Tuple(){ 
     std::vector<Value> res;
     std::for_each(arg_types.begin(),arg_types.end(), [&](const auto& c){res.push_back(c.val);});
     return Tuple(res);
   }
-  explicit operator const Tuple()const{ 
+  explicit operator Tuple()const{ //cast back to tuple
     std::vector<Value> res;
     std::for_each(arg_types.begin(),arg_types.end(), [&](const auto& c){res.push_back(c.val);});
     return Tuple(res);
   }
 };
+
 inline bool operator==(const Struct::Keytype& t1, const Struct::Keytype& t2) {
   return (t1.field == t2.field)&&(t1.val == t2.val);
 };
@@ -251,6 +245,17 @@ inline bool operator!=(const Struct& t1, const Struct& t2) {
   return !(t1 == t2);
 }
 
+struct Alias:Aggregate{
+  std::string name;
+  Value target;
+  explicit Alias(std::string name,Value target):name(std::move(name)),target(std::move(target)){}
+};
+inline bool operator==(const Alias& t1, const Alias& t2) {
+  return (t1.name == t2.name);
+};
+inline bool operator!=(const Alias& t1, const Alias& t2) {
+  return !(t1 == t2);
+}
 [[maybe_unused]] static bool isTypeVar(types::Value t) {
   return std::holds_alternative<types::TypeVar>(t);
 }
@@ -301,6 +306,9 @@ struct ToStringVisitor {
   std::string operator()(const Time& t) const {
     return std::visit(*this, t.val) + "@";
   }
+  std::string operator()(const Alias& a)const {
+    return a.name;
+  }
 };
 static ToStringVisitor tostrvisitor;
 static std::string toString(const Value& v){
@@ -311,11 +319,11 @@ static std::string toString(const Value& v){
 
 class TypeEnv {
  private:
-  int64_t typeid_count;
+  int64_t typeid_count{};
   std::unordered_map<std::string, types::Value> env;
 
  public:
-  TypeEnv() : typeid_count(0), env() {}
+  TypeEnv() :  env() {}
   types::TypeVar createNewTypeVar() { return types::TypeVar(typeid_count++); }
   bool exist(std::string key) { return (env.count(key) > 0); }
   types::Value& find(std::string key) {
@@ -334,8 +342,11 @@ class TypeEnv {
   std::string dump() {
     std::stringstream ss;
     for (auto& [key, val] : env) {
-      ss << key << " : " << types::toString(val)
-         << "\n";
+      ss << key << " : " << types::toString(val);
+      if(auto a = std::get_if<recursive_wrapper<types::Alias>>(&val)){
+          ss <<"("<< types::toString(((types::Alias)*a).target)<<")";
+      }
+      ss<< "\n";
     }
     return ss.str();
   }

@@ -94,7 +94,7 @@ void ClosureConverter::CCVisitor::operator()(FunInst& i) {
     for (auto& fv : fvlist) {
       fvtype_inside.emplace_back(types::Ref(cc.typeenv.find(fv)));
     }
-    auto fvtype = types::Ref(types::Tuple(fvtype_inside));
+    auto fvtype = types::Alias(cc.makeCaptureName() ,types::Ref(types::Tuple(fvtype_inside)));
     MakeClosureInst makecls(i.lv_name + "_cls", i.lv_name, fvlist, fvtype);
     i.parent->instructions.insert(std::next(position), std::move(makecls));
     auto& ft = std::get<recursive_wrapper<types::Function>>(i.type).getraw();
