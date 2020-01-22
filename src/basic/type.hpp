@@ -15,6 +15,15 @@
 
 namespace mimium {
 // https://medium.com/@dennis.luxen/breaking-circular-dependencies-in-recursive-union-types-with-c-17-the-curious-case-of-4ab00cfda10d
+namespace types {
+enum class Kind{
+  VOID,
+  PRIMITIVE,
+  POINTER,
+  AGGREGATE,
+  INTERMEDIATE
+};
+}
 template <typename T>
 struct recursive_wrapper {
   // construct from an existing object
@@ -30,7 +39,6 @@ struct recursive_wrapper {
   T& getraw() { return t.front(); }
   // store the value
   std::vector<T> t;
-  constexpr static bool is_aggregatewrapper = true;
 };
 
 template <typename T>
@@ -44,13 +52,7 @@ inline bool operator!=(const recursive_wrapper<T>& t1,
   return !(t1 == t2);
 }
 namespace types {
-enum class Kind{
-  VOID,
-  PRIMITIVE,
-  POINTER,
-  AGGREGATE,
-  INTERMEDIATE
-};
+
 template <class T>
 constexpr bool is_recursive_type = T::is_aggregatetype;
 
@@ -99,7 +101,7 @@ struct Time;
 struct Alias;
 
 using Value =
-    std::variant<std::monostate, None, TypeVar, Void, Float, String,
+    std::variant< None, TypeVar, Void, Float, String,
                  recursive_wrapper<Ref>,recursive_wrapper<Pointer>,
                   recursive_wrapper<Function>
                  ,recursive_wrapper<Closure>
@@ -152,10 +154,11 @@ struct Function:Aggregate {
   Function() =default;
   explicit Function(Value ret_type_p, std::vector<Value> arg_types_p)
       : arg_types(std::move(arg_types_p)), ret_type(std::move(ret_type_p)){};
-  [[maybe_unused]]void init(std::vector<Value> arg_types_p, Value ret_type_p) {
-    arg_types = std::move(arg_types_p);
-    ret_type = std::move(ret_type_p);
-  }
+  // [[maybe_unused]]void init(std::vector<Value> arg_types_p, Value ret_type_p) {
+  //   arg_types = std::move(arg_types_p);
+  //   ret_type = std::move(ret_type_p);
+  //   ret_type.emplace()
+  // }
   std::vector<Value> arg_types;
   Value ret_type;
 
@@ -313,6 +316,25 @@ struct ToStringVisitor {
 static ToStringVisitor tostrvisitor;
 static std::string toString(const Value& v){
   return std::visit(tostrvisitor,v);
+} 
+
+struct kindvisitor{
+  template<class T>
+  Kind operator()(T t){
+    return T::kind;
+  }
+  template<class T>
+  Kind operator()(recursive_wrapper<T> t){
+    return T::kind;
+  }
+};
+
+static Kind kindOf(const Value& v){
+  return std::visit(kindvisitor(),v);
+}
+
+static bool isPrimitive(const Value& v){
+  return kindOf(v) == Kind::PRIMITIVE;
 }
 
 }  // namespace types

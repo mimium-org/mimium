@@ -56,8 +56,7 @@ void KNormalizeVisitor::insertOverWrite(AST_Ptr body, const std::string& name) {
   auto type = typeinfer.getEnv().find(name);
   typeinfer.getEnv().emplace(newname, type);
   tmpname = name;
-  auto assign = AssignInst(getVarName(), newname);
-  assign.type = type;
+  auto assign = AssignInst(getVarName(), newname,type);
   Instructions newinst = assign;
   currentblock->addInst(newinst);
 }

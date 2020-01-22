@@ -167,8 +167,7 @@ class LvarAST : public SymbolAST {
     id = LVAR;
   };
   explicit LvarAST(std::string input, types::Value _type)
-      : SymbolAST(input) {
-    type = _type;
+      : SymbolAST(input) ,type(std::move(_type)){
   }
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
   auto& getType() { return type; }
