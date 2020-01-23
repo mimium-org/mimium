@@ -42,7 +42,11 @@ void LLVMGenerator::dropAllReferences() {
 auto LLVMGenerator::getType(types::Value& type) -> llvm::Type* {
   return std::visit(typeconverter, type);
 }
-
+void LLVMGenerator::switchToMainFun() {
+  setBB(mainentry);
+  currentblock = mainentry;
+  curfunc = mainentry->getParent();
+}
 llvm::Function* LLVMGenerator::getForeignFunction(std::string name) {
   auto& [type, targetname] = LLVMBuiltin::ftable.find(name)->second;
   auto fnc = module->getOrInsertFunction(
@@ -275,11 +279,16 @@ void LLVMGenerator::CodeGenVisitor::operator()(FunInst& i) {
   auto* ft = llvm::cast<llvm::FunctionType>(G.getType(i.type));  // NOLINT
   llvm::Function* f = llvm::Function::Create(
       ft, llvm::Function::ExternalLinkage, i.lv_name, G.module.get());
-  auto f_it = f->args().begin();
+  G.setValuetoMap(i.lv_name, f);
+
   G.curfunc = f;
   G.variable_map.emplace(f, std::make_shared<namemaptype>());
-  std::for_each(i.args.begin(), i.args.end(),
-                [&](std::string s) { (f_it++)->setName(s); });
+
+  auto f_it = f->args().begin();
+  for (auto& a : i.args) {
+    (f_it)->setName(a);
+    G.setValuetoMap(a, f_it++);
+  }
   // if function is closure,append closure argument, dsp function is
   // forced to be closure function
   if (hasfv || i.lv_name == "dsp") {
@@ -287,30 +296,13 @@ void LLVMGenerator::CodeGenVisitor::operator()(FunInst& i) {
     auto lastelem = (--it);
     auto name = "clsarg_" + i.lv_name;
     lastelem->setName(name);
-    G.setValuetoMap(name, (llvm::Value*)lastelem);
+    G.setValuetoMap(name, lastelem);
   }
-  G.setValuetoMap(i.lv_name, f);
   auto* bb = llvm::BasicBlock::Create(G.ctx, "entry", f);
   G.builder->SetInsertPoint(bb);
   G.currentblock = bb;
-  f_it = f->args().begin();
-  std::for_each(i.args.begin(), i.args.end(),
-                [&](std::string s) { G.setValuetoMap(s, f_it++); });
   if (hasfv) {
-    auto arg_end = f->arg_end();
-    llvm::Value* lastarg = --arg_end;
-    for (int id = 0; id < i.freevariables.size(); id++) {
-      std::string newname = i.freevariables[id];
-      llvm::Value* gep = G.builder->CreateStructGEP(lastarg, id, "fv");
-      auto ptrname = "ptr_" + newname;
-      llvm::Value* ptrload = G.builder->CreateLoad(gep, ptrname);
-      G.setValuetoMap(ptrname, ptrload);
-      auto* ptype = llvm::cast<llvm::PointerType>(ptrload->getType());
-      if (ptype->getElementType()->isFirstClassType()) {
-        llvm::Value* valload = G.builder->CreateLoad(ptrload, newname);
-        G.setValuetoMap(newname, valload);
-      }
-    }
+    setFvsToMap(i, f);
   }
   for (auto& cinsts : i.body->instructions) {
     G.visitInstructions(cinsts, false);
@@ -319,9 +311,23 @@ void LLVMGenerator::CodeGenVisitor::operator()(FunInst& i) {
       ft->getReturnType()->isVoidTy()) {
     G.builder->CreateRetVoid();
   }
-  G.setBB(G.mainentry);
-  G.currentblock = G.mainentry;
-  G.curfunc = G.mainentry->getParent();
+  G.switchToMainFun();
+}
+void LLVMGenerator::CodeGenVisitor::setFvsToMap(FunInst& i, llvm::Function* f) {
+  auto arg_end = f->arg_end();
+  auto* lastarg = --arg_end;
+  for (int id = 0; id < i.freevariables.size(); id++) {
+    std::string newname = i.freevariables[id];
+    auto* gep = G.builder->CreateStructGEP(lastarg, id, "fv");
+    auto ptrname = "ptr_" + newname;
+    auto* ptrload = G.builder->CreateLoad(gep, ptrname);
+    G.setValuetoMap(ptrname, ptrload);
+    auto* ptype = llvm::cast<llvm::PointerType>(ptrload->getType());
+    if (ptype->getElementType()->isFirstClassType()) {
+      llvm::Value* valload = G.builder->CreateLoad(ptrload, newname);
+      G.setValuetoMap(newname, valload);
+    }
+  }
 }
 void LLVMGenerator::CodeGenVisitor::operator()(FcallInst& i) {
   bool isclosure = i.ftype == CLOSURE;
@@ -419,7 +425,7 @@ void LLVMGenerator::CodeGenVisitor::createAddTaskFn(FcallInst& i,
         G.builder->CreateBitCast(clsptr, G.builder->getInt8PtrTy());
     G.setValuetoMap(i.fname + "_cls_i8", upcasted);
     args.push_back(upcasted);
-    
+
     addtask_fn = globalspace->find("addTask_cls")->second;
   } else {
     addtask_fn = globalspace->find("addTask")->second;
@@ -432,7 +438,7 @@ void LLVMGenerator::CodeGenVisitor::operator()(
     MakeClosureInst& i) {  // store the capture address to memory
   auto* structty = G.getType(i.capturetype);
   auto capptrname = i.fname + "_cap";
-  llvm::Value* capture_ptr =
+  auto* capture_ptr =
       createAllocation(isglobal, structty, nullptr, capptrname);
 
   unsigned int idx = 0;

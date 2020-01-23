@@ -41,74 +41,98 @@ std::shared_ptr<MIRblock> ClosureConverter::convert(
   auto pos = inss.begin();
   std::vector<std::string> fvlist;
   std::vector<std::string> localvlist;
-  auto ccvis = CCVisitor(*this, fvlist, localvlist, pos);
+    std::vector<std::string> funlist;
+
+  auto ccvis = CCVisitor(*this, fvlist, localvlist,funtoclsmap, pos);
   for (auto it = inss.begin(), end = inss.end(); it != end; ++it) {
     auto& cinst = *it;
     ccvis.position = it;
-    
     std::visit(ccvis, cinst);
   }
   moveFunToTop(this->toplevel);
+  FunTypeReplacer typereplacer(*this);
+  for(auto& inst:inss){
+    std::visit(typereplacer,inst);
+  }
+  std::cerr<< "----------\n" << typeenv.dump();
   // inss.erase(std::unique(inss.begin(), inss.end()), inss.end());
   return this->toplevel;
-};  // namespace mimium
+}; 
 
 bool ClosureConverter::CCVisitor::isFreeVar(const std::string& name) {
-  auto islocal =
-      std::find(localvlist.begin(), localvlist.end(), name) != localvlist.end();
-  bool isext = LLVMBuiltin::isBuiltin(name);
-  bool isfun = std::find(funlist.begin(), funlist.end(), name) != funlist.end();
-
-  auto alreadycheked =
-      std::find(fvlist.begin(), fvlist.end(), name) != fvlist.end();
-  return !(islocal || isext || alreadycheked || isfun);
+  // auto islocal =
+  //     std::find(localvlist.begin(), localvlist.end(), name) != localvlist.end();
+  // bool isext = LLVMBuiltin::isBuiltin(name);
+  // bool isfun = std::find(funlist.begin(), funlist.end(), name) != funlist.end();
+  // auto alreadycheked =
+  //     std::find(fvlist.begin(), fvlist.end(), name) != fvlist.end();
+  // return !(islocal || isext || alreadycheked || isfun);
 }
 
 void ClosureConverter::CCVisitor::registerFv(std::string& name) {
-  if (isFreeVar(name)) {
+    auto islocal =
+      std::find(localvlist.begin(), localvlist.end(), name) != localvlist.end();
+  bool isext = LLVMBuiltin::isBuiltin(name);
+  bool isfun = std::holds_alternative<recursive_wrapper<types::Function>>(cc.typeenv.find(name));
+  auto alreadycheked =
+      std::find(fvlist.begin(), fvlist.end(), name) != fvlist.end();
+  bool isfreevar = !(islocal || isext || alreadycheked || isfun);
+  if (isfreevar) {
     fvlist.push_back(name);
-    // auto newname = "fv_" + name;
-    // cc.typeenv.emplace(newname, cc.typeenv.find(name));
-    // name = newname;
+  }
+  if(isfun&&cc.known_functions.count(name)>=0){
+    name= name+"_cls";
   }
 };
 
 void ClosureConverter::CCVisitor::operator()(FunInst& i) {
-  funlist.push_back(i.lv_name);
+
   std::vector<std::string> fvlist;
   std::vector<std::string> localvlist;
   for (auto& a : i.args) {
     localvlist.push_back(a);
   }
   auto pos = i.body->begin();
-  auto ccvis = CCVisitor(cc, fvlist, localvlist, pos);
+  auto ccvis = CCVisitor(cc, fvlist, localvlist, funtoclsmap,pos);
   cc.known_functions.emplace(i.lv_name, 1);
+  bool checked = false;
+  checkpoint:
   for (auto &it = pos, end = i.body->end(); pos != end; ++it) {
     auto& child = *it;
     std::visit(ccvis, child);
   }
   if (!fvlist.empty()) {
+    funtoclsmap.emplace(i.lv_name,types::Closure());
     cc.known_functions.erase(i.lv_name);
-
-    i.freevariables = fvlist;  // copy;
+    if(!checked){
+      checked = true;
+      goto checkpoint;
+    }
     // make closure
+    i.freevariables = fvlist;  // copy;
     std::vector<types::Value> fvtype_inside;
+    fvtype_inside.reserve(fvlist.size());
     for (auto& fv : fvlist) {
       fvtype_inside.emplace_back(types::Ref(cc.typeenv.find(fv)));
     }
+
+    auto clsname = i.lv_name + "_cls";
     auto fvtype = types::Alias(cc.makeCaptureName() ,types::Ref(types::Tuple(fvtype_inside)));
-    MakeClosureInst makecls(i.lv_name + "_cls", i.lv_name, fvlist, fvtype);
-    i.parent->instructions.insert(std::next(position), std::move(makecls));
+    auto clstype = types::Closure(std::get<recursive_wrapper<types::Function>>(i.type),fvtype);
+
+    MakeClosureInst makecls(clsname, i.lv_name, fvlist,clstype);
+    i.parent->instructions.insert(std::next(position), makecls);
+    cc.typeenv.emplace(clsname, std::move(clstype));
     auto& ft = std::get<recursive_wrapper<types::Function>>(i.type).getraw();
     ft.arg_types.emplace_back(fvtype);
       //re-scan to resolve recursive closure application
-    for (auto & cinst : *i.body) {
-     if(auto f =std::get_if<FcallInst>(&cinst)){
-      if(cc.known_functions.count(f->fname)==0 &&f->ftype!=EXTERNAL){
-        f->ftype = CLOSURE;
-      }
-      }
-    }
+    // for (auto & cinst : *i.body) {
+    //  if(auto f =std::get_if<FcallInst>(&cinst)){
+    //   if(funtoclsmap.count(f->fname)>=0 &&f->ftype!=EXTERNAL){
+    //     f->ftype = CLOSURE;
+    //   }
+    //   }
+    // }
   }
 }
 

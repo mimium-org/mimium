@@ -1,10 +1,9 @@
 #include "compiler/knormalize_visitor.hpp"
 
-
 namespace mimium {
 
 KNormalizeVisitor::KNormalizeVisitor(TypeInferVisitor& typeinfer)
-    :typeinfer(typeinfer), var_counter(0) {
+    : typeinfer(typeinfer), var_counter(0) {
   init();
 }
 std::string KNormalizeVisitor::makeNewName() {
@@ -25,7 +24,6 @@ void KNormalizeVisitor::init() {
   rootblock = std::make_shared<MIRblock>("main");
   currentblock = rootblock;
   current_context = nullptr;
-
 }
 
 void KNormalizeVisitor::visit(ListAST& ast) {
@@ -34,7 +32,6 @@ void KNormalizeVisitor::visit(ListAST& ast) {
   for (auto& elem : ast.getElements()) {
     elem->accept(*this);
   }
-
 }
 
 void KNormalizeVisitor::visit(OpAST& ast) {
@@ -43,25 +40,24 @@ void KNormalizeVisitor::visit(OpAST& ast) {
   auto nextlhs = stackPopStr();
   ast.rhs->accept(*this);
   auto nextrhs = stackPopStr();
-  Instructions newinst =OpInst(
-      name, ast.getOpStr(), std::move(nextlhs), std::move(nextrhs));
+  Instructions newinst =
+      OpInst(name, ast.getOpStr(), std::move(nextlhs), std::move(nextrhs));
   currentblock->addInst(newinst);
   res_stack_str.push(name);
   typeinfer.getEnv().emplace(name, types::Float());
-
 }
 void KNormalizeVisitor::insertOverWrite(AST_Ptr body, const std::string& name) {
-  body->accept(*this);  
+  body->accept(*this);
   auto newname = stackPopStr();
   auto type = typeinfer.getEnv().find(name);
   typeinfer.getEnv().emplace(newname, type);
   tmpname = name;
-  auto assign = AssignInst(getVarName(), newname,type);
+  auto assign = AssignInst(getVarName(), newname, type);
   Instructions newinst = assign;
   currentblock->addInst(newinst);
 }
 void KNormalizeVisitor::insertAlloca(AST_Ptr body, const std::string& name) {
-  Instructions alloca =AllocaInst(name, typeinfer.getEnv().find(name));
+  Instructions alloca = AllocaInst(name, typeinfer.getEnv().find(name));
   currentblock->addInst(alloca);
 }
 void KNormalizeVisitor::insertRef(AST_Ptr body, const std::string& name) {
@@ -122,7 +118,8 @@ void KNormalizeVisitor::visit(LambdaAST& ast) {
   }
   // typeinfer.tmpfname = name;
   ast.accept(typeinfer);
-  FunInst newinst (name, std::move(newargs), typeinfer.getLastType(), ast.isrecursive);
+  FunInst newinst(name, std::move(newargs), typeinfer.getLastType(),
+                  ast.isrecursive);
   Instructions res = newinst;
   currentblock->indent_level++;
   currentblock->addInst(res);
@@ -156,7 +153,7 @@ bool KNormalizeVisitor::isArgTime(FcallArgsAST& args) {
 }
 void KNormalizeVisitor::visit(FcallAST& ast) {
   ast.getFname()->accept(*this);
-  auto resfname = stackPopStr();  
+  auto resfname = stackPopStr();
   auto newname = getVarName();
   auto args = ast.getArgs();
   std::deque<std::string> newarg;
@@ -166,11 +163,12 @@ void KNormalizeVisitor::visit(FcallAST& ast) {
     newarg.push_back(stackPopStr());
   }
   ast.accept(typeinfer);
-  auto fnkind = (LLVMBuiltin::ftable.find(resfname) != LLVMBuiltin::ftable.end())
-                    ? EXTERNAL
-                    : CLOSURE;
+  auto fnkind =
+      (LLVMBuiltin::ftable.find(resfname) != LLVMBuiltin::ftable.end())
+          ? EXTERNAL
+          : CLOSURE;
   Instructions newinst = FcallInst(newname, resfname, std::move(newarg), fnkind,
-                                  typeinfer.getLastType(), isArgTime(*args));
+                                   typeinfer.getLastType(), isArgTime(*args));
   currentblock->addInst(newinst);
   res_stack_str.push(newname);
 };
@@ -184,7 +182,7 @@ void KNormalizeVisitor::visit(ArrayAST& ast) {
   }
   auto newname = getVarName();
 
-  ArrayInst newinst ( newname, std::move(newelem));
+  ArrayInst newinst(newname, std::move(newelem));
   Instructions res = newinst;
   currentblock->addInst(res);
   res_stack_str.push(newname);
@@ -193,7 +191,7 @@ void KNormalizeVisitor::visit(ArrayAccessAST& ast) {  // access index may be
                                                       // expr
   ast.getIndex()->accept(*this);
   auto newname = getVarName();
-  ArrayAccessInst newinst (      newname, ast.getName()->getVal(), stackPopStr());
+  ArrayAccessInst newinst(newname, ast.getName()->getVal(), stackPopStr());
   Instructions res = newinst;
 
   currentblock->addInst(res);
@@ -203,7 +201,7 @@ void KNormalizeVisitor::visit(IfAST& ast) {
   auto tmpcontext = currentblock;
   ast.getCond()->accept(*this);
   auto newname = getVarName();
-  IfInst newinst (newname, stackPopStr());
+  IfInst newinst(newname, stackPopStr());
   Instructions res = newinst;
   currentblock->indent_level++;
   newinst.thenblock->indent_level = currentblock->indent_level;
@@ -220,10 +218,10 @@ void KNormalizeVisitor::visit(IfAST& ast) {
 void KNormalizeVisitor::visit(ReturnAST& ast) {
   ast.getExpr()->accept(*this);
   auto newname = stackPopStr();
-  auto type =typeinfer.getLastType();
-    typeinfer.getEnv().emplace(newname, type);
   ast.accept(typeinfer);
-  Instructions newinst = ReturnInst("ret", newname,type);
+  auto type = typeinfer.getLastType();
+  typeinfer.getEnv().emplace(newname, type);
+  Instructions newinst = ReturnInst("ret", newname, type);
   currentblock->addInst(newinst);
 }
 void KNormalizeVisitor::visit(ForAST& ast) {
@@ -241,13 +239,12 @@ void KNormalizeVisitor::visit(TimeAST& ast) {
   ast.getExpr()->accept(*this);
   ast.accept(typeinfer);
   auto t = typeinfer.getLastType();
-  TimeInst newinst (newname, stackPopStr(), stackPopStr(), t);
+  TimeInst newinst(newname, stackPopStr(), stackPopStr(), t);
   Instructions res = newinst;
 
   currentblock->addInst(res);
   res_stack_str.push(newname);
-    typeinfer.getEnv().emplace(newname, t);
-
+  typeinfer.getEnv().emplace(newname, t);
 }
 
 void KNormalizeVisitor::visit(StructAST& ast) {

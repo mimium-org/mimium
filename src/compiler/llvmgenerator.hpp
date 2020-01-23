@@ -37,13 +37,14 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   llvm::BasicBlock* mainentry;
   llvm::BasicBlock* currentblock;
   auto getType(types::Value& type) -> llvm::Type*;
-
   using namemaptype = std::unordered_map<std::string, llvm::Value*>;
   std::unordered_map<llvm::Function*, std::shared_ptr<namemaptype>>
       variable_map;
   std::unordered_map<std::string, llvm::Function*> cls_to_funmap;
   llvm::Value* findValue(std::string name);
   llvm::Value* tryfindValue(std::string name);
+  void switchToMainFun();
+
   void setValuetoMap(std::string name, llvm::Value* val);
   // auto getRawTupleType(types::Tuple& type) -> llvm::Type*;
   // auto getRawStructType(types::Struct& type) -> llvm::Type*;
@@ -87,7 +88,7 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
    private:
     LLVMGenerator& G;
     void createFcall(FcallInst& i, std::vector<llvm::Value*>& args);
-
+    void setFvsToMap(FunInst& i,llvm::Function* f);
     llvm::Value* createAllocation(bool isglobal, llvm::Type* type,
                                   llvm::Value* ArraySize,
                                   const llvm::Twine& name);
@@ -166,7 +167,7 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
       return (llvm::Type*)llvm::FunctionType::get(ret, ar, false);
     }
     llvm::Type* operator()(const types::Closure& c) {
-      return std::visit(*this, c.fun);
+      return  (*this)(c.fun);
     }
     llvm::Type* operator()(const types::Array& a) {
       return (llvm::Type*)llvm::ArrayType::get(std::visit(*this, a.elem_type),
