@@ -1,5 +1,5 @@
 
-add_library(mimium_utils helper_functions.cpp ast.cpp mir.cpp)
+add_library(mimium_utils helper_functions.cpp ast.cpp mir.cpp type.cpp)
 
 target_compile_options(mimium_utils PUBLIC -std=c++17)
 

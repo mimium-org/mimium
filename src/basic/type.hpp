@@ -16,13 +16,7 @@
 namespace mimium {
 // https://medium.com/@dennis.luxen/breaking-circular-dependencies-in-recursive-union-types-with-c-17-the-curious-case-of-4ab00cfda10d
 namespace types {
-enum class Kind{
-  VOID,
-  PRIMITIVE,
-  POINTER,
-  AGGREGATE,
-  INTERMEDIATE
-};
+enum class Kind { VOID, PRIMITIVE, POINTER, AGGREGATE, INTERMEDIATE };
 }
 template <typename T>
 struct recursive_wrapper {
@@ -101,24 +95,20 @@ struct Time;
 struct Alias;
 
 using Value =
-    std::variant< None, TypeVar, Void, Float, String,
-                 recursive_wrapper<Ref>,recursive_wrapper<Pointer>,
-                  recursive_wrapper<Function>
-                 ,recursive_wrapper<Closure>
-                  ,recursive_wrapper<Array>
-                 , recursive_wrapper<Struct>
-                 , recursive_wrapper<Tuple>, recursive_wrapper<Time>, recursive_wrapper<Alias>
-                 >;
+    std::variant<None, TypeVar, Void, Float, String, recursive_wrapper<Ref>,
+                 recursive_wrapper<Pointer>, recursive_wrapper<Function>,
+                 recursive_wrapper<Closure>, recursive_wrapper<Array>,
+                 recursive_wrapper<Struct>, recursive_wrapper<Tuple>,
+                 recursive_wrapper<Time>, recursive_wrapper<Alias>>;
 
 struct ToStringVisitor;
 
-
-struct PointerBase{
-    constexpr inline static Kind kind = Kind::POINTER;
+struct PointerBase {
+  constexpr inline static Kind kind = Kind::POINTER;
 };
-struct Ref :PointerBase{
-  Ref()=default;
-  explicit Ref(Value v):val(std::move(v)){};
+struct Ref : PointerBase {
+  Ref() = default;
+  explicit Ref(Value v) : val(std::move(v)){};
   Value val;
 };
 
@@ -128,7 +118,7 @@ inline bool operator==(const Ref& t1, const Ref& t2) {
 inline bool operator!=(const Ref& t1, const Ref& t2) {
   return t1.val != t2.val;
 }
-struct Pointer:PointerBase {
+struct Pointer : PointerBase {
   Value val;
 };
 inline bool operator==(const Pointer& t1, const Pointer& t2) {
@@ -137,10 +127,10 @@ inline bool operator==(const Pointer& t1, const Pointer& t2) {
 inline bool operator!=(const Pointer& t1, const Pointer& t2) {
   return t1.val != t2.val;
 }
-struct Aggregate{
+struct Aggregate {
   constexpr inline static Kind kind = Kind::AGGREGATE;
 };
-struct Time:Aggregate {
+struct Time : Aggregate {
   Value val;
   Float time;
 };
@@ -150,11 +140,12 @@ inline bool operator==(const Time& t1, const Time& t2) {
 inline bool operator!=(const Time& t1, const Time& t2) {
   return t1.val != t2.val;
 }
-struct Function:Aggregate {
-  Function() =default;
+struct Function : Aggregate {
+  Function() = default;
   explicit Function(Value ret_type_p, std::vector<Value> arg_types_p)
       : arg_types(std::move(arg_types_p)), ret_type(std::move(ret_type_p)){};
-  // [[maybe_unused]]void init(std::vector<Value> arg_types_p, Value ret_type_p) {
+  // [[maybe_unused]]void init(std::vector<Value> arg_types_p, Value ret_type_p)
+  // {
   //   arg_types = std::move(arg_types_p);
   //   ret_type = std::move(ret_type_p);
   //   ret_type.emplace()
@@ -165,8 +156,8 @@ struct Function:Aggregate {
   Value& getReturnType() { return ret_type; }
   std::vector<Value>& getArgTypes() { return arg_types; }
 
-  [[maybe_unused]]static Function create(const types::Value& ret,
-                         const std::vector<types::Value>& arg) {
+  [[maybe_unused]] static Function create(
+      const types::Value& ret, const std::vector<types::Value>& arg) {
     return Function(ret, arg);
   }
   template <class... Args>
@@ -183,29 +174,30 @@ inline bool operator!=(const Function& t1, const Function& t2) {
   return !(t1 == t2);
 }
 
-struct Closure:Aggregate {
-  Value fun;
-  std::string context;
-  explicit Closure(Value fun,std::string context):fun(std::move(fun)),context(std::move(context)){}
+struct Closure : Aggregate {
+  Function fun;
+  Value captures;
+  explicit Closure(Function fun, Value captures)
+      : fun(std::move(fun)), captures(std::move(captures)){};
+  Closure() = default;
 };
 inline bool operator==(const Closure& t1, const Closure& t2) {
-  return t1.fun == t2.fun && t1.context == t2.context;
+  return t1.fun == t2.fun && t1.captures == t2.captures;
 }
 inline bool operator!=(const Closure& t1, const Closure& t2) {
   return !(t1 == t2);
 }
-struct Array :Aggregate{
+struct Array : Aggregate {
   Value elem_type;
   int size;
-  explicit Array(Value elem,int size) : elem_type(std::move(elem)),size(size) {}
+  explicit Array(Value elem, int size)
+      : elem_type(std::move(elem)), size(size) {}
 };
 inline bool operator==(const Array& t1, const Array& t2) {
-  return( t1.elem_type == t2.elem_type)&&(t1.size==t2.size);
+  return (t1.elem_type == t2.elem_type) && (t1.size == t2.size);
 }
-inline bool operator!=(const Array& t1, const Array& t2) {
-  return !(t1==t2);
-}
-struct Tuple :Aggregate{
+inline bool operator!=(const Array& t1, const Array& t2) { return !(t1 == t2); }
+struct Tuple : Aggregate {
   std::vector<Value> arg_types;
   explicit Tuple(std::vector<Value> types) : arg_types(std::move(types)) {}
 };
@@ -213,30 +205,30 @@ struct Tuple :Aggregate{
 inline bool operator==(const Tuple& t1, const Tuple& t2) {
   return (t1.arg_types == t2.arg_types);
 };
-inline bool operator!=(const Tuple& t1, const Tuple& t2) {
-  return !(t1 == t2);
-}
-struct Struct:Aggregate {
+inline bool operator!=(const Tuple& t1, const Tuple& t2) { return !(t1 == t2); }
+struct Struct : Aggregate {
   struct Keytype {
     std::string field;
     Value val;
   };
   std::vector<Keytype> arg_types;
   explicit Struct(std::vector<Keytype> types) : arg_types(std::move(types)) {}
-  explicit operator Tuple(){ 
+  explicit operator Tuple() {
     std::vector<Value> res;
-    std::for_each(arg_types.begin(),arg_types.end(), [&](const auto& c){res.push_back(c.val);});
+    std::for_each(arg_types.begin(), arg_types.end(),
+                  [&](const auto& c) { res.push_back(c.val); });
     return Tuple(res);
   }
-  explicit operator Tuple()const{ //cast back to tuple
+  explicit operator Tuple() const {  // cast back to tuple
     std::vector<Value> res;
-    std::for_each(arg_types.begin(),arg_types.end(), [&](const auto& c){res.push_back(c.val);});
+    std::for_each(arg_types.begin(), arg_types.end(),
+                  [&](const auto& c) { res.push_back(c.val); });
     return Tuple(res);
   }
 };
 
 inline bool operator==(const Struct::Keytype& t1, const Struct::Keytype& t2) {
-  return (t1.field == t2.field)&&(t1.val == t2.val);
+  return (t1.field == t2.field) && (t1.val == t2.val);
 };
 inline bool operator!=(const Struct::Keytype& t1, const Struct::Keytype& t2) {
   return !(t1 == t2);
@@ -248,31 +240,34 @@ inline bool operator!=(const Struct& t1, const Struct& t2) {
   return !(t1 == t2);
 }
 
-struct Alias:Aggregate{
+struct Alias : Aggregate {
   std::string name;
   Value target;
-  explicit Alias(std::string name,Value target):name(std::move(name)),target(std::move(target)){}
+  explicit Alias(std::string name, Value target)
+      : name(std::move(name)), target(std::move(target)) {}
 };
 inline bool operator==(const Alias& t1, const Alias& t2) {
   return (t1.name == t2.name);
 };
-inline bool operator!=(const Alias& t1, const Alias& t2) {
-  return !(t1 == t2);
-}
+inline bool operator!=(const Alias& t1, const Alias& t2) { return !(t1 == t2); }
 [[maybe_unused]] static bool isTypeVar(types::Value t) {
   return std::holds_alternative<types::TypeVar>(t);
 }
 
 struct ToStringVisitor {
+  bool verbose = false;
   [[nodiscard]] std::string join(const std::vector<types::Value>& vec,
                                  std::string delim) const {
-    return std::accumulate(std::next(vec.begin()), vec.end(),
-                           std::visit(*this, *vec.begin()),
-                           [&](std::string a, const Value& b) {
-                             return std::move(a) + delim + std::visit(*this, b);
-                           });
-  };
-  std::string operator()(std::monostate) const { return ""; }
+    std::string res;
+    if (!vec.empty()) {
+      res = std::accumulate(
+          std::next(vec.begin()), vec.end(), std::visit(*this, *vec.begin()),
+          [&](std::string a, const Value& b) {
+            return std::move(a) + delim + std::visit(*this, b);
+          });
+    }
+    return res;
+  }
   std::string operator()(None) const { return "none"; }
   std::string operator()(const TypeVar& v) const {
     return "TypeVar" + std::to_string(v.index);
@@ -290,11 +285,12 @@ struct ToStringVisitor {
     return "(" + join(f.arg_types, ",") + ") -> " +
            std::visit(*this, f.ret_type);
   }
-  std::string operator()(const Closure& c)const {
-    return "Closure:" + std::visit(*this, c.fun);
+  std::string operator()(const Closure& c) const {
+    return "Closure:{ " + (*this)(c.fun) +" , " +std::visit(*this, c.captures) +" }";
   }
   std::string operator()(const Array& a) const {
-    return "["+std::visit(*this, a.elem_type)+"x" + std::to_string(a.size)+ "]";
+    return "[" + std::visit(*this, a.elem_type) + "x" + std::to_string(a.size) +
+           "]";
   }
   std::string operator()(const Struct& s) const {
     std::string str = "{";
@@ -309,34 +305,27 @@ struct ToStringVisitor {
   std::string operator()(const Time& t) const {
     return std::visit(*this, t.val) + "@";
   }
-  std::string operator()(const Alias& a)const {
-    return a.name;
-  }
+  std::string operator()(const Alias& a) const { 
+    return a.name +( (verbose)? ": "+std::visit(*this,a.target):"");
+ }
 };
 static ToStringVisitor tostrvisitor;
-static std::string toString(const Value& v){
-  return std::visit(tostrvisitor,v);
-} 
+std::string toString(const Value& v);
 
-struct kindvisitor{
-  template<class T>
-  Kind operator()(T t){
+struct KindVisitor {
+  template <class T>
+  Kind operator()(T t) {
     return T::kind;
   }
-  template<class T>
-  Kind operator()(recursive_wrapper<T> t){
+  template <class T>
+  Kind operator()(recursive_wrapper<T> t) {
     return T::kind;
   }
 };
+static KindVisitor kindvisitor;
 
-static Kind kindOf(const Value& v){
-  return std::visit(kindvisitor(),v);
-}
-
-static bool isPrimitive(const Value& v){
-  return kindOf(v) == Kind::PRIMITIVE;
-}
-
+Kind kindOf(const Value& v);
+bool isPrimitive(const Value& v);
 }  // namespace types
 
 class TypeEnv {
@@ -345,7 +334,7 @@ class TypeEnv {
   std::unordered_map<std::string, types::Value> env;
 
  public:
-  TypeEnv() :  env() {}
+  TypeEnv() : env() {}
   types::TypeVar createNewTypeVar() { return types::TypeVar(typeid_count++); }
   bool exist(std::string key) { return (env.count(key) > 0); }
   types::Value& find(std::string key) {
@@ -357,20 +346,19 @@ class TypeEnv {
     return res->second;
   }
 
-  auto emplace(std::string_view key, types::Value typevar) {
-    return env.emplace(key, typevar);
+  auto emplace(std::string key, types::Value typevar) {
+    return env.insert_or_assign(key, typevar);
   }
 
   std::string dump() {
     std::stringstream ss;
+    types::ToStringVisitor vis;
+    vis.verbose=true;
     for (auto& [key, val] : env) {
-      ss << key << " : " << types::toString(val);
-      if(auto a = std::get_if<recursive_wrapper<types::Alias>>(&val)){
-          ss <<"("<< types::toString(((types::Alias)*a).target)<<")";
-      }
-      ss<< "\n";
+      ss << key << " : " << std::visit(vis,val) <<"\n";
     }
     return ss.str();
   }
 };
+
 }  // namespace mimium
