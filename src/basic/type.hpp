@@ -175,9 +175,9 @@ inline bool operator!=(const Function& t1, const Function& t2) {
 }
 
 struct Closure : Aggregate {
-  Function fun;
+  Ref fun;
   Value captures;
-  explicit Closure(Function fun, Value captures)
+  explicit Closure(Ref fun, Value captures)
       : fun(std::move(fun)), captures(std::move(captures)){};
   Closure() = default;
 };
@@ -337,13 +337,19 @@ class TypeEnv {
   TypeEnv() : env() {}
   types::TypeVar createNewTypeVar() { return types::TypeVar(typeid_count++); }
   bool exist(std::string key) { return (env.count(key) > 0); }
+  types::Value* tryFind(std::string key) {
+    auto it = env.find(key);
+    types::Value* res;
+    res = (it == env.end())?nullptr:&it->second;
+    return res;
+  }
   types::Value& find(std::string key) {
-    auto res = env.find(key);
-    if (res == env.end()) {
+    auto res = tryFind(key);
+    if (res==nullptr) {
       throw std::logic_error("Could not find type for variable \"" + key +
                              "\"");
     }
-    return res->second;
+    return *res;
   }
 
   auto emplace(std::string key, types::Value typevar) {

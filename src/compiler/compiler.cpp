@@ -8,7 +8,7 @@ Compiler::Compiler(llvm::LLVMContext& ctx)
       recursivechecker(),
       knormvisitor(typevisitor),
       closureconverter(std::make_shared<ClosureConverter>(typevisitor.getEnv())),
-        llvmgenerator(ctx) {}
+        llvmgenerator(ctx,typevisitor.getEnv()) {}
 Compiler::~Compiler()=default;
 void Compiler::setFilePath(std::string path) {
   this->path = path;

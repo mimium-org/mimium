@@ -2,7 +2,7 @@
 
 namespace mimium {
 
-LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx)
+LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv)
     : isjit(true),
       taskfn_typeid(0),
       ctx(ctx),
@@ -10,8 +10,9 @@ LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx)
       currentblock(nullptr),
       module(std::make_unique<llvm::Module>("no_file_name.mmm", ctx)),
       builder(std::make_unique<llvm::IRBuilder<>>(ctx)),
-      typeconverter(*builder, *module),
-      codegenvisitor(*this) {}
+      typeenv(typeenv),
+      codegenvisitor(*this),
+      typeconverter(*builder, *module) {}
 void LLVMGenerator::init(std::string filename) {
   module->setSourceFileName(filename);
   module->setModuleIdentifier(filename);
@@ -39,9 +40,13 @@ void LLVMGenerator::dropAllReferences() {
   }
 }
 
-auto LLVMGenerator::getType(types::Value& type) -> llvm::Type* {
+llvm::Type* LLVMGenerator::getType(types::Value& type) {
   return std::visit(typeconverter, type);
 }
+llvm::Type* LLVMGenerator::getType(const std::string& name) {
+  return getType(typeenv.find(name));
+}
+
 void LLVMGenerator::switchToMainFun() {
   setBB(mainentry);
   currentblock = mainentry;
@@ -211,7 +216,7 @@ void LLVMGenerator::CodeGenVisitor::operator()(NumberInst& i) {
 }
 void LLVMGenerator::CodeGenVisitor::operator()(AllocaInst& i) {
   auto ptrname = "ptr_" + i.lv_name;
-  auto* type = G.getType(i.type);
+  auto* type = G.getType(i.lv_name);
   auto* ptr = createAllocation(isglobal, type, nullptr, i.lv_name);
   G.setValuetoMap(ptrname, ptr);
 }
@@ -343,6 +348,21 @@ void LLVMGenerator::CodeGenVisitor::operator()(FcallInst& i) {
     }
   }
 
+  llvm::Function* fun;
+  switch (i.ftype) {
+    case DIRECT:
+      fun = getDirFun(i);
+      break;
+    case CLOSURE:
+      fun = getClsFun(i);
+      break;
+    case EXTERNAL:
+      fun = getExtFun(i);
+      break;
+    default:
+      break;
+  }
+
   if (isclosure) {
     auto m = G.variable_map[G.curfunc];
     auto it = m->find(i.fname + "_cap");
@@ -355,49 +375,52 @@ void LLVMGenerator::CodeGenVisitor::operator()(FcallInst& i) {
   }
   if (i.istimed) {  // if arguments is timed value, call addTask
     createAddTaskFn(i, isclosure, isglobal);
-  } else {
-    createFcall(i, args);
-  }
-}
-void LLVMGenerator::CodeGenVisitor::createFcall(
-    FcallInst& i, std::vector<llvm::Value*>& args) {
-  llvm::Value* fun;
-  switch (i.ftype) {
-    case EXTERNAL: {
-      auto it = LLVMBuiltin::ftable.find(i.fname);
-      BuiltinFnInfo& fninfo = it->second;
-      auto* fntype = llvm::cast<llvm::FunctionType>(G.getType(fninfo.mmmtype));
-      auto fn = G.module->getOrInsertFunction(fninfo.target_fnname, fntype);
-      auto f = llvm::cast<llvm::Function>(fn.getCallee());
-      f->setCallingConv(llvm::CallingConv::C);
-      fun = f;
-    } break;
-    case DIRECT:
-      fun = G.module->getFunction(i.fname);
-      if (fun == nullptr) {
-        throw std::logic_error("function could not be referenced");
-      }
-      break;
-    case CLOSURE: {
-      fun = G.module->getFunction(i.fname);
-      auto it = G.cls_to_funmap.find(i.fname);
-      if (fun == nullptr && it == G.cls_to_funmap.end()) {
-        throw std::logic_error("function could not be referenced");
-      } else {
-        fun = it->second;
-      }
-    } break;
-    default:
-      break;
-  }
-
+  } else{
   if (std::holds_alternative<types::Void>(i.type)) {
     G.builder->CreateCall(fun, args);
   } else {
     auto res = G.builder->CreateCall(fun, args, i.lv_name);
     G.setValuetoMap(i.lv_name, res);
   }
+  }
 }
+llvm::Function* LLVMGenerator::CodeGenVisitor::getDirFun(FcallInst& i) {
+  auto fun = G.module->getFunction(i.fname);
+  if (fun == nullptr) {
+    throw std::logic_error("function could not be referenced");
+  }
+  return fun;
+}
+llvm::Function* LLVMGenerator::CodeGenVisitor::getClsFun(FcallInst& i) {
+  llvm::Function* fun = G.module->getFunction(i.fname);
+
+
+  if (fun == nullptr) {
+    G.module->dump();
+    G.dumpvars();
+    llvm::errs() << G.curfunc->getName()<<"\n";
+    auto f = G.variable_map[G.curfunc]->find(i.fname);
+    f->second->dump();
+    G.findValue(i.fname)->dump();
+  }
+  throw std::logic_error("function could not be referenced");
+
+  return fun;
+}
+llvm::Function* LLVMGenerator::CodeGenVisitor::getExtFun(FcallInst& i) {
+  auto it = LLVMBuiltin::ftable.find(i.fname);
+  if (it == LLVMBuiltin::ftable.end()) {
+    throw std::runtime_error("could not find external function \"" + i.fname +
+                             "\"");
+  }
+  BuiltinFnInfo& fninfo = it->second;
+  auto* fntype = llvm::cast<llvm::FunctionType>(G.getType(fninfo.mmmtype));
+  auto fn = G.module->getOrInsertFunction(fninfo.target_fnname, fntype);
+  auto f = llvm::cast<llvm::Function>(fn.getCallee());
+  f->setCallingConv(llvm::CallingConv::C);
+  return f;
+}
+
 void LLVMGenerator::CodeGenVisitor::createAddTaskFn(FcallInst& i,
                                                     const bool isclosure,
                                                     const bool isglobal) {
@@ -436,11 +459,17 @@ void LLVMGenerator::CodeGenVisitor::createAddTaskFn(FcallInst& i,
 
 void LLVMGenerator::CodeGenVisitor::operator()(
     MakeClosureInst& i) {  // store the capture address to memory
-  auto* structty = G.getType(i.capturetype);
+  auto* closuretype = G.getType(i.capturetype);
+  auto targetf =G.module->getFunction(i.fname);
+closuretype->dump();
   auto capptrname = i.fname + "_cap";
-  auto* capture_ptr =
-      createAllocation(isglobal, structty, nullptr, capptrname);
-
+  auto* closure_ptr =
+      createAllocation(isglobal, closuretype, nullptr, capptrname);
+  auto* fun_ptr =  G.builder->CreateStructGEP(closure_ptr, 0)  ;
+  // fun_ptr->getType()->dump();
+  // targetf->getType()->dump();
+  auto test = G.builder->CreateStore(targetf,fun_ptr);
+  auto* capture_ptr = G.builder->CreateStructGEP(closure_ptr, 1);
   unsigned int idx = 0;
   for (auto& cap : i.captures) {
     auto ptrname = "ptr_" + cap;
@@ -493,7 +522,6 @@ void LLVMGenerator::CodeGenVisitor::operator()(ReturnInst& i) {
 llvm::Value* LLVMGenerator::tryfindValue(std::string name) {
   auto map = variable_map[curfunc];
   auto res = map->find(name);
-
   return (res == map->end()) ? nullptr : res->second;
 }
 llvm::Value* LLVMGenerator::findValue(std::string name) {

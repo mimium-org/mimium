@@ -12,11 +12,15 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
   void reset();
   bool isKnownFunction(const std::string& name);
   std::string makeCaptureName() {
-    return "capture" + std::to_string(capturecount++);
+    return "Capture." + std::to_string(capturecount++);
+  }
+  std::string makeClosureTypeName() {
+    return "Closure." + std::to_string(closurecount++);
   }
   TypeEnv& typeenv;
   std::shared_ptr<MIRblock> toplevel;
   int capturecount;
+  int closurecount;
   std::unordered_map<std::string, int> known_functions;
   std::unordered_map<std::string, types::Closure> funtoclsmap;
   FunInst tmp_globalfn;
@@ -63,11 +67,10 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
 
     ClosureConverter& cc;
     bool isClosure(std::string& name){
-
-      return std::holds_alternative<recursive_wrapper<types::Closure>>(cc.typeenv.find(name));
+      return (cc.typeenv.tryFind(name+"_cls")!=nullptr);
     }
     void replaceType(types::Value& val,const std::string& name){
-      val = cc.typeenv.find(name);
+      val = cc.typeenv.find(name+"_cls");
       cc.typeenv.emplace(name, val);
     }
     void operator()(NumberInst& i){};
@@ -111,7 +114,6 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
     void operator()(ReturnInst& i){
       if(isClosure(i.val))replaceType(i.type,i.val);
     };
-    bool isFreeVar(const std::string& name);
   };
 };
 

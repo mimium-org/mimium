@@ -36,7 +36,11 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   std::unique_ptr<llvm::IRBuilder<>> builder;
   llvm::BasicBlock* mainentry;
   llvm::BasicBlock* currentblock;
-  auto getType(types::Value& type) -> llvm::Type*;
+  TypeEnv& typeenv;
+
+  llvm::Type* getType(types::Value& type);
+  // search from typeenv
+  llvm::Type* getType(const std::string& name);
   using namemaptype = std::unordered_map<std::string, llvm::Value*>;
   std::unordered_map<llvm::Function*, std::shared_ptr<namemaptype>>
       variable_map;
@@ -87,8 +91,11 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
 
    private:
     LLVMGenerator& G;
-    void createFcall(FcallInst& i, std::vector<llvm::Value*>& args);
-    void setFvsToMap(FunInst& i,llvm::Function* f);
+    llvm::Function* getDirFun(FcallInst& i);
+    llvm::Function* getClsFun(FcallInst& i);
+    llvm::Function* getExtFun(FcallInst& i);
+
+    void setFvsToMap(FunInst& i, llvm::Function* f);
     llvm::Value* createAllocation(bool isglobal, llvm::Type* type,
                                   llvm::Value* ArraySize,
                                   const llvm::Twine& name);
@@ -97,7 +104,7 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   } codegenvisitor;
 
  public:
-  LLVMGenerator(llvm::LLVMContext& ctx);
+  LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv);
 
   llvm::Module& getModule() { return *module; }
   auto moveModule() { return std::move(module); }
@@ -125,9 +132,9 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   struct TypeConverter {
     explicit TypeConverter(llvm::IRBuilder<>& b, llvm::Module& m)
         : builder(b), module(m), tmpname(""){};
-    std::string tmpname;
     llvm::IRBuilder<>& builder;
     llvm::Module& module;
+    std::string tmpname;
     static void error() { throw std::logic_error("Invalid Type"); }
     llvm::Type* operator()(std::monostate) const {
       error();
@@ -167,7 +174,16 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
       return (llvm::Type*)llvm::FunctionType::get(ret, ar, false);
     }
     llvm::Type* operator()(const types::Closure& c) {
-      return  (*this)(c.fun);
+      auto* capturetype = std::visit(*this, c.captures);
+      auto* fty = (*this)(c.fun);
+      auto* fptrtype = llvm::cast<llvm::FunctionType>(
+          llvm::cast<llvm::PointerType>(fty)->getElementType());
+      std::vector<llvm::Type*> arg = fptrtype->params();  // copy
+      arg.push_back(llvm::PointerType::get(capturetype,0));
+      auto* newtype = llvm::PointerType::get(
+          llvm::FunctionType::get(fptrtype->getReturnType(), arg, false), 0);
+      return llvm::StructType::get(builder.getContext(), {newtype, capturetype},
+                                   false);
     }
     llvm::Type* operator()(const types::Array& a) {
       return (llvm::Type*)llvm::ArrayType::get(std::visit(*this, a.elem_type),
