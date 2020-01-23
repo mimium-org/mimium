@@ -31,12 +31,20 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   [[maybe_unused]] bool isjit;
   llvm::LLVMContext& ctx;
   std::unique_ptr<llvm::orc::MimiumJIT> jitengine;
+  llvm::Function* curfunc;
+  std::unique_ptr<llvm::Module> module;
+  std::unique_ptr<llvm::IRBuilder<>> builder;
+  llvm::BasicBlock* mainentry;
+  llvm::BasicBlock* currentblock;
   auto getType(types::Value& type) -> llvm::Type*;
-    llvm::Value* findValue(std::string name);
-        llvm::Value* tryfindValue(std::string name);
 
-    void setValuetoMap(std::string name,llvm::Value* val);
-
+  using namemaptype = std::unordered_map<std::string, llvm::Value*>;
+  std::unordered_map<llvm::Function*, std::shared_ptr<namemaptype>>
+      variable_map;
+  std::unordered_map<std::string, llvm::Function*> cls_to_funmap;
+  llvm::Value* findValue(std::string name);
+  llvm::Value* tryfindValue(std::string name);
+  void setValuetoMap(std::string name, llvm::Value* val);
   // auto getRawTupleType(types::Tuple& type) -> llvm::Type*;
   // auto getRawStructType(types::Struct& type) -> llvm::Type*;
 
@@ -45,13 +53,7 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
 
   void createMiscDeclarations();
   void createMainFun();
-  void createFcall(FcallInst& i, std::vector<llvm::Value*>& args);
   void createTaskRegister(bool isclosure);
-  llvm::Value* createAllocation(bool isglobal, llvm::Type* type,
-                                llvm::Value* ArraySize,
-                                const llvm::Twine& name);
-  bool createStoreOw(std::string varname, llvm::Value* val_to_store);
-  void createAddTaskFn(FcallInst& i, bool isclosure, bool isglobal);
 
   void visitInstructions(Instructions& inst, bool isglobal);
 
@@ -60,21 +62,40 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   llvm::FunctionCallee addtask_cls;
 
   [[maybe_unused]] unsigned int taskfn_typeid;
-  // std::vector<types::Value> tasktype_list;
   void initJit();
   llvm::Error doJit(size_t opt_level = 1);
 
   llvm::Type* getOrCreateTimeStruct(types::Time& t);
-  // std::unordered_map<std::string, llvm::Value*> namemap;
-  using namemaptype = std::unordered_map<std::string, llvm::Value*>;
-  std::unordered_map<llvm::Function*,std::shared_ptr<namemaptype>> variable_map;
- public:
-  llvm::Function* curfunc;
-  std::unique_ptr<llvm::Module> module;
-  std::unique_ptr<llvm::IRBuilder<>> builder;
 
-  llvm::BasicBlock* mainentry;
-  llvm::BasicBlock* currentblock;
+  struct CodeGenVisitor {
+    CodeGenVisitor(LLVMGenerator& g) : G(g){};
+    void operator()(NumberInst& i);
+    void operator()(AllocaInst& i);
+    void operator()(RefInst& i);
+    void operator()(AssignInst& i);
+    void operator()(TimeInst& i);
+    void operator()(OpInst& i);
+    void operator()(FunInst& i);
+    void operator()(FcallInst& i);
+    void operator()(MakeClosureInst& i);
+    void operator()(ArrayInst& i);
+    void operator()(ArrayAccessInst& i);
+    void operator()(IfInst& i);
+    void operator()(ReturnInst& i);
+    bool isglobal;
+
+   private:
+    LLVMGenerator& G;
+    void createFcall(FcallInst& i, std::vector<llvm::Value*>& args);
+
+    llvm::Value* createAllocation(bool isglobal, llvm::Type* type,
+                                  llvm::Value* ArraySize,
+                                  const llvm::Twine& name);
+    bool createStoreOw(std::string varname, llvm::Value* val_to_store);
+    void createAddTaskFn(FcallInst& i, bool isclosure, bool isglobal);
+  } codegenvisitor;
+
+ public:
   LLVMGenerator(llvm::LLVMContext& ctx);
 
   llvm::Module& getModule() { return *module; }
@@ -92,11 +113,11 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   void* execute();
   void outputToStream(llvm::raw_ostream& ostream);
   llvm::orc::MimiumJIT& getJitEngine() { return *jitengine; }
-  void dumpvars(){
-    for(auto& [f,map]:variable_map){
-      llvm::errs() << f->getName() <<":\n";
-      for(auto& [key,val]:*map){
-        llvm::errs() << "   " << key <<" :  "<<val->getName()<<"\n";
+  void dumpvars() {
+    for (auto& [f, map] : variable_map) {
+      llvm::errs() << f->getName() << ":\n";
+      for (auto& [key, val] : *map) {
+        llvm::errs() << "   " << key << " :  " << val->getName() << "\n";
       }
     }
   }
@@ -221,7 +242,9 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
       tmpname = "";
       return t;
     }
-    llvm::Type* tryGetNamedType(std::string name) { return module.getTypeByName(name); }
+    llvm::Type* tryGetNamedType(std::string name) {
+      return module.getTypeByName(name);
+    }
   } typeconverter;
 };
 
