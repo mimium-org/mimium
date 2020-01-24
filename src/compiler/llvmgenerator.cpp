@@ -161,9 +161,10 @@ void LLVMGenerator::generateCode(std::shared_ptr<MIRblock> mir) {
     visitInstructions(inst, true);
   }
   if (mainentry->getTerminator() == nullptr) {  // insert return
-    auto dspaddress = variable_map[curfunc]->find("ptr_dsp_cls_raw");
+    auto dspaddress = variable_map[curfunc]->find("dsp_cls_capture_ptr");
     if (dspaddress != variable_map[curfunc]->end()) {
-      builder->CreateRet(dspaddress->second);
+      auto res = builder->CreateBitCast(dspaddress->second, builder->getInt8PtrTy(),"res");
+      builder->CreateRet(res);
     } else {
       builder->CreateRet(
           llvm::ConstantPointerNull::get(builder->getInt8PtrTy()));
@@ -404,6 +405,7 @@ void LLVMGenerator::CodeGenVisitor::operator()(FcallInst& i) {
 }
 llvm::Value* LLVMGenerator::CodeGenVisitor::getDirFun(FcallInst& i) {
   auto fun = G.module->getFunction(i.fname);
+  fun->setLinkage(llvm::GlobalValue::InternalLinkage);
   if (fun == nullptr) {
     throw std::logic_error("function could not be referenced");
   }
@@ -471,9 +473,9 @@ void LLVMGenerator::CodeGenVisitor::operator()(
   // always heap allocation!
   auto* closure_ptr =
       createAllocation(true, closuretype, nullptr, closureptrname);
-  auto* fun_ptr = G.builder->CreateStructGEP(closure_ptr, 0, "fun_ptr");
+  auto* fun_ptr = G.builder->CreateStructGEP(closure_ptr, 0, i.lv_name+"_fun_ptr");
   G.builder->CreateStore(targetf, fun_ptr);
-  auto* capture_ptr = G.builder->CreateStructGEP(closure_ptr, 1, "capture_ptr");
+  auto* capture_ptr = G.builder->CreateStructGEP(closure_ptr, 1, i.lv_name+"_capture_ptr");
   unsigned int idx = 0;
   for (auto& cap : i.captures) {
     llvm::Value* fv = G.tryfindValue(cap);
@@ -481,9 +483,8 @@ void LLVMGenerator::CodeGenVisitor::operator()(
     G.builder->CreateStore(fv, gep);
     idx += 1;
   }
-  // G.setValuetoMap(capptrname, capture_ptr);  // no need?
+  G.setValuetoMap(i.lv_name+"_capture_ptr", capture_ptr);  
   G.setValuetoMap(closureptrname, closure_ptr);
-  G.cls_to_funmap[i.lv_name] = G.module->getFunction(i.fname);  // no need?
 }
 void LLVMGenerator::CodeGenVisitor::operator()(ArrayInst& i) {}
 void LLVMGenerator::CodeGenVisitor::operator()(ArrayAccessInst& i) {}

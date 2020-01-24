@@ -1,15 +1,17 @@
 
-fn lpf(fb:float){    
+fn lpf(){    
     self  = 0
-    fn perform(input:float){
+    println(100101010)
+    fn perform(input:float,fb:float){
         res = input*(1-fb) + self*fb
         self = res
         return res
     }
     return perform
 }
-//myfn = |x:float| x+2 
-mylpf = lpf(1250)
+mylpf = lpf()
+global = 2
 fn dsp(time:float)->float{
-    return time|> mylpf
+    fb = (sin(time/1000+sin(time/40050)*15)+1)/2.01
+    return mylpf((random()/global),fb)
 }

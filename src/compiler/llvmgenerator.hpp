@@ -46,7 +46,6 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   using namemaptype = std::unordered_map<std::string, llvm::Value*>;
   std::unordered_map<llvm::Function*, std::shared_ptr<namemaptype>>
       variable_map;
-  std::unordered_map<std::string, llvm::Function*> cls_to_funmap;
   llvm::Value* findValue(std::string name);
   llvm::Value* tryfindValue(std::string name);
   void switchToMainFun();
