@@ -18,19 +18,32 @@ void dump(const Value& v, bool verbose) {
 Value getFunRettype(types::Value& v){
   return std::get<recursive_wrapper<Function>>(v).getraw().ret_type;
 }
+std::optional<Value> getNamedClosure(types::Value& v){
+  // Closure* res;
+  std::optional<Value> res=std::nullopt;
+      if(auto ref = std::get_if<recursive_wrapper<Ref>>(&v)){
+   if(auto alias = std::get_if<recursive_wrapper<Alias>>(&(ref->getraw().val))){
+    Alias& a = *alias;
+    if(auto cls = std::get_if<recursive_wrapper<Closure>>(&a.target)){
+      res = *ref;
+    }
+   }
+      }
+  return res;
+}
 
 
 }  // namespace types
 std::string TypeEnv::toString(bool verbose) {
   std::stringstream ss;
   types::ToStringVisitor vis;
-  vis.verbose = true;
+  vis.verbose = verbose;
   for (auto& [key, val] : env) {
     ss << key << " : " << std::visit(vis, val) << "\n";
   }
   return ss.str();
 }
 void TypeEnv::dump(bool verbose){
-std::cerr <<"-------------------\n"<< toString()<<"-------------------\n";
+std::cerr <<"-------------------\n"<< toString(verbose)<<"-------------------\n";
 }
 }  // namespace mimium

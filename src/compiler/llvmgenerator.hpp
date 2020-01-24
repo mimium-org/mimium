@@ -137,7 +137,7 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
     llvm::IRBuilder<>& builder;
     llvm::Module& module;
     std::string tmpname;
-    std::unordered_map<std::string ,llvm::Type*>aliasmap;
+    std::unordered_map<std::string, llvm::Type*> aliasmap;
     static void error() { throw std::logic_error("Invalid Type"); }
     llvm::Type* operator()(std::monostate) const {
       error();
@@ -177,16 +177,11 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
       return (llvm::Type*)llvm::FunctionType::get(ret, ar, false);
     }
     llvm::Type* operator()(const types::Closure& c) {
-      auto* capturetype = std::visit(*this, c.captures);
+      auto name = consumeAlias();
+      auto* capturetype =std::visit(*this, c.captures);
       auto* fty = (*this)(c.fun);
-      auto* fptrtype = llvm::cast<llvm::FunctionType>(
-          llvm::cast<llvm::PointerType>(fty)->getElementType());
-      std::vector<llvm::Type*> arg = fptrtype->params();  // copy
-      arg.push_back(capturetype);
-      auto* newtype = llvm::PointerType::get(
-          llvm::FunctionType::get(fptrtype->getReturnType(), arg, false), 0);
-      return llvm::StructType::get(builder.getContext(), {newtype, capturetype},
-                                   false);
+      return llvm::StructType::create(
+          builder.getContext(), {fty, capturetype}, name, false);
     }
     llvm::Type* operator()(const types::Array& a) {
       return (llvm::Type*)llvm::ArrayType::get(std::visit(*this, a.elem_type),
@@ -250,7 +245,8 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
       if (it == aliasmap.end()) {
         tmpname = a.name;
         res = std::visit(*this, a.target);
-      }else{
+        aliasmap.emplace(a.name, res);
+      } else {
         res = it->second;
       }
       return res;

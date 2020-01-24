@@ -93,17 +93,17 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
       auto lastinst = *it; 
       if(auto ret =std::get_if<ReturnInst>(&lastinst)){
         auto& ft = std::get<recursive_wrapper<types::Function>>(i.type).getraw();
-        ft.ret_type = ret->type;
+        ft.ret_type = (types::isPrimitive(ret->type))?ret->type:types::Ref(ret->type);
       }
       cc.typeenv.emplace(i.lv_name, i.type);
 
     };
     void operator()(FcallInst& i){
       if(auto* ftype = std::get_if<recursive_wrapper<types::Function>>(&cc.typeenv.find(i.fname))){
-          const types::Function& f  = ftype->getraw();
-          if(auto clstype = std::get_if<recursive_wrapper<types::Closure>>(&f.ret_type)){
-          i.type = *clstype;
-          cc.typeenv.emplace(i.lv_name, *clstype);
+          types::Function& f  = ftype->getraw();
+          std::optional<types::Value> cls = types::getNamedClosure(f.ret_type);
+          if(cls){
+            cc.typeenv.emplace(i.lv_name, std::move(cls.value()));
           }
       }
     };
@@ -113,7 +113,8 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
     void operator()(ArrayAccessInst& i){};
     void operator()(IfInst& i){};
     void operator()(ReturnInst& i){
-      if(isClosure(i.val))replaceType(i.type,i.val);
+      if(isClosure(i.val)){replaceType(i.type,i.val);}
+
     };
   }typereplacer;
 };

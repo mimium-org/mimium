@@ -27,7 +27,7 @@ struct recursive_wrapper {
   }  // NOLINT
 
   // cast back to wrapped type
-  // operator T&() { return t.front(); }              // NOLINT
+  operator T&() { return t.front(); }              // NOLINT
   operator const T&() const { return t.front(); }  // NOLINT
 
   T& getraw() { return t.front(); }
@@ -286,7 +286,7 @@ struct ToStringVisitor {
            std::visit(*this, f.ret_type);
   }
   std::string operator()(const Closure& c) const {
-    return "Closure:{ " + (*this)(c.fun) +" , " +std::visit(*this, c.captures) +" }";
+    return "cls{ " + (*this)(c.fun) +" , " +std::visit(*this, c.captures) +" }";
   }
   std::string operator()(const Array& a) const {
     return "[" + std::visit(*this, a.elem_type) + "x" + std::to_string(a.size) +
@@ -311,6 +311,7 @@ struct ToStringVisitor {
 };
 
 Value getFunRettype(types::Value& v);
+std::optional<Value> getNamedClosure(types::Value& v);
 
 static ToStringVisitor tostrvisitor;
 std::string toString(const Value& v,bool verbose=false);

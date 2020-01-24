@@ -16,7 +16,7 @@ LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv)
 void LLVMGenerator::init(std::string filename) {
   module->setSourceFileName(filename);
   module->setModuleIdentifier(filename);
-  // module->setDataLayout(LLVMGetDefaultTargetTriple());
+  module->setTargetTriple(LLVMGetDefaultTargetTriple());
 }
 void LLVMGenerator::setDataLayout() {
   module->setDataLayout(llvm::sys::getProcessTriple());
@@ -44,15 +44,18 @@ llvm::Type* LLVMGenerator::getType(types::Value& type) {
   return std::visit(typeconverter, type);
 }
 
-
 llvm::Type* LLVMGenerator::getType(const std::string& name) {
   return getType(typeenv.find(name));
 }
 llvm::Type* LLVMGenerator::getClosureToFunType(types::Value& type) {
-    auto clsty = std::get<recursive_wrapper<types::Closure>>(type).getraw();
-    auto fty = std::get<recursive_wrapper<types::Function>>(clsty.fun.val).getraw();
-    fty.arg_types.emplace_back(clsty.captures);
-    types::Value v= fty;
+  auto aliasty = std::get<recursive_wrapper<types::Alias>>(type).getraw();
+  auto clsty =
+      std::get<recursive_wrapper<types::Closure>>(aliasty.target).getraw();
+
+  auto fty =
+      std::get<recursive_wrapper<types::Function>>(clsty.fun.val).getraw();
+  fty.arg_types.emplace_back(types::Ref(clsty.captures));
+  types::Value v = fty;
   return std::visit(typeconverter, v);
 }
 void LLVMGenerator::switchToMainFun() {
@@ -158,7 +161,7 @@ void LLVMGenerator::generateCode(std::shared_ptr<MIRblock> mir) {
     visitInstructions(inst, true);
   }
   if (mainentry->getTerminator() == nullptr) {  // insert return
-    auto dspaddress = variable_map[curfunc]->find("dsp_cap");
+    auto dspaddress = variable_map[curfunc]->find("ptr_dsp_cls_raw");
     if (dspaddress != variable_map[curfunc]->end()) {
       builder->CreateRet(dspaddress->second);
     } else {
@@ -290,11 +293,15 @@ void LLVMGenerator::CodeGenVisitor::operator()(OpInst& i) {
 void LLVMGenerator::CodeGenVisitor::operator()(FunInst& i) {
   bool hasfv = !i.freevariables.empty();
   llvm::FunctionType* ft;
-  if(hasfv){
-    auto clsty =G.getClosureToFunType(G.typeenv.find(i.lv_name+"_cls"));
-    ft =llvm::cast<llvm::FunctionType>(clsty);
-  }else{
-    ft = llvm::cast<llvm::FunctionType>(G.getType(G.typeenv.find(i.lv_name)));  // NOLINT
+  if (hasfv) {
+    auto& type = G.typeenv.find(i.lv_name + "_cls");
+    auto clsty = llvm::cast<llvm::StructType>(G.getType(type));
+    auto funty = llvm::cast<llvm::PointerType>(clsty->getElementType(0))
+                     ->getElementType();
+    ft = llvm::cast<llvm::FunctionType>(funty);
+  } else {
+    ft = llvm::cast<llvm::FunctionType>(
+        G.getType(G.typeenv.find(i.lv_name)));  // NOLINT
   }
 
   llvm::Function* f = llvm::Function::Create(
@@ -339,14 +346,15 @@ void LLVMGenerator::CodeGenVisitor::setFvsToMap(FunInst& i, llvm::Function* f) {
   for (int id = 0; id < i.freevariables.size(); id++) {
     std::string newname = i.freevariables[id];
     auto* gep = G.builder->CreateStructGEP(lastarg, id, "fv");
-    auto ptrname = "ptr_" + newname;
-    auto* ptrload = G.builder->CreateLoad(gep, ptrname);
-    G.setValuetoMap(ptrname, ptrload);
-    auto* ptype = llvm::cast<llvm::PointerType>(ptrload->getType());
-    if (ptype->getElementType()->isFirstClassType()) {
-      llvm::Value* valload = G.builder->CreateLoad(ptrload, newname);
-      G.setValuetoMap(newname, valload);
-    }
+    // auto ptrname = "ptr_" + newname;
+    // auto* ptrload = G.builder->CreateLoad(gep, ptrname);
+    // G.setValuetoMap(ptrname, ptrload);
+    // auto* ptype = llvm::cast<llvm::PointerType>(ptrload->getType());
+    // if (ptype->getElementType()->isFirstClassType()) {
+    G.setValuetoMap("ptr_" + newname, gep);
+    llvm::Value* valload = G.builder->CreateLoad(gep, newname);
+    G.setValuetoMap(newname, valload);
+    // }
   }
 }
 void LLVMGenerator::CodeGenVisitor::operator()(FcallInst& i) {
@@ -368,15 +376,14 @@ void LLVMGenerator::CodeGenVisitor::operator()(FcallInst& i) {
     case DIRECT:
       fun = getDirFun(i);
       break;
-    case CLOSURE:{
+    case CLOSURE: {
       auto* cls = getClsFun(i);
-      auto* fnptr = G.builder->CreateStructGEP(cls,0);
-      fun = G.builder->CreateLoad(fnptr);
-      auto* capptr = G.builder->CreateStructGEP(cls,1);
-      auto* caps =   G.builder->CreateLoad(capptr);
-      args.emplace_back(caps);
-    }
-      break;
+      auto* capptr = G.builder->CreateStructGEP(cls, 1, i.fname + "_cap");
+      auto* fnptr = G.builder->CreateStructGEP(cls, 0, i.fname + "_funptr");
+      args.emplace_back(capptr);
+      fun = G.builder->CreateLoad(fnptr, i.fname + "_fun");
+
+    } break;
     case EXTERNAL:
       fun = getExtFun(i);
       break;
@@ -384,20 +391,15 @@ void LLVMGenerator::CodeGenVisitor::operator()(FcallInst& i) {
       break;
   }
 
-  if (isclosure) {
-    auto cls = G.findValue("ptr_"+i.fname);
-    
-    }
-  
   if (i.istimed) {  // if arguments is timed value, call addTask
     createAddTaskFn(i, isclosure, isglobal);
-  } else{
-  if (std::holds_alternative<types::Void>(i.type)) {
-    G.builder->CreateCall(fun, args);
   } else {
-    auto res = G.builder->CreateCall(fun, args, i.lv_name);
-    G.setValuetoMap(i.lv_name, res);
-  }
+    if (std::holds_alternative<types::Void>(i.type)) {
+      G.builder->CreateCall(fun, args);
+    } else {
+      auto res = G.builder->CreateCall(fun, args, i.lv_name);
+      G.setValuetoMap(i.lv_name, res);
+    }
   }
 }
 llvm::Value* LLVMGenerator::CodeGenVisitor::getDirFun(FcallInst& i) {
@@ -408,7 +410,7 @@ llvm::Value* LLVMGenerator::CodeGenVisitor::getDirFun(FcallInst& i) {
   return fun;
 }
 llvm::Value* LLVMGenerator::CodeGenVisitor::getClsFun(FcallInst& i) {
-    auto fptr = G.findValue("ptr_"+i.fname);
+  auto fptr = G.findValue(i.fname);
   return fptr;
 }
 llvm::Value* LLVMGenerator::CodeGenVisitor::getExtFun(FcallInst& i) {
@@ -464,53 +466,24 @@ void LLVMGenerator::CodeGenVisitor::createAddTaskFn(FcallInst& i,
 void LLVMGenerator::CodeGenVisitor::operator()(
     MakeClosureInst& i) {  // store the capture address to memory
   auto* closuretype = G.getType(G.typeenv.find(i.lv_name));
-  auto targetf =G.module->getFunction(i.fname);
-  auto capptrname = i.fname + "_cap";
+  auto targetf = G.module->getFunction(i.fname);
+  auto closureptrname = i.fname + "_cls";
+  // always heap allocation!
   auto* closure_ptr =
-      createAllocation(isglobal, closuretype, nullptr, capptrname);
-  auto* fun_ptr =  G.builder->CreateStructGEP(closure_ptr, 0)  ;
-  auto test = G.builder->CreateStore(targetf,fun_ptr);
-  auto* capture_ptr = G.builder->CreateStructGEP(closure_ptr, 1);
+      createAllocation(true, closuretype, nullptr, closureptrname);
+  auto* fun_ptr = G.builder->CreateStructGEP(closure_ptr, 0, "fun_ptr");
+  G.builder->CreateStore(targetf, fun_ptr);
+  auto* capture_ptr = G.builder->CreateStructGEP(closure_ptr, 1, "capture_ptr");
   unsigned int idx = 0;
   for (auto& cap : i.captures) {
-    auto ptrname = "ptr_" + cap;
-    llvm::Value* fvptr = G.tryfindValue(ptrname);
-    if (fvptr == nullptr) {
-      auto v = G.findValue(cap);
-      // heap allocation! possibly memory leak
-      fvptr = createAllocation(true, v->getType(), nullptr, cap);
-      G.setValuetoMap(ptrname, fvptr);
-      G.builder->CreateStore(v, fvptr);
-    }
-    auto capture = G.builder->CreateLoad(capture_ptr);
-    auto pp = G.builder->CreateStructGEP(capture, idx);
-    G.builder->CreateStore(G.findValue(ptrname), pp);
+    llvm::Value* fv = G.tryfindValue(cap);
+    auto gep = G.builder->CreateStructGEP(capture_ptr, idx, "capture_" + cap);
+    G.builder->CreateStore(fv, gep);
     idx += 1;
   }
-  G.setValuetoMap(capptrname, capture_ptr);//no need?
-  G.setValuetoMap(i.fname+"_cls",closure_ptr);
-  G.cls_to_funmap[i.lv_name] = G.module->getFunction(i.fname);//no need?
-
-  // auto f = G.module->getFunction(i.fname);
-
-  // auto* atype =
-  // llvm::StructType::create({f->getType()},"container_"+i.fname);
-  // auto* gptr = (llvm::GlobalVariable*)G.module->getOrInsertGlobal(
-  //     "ptr_to_" + i.fname, atype);
-  // gptr->setInitializer(llvm::ConstantStruct::get(atype, {f}));
-  // gptr->setConstant(true);
-  // gptr->setLinkage(llvm::GlobalValue::LinkageTypes::ExternalLinkage);
-  // auto ptrtoptr = G.builder->CreateInBoundsGEP(
-  //     atype, gptr, llvm::ConstantInt::get(ctx, llvm::APInt(32, 0)),
-  //     "ptrptr_" + i.fname);
-  // auto ptr = G.builder->CreateLoad(ptrtoptr, "ptr_" + i.fname);
-  // // store the pointer to function(1 size array type)
-  // // auto* ptrtofntype = getType(i.type);
-  // // llvm::Value* fn_ptr =
-  // // createAllocation(isglobal,ptrtofntype,nullptr,i.fname+"_cls");
-  // // llvm::Value* f = G.module->getFunction(i.fname);
-  // // auto res = G.builder->CreateInsertValue(fn_ptr, f, 0);
-  // namemap.emplace("ptr_" + i.fname, ptr);
+  // G.setValuetoMap(capptrname, capture_ptr);  // no need?
+  G.setValuetoMap(closureptrname, closure_ptr);
+  G.cls_to_funmap[i.lv_name] = G.module->getFunction(i.fname);  // no need?
 }
 void LLVMGenerator::CodeGenVisitor::operator()(ArrayInst& i) {}
 void LLVMGenerator::CodeGenVisitor::operator()(ArrayAccessInst& i) {}
@@ -519,7 +492,7 @@ void LLVMGenerator::CodeGenVisitor::operator()(ReturnInst& i) {
   auto v = G.tryfindValue(i.val);
   if (v == nullptr) {
     // case of returning function;
-    v = G.tryfindValue(i.val+"_cls");
+    v = G.tryfindValue(i.val + "_cls");
   }
   G.builder->CreateRet(v);
 }

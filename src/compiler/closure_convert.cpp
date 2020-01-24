@@ -2,7 +2,10 @@
 
 namespace mimium {
 ClosureConverter::ClosureConverter(TypeEnv& _typeenv)
-    : typeenv(_typeenv), capturecount(0), tmp_globalfn("tmp", {}) ,typereplacer(*this){}
+    : typeenv(_typeenv),
+      capturecount(0),
+      tmp_globalfn("tmp", {}),
+      typereplacer(*this) {}
 
 void ClosureConverter::reset() { capturecount = 0; }
 ClosureConverter::~ClosureConverter() = default;
@@ -53,18 +56,19 @@ std::shared_ptr<MIRblock> ClosureConverter::convert(
   }
   moveFunToTop(this->toplevel);
 
-//  typeenv.dump();
+  //  typeenv.dump();
   return this->toplevel;
 };
 void ClosureConverter::CCVisitor::registerFv(std::string& name) {
   auto islocal =
       std::find(localvlist.begin(), localvlist.end(), name) != localvlist.end();
   bool isext = LLVMBuiltin::isBuiltin(name);
-  // bool isknownfun =  cc.isKnownFunction(name);//std::holds_alternative<recursive_wrapper<types::Function>>(
-      //cc.typeenv.find(name));
+  // bool isknownfun =
+  // cc.isKnownFunction(name);//std::holds_alternative<recursive_wrapper<types::Function>>(
+  // cc.typeenv.find(name));
   auto alreadycheked =
       std::find(fvlist.begin(), fvlist.end(), name) != fvlist.end();
-  bool isfreevar = !(islocal || isext || alreadycheked );
+  bool isfreevar = !(islocal || isext || alreadycheked);
   if (isfreevar) {
     fvlist.push_back(name);
   }
@@ -87,11 +91,11 @@ void ClosureConverter::CCVisitor::operator()(FunInst& i) {
 checkpoint:
   for (auto &it = pos, end = i.body->end(); pos != end; ++it) {
     auto& child = *it;
+    ccvis.position = it;
     std::visit(ccvis, child);
     std::visit(cc.typereplacer, child);
   }
   if (!fvlist.empty()) {
-    funtoclsmap.emplace(i.lv_name, types::Closure());
     cc.known_functions.erase(i.lv_name);
     if (!checked) {
       checked = true;
@@ -102,20 +106,22 @@ checkpoint:
     std::vector<types::Value> fvtype_inside;
     fvtype_inside.reserve(fvlist.size());
     for (auto& fv : fvlist) {
-      fvtype_inside.emplace_back(types::Ref(cc.typeenv.find(fv)));
+      fvtype_inside.emplace_back(cc.typeenv.find(fv));
     }
 
     auto clsname = i.lv_name + "_cls";
-    auto fvtype = types::Alias(cc.makeCaptureName(),
-                               types::Ref(types::Tuple(fvtype_inside)));
-
-    auto clstype = types::Closure(types::Ref(
-        std::get<recursive_wrapper<types::Function>>(i.type)), fvtype);
+    auto fvtype =
+        types::Alias(cc.makeCaptureName(), types::Tuple(fvtype_inside));
+    auto ftype = std::get<recursive_wrapper<types::Function>>(i.type).getraw();
+    ftype.arg_types.emplace_back(types::Ref(fvtype));
+    auto clstype = types::Alias(cc.makeClosureTypeName(),
+                                types::Closure(types::Ref(ftype), fvtype));
 
     MakeClosureInst makecls(clsname, i.lv_name, fvlist, clstype);
+
     i.parent->instructions.insert(std::next(position), makecls);
     cc.typeenv.emplace(clsname, clstype);
-    //replace original function type
+    // replace original function type
     cc.typeenv.emplace(i.lv_name, clstype);
     // auto& ft = std::get<recursive_wrapper<types::Function>>(i.type).getraw();
     // ft.arg_types.emplace_back(fvtype);
