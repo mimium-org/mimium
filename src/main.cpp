@@ -122,7 +122,7 @@ auto main(int argc, char** argv) -> int {
         }
         auto& typeinfos = compiler->typeInfer(ast_u);
         if (stage == CompileStage::TYPEINFOS) {
-          std::cout << typeinfos.dump() << std::endl;
+          std::cout << typeinfos.toString() << std::endl;
           break;
         }
         auto mir = compiler->generateMir(ast_u);

@@ -41,6 +41,8 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   llvm::Type* getType(types::Value& type);
   // search from typeenv
   llvm::Type* getType(const std::string& name);
+  llvm::Type* getClosureToFunType(types::Value& type);
+
   using namemaptype = std::unordered_map<std::string, llvm::Value*>;
   std::unordered_map<llvm::Function*, std::shared_ptr<namemaptype>>
       variable_map;
@@ -91,9 +93,9 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
 
    private:
     LLVMGenerator& G;
-    llvm::Function* getDirFun(FcallInst& i);
-    llvm::Function* getClsFun(FcallInst& i);
-    llvm::Function* getExtFun(FcallInst& i);
+    llvm::Value* getDirFun(FcallInst& i);
+    llvm::Value* getClsFun(FcallInst& i);
+    llvm::Value* getExtFun(FcallInst& i);
 
     void setFvsToMap(FunInst& i, llvm::Function* f);
     llvm::Value* createAllocation(bool isglobal, llvm::Type* type,
@@ -135,6 +137,7 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
     llvm::IRBuilder<>& builder;
     llvm::Module& module;
     std::string tmpname;
+    std::unordered_map<std::string ,llvm::Type*>aliasmap;
     static void error() { throw std::logic_error("Invalid Type"); }
     llvm::Type* operator()(std::monostate) const {
       error();
@@ -179,7 +182,7 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
       auto* fptrtype = llvm::cast<llvm::FunctionType>(
           llvm::cast<llvm::PointerType>(fty)->getElementType());
       std::vector<llvm::Type*> arg = fptrtype->params();  // copy
-      arg.push_back(llvm::PointerType::get(capturetype,0));
+      arg.push_back(capturetype);
       auto* newtype = llvm::PointerType::get(
           llvm::FunctionType::get(fptrtype->getReturnType(), arg, false), 0);
       return llvm::StructType::get(builder.getContext(), {newtype, capturetype},
@@ -242,13 +245,13 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
       return res;
     }
     llvm::Type* operator()(const types::Alias& a) {
-      llvm::Type* res = module.getTypeByName(a.name);
-      if (res == nullptr) {
+      auto it = aliasmap.find(a.name);
+      llvm::Type* res;
+      if (it == aliasmap.end()) {
         tmpname = a.name;
         res = std::visit(*this, a.target);
-      }
-      if (!tmpname.empty()) {
-        tmpname.clear();
+      }else{
+        res = it->second;
       }
       return res;
     }

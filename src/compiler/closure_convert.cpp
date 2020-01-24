@@ -2,7 +2,7 @@
 
 namespace mimium {
 ClosureConverter::ClosureConverter(TypeEnv& _typeenv)
-    : typeenv(_typeenv), capturecount(0), tmp_globalfn("tmp", {}) {}
+    : typeenv(_typeenv), capturecount(0), tmp_globalfn("tmp", {}) ,typereplacer(*this){}
 
 void ClosureConverter::reset() { capturecount = 0; }
 ClosureConverter::~ClosureConverter() = default;
@@ -49,13 +49,11 @@ std::shared_ptr<MIRblock> ClosureConverter::convert(
     auto& cinst = *it;
     ccvis.position = it;
     std::visit(ccvis, cinst);
+    std::visit(typereplacer, cinst);
   }
   moveFunToTop(this->toplevel);
-  FunTypeReplacer typereplacer(*this);
-  for (auto& inst : inss) {
-    std::visit(typereplacer, inst);
-  }
-  std::cerr<< "----------\n" << typeenv.dump();
+
+//  typeenv.dump();
   return this->toplevel;
 };
 void ClosureConverter::CCVisitor::registerFv(std::string& name) {
@@ -90,6 +88,7 @@ checkpoint:
   for (auto &it = pos, end = i.body->end(); pos != end; ++it) {
     auto& child = *it;
     std::visit(ccvis, child);
+    std::visit(cc.typereplacer, child);
   }
   if (!fvlist.empty()) {
     funtoclsmap.emplace(i.lv_name, types::Closure());
@@ -115,9 +114,11 @@ checkpoint:
 
     MakeClosureInst makecls(clsname, i.lv_name, fvlist, clstype);
     i.parent->instructions.insert(std::next(position), makecls);
-    cc.typeenv.emplace(clsname, std::move(clstype));
-    auto& ft = std::get<recursive_wrapper<types::Function>>(i.type).getraw();
-    ft.arg_types.emplace_back(fvtype);
+    cc.typeenv.emplace(clsname, clstype);
+    //replace original function type
+    cc.typeenv.emplace(i.lv_name, clstype);
+    // auto& ft = std::get<recursive_wrapper<types::Function>>(i.type).getraw();
+    // ft.arg_types.emplace_back(fvtype);
   }
 }
 

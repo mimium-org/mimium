@@ -24,7 +24,7 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
   std::unordered_map<std::string, int> known_functions;
   std::unordered_map<std::string, types::Closure> funtoclsmap;
   FunInst tmp_globalfn;
-
+  
  private:
   void moveFunToTop(std::shared_ptr<MIRblock> mir);
   struct CCVisitor {
@@ -103,6 +103,7 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
           const types::Function& f  = ftype->getraw();
           if(auto clstype = std::get_if<recursive_wrapper<types::Closure>>(&f.ret_type)){
           i.type = *clstype;
+          cc.typeenv.emplace(i.lv_name, *clstype);
           }
       }
     };
@@ -114,7 +115,7 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
     void operator()(ReturnInst& i){
       if(isClosure(i.val))replaceType(i.type,i.val);
     };
-  };
+  }typereplacer;
 };
 
 }  // namespace mimium

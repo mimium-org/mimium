@@ -309,8 +309,12 @@ struct ToStringVisitor {
     return a.name +( (verbose)? ": "+std::visit(*this,a.target):"");
  }
 };
+
+Value getFunRettype(types::Value& v);
+
 static ToStringVisitor tostrvisitor;
-std::string toString(const Value& v);
+std::string toString(const Value& v,bool verbose=false);
+void dump(const Value& v,bool verbose=false);
 
 struct KindVisitor {
   template <class T>
@@ -356,15 +360,9 @@ class TypeEnv {
     return env.insert_or_assign(key, typevar);
   }
 
-  std::string dump() {
-    std::stringstream ss;
-    types::ToStringVisitor vis;
-    vis.verbose=true;
-    for (auto& [key, val] : env) {
-      ss << key << " : " << std::visit(vis,val) <<"\n";
-    }
-    return ss.str();
-  }
+  std::string toString(bool verbose = false);
+  void dump(bool verbose = false);
+
 };
 
 }  // namespace mimium
