@@ -9,9 +9,13 @@ fn lpf(){
     }
     return perform
 }
+fn gain(x:float)->(float)->float{
+    return |y:float|x*y
+}
 mylpf = lpf()
-global = 2
+phase = 0;
 fn dsp(time:float)->float{
-    fb = (sin(time/1000+sin(time/40050)*15)+1)/2.01
-    return mylpf((random()/global),fb)
+    // fb = (sin(time/100000+sin(time/40050)*4)+1)/2.01
+    phase = phase + mylpf(random(),0.99999)*100+0.1
+    return sin(phase)
 }

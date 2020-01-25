@@ -1,0 +1,15 @@
+
+fn lpf(fb:float){    
+    self  = 0
+    println(100101010)
+    fn perform(input:float){
+        self = input*(1-fb) + self*fb
+        return self
+    }
+    return perform
+}
+mylpf = lpf()
+phase = 0
+fn dsp(time:float)->float{
+    return random() |> lpf(1000)
+}

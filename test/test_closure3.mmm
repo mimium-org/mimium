@@ -1,13 +1,6 @@
 globalvar = 2
 println(globalvar)
-
-fn myprint(a:float)->void{
-    println(a)
-}
-
 fn closurefun(time:float)->void{
-    myprint(100)
-    myprint(time)
-    myprint(globalvar)
+    println(globalvar)
 }
 closurefun(20)

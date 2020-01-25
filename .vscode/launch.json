@@ -36,7 +36,7 @@
             "type": "lldb",
             "request": "launch",
             "program": "${workspaceFolder}/build/src/mimium",
-            "args": [ "/Users/tomoya/codes/mimium/test/test_closure3.mmm" ], 
+            "args": [ "/Users/tomoya/codes/mimium/examples/gain.mmm","-emit-mir-cc"], 
             "cwd": "${workspaceFolder}/build", 
         },
 

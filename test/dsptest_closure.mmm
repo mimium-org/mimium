@@ -11,7 +11,7 @@ fn changeFreq(time:float)->void{
 
 fn dsp(time:float)->float{
     phase = phase+ 2*PI*freq/SR
-    return sin(phase+10*sin(time/100))*atan(100*(sin(time/4000)+1)/4 )
+    return sin(phase)
 }
 
 changeFreq(0@0)
