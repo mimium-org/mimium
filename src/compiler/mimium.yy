@@ -79,6 +79,8 @@ using namespace mimium;
 
 
    FUNC "fn"
+   SELF "self"
+
    IF "if"
    ELSE "else"
 
@@ -115,6 +117,8 @@ using namespace mimium;
 %type <std::shared_ptr<LvarAST>> fname "function prototype name"
 
 %type <std::shared_ptr<RvarAST>> rvar "right value"
+%type <std::shared_ptr<SelfAST>> self "self"
+
 // %type <AST_Ptr> string "string" //temporary comment out
 
 %type <AST_Ptr> single "symbol or number"
@@ -155,6 +159,8 @@ using namespace mimium;
 
 %locations
 
+%nonassoc '(' ')'
+
 %left PIPE
 %left ARROW
 %left LSHIFT RSHIFT
@@ -179,12 +185,12 @@ using namespace mimium;
 
 %%
 
-top : opt_nl statements ENDFILE {driver.add_top(std::move($2));}
+top : opt_nl statements opt_nl ENDFILE {driver.add_top(std::move($2));}
     ;
 
-statements :statement NEWLINE statements {$3->addAST(std::move($1));
-                                           $$ = std::move($3);  }
-      | statement opt_nl{  $$ = driver.add_statements(std::move($1));}
+statements :statements NEWLINE statement {$1->appendAST(std::move($3));
+                                           $$ = std::move($1);  }
+      | statement{  $$ = driver.add_statements(std::move($1));}
 
             
       
@@ -203,6 +209,9 @@ statement : assign {$$=std::move($1);}
          |RETURN expr {$$ = driver.add_return(std::move($2));}
          | expr {$$ = std::move($1);}//for void function
          ;
+
+include : INCLUDE '(' arguments_fcall ')' {$$ = driver.add_declaration("include",std::move($3)); }
+
 
 fdef : FUNC fname arguments_top block {$$ = driver.add_assign(std::move($2),driver.add_lambda(std::move($3),std::move($4)));}
       |FUNC fname arguments_top ARROW types block {$$ = driver.add_assign(std::move($2),driver.add_lambda_only_with_returntype(std::move($3),std::move($6),std::move($5)));};
@@ -278,7 +287,6 @@ term : single {$$ = std::move($1);}
 
 declaration : include {$$=std::move($1);} 
 
-include : INCLUDE '(' arguments_fcall ')' {$$ = driver.add_declaration("include",std::move($3)); }
 
 
 array : '[' array_elems ']' {$$ = std::move($2);}
@@ -289,8 +297,12 @@ array_elems : single ',' array_elems   {$3->addAST(std::move($1));
 array_access: rvar '[' term ']' {$$ = driver.add_array_access(std::move($1),std::move($3));}
 
 single : rvar{$$=std::move($1);}
+      |  self{$$=std::move($1);}
       // | string{$$=std::move($1);}
-      |  num   {$$=std::move($1);}
+      |  num {$$=std::move($1);}
+
+
+/// primitive declaration
 
 // string : STRING {$$ = driver.add_rvar($1,mimium::types::String());}
 
@@ -299,8 +311,11 @@ num :NUM {$$ = driver.add_number($1);}
 
 lvar : SYMBOL {$$ = driver.add_lvar($1);}
       |SYMBOL TYPE_DELIM types {$$ = driver.add_lvar($1,$3);}
+self : SELF {$$ = driver.add_self();}
 
 rvar : SYMBOL {$$ = driver.add_rvar($1);}
+
+// type specifiers
 
 types : TYPEFLOAT {;
       $$ =mimium::types::Float();}

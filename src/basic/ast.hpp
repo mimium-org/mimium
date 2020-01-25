@@ -10,6 +10,7 @@ enum AST_ID {
   NUMBER,
   LVAR,
   RVAR,
+  SELF,
   ARG,
   ARGS,
   FCALLARGS,
@@ -36,6 +37,8 @@ class NumberAST;
 class SymbolAST;
 class LvarAST;
 class RvarAST;
+class SelfAST;
+
 class AssignAST;
 class LambdaAST;
 template <typename T, AST_ID IDTYPE>
@@ -66,6 +69,8 @@ class ASTVisitor {
   virtual void visit(NumberAST& ast) = 0;
   virtual void visit(LvarAST& ast) = 0;
   virtual void visit(RvarAST& ast) = 0;
+  virtual void visit(SelfAST& ast) = 0;
+
   virtual void visit(AssignAST& ast) = 0;
   virtual void visit(ArrayAST& ast) = 0;
   virtual void visit(ArgumentsAST& ast) = 0;
@@ -167,7 +172,7 @@ class LvarAST : public SymbolAST {
     id = LVAR;
   };
   explicit LvarAST(std::string input, types::Value _type)
-      : SymbolAST(input) ,type(std::move(_type)){
+      : SymbolAST(input) ,type(std::move(_type)){ id=LVAR;
   }
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
   auto& getType() { return type; }
@@ -175,6 +180,12 @@ class LvarAST : public SymbolAST {
 class RvarAST : public SymbolAST {
  public:
   explicit RvarAST(std::string input) : SymbolAST(input) { id = RVAR; };
+  void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
+};
+
+class SelfAST : public SymbolAST {
+ public:
+  explicit SelfAST() : SymbolAST("self") { id = SELF; };
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
 };
 
@@ -220,6 +231,7 @@ class LambdaAST : public AST {
   AST_Ptr body;  // statements
   types::Value type;
   bool isrecursive = false;
+  bool hasself=false;
   LambdaAST(std::shared_ptr<ArgumentsAST> Args, AST_Ptr Body,
             types::Value type = types::None())
       : args(std::move(Args)), body(std::move(Body)), type(std::move(type)) {

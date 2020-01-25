@@ -107,6 +107,9 @@ void KNormalizeVisitor::visit(LvarAST& ast) {
 void KNormalizeVisitor::visit(RvarAST& ast) {
   res_stack_str.push(ast.getVal());
 }
+void KNormalizeVisitor::visit(SelfAST& ast) {
+  res_stack_str.push("self");
+}
 void KNormalizeVisitor::visit(LambdaAST& ast) {
   auto tmpcontext = currentblock;
   auto name = getVarName();
@@ -120,8 +123,9 @@ void KNormalizeVisitor::visit(LambdaAST& ast) {
   ast.accept(typeinfer);
   FunInst newinst(name, std::move(newargs), typeinfer.getLastType(),
                   ast.isrecursive);
+  newinst.hasself=ast.hasself;
   Instructions res = newinst;
-  currentblock->indent_level++;
+  ++currentblock->indent_level;
   currentblock->addInst(res);
   newinst.body->indent_level = currentblock->indent_level;
   currentblock = newinst.body;  // move context

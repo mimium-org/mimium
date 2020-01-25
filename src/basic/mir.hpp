@@ -81,6 +81,7 @@ struct FunInst : public MIRinstruction {
   std::shared_ptr<MIRblock> body;
   std::vector<std::string> freevariables;  // introduced in closure conversion;
   bool ccflag = false;                     // utility for closure conversion
+  bool hasself;
   bool isrecursive;
   explicit FunInst(std::string name, std::deque<std::string> newargs,
                    types::Value _type = types::Void(),

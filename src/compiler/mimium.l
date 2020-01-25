@@ -64,6 +64,8 @@ NEWLINE {BREAK}* | ";"
 "include" return token::INCLUDE;
 
 "fn" return token::FUNC;
+"self" return token::SELF;
+
 
 "for" return token::FOR;
 "in" return token::IN;

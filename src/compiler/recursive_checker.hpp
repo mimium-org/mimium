@@ -17,6 +17,8 @@ class RecursiveChecker : public ASTVisitor {
   void visit(NumberAST& ast) override;
   void visit(LvarAST& ast) override;
   void visit(RvarAST& ast) override;
+  void visit(SelfAST& ast) override;
+
   void visit(AssignAST& ast) override;
   void visit(ArgumentsAST& ast) override;
   void visit(FcallArgsAST& ast) override;
@@ -34,6 +36,7 @@ class RecursiveChecker : public ASTVisitor {
 
  private:
   bool isrecursive;
+  bool hasself;
   std::string_view target_fname;
   std::string_view tmp_fname;
 };

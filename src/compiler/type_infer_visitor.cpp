@@ -56,12 +56,13 @@ bool TypeInferVisitor::unifyArg(types::Value& target, types::Value& realarg) {
 
 void TypeInferVisitor::visit(AssignAST& ast) {
   auto lvar = ast.getName();
-  ast.getName()->accept(*this);
+  auto lname = lvar->getVal();
+  lvar->accept(*this);
   auto ltype =stackPop();;
-  typeenv.emplace(lvar->getVal(), ltype);
+  typeenv.emplace(lname, ltype);
   auto body = ast.getBody();
   if(body->getid() == LAMBDA){
-    tmpfname = lvar->getVal();
+    tmpfname = lname;
   }
   body->accept(*this);
   auto r =stackPop() ;
@@ -98,6 +99,15 @@ void TypeInferVisitor::visit(LvarAST& ast) {
 void TypeInferVisitor::visit(RvarAST& ast) {
   res_stack.push(typeenv.find(ast.getVal()));
 }
+void TypeInferVisitor::visit(SelfAST& ast) {
+  //self is the same type as return type of its function.
+  if(!current_return_type){
+    res_stack.push(typeenv.createNewTypeVar());
+  }else{
+  res_stack.push(current_return_type.value());
+  }
+}
+
 void TypeInferVisitor::visit(OpAST& ast) {
   ast.lhs->accept(*this);
   types::Value lhstype =stackPop();;
@@ -204,6 +214,7 @@ void TypeInferVisitor::visit(LambdaAST& ast) {
       unify(s,f);
       tmpfname="";
     }
+    current_return_type = fntype.ret_type;
     ast.getBody()->accept(*this);
     auto tmp_res_type = (has_return) ? stackPop() : types::Void();
     typeCheck(tmp_res_type, fntype.ret_type);
@@ -220,6 +231,7 @@ void TypeInferVisitor::visit(LambdaAST& ast) {
 
   res_stack.push(res_type);
   has_return = false;  // switch back flag
+  current_return_type =std::nullopt;
 }
 void TypeInferVisitor::visit(IfAST& ast) {
   ast.getCond()->accept(*this);
