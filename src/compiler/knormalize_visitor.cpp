@@ -141,7 +141,7 @@ bool KNormalizeVisitor::isArgTime(FcallArgsAST& args) {
         res = true;
         break;
       case RVAR:
-        res = std::holds_alternative<recursive_wrapper<types::Time>>(
+        res = std::holds_alternative<Rec_Wrap<types::Time>>(
             typeinfer.getEnv().find(
                 std::static_pointer_cast<RvarAST>(elems[0])->getVal()));
         break;

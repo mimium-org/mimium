@@ -16,15 +16,15 @@ void dump(const Value& v, bool verbose) {
 }
 
 Value getFunRettype(types::Value& v){
-  return std::get<recursive_wrapper<Function>>(v).getraw().ret_type;
+  return rv::get<Function>(v).ret_type;
 }
 std::optional<Value> getNamedClosure(types::Value& v){
   // Closure* res;
   std::optional<Value> res=std::nullopt;
-      if(auto ref = std::get_if<recursive_wrapper<Ref>>(&v)){
-   if(auto alias = std::get_if<recursive_wrapper<Alias>>(&(ref->getraw().val))){
+      if(auto ref = std::get_if<Rec_Wrap<Ref>>(&v)){
+   if(auto alias = std::get_if<Rec_Wrap<Alias>>(&(ref->getraw().val))){
     Alias& a = *alias;
-    if(auto cls = std::get_if<recursive_wrapper<Closure>>(&a.target)){
+    if(auto cls = std::get_if<Rec_Wrap<Closure>>(&a.target)){
       res = *ref;
     }
    }

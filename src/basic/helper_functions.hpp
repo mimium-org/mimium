@@ -16,7 +16,7 @@
 
 #include <mutex>
 #include <condition_variable>
-
+#include "variant_visitor_helper.hpp"
 #include "llvm/Support/Error.h"
 
 #ifdef _WIN32

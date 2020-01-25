@@ -92,14 +92,14 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
       auto it = i.body->instructions.rbegin();
       auto lastinst = *it; 
       if(auto ret =std::get_if<ReturnInst>(&lastinst)){
-        auto& ft = std::get<recursive_wrapper<types::Function>>(i.type).getraw();
+        auto& ft = rv::get<types::Function>(i.type);
         ft.ret_type = (types::isPrimitive(ret->type))?ret->type:types::Ref(ret->type);
       }
       cc.typeenv.emplace(i.lv_name, i.type);
 
     };
     void operator()(FcallInst& i){
-      if(auto* ftype = std::get_if<recursive_wrapper<types::Function>>(&cc.typeenv.find(i.fname))){
+      if(auto* ftype = std::get_if<Rec_Wrap<types::Function>>(&cc.typeenv.find(i.fname))){
           types::Function& f  = ftype->getraw();
           std::optional<types::Value> cls = types::getNamedClosure(f.ret_type);
           if(cls){

@@ -48,12 +48,12 @@ llvm::Type* LLVMGenerator::getType(const std::string& name) {
   return getType(typeenv.find(name));
 }
 llvm::Type* LLVMGenerator::getClosureToFunType(types::Value& type) {
-  auto aliasty = std::get<recursive_wrapper<types::Alias>>(type).getraw();
+  auto aliasty = rv::get<types::Alias>(type);
   auto clsty =
-      std::get<recursive_wrapper<types::Closure>>(aliasty.target).getraw();
+      rv::get<types::Closure>(aliasty.target);
 
   auto fty =
-      std::get<recursive_wrapper<types::Function>>(clsty.fun.val).getraw();
+      rv::get<types::Function>(clsty.fun.val);
   fty.arg_types.emplace_back(types::Ref(clsty.captures));
   types::Value v = fty;
   return std::visit(typeconverter, v);

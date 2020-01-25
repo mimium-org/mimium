@@ -64,7 +64,7 @@ void ClosureConverter::CCVisitor::registerFv(std::string& name) {
       std::find(localvlist.begin(), localvlist.end(), name) != localvlist.end();
   bool isext = LLVMBuiltin::isBuiltin(name);
   // bool isknownfun =
-  // cc.isKnownFunction(name);//std::holds_alternative<recursive_wrapper<types::Function>>(
+  // cc.isKnownFunction(name);//std::holds_alternative<Rec_Wrap<types::Function>>(
   // cc.typeenv.find(name));
   auto alreadycheked =
       std::find(fvlist.begin(), fvlist.end(), name) != fvlist.end();
@@ -112,7 +112,7 @@ checkpoint:
     auto clsname = i.lv_name + "_cls";
     auto fvtype =
         types::Alias(cc.makeCaptureName(), types::Tuple(fvtype_inside));
-    auto ftype = std::get<recursive_wrapper<types::Function>>(i.type).getraw();
+    auto ftype = rv::get<types::Function>(i.type);
     ftype.arg_types.emplace_back(types::Ref(fvtype));
     auto clstype = types::Alias(cc.makeClosureTypeName(),
                                 types::Closure(types::Ref(ftype), fvtype));
@@ -123,7 +123,7 @@ checkpoint:
     cc.typeenv.emplace(clsname, clstype);
     // replace original function type
     cc.typeenv.emplace(i.lv_name, clstype);
-    // auto& ft = std::get<recursive_wrapper<types::Function>>(i.type).getraw();
+    // auto& ft = std::get<Rec_Wrap<types::Function>>(i.type).getraw();
     // ft.arg_types.emplace_back(fvtype);
   }
 }

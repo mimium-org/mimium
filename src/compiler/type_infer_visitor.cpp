@@ -46,7 +46,7 @@ bool TypeInferVisitor::unify(std::string lname, std::string rname) {
 }
 
 bool TypeInferVisitor::unifyArg(types::Value& target, types::Value& realarg) {
-  if (auto* timeptr = std::get_if<recursive_wrapper<types::Time>>(&realarg)) {
+  if (auto* timeptr = std::get_if<Rec_Wrap<types::Time>>(&realarg)) {
     types::Time time = *timeptr;
     return unify(time.val, target);
   } else {
@@ -142,8 +142,8 @@ void TypeInferVisitor::visit(ArrayAST& ast) {
 void TypeInferVisitor::visit(ArrayAccessAST& ast) {
   auto type = typeenv.find(ast.getName()->getVal());
   types::Value res;
-  types::Array arr =
-      std::get<recursive_wrapper<types::Array>>(type);  // implicit cast
+  auto arr =
+      rv::get<types::Array>(type);  // implicit cast
   res = arr.elem_type;
 
   res_stack.push(res);
@@ -151,8 +151,8 @@ void TypeInferVisitor::visit(ArrayAccessAST& ast) {
 bool TypeInferVisitor::checkArg(const types::Value& fnarg,
                                 const types::Value& givenarg) {
   bool res;
-  if (std::holds_alternative<recursive_wrapper<types::Time>>(givenarg)) {
-    const types::Time v = std::get<recursive_wrapper<types::Time>>(givenarg);
+  if (std::holds_alternative<Rec_Wrap<types::Time>>(givenarg)) {
+    const auto v = rv::get<types::Time>(givenarg);
     res = fnarg.index() == v.val.index();  // currently
   } else {
     res = fnarg.index() == givenarg.index();
@@ -163,7 +163,7 @@ bool TypeInferVisitor::checkArg(const types::Value& fnarg,
 void TypeInferVisitor::visit(FcallAST& ast) {
   ast.getFname()->accept(*this);
   auto ftype = stackPop();
-  types::Function fn = std::get<recursive_wrapper<types::Function>>(ftype);
+  types::Function fn = std::get<Rec_Wrap<types::Function>>(ftype);
   auto fnargtypes = fn.getArgTypes();
   types::Value res;
   auto args = ast.getArgs()->getElements();
@@ -191,12 +191,12 @@ void TypeInferVisitor::visit(LambdaAST& ast) {
     argtypes.push_back(r);
   }
   bool isspecified =
-      std::holds_alternative<recursive_wrapper<types::Function>>(ast.type);
+      std::holds_alternative<Rec_Wrap<types::Function>>(ast.type);
   // case of no type specifier
   types::Value res_type;
 
   if (isspecified) {
-    types::Function fntype = std::get<recursive_wrapper<types::Function>>(ast.type);
+    auto fntype = rv::get<types::Function>(ast.type);
     fntype.arg_types = argtypes;  // overwrite
     types::Value f = fntype;
     if(!tmpfname.empty()){
@@ -259,7 +259,7 @@ void TypeInferVisitor::visit(TimeAST& ast) {
   types::Time t;
   ast.getExpr()->accept(*this);
   auto res = stackPop();
-  if(std::holds_alternative<recursive_wrapper<types::Time>>(res)){
+  if(std::holds_alternative<Rec_Wrap<types::Time>>(res)){
     throw std::logic_error("Time type can not be nested.");
   }
 

@@ -18,33 +18,9 @@ namespace mimium {
 namespace types {
 enum class Kind { VOID, PRIMITIVE, POINTER, AGGREGATE, INTERMEDIATE };
 }
-template <typename T>
-struct recursive_wrapper {
-  // construct from an existing object
-  recursive_wrapper(T t_) {
-    t.reserve(1);
-    t.emplace_back(std::move(t_));
-  }  // NOLINT
 
-  // cast back to wrapped type
-  operator T&() { return t.front(); }              // NOLINT
-  operator const T&() const { return t.front(); }  // NOLINT
 
-  T& getraw() { return t.front(); }
-  // store the value
-  std::vector<T> t;
-};
 
-template <typename T>
-inline bool operator==(const recursive_wrapper<T>& t1,
-                       const recursive_wrapper<T>& t2) {
-  return t1.t.front() == t2.t.front();
-}
-template <typename T>
-inline bool operator!=(const recursive_wrapper<T>& t1,
-                       const recursive_wrapper<T>& t2) {
-  return !(t1 == t2);
-}
 namespace types {
 
 template <class T>
@@ -95,11 +71,11 @@ struct Time;
 struct Alias;
 
 using Value =
-    std::variant<None, TypeVar, Void, Float, String, recursive_wrapper<Ref>,
-                 recursive_wrapper<Pointer>, recursive_wrapper<Function>,
-                 recursive_wrapper<Closure>, recursive_wrapper<Array>,
-                 recursive_wrapper<Struct>, recursive_wrapper<Tuple>,
-                 recursive_wrapper<Time>, recursive_wrapper<Alias>>;
+    std::variant<None, TypeVar, Void, Float, String, Rec_Wrap<Ref>,
+                 Rec_Wrap<Pointer>, Rec_Wrap<Function>,
+                 Rec_Wrap<Closure>, Rec_Wrap<Array>,
+                 Rec_Wrap<Struct>, Rec_Wrap<Tuple>,
+                 Rec_Wrap<Time>, Rec_Wrap<Alias>>;
 
 struct ToStringVisitor;
 
@@ -323,7 +299,7 @@ struct KindVisitor {
     return T::kind;
   }
   template <class T>
-  Kind operator()(recursive_wrapper<T> t) {
+  Kind operator()(Rec_Wrap<T> t) {
     return T::kind;
   }
 };

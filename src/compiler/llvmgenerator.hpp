@@ -6,7 +6,6 @@
 #include "basic/ast.hpp"
 #include "basic/helper_functions.hpp"
 #include "basic/mir.hpp"
-#include "basic/variant_visitor_helper.hpp"
 #include "compiler/ffi.hpp"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
@@ -169,7 +168,7 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
         ar.push_back(std::visit(*this, a));
       }
       llvm::Type* ret = std::visit(*this, f.ret_type);
-      if (std::holds_alternative<recursive_wrapper<types::Function>>(
+      if (std::holds_alternative<Rec_Wrap<types::Function>>(
               f.ret_type)) {
         ret = llvm::PointerType::get(ret, 0);
       }
