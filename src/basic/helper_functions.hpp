@@ -43,10 +43,14 @@ static std::string join(std::deque<ElementType>& vec, std::string delim) {
 
 
 [[maybe_unused]] static std::string join(std::deque<std::string>& vec, std::string delim) {
-  return std::accumulate(
+  std::string res;
+  if(!vec.empty()){
+ res =std::accumulate(
       std::next(vec.begin()), vec.end(),
       *(vec.begin()), 
       [&](std::string a, std::string b) { return std::move(a) + delim + b; });
+  }
+  return res;
 };
 template <class T>
 static std::string join(std::deque<std::shared_ptr<T>>& vec, std::string delim) {

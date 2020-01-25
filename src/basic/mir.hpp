@@ -76,11 +76,11 @@ struct OpInst : public MIRinstruction {
   OP_ID getOPid() { return optable[op]; }
 };
 
-struct FunInst : public MIRinstruction{
+struct FunInst : public MIRinstruction {
   std::deque<std::string> args;
   std::shared_ptr<MIRblock> body;
   std::vector<std::string> freevariables;  // introduced in closure conversion;
-  bool ccflag = false;//utility for closure conversion
+  bool ccflag = false;                     // utility for closure conversion
   bool isrecursive;
   explicit FunInst(std::string name, std::deque<std::string> newargs,
                    types::Value _type = types::Void(),
@@ -120,7 +120,7 @@ struct ArrayInst : public MIRinstruction {
   int size;
   std::deque<std::string> args;
   ArrayInst(std::string _lv, std::deque<std::string> _args)
-      : MIRinstruction(_lv, types::Array(types::Float(),_args.size())),
+      : MIRinstruction(_lv, types::Array(types::Float(), _args.size())),
         args(std::move(_args)) {}
 
   std::string toString() override;
@@ -153,17 +153,13 @@ struct ReturnInst : public MIRinstruction {
   std::string toString() override;
 };
 using Instructions =
-    std::variant<NumberInst, AllocaInst,
-                 RefInst, AssignInst,
-                 TimeInst, OpInst,
-                 FunInst, FcallInst,
-                 MakeClosureInst, ArrayInst,
-                 ArrayAccessInst, IfInst,
-                 ReturnInst >;
+    std::variant<NumberInst, AllocaInst, RefInst, AssignInst, TimeInst, OpInst,
+                 FunInst, FcallInst, MakeClosureInst, ArrayInst,
+                 ArrayAccessInst, IfInst, ReturnInst>;
 
 class MIRblock : public std::enable_shared_from_this<MIRblock> {
  public:
-  MIRblock(MIRblock& origin)=default;
+  MIRblock(MIRblock& origin) = default;
   explicit MIRblock(std::string _label)
       : label(std::move(_label)), prev(nullptr), next(nullptr) {
     indent_level = 0;
@@ -171,13 +167,8 @@ class MIRblock : public std::enable_shared_from_this<MIRblock> {
   auto begin() { return instructions.begin(); }
   auto end() { return instructions.end(); }
   void addInst(Instructions& inst) {
-    std::visit(
-        [&](auto& i) -> void {
-          i.setParent(shared_from_this());
-        },
-        inst);
-   instructions.push_back(inst);
-
+    std::visit([&](auto& i) { i.setParent(shared_from_this()); }, inst);
+    instructions.push_back(inst);
   }
   void changeIndent(int level) { indent_level += level; }
   std::string label;

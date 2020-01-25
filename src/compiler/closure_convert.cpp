@@ -163,9 +163,10 @@ void ClosureConverter::CCVisitor::operator()(FcallInst& i) {
   for (auto& a : i.args) {
     registerFv(a);
   }
-  registerFv(i.fname);
-  if (cc.isKnownFunction(i.fname)) {
+  if(cc.isKnownFunction(i.fname)){
     i.ftype = DIRECT;
+  }else{
+    registerFv(i.fname);
   }
   localvlist.push_back(i.lv_name);
 }
