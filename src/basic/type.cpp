@@ -7,6 +7,19 @@ Kind kindOf(const Value& v) { return std::visit(kindvisitor, v); }
 
 bool isPrimitive(const Value& v) { return kindOf(v) == Kind::PRIMITIVE; }
 
+bool isTypeVar(types::Value t) {
+  return std::holds_alternative<Rec_Wrap<types::TypeVar>>(t);
+}
+void unifyTypeVars(TypeVar &tv, Value &v){
+  auto& tmp = tv.getFirstLink();
+  tmp.contained = v;
+  while(tmp.next){
+    tmp.next.value()->contained = v;
+    tmp = *tmp.next.value();
+  }
+}
+
+
 std::string toString(const Value& v, bool verbose) {
   tostrvisitor.verbose = verbose;
   return std::visit(tostrvisitor, v);
@@ -34,6 +47,21 @@ std::optional<Value> getNamedClosure(types::Value& v){
 
 
 }  // namespace types
+
+
+void TypeEnv::replaceTypeVars(){
+  for(auto&[key,val]:env){
+    if(rv::holds_alternative<types::TypeVar>(val)){
+      auto& tv = rv::get<types::TypeVar>(val);
+      if(std::holds_alternative<types::None>(tv.contained)){
+        // throw std::runtime_error("type inference for " + key + " failed");
+        tv.contained = types::Float();
+      }
+      env[key] = tv.contained;
+    }
+  }
+}
+
 std::string TypeEnv::toString(bool verbose) {
   std::stringstream ss;
   types::ToStringVisitor vis;

@@ -19,8 +19,6 @@ namespace types {
 enum class Kind { VOID, PRIMITIVE, POINTER, AGGREGATE, INTERMEDIATE };
 }
 
-
-
 namespace types {
 
 template <class T>
@@ -45,19 +43,7 @@ struct String : PrimitiveType {};
 
 // Intermediate Type for type inference.
 
-struct TypeVar {
-  explicit TypeVar(int i) : index(i) {}
-  int index;
-  int getIndex() { return index; }
-  void setIndex(int newindex) { index = newindex; }
-  constexpr inline static Kind kind = Kind::INTERMEDIATE;
-};
-inline bool operator==(const TypeVar& t1, const TypeVar& t2) {
-  return t1.index == t2.index;
-}
-inline bool operator!=(const TypeVar& t1, const TypeVar& t2) {
-  return t1.index != t2.index;
-}
+struct TypeVar;
 
 struct Ref;
 struct Pointer;
@@ -71,13 +57,49 @@ struct Time;
 struct Alias;
 
 using Value =
-    std::variant<None, TypeVar, Void, Float, String, Rec_Wrap<Ref>,
-                 Rec_Wrap<Pointer>, Rec_Wrap<Function>,
-                 Rec_Wrap<Closure>, Rec_Wrap<Array>,
-                 Rec_Wrap<Struct>, Rec_Wrap<Tuple>,
+    std::variant<None, Void, Float, String, Rec_Wrap<Ref>, Rec_Wrap<TypeVar>,
+                 Rec_Wrap<Pointer>, Rec_Wrap<Function>, Rec_Wrap<Closure>,
+                 Rec_Wrap<Array>, Rec_Wrap<Struct>, Rec_Wrap<Tuple>,
                  Rec_Wrap<Time>, Rec_Wrap<Alias>>;
 
 struct ToStringVisitor;
+
+struct TypeVar {
+  explicit TypeVar(int i) : index(i) {}
+  int index;
+  Value contained = types::None();
+  std::optional<TypeVar*> prev = std::nullopt;
+  std::optional<TypeVar*> next = std::nullopt;
+  TypeVar& getFirstLink() {
+    std::optional<TypeVar*>& tmp = this->prev;
+    TypeVar& pos=*this;
+    while (tmp) {
+        tmp = tmp.value()->prev;
+        pos = *tmp.value();
+    }
+    return pos;
+  }
+  TypeVar& getLastLink() {
+    std::optional<TypeVar*>& tmp = this->next;
+    TypeVar& pos=*this;
+    while (tmp) {
+        tmp = tmp.value()->next;
+        pos = *tmp.value();
+    }
+    return pos;
+  }
+  int getIndex() { return index; }
+  void setIndex(int newindex) { index = newindex; }
+  constexpr inline static Kind kind = Kind::INTERMEDIATE;
+};
+void unifyTypeVars(TypeVar& tv, Value& v);
+
+inline bool operator==(const TypeVar& t1, const TypeVar& t2) {
+  return t1.index == t2.index;
+}
+inline bool operator!=(const TypeVar& t1, const TypeVar& t2) {
+  return t1.index != t2.index;
+}
 
 struct PointerBase {
   constexpr inline static Kind kind = Kind::POINTER;
@@ -226,9 +248,7 @@ inline bool operator==(const Alias& t1, const Alias& t2) {
   return (t1.name == t2.name);
 };
 inline bool operator!=(const Alias& t1, const Alias& t2) { return !(t1 == t2); }
-[[maybe_unused]] static bool isTypeVar(types::Value t) {
-  return std::holds_alternative<types::TypeVar>(t);
-}
+bool isTypeVar(types::Value t);
 
 struct ToStringVisitor {
   bool verbose = false;
@@ -262,7 +282,8 @@ struct ToStringVisitor {
            std::visit(*this, f.ret_type);
   }
   std::string operator()(const Closure& c) const {
-    return "cls{ " + (*this)(c.fun) +" , " +std::visit(*this, c.captures) +" }";
+    return "cls{ " + (*this)(c.fun) + " , " + std::visit(*this, c.captures) +
+           " }";
   }
   std::string operator()(const Array& a) const {
     return "[" + std::visit(*this, a.elem_type) + "x" + std::to_string(a.size) +
@@ -281,17 +302,17 @@ struct ToStringVisitor {
   std::string operator()(const Time& t) const {
     return std::visit(*this, t.val) + "@";
   }
-  std::string operator()(const Alias& a) const { 
-    return a.name +( (verbose)? ": "+std::visit(*this,a.target):"");
- }
+  std::string operator()(const Alias& a) const {
+    return a.name + ((verbose) ? ": " + std::visit(*this, a.target) : "");
+  }
 };
 
 Value getFunRettype(types::Value& v);
 std::optional<Value> getNamedClosure(types::Value& v);
 
 static ToStringVisitor tostrvisitor;
-std::string toString(const Value& v,bool verbose=false);
-void dump(const Value& v,bool verbose=false);
+std::string toString(const Value& v, bool verbose = false);
+void dump(const Value& v, bool verbose = false);
 
 struct KindVisitor {
   template <class T>
@@ -321,12 +342,12 @@ class TypeEnv {
   types::Value* tryFind(std::string key) {
     auto it = env.find(key);
     types::Value* res;
-    res = (it == env.end())?nullptr:&it->second;
+    res = (it == env.end()) ? nullptr : &it->second;
     return res;
   }
   types::Value& find(std::string key) {
     auto res = tryFind(key);
-    if (res==nullptr) {
+    if (res == nullptr) {
       throw std::logic_error("Could not find type for variable \"" + key +
                              "\"");
     }
@@ -336,10 +357,10 @@ class TypeEnv {
   auto emplace(std::string key, types::Value typevar) {
     return env.insert_or_assign(key, typevar);
   }
+  void replaceTypeVars();
 
   std::string toString(bool verbose = false);
   void dump(bool verbose = false);
-
 };
 
 }  // namespace mimium

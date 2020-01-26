@@ -49,7 +49,7 @@ void KNormalizeVisitor::visit(OpAST& ast) {
 void KNormalizeVisitor::insertOverWrite(AST_Ptr body, const std::string& name) {
   body->accept(*this);
   auto newname = stackPopStr();
-  auto type = typeinfer.getEnv().find(name);
+  auto type = type_stack.top();
   typeinfer.getEnv().emplace(newname, type);
   tmpname = name;
   auto assign = AssignInst(getVarName(), newname, type);
@@ -57,19 +57,25 @@ void KNormalizeVisitor::insertOverWrite(AST_Ptr body, const std::string& name) {
   currentblock->addInst(newinst);
 }
 void KNormalizeVisitor::insertAlloca(AST_Ptr body, const std::string& name) {
-  Instructions alloca = AllocaInst(name, typeinfer.getEnv().find(name));
+  auto& type = type_stack.top();
+  Instructions alloca = AllocaInst(name, type);
   currentblock->addInst(alloca);
+  typeinfer.getEnv().emplace(name, type);
 }
 void KNormalizeVisitor::insertRef(AST_Ptr body, const std::string& name) {
+  auto& type = type_stack.top();
+  auto reftype = types::Ref(type);
   auto rvar = std::static_pointer_cast<RvarAST>(body);
   auto targetname = rvar->getVal();
-  typeinfer.getEnv().emplace(name, typeinfer.getEnv().find(targetname));
+  typeinfer.getEnv().emplace(name, reftype);
   Instructions newinst = RefInst(name, targetname);
   currentblock->addInst(newinst);
 }
 void KNormalizeVisitor::visit(AssignAST& ast) {
   auto name = ast.getName()->getVal();
   auto body = ast.getBody();
+  auto& type = typeinfer.getEnv().find(name);
+  type_stack.push(type);
   auto it = std::find(lvar_list.cbegin(), lvar_list.cend(), name);
 
   bool is_overwrite = it != lvar_list.cend();
@@ -79,6 +85,11 @@ void KNormalizeVisitor::visit(AssignAST& ast) {
     switch (body->getid()) {
       case RVAR:
         insertRef(body, name);
+        break;
+      case SELF:
+        insertAlloca(body, name);
+        tmpname = name;
+        insertOverWrite(body, name);
         break;
       case LAMBDA:  // do not insert allocate,,but how closure is
         tmpname = name;
@@ -92,6 +103,7 @@ void KNormalizeVisitor::visit(AssignAST& ast) {
     }
     lvar_list.push_back(name);
   }
+  type_stack.pop();
 }
 
 void KNormalizeVisitor::visit(NumberAST& ast) {
@@ -108,6 +120,9 @@ void KNormalizeVisitor::visit(RvarAST& ast) {
   res_stack_str.push(ast.getVal());
 }
 void KNormalizeVisitor::visit(SelfAST& ast) {
+  //   auto assign = AssignInst(getVarName(), "self", type_stack.top());
+  // Instructions newinst = assign;
+  // currentblock->addInst(newinst);
   res_stack_str.push("self");
 }
 void KNormalizeVisitor::visit(LambdaAST& ast) {
@@ -121,9 +136,10 @@ void KNormalizeVisitor::visit(LambdaAST& ast) {
   }
   // typeinfer.tmpfname = name;
   ast.accept(typeinfer);
-  FunInst newinst(name, std::move(newargs), typeinfer.getLastType(),
-                  ast.isrecursive);
-  newinst.hasself=ast.hasself;
+  FunInst newinst(name, std::move(newargs), type_stack.top(), ast.isrecursive);
+  typeinfer.getEnv().emplace(name, type_stack.top());
+
+  newinst.hasself = ast.hasself;
   Instructions res = newinst;
   ++currentblock->indent_level;
   currentblock->addInst(res);
@@ -145,9 +161,8 @@ bool KNormalizeVisitor::isArgTime(FcallArgsAST& args) {
         res = true;
         break;
       case RVAR:
-        res = std::holds_alternative<Rec_Wrap<types::Time>>(
-            typeinfer.getEnv().find(
-                std::static_pointer_cast<RvarAST>(elems[0])->getVal()));
+        res = rv::holds_alternative<types::Time>(typeinfer.getEnv().find(
+            std::static_pointer_cast<RvarAST>(elems[0])->getVal()));
         break;
       default:
         res = false;
@@ -163,7 +178,7 @@ void KNormalizeVisitor::visit(FcallAST& ast) {
   std::deque<std::string> newarg;
   for (auto& arg : args->getElements()) {
     arg->accept(*this);
-    arg->accept(typeinfer);
+    // arg->accept(typeinfer);
     newarg.push_back(stackPopStr());
   }
   ast.accept(typeinfer);
@@ -172,8 +187,11 @@ void KNormalizeVisitor::visit(FcallAST& ast) {
           ? EXTERNAL
           : CLOSURE;
   Instructions newinst = FcallInst(newname, resfname, std::move(newarg), fnkind,
-                                   typeinfer.getLastType(), isArgTime(*args));
+                                   type_stack.top(), isArgTime(*args));
+
   currentblock->addInst(newinst);
+  typeinfer.getEnv().emplace(newname, type_stack.top());
+
   res_stack_str.push(newname);
 };
 void KNormalizeVisitor::visit(FcallArgsAST& ast) {}

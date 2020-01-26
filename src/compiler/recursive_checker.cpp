@@ -24,7 +24,7 @@ void RecursiveChecker::visit(RvarAST& ast) {
 }
 
 void RecursiveChecker::visit(SelfAST& ast) {
-  hasself = true;// do nothing
+  hasself = true;
 }
 void RecursiveChecker::visit(OpAST& ast) {
   ast.lhs->accept(*this);

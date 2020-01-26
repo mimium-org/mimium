@@ -52,6 +52,7 @@ class KNormalizeVisitor : public ASTVisitor {
   void insertRef(AST_Ptr body, const std::string& name);
 
   std::stack<std::string> res_stack_str;
+  std::stack<types::Value> type_stack;
   std::vector<std::string> lvar_list;
   std::string stackPopStr() {
     auto ret = res_stack_str.top();

@@ -60,6 +60,7 @@ std::shared_ptr<MIRblock> ClosureConverter::convert(
   return this->toplevel;
 };
 void ClosureConverter::CCVisitor::registerFv(std::string& name) {
+  auto isself = name == "self";
   auto islocal =
       std::find(localvlist.begin(), localvlist.end(), name) != localvlist.end();
   bool isext = LLVMBuiltin::isBuiltin(name);
@@ -68,7 +69,7 @@ void ClosureConverter::CCVisitor::registerFv(std::string& name) {
   // cc.typeenv.find(name));
   auto alreadycheked =
       std::find(fvlist.begin(), fvlist.end(), name) != fvlist.end();
-  bool isfreevar = !(islocal || isext || alreadycheked);
+  bool isfreevar = !(islocal || isext || alreadycheked || isself);
   if (isfreevar) {
     fvlist.push_back(name);
   }

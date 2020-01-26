@@ -48,11 +48,13 @@ class TypeInferVisitor : public ASTVisitor {
     res_stack.pop();
     return res;
   }
-  std::string_view tmpfname;
+  std::string tmpfname;
 
+  TypeEnv& infer(AST_Ptr toplevel);
+  void replaceTypeVars();
  private:
   std::stack<types::Value> res_stack;
-  static bool checkArg(const types::Value& fnarg, const types::Value& givenarg);
+  static bool checkArg(types::Value& fnarg, types::Value& givenarg);
   //hold value for infer type of "self"
   std::optional<types::Value> current_return_type;
   TypeEnv typeenv;

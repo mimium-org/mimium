@@ -11,6 +11,17 @@ enum FCALLTYPE { DIRECT, CLOSURE, EXTERNAL };
 static std::map<FCALLTYPE, std::string> fcalltype_str = {
     {DIRECT, ""}, {CLOSURE, "cls"}, {EXTERNAL, "ext"}};
 
+
+struct uniquestr{
+  std::string str;
+  unsigned int count;
+  inline static unsigned int global_count=0;
+  uniquestr(std::string& s):str(s),count(global_count++){};
+  uniquestr(std::string&& s):str(std::move(s)),count(global_count++){};
+  uniquestr(char* s):str(s),count(global_count++){};
+  operator std::string(){return str+std::to_string(count);}
+};
+
 class MIRblock;
 struct MIRinstruction {  // base class for MIR instruction
   std::string lv_name;

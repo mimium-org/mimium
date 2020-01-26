@@ -185,6 +185,7 @@ class RvarAST : public SymbolAST {
 
 class SelfAST : public SymbolAST {
  public:
+    types::Value type=types::None();
   explicit SelfAST() : SymbolAST("self") { id = SELF; };
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
 };

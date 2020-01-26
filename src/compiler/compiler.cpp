@@ -38,8 +38,7 @@ AST_Ptr Compiler::alphaConvert(AST_Ptr ast) {
   return alphavisitor.getResult();
 }
 TypeEnv& Compiler::typeInfer(AST_Ptr ast) {
-  ast->accept(typevisitor);
-  return typevisitor.getEnv();
+  return typevisitor.infer(ast);
 }
 
 std::shared_ptr<MIRblock> Compiler::generateMir(AST_Ptr ast) {

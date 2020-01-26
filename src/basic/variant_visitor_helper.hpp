@@ -46,6 +46,25 @@ namespace rv {
 // }
 
 template <class T, class... Types>
+constexpr bool holds_alternative(std::variant<Types...>& v) {
+  return std::holds_alternative<Rec_Wrap<T>>(v);
+}
+
+template <class T, class... Types>
+constexpr bool holds_alternative(std::variant<Types...>&& v) {
+  return std::holds_alternative<Rec_Wrap<T>>(v);
+}
+template <class T, class... Types>
+constexpr  bool holds_alternative(const std::variant<Types...>& v) {
+  return std::holds_alternative<Rec_Wrap<T>>(v);
+}
+
+template <class T, class... Types>
+constexpr  bool holds_alternative(const std::variant<Types...>&& v) {
+  return std::holds_alternative<Rec_Wrap<T>>(v);
+}
+
+template <class T, class... Types>
 constexpr T& get(std::variant<Types...>& v) {
   return static_cast<T&>(std::get<Rec_Wrap<T>>(v));
 }
