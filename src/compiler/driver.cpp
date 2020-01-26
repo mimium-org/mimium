@@ -69,8 +69,8 @@ std::shared_ptr<LvarAST> MimiumDriver::add_lvar(std::string str, mimium::types::
 std::shared_ptr<RvarAST> MimiumDriver::add_rvar(std::string str){
    return std::make_unique<RvarAST>(std::move(str));
 }
-std::shared_ptr<SelfAST> MimiumDriver::add_self(){
-   return std::make_unique<SelfAST>();
+std::shared_ptr<SelfAST> MimiumDriver::add_self(std::string str){
+   return std::make_shared<SelfAST>();
 }
 
 AST_Ptr MimiumDriver::add_op( std::string op,AST_Ptr lhs,AST_Ptr rhs){

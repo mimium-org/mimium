@@ -79,7 +79,6 @@ using namespace mimium;
 
 
    FUNC "fn"
-   SELF "self"
 
    IF "if"
    ELSE "else"
@@ -102,12 +101,14 @@ using namespace mimium;
 ;
 %token <double> NUM "number_token"
 %token  <std::string> SYMBOL "symbol_token"
+%token <std::string>    SELF "self_token"
 %token  <std::string> STRING "string_token"
 %token  <std::string> FNAME "fname_token"
 
 
 %type <mimium::types::Value> types "types"
 %type <mimium::types::Value> fntype "fn_type"
+
 %type <std::vector<mimium::types::Value>> fntype_args "fntype_args"
 
 
@@ -296,8 +297,8 @@ array_elems : single ',' array_elems   {$3->addAST(std::move($1));
          |  single {$$ = driver.add_array(std::move($1));}
 array_access: rvar '[' term ']' {$$ = driver.add_array_access(std::move($1),std::move($3));}
 
-single : rvar{$$=std::move($1);}
-      |  self{$$=std::move($1);}
+single :   self{$$=std::move($1);}
+            |rvar{$$=std::move($1);}
       // | string{$$=std::move($1);}
       |  num {$$=std::move($1);}
 
@@ -311,7 +312,8 @@ num :NUM {$$ = driver.add_number($1);}
 
 lvar : SYMBOL {$$ = driver.add_lvar($1);}
       |SYMBOL TYPE_DELIM types {$$ = driver.add_lvar($1,$3);}
-self : SELF {$$ = driver.add_self();}
+
+self : SELF {$$ = driver.add_self($1);}
 
 rvar : SYMBOL {$$ = driver.add_rvar($1);}
 

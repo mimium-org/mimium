@@ -35,7 +35,7 @@ class MimiumDriver {
   std::shared_ptr<LvarAST> add_lvar(std::string str, mimium::types::Value type);
 
   std::shared_ptr<RvarAST> add_rvar(std::string str);
-  std::shared_ptr<SelfAST> add_self();
+  std::shared_ptr<SelfAST> add_self(std::string str);
 
 
   AST_Ptr add_op(std::string op, AST_Ptr lhs, AST_Ptr rhs);

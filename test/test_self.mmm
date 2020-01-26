@@ -1,0 +1,9 @@
+
+
+fn lowpass(input:float,fb:float){
+    return input*(1-fb) + self*fb
+}
+
+fn dsp(time:float)->float{
+    return lowpass(random(),0.999)
+}
