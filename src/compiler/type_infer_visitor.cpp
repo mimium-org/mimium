@@ -291,7 +291,7 @@ void TypeInferVisitor::visit(TimeAST& ast) {
   ast.getTime()->accept(*this);
   auto r = stackPop();
   types::Value tmpf = types::Float();
-  typeCheck(r, tmpf);
+  // typeCheck(r, tmpf);
   t.time = types::Float();
   res_stack.push(t);
 }
