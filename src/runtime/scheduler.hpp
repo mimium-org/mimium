@@ -1,11 +1,12 @@
 #pragma once
+#include <queue>
 
 #include "basic/ast.hpp"
 #include "basic/helper_functions.hpp"
 #include "runtime/backend/audiodriver.hpp"
 // #include "runtime/backend/rtaudio/driver_rtaudio.hpp"
 
-#include "runtime/runtime.hpp"
+#include "runtime/JIT/runtime_jit.hpp"
 #include "sndfile.h"
 
 namespace mimium {

@@ -1,7 +1,7 @@
-add_library(mimium_runtime STATIC scheduler.cpp runtime.cpp)
+add_library(mimium_runtime STATIC scheduler.cpp)
 
 add_subdirectory(backend)
-
+add_subdirectory(JIT)
 
 target_compile_options(mimium_runtime PUBLIC -std=c++17)
 
@@ -16,4 +16,5 @@ ${SNDFILE_INCLUDE_DIRS}
 ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-target_link_libraries(mimium_runtime mimium_utils mimium_backend_rtaudio ${SNDFILE_LIBRARIES} LLVM)
+target_link_libraries(mimium_runtime mimium_runtime_jit mimium_utils mimium_backend_rtaudio ${SNDFILE_LIBRARIES} LLVM)
+

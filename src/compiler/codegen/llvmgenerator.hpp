@@ -19,8 +19,6 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
 friend struct CodeGenVisitor;
 
  private:
-  // std::string filename;
-  [[maybe_unused]] bool isjit;
   llvm::LLVMContext& ctx;
   llvm::Function* curfunc;
   std::unique_ptr<llvm::Module> module;
@@ -69,14 +67,8 @@ friend struct CodeGenVisitor;
   void generateCode(std::shared_ptr<MIRblock> mir);
 
   void outputToStream(llvm::raw_ostream& ostream);
-  void dumpvars() {
-    for (auto& [f, map] : variable_map) {
-      llvm::errs() << f->getName() << ":\n";
-      for (auto& [key, val] : *map) {
-        llvm::errs() << "   " << key << " :  " << val->getName() << "\n";
-      }
-    }
-  }
+  void dumpvars();
+  
 };
 
 }  // namespace mimium

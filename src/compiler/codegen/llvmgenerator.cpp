@@ -3,8 +3,7 @@
 namespace mimium {
 
 LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv)
-    : isjit(true),
-      ctx(ctx),
+      :ctx(ctx),
       module(std::make_unique<llvm::Module>("no_file_name.mmm", ctx)),
       builder(std::make_unique<llvm::IRBuilder<>>(ctx)),
       mainentry(nullptr),
@@ -156,7 +155,6 @@ void LLVMGenerator::generateCode(std::shared_ptr<MIRblock> mir) {
   }
 }
 
-
 llvm::Value* LLVMGenerator::tryfindValue(std::string name) {
   auto map = variable_map[curfunc];
   auto res = map->find(name);
@@ -180,4 +178,12 @@ void LLVMGenerator::outputToStream(llvm::raw_ostream& stream) {
   module->print(stream, nullptr, false, true);
 }
 
+void LLVMGenerator::dumpvars() {
+  for (auto& [f, map] : variable_map) {
+    llvm::errs() << f->getName() << ":\n";
+    for (auto& [key, val] : *map) {
+      llvm::errs() << "   " << key << " :  " << val->getName() << "\n";
+    }
+  }
+}
 }  // namespace mimium

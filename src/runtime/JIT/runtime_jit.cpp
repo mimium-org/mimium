@@ -1,7 +1,5 @@
-#include "runtime/runtime.hpp"
-
-namespace mimium {
-
+#include "runtime/JIT/runtime_jit.hpp"
+namespace mimium{
 Runtime_LLVM::Runtime_LLVM(std::string filename_i, bool isjit)
     : Runtime<LLVMTaskType>(filename_i) {
   LLVMInitializeNativeTarget();
@@ -43,9 +41,14 @@ void Runtime_LLVM::executeModule(std::unique_ptr<llvm::Module> module) {
       sch = std::make_shared<SchedulerSndFile>(this->shared_from_this(),waitc);
     } else {
       sch = std::make_shared<SchedulerRT>(this->shared_from_this(),waitc);
-      sch->addAudioDriver(std::make_shared<AudioDriverRtAudio>(*sch));
     }
 }
+
+ void Runtime_LLVM::addAudioDriver(std::shared_ptr<AudioDriver> a){
+    sch->addAudioDriver(std::move(a));
+ }
+
+
 void Runtime_LLVM::start() {
   running_status = true;
   if (hasdsp || sch->hasTask()) {
@@ -63,4 +66,4 @@ void Runtime_LLVM::start() {
 DspFnType Runtime_LLVM::getDspFn() { return dspfn_address; }
 void* Runtime_LLVM::getDspFnCls() { return dspfn_cls_address; }
 
-}  // namespace mimium
+}
