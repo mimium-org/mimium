@@ -23,6 +23,7 @@ class MemoryObjsCollector {
   struct CollectMemVisitor {
     explicit CollectMemVisitor(MemoryObjsCollector& m) : M(m){};
     MemoryObjsCollector& M;
+    std::list<Instructions>::iterator position;
     void operator()(NumberInst& i);
     void operator()(AllocaInst& i);
     void operator()(RefInst& i);
@@ -38,6 +39,7 @@ class MemoryObjsCollector {
     void operator()(ReturnInst& i);
 
     private:
+    void insertAllocaInst(FunInst& i,types::Alias& type  );
     std::string cur_fun;
   } cm_visitor;
 };

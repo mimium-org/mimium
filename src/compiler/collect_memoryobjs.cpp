@@ -6,13 +6,16 @@ MemoryObjsCollector::MemoryObjsCollector(TypeEnv& typeenv)
 
 std::shared_ptr<MIRblock> MemoryObjsCollector::process(
     std::shared_ptr<MIRblock> toplevel) {
+  auto it = std::begin(*toplevel);
   for (Instructions& inst : *toplevel) {
-    //skip global declaration
+    // skip global declaration
     if (std::holds_alternative<FunInst>(inst)) {
+      cm_visitor.position = it;
       std::visit(cm_visitor, inst);
     }
+    ++it;
   }
-    return toplevel;
+  return toplevel;
 }
 void MemoryObjsCollector::emplaceNewAlias(std::string& name,
                                           types::Value type) {
@@ -52,18 +55,19 @@ void MemoryObjsCollector::collectMemFun(std::string& funname,
   }
 }
 
-void MemoryObjsCollector::dump(){
-    std::cerr << "-------------Memory Object Functions: -----\n";
-    for(auto&& [key,val]:memobjs_map){
-        std::cerr << key << " : ";
-        std::for_each(val.begin(),val.end(),[](auto& s){ std::cerr<< s<< " ";});
-        std::cerr << "\n";
-    }
-    std::cerr << "-------------type alias Map: -----\n";
-    for(auto&& [key,val]:type_alias_map){
-        std::cerr << key << " : "<<types::toString(val,true) << "\n";
-    }
-    std::cerr << "------------\n";
+void MemoryObjsCollector::dump() {
+  std::cerr << "-------------Memory Object Functions: -----\n";
+  for (auto&& [key, val] : memobjs_map) {
+    std::cerr << key << " : ";
+    std::for_each(val.begin(), val.end(),
+                  [](auto& s) { std::cerr << s << " "; });
+    std::cerr << "\n";
+  }
+  std::cerr << "-------------type alias Map: -----\n";
+  for (auto&& [key, val] : type_alias_map) {
+    std::cerr << key << " : " << types::toString(val, true) << "\n";
+  }
+  std::cerr << "------------\n";
 }
 
 // visitor
@@ -92,7 +96,22 @@ void MemoryObjsCollector::CollectMemVisitor::operator()(FunInst& i) {
   for (auto& inst : *i.body) {
     std::visit(*this, inst);
   }
+
+  std::vector<types::Value> objs;
+  for (auto& alias_name : M.memobjs_map[i.lv_name]) {
+    objs.emplace_back(M.getAliasFromMap(alias_name));
+  }
+  auto type = types::Alias(i.lv_name + ".mem", types::Tuple(std::move(objs)));
+  
+  if(i.lv_name == "dsp"){
+    insertAllocaInst(i,type);
+  }
+  M.type_alias_map.emplace(i.lv_name, std::move(type));
 }
+void MemoryObjsCollector::CollectMemVisitor::insertAllocaInst(FunInst& i,types::Alias& type){
+  i.parent->instructions.insert(std::next(position),AllocaInst(i.lv_name+".mem", type));
+}
+
 void MemoryObjsCollector::CollectMemVisitor::operator()(FcallInst& i) {
   if (i.fname == "delay") {
     // how to track delay size in ssa !!!
