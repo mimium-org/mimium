@@ -1,15 +1,11 @@
 #pragma once
 #include "runtime/runtime.hpp"
+#include "runtime/scheduler/scheduler.hpp"
 #include "runtime/JIT/jit_engine.hpp"
 
 namespace mimium{
-    struct LLVMTaskType {
-  void* addresstofn;
-  //int64_t tasktypeid;
-  double arg;
-  void* addresstocls;
-};
- class Runtime_LLVM : public Runtime<LLVMTaskType> , public std::enable_shared_from_this<Runtime_LLVM>{
+
+ class Runtime_LLVM : public Runtime<TaskType> , public std::enable_shared_from_this<Runtime_LLVM>{
  public:
   explicit Runtime_LLVM(std::string filename = "untitled.mmm",
                         bool isjit = true);

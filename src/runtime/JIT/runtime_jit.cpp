@@ -1,7 +1,7 @@
 #include "runtime/JIT/runtime_jit.hpp"
 namespace mimium{
 Runtime_LLVM::Runtime_LLVM(std::string filename_i, bool isjit)
-    : Runtime<LLVMTaskType>(filename_i) {
+    : Runtime<TaskType>(filename_i) {
   LLVMInitializeNativeTarget();
   LLVMInitializeNativeAsmPrinter();
   LLVMInitializeNativeAsmParser();

@@ -22,10 +22,10 @@ bool Scheduler::incrementTime() {
 void Scheduler::addTask(double time, void* addresstofn, double arg,
                         void* addresstocls) {
   tasks.emplace(static_cast<int64_t>(time),
-                LLVMTaskType{addresstofn, arg, addresstocls});
+                TaskType{addresstofn, arg, addresstocls});
 }
 
-void Scheduler::executeTask(const LLVMTaskType& task) {
+void Scheduler::executeTask(const TaskType& task) {
   // todo
   auto& [addresstofn, arg, addresstocls] = task;
 
@@ -76,7 +76,7 @@ void Scheduler::setDsp(DspFnType fn, void *cls){
   }
 
 // SchedulerSndFile::SchedulerSndFile(
-//     std::shared_ptr<Runtime_LLVM> runtime_i, WaitController& waitc)
+//     std::shared_ptr<LLVMRuntime> runtime_i, WaitController& waitc)
 //     : Scheduler(runtime_i, waitc) {
 //   sfinfo.channels = 2;
 //   sfinfo.format = (SF_FORMAT_WAV | SF_FORMAT_PCM_16);

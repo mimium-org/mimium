@@ -4,18 +4,23 @@
 #include "basic/helper_functions.hpp"
 #include "runtime/backend/audiodriver.hpp"
 
-#include "runtime/JIT/runtime_jit.hpp"
+#include "runtime/runtime.hpp"
 // #include "sndfile.h"
 
 namespace mimium {
-struct LLVMTaskType;
+struct TaskType {
+  void* addresstofn;
+  //int64_t tasktypeid;
+  double arg;
+  void* addresstocls;
+};
 
 class AudioDriver;
-class Runtime_LLVM;
+using LLVMRuntime = Runtime<TaskType>;
 
 class Scheduler {  // scheduler interface
  public:
-  explicit Scheduler(std::shared_ptr<Runtime_LLVM> runtime_i,
+  explicit Scheduler(std::shared_ptr<LLVMRuntime> runtime_i,
                      WaitController& waitc)
       : waitc(waitc), runtime(runtime_i), time(0) {}
 
@@ -35,17 +40,17 @@ class Scheduler {  // scheduler interface
   virtual void setDsp(DspFnType fn,void* cls);
 
   bool isactive = true;
-  Runtime_LLVM& getRuntime() { return *runtime; };
+  LLVMRuntime& getRuntime() { return *runtime; };
   auto getTime() { return time; };
 
   void addAudioDriver(std::shared_ptr<AudioDriver> a);
 
  protected:
   WaitController& waitc;
-  std::shared_ptr<Runtime_LLVM> runtime;
+  std::shared_ptr<LLVMRuntime> runtime;
   std::shared_ptr<AudioDriver> audio;
 
-  using key_type = std::pair<int64_t, LLVMTaskType>;
+  using key_type = std::pair<int64_t, TaskType>;
   struct Greater {
     bool operator()(const key_type& l, const key_type& r) const;
 
@@ -56,12 +61,12 @@ class Scheduler {  // scheduler interface
       std::priority_queue<key_type, std::vector<key_type>, Greater>;
   int64_t time;
   queue_type tasks;
-  virtual void executeTask(const LLVMTaskType& task);
+  virtual void executeTask(const TaskType& task);
 };
 
 // class SchedulerSndFile : public Scheduler {
 //  public:
-//   explicit SchedulerSndFile(std::shared_ptr<Runtime_LLVM> runtime_i,
+//   explicit SchedulerSndFile(std::shared_ptr<LLVMRuntime> runtime_i,
 //                             WaitController& waitc);
 //   ~SchedulerSndFile()=default;
 

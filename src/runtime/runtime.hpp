@@ -1,13 +1,13 @@
 #pragma once
 #include "basic/helper_functions.hpp"
-#include "runtime/scheduler/scheduler.hpp"
 
 namespace mimium{
 class Scheduler;
-class SchedulerRT;
-class SchedulerSndFile;
-using DspFnType= double(*)(double,void*);
+class AudioDriver;
+struct TaskType;
 
+
+using DspFnType= double(*)(double,void*);
 
 
 template <typename TaskType>
@@ -28,9 +28,6 @@ class Runtime {
 
   auto getScheduler() { return sch; };
   virtual void addAudioDriver(std::shared_ptr<AudioDriver> a)=0;;
-
-
-
   virtual DspFnType getDspFn()=0;
   virtual void* getDspFnCls()=0;
   bool hasDsp(){return hasdsp;}
