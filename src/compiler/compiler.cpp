@@ -19,7 +19,6 @@ void Compiler::setFilePath(std::string path) {
 void Compiler::setDataLayout(const llvm::DataLayout& dl) {
   llvmgenerator.setDataLayout(dl);
 }
-void Compiler::setDataLayout() { llvmgenerator.setDataLayout(); }
 void Compiler::recursiveCheck(AST_Ptr ast) { ast->accept(recursivechecker); }
 AST_Ptr Compiler::loadSource(std::string source) {
   driver.parsestring(source);

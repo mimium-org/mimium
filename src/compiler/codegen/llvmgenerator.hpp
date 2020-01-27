@@ -10,13 +10,16 @@
 #include "compiler/codegen/llvm_header.hpp"
 
 #include "compiler/codegen/typeconverter.hpp"
+#include "compiler/codegen/codegen_visitor.hpp"
 
 #include "runtime/jit_engine.hpp"
 
 namespace mimium {
 struct LLVMBuiltin;
-
+struct CodeGenVisitor;
 class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
+friend struct CodeGenVisitor;
+
  private:
   // std::string filename;
   [[maybe_unused]] bool isjit;
@@ -29,6 +32,7 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   llvm::BasicBlock* currentblock;
   TypeEnv& typeenv;
   TypeConverter typeconverter;
+  CodeGenVisitor& codegenvisitor;
 
   llvm::Type* getType(types::Value& type);
   // search from typeenv
@@ -62,42 +66,6 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   void initJit();
   llvm::Error doJit(size_t opt_level = 1);
 
-  llvm::Type* getOrCreateTimeStruct(types::Time& t);
-
-  struct CodeGenVisitor {
-    CodeGenVisitor(LLVMGenerator& g) : G(g){};
-    void operator()(NumberInst& i);
-    void operator()(AllocaInst& i);
-    void operator()(RefInst& i);
-    void operator()(AssignInst& i);
-    void operator()(TimeInst& i);
-    void operator()(OpInst& i);
-    void operator()(FunInst& i);
-    void operator()(FcallInst& i);
-    void operator()(MakeClosureInst& i);
-    void operator()(ArrayInst& i);
-    void operator()(ArrayAccessInst& i);
-    void operator()(IfInst& i);
-    void operator()(ReturnInst& i);
-    bool isglobal;
-
-   private:
-    LLVMGenerator& G;
-    llvm::Value* getDirFun(FcallInst& i);
-    llvm::Value* getClsFun(FcallInst& i);
-    llvm::Value* getExtFun(FcallInst& i);
-
-    llvm::Function* createFunction(llvm::FunctionType* type,FunInst& i);
-    void addArgstoMap(llvm::Function* f,FunInst& i);
-
-    void setFvsToMap(FunInst& i, llvm::Function* f);
-    llvm::Value* createAllocation(bool isglobal, llvm::Type* type,
-                                  llvm::Value* ArraySize,
-                                  const llvm::Twine& name);
-    bool createStoreOw(std::string varname, llvm::Value* val_to_store);
-    void createAddTaskFn(FcallInst& i, bool isclosure, bool isglobal);
-  } codegenvisitor;
-
  public:
   LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv);
 
@@ -105,13 +73,9 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   auto moveModule() { return std::move(module); }
   ~LLVMGenerator();
   void init(std::string filename);
-  void setDataLayout();
   void setDataLayout(const llvm::DataLayout& dl);
-
   void reset(std::string filename);
-
   void setBB(llvm::BasicBlock* newblock);
-
   void generateCode(std::shared_ptr<MIRblock> mir);
   void* execute();
   void outputToStream(llvm::raw_ostream& ostream);
