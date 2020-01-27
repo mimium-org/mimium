@@ -1,19 +1,17 @@
 #include "compiler/codegen/llvmgenerator.hpp"
 
-
 namespace mimium {
 
 LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv)
     : isjit(true),
-      taskfn_typeid(0),
       ctx(ctx),
-      mainentry(nullptr),
-      currentblock(nullptr),
       module(std::make_unique<llvm::Module>("no_file_name.mmm", ctx)),
       builder(std::make_unique<llvm::IRBuilder<>>(ctx)),
+      mainentry(nullptr),
+      currentblock(nullptr),
       typeenv(typeenv),
-      codegenvisitor(*this),
-      typeconverter(*builder, *module) {}
+      typeconverter(*builder, *module),
+      codegenvisitor(*this) {}
 void LLVMGenerator::init(std::string filename) {
   module->setSourceFileName(filename);
   module->setModuleIdentifier(filename);
@@ -128,6 +126,12 @@ void LLVMGenerator::createTaskRegister(bool isclosure = false) {
   }
   addtaskfun->addAttributes(llvm::AttributeList::FunctionIndex, aset);
   setValuetoMap(name, addtask.getCallee());
+}
+
+void LLVMGenerator::createNewBasicBlock(std::string name, llvm::Function* f) {
+  auto* bb = llvm::BasicBlock::Create(ctx, name, f);
+  builder->SetInsertPoint(bb);
+  currentblock = bb;
 }
 
 void LLVMGenerator::preprocess() {
@@ -285,34 +289,26 @@ void LLVMGenerator::CodeGenVisitor::operator()(FunInst& i) {
                      ->getElementType();
     ft = llvm::cast<llvm::FunctionType>(funty);
   } else {
-    ft = llvm::cast<llvm::FunctionType>(
-        G.getType(G.typeenv.find(i.lv_name)));  // NOLINT
+    ft = llvm::cast<llvm::FunctionType>(G.getType(G.typeenv.find(i.lv_name)));
   }
 
-  llvm::Function* f = llvm::Function::Create(
-      ft, llvm::Function::ExternalLinkage, i.lv_name, G.module.get());
-  G.setValuetoMap(i.lv_name, f);
-
+  auto* f = createFunction(ft, i);
   G.curfunc = f;
   G.variable_map.emplace(f, std::make_shared<namemaptype>());
+  addArgstoMap(f, i);
 
-  auto f_it = f->args().begin();
-  for (auto& a : i.args) {
-    (f_it)->setName(a);
-    G.setValuetoMap(a, f_it++);
-  }
   // if function is closure,append closure argument, dsp function is
   // forced to be closure function
   if (hasfv || i.lv_name == "dsp") {
-    auto it = f->args().end();
-    auto lastelem = (--it);
+    auto it = std::end(f->args());
+    auto lastelem = --it;
     auto name = "clsarg_" + i.lv_name;
     lastelem->setName(name);
     G.setValuetoMap(name, lastelem);
   }
-  auto* bb = llvm::BasicBlock::Create(G.ctx, "entry", f);
-  G.builder->SetInsertPoint(bb);
-  G.currentblock = bb;
+
+  G.createNewBasicBlock("entry", f);
+
   if (hasfv) {
     setFvsToMap(i, f);
   }
@@ -325,6 +321,22 @@ void LLVMGenerator::CodeGenVisitor::operator()(FunInst& i) {
   }
   G.switchToMainFun();
 }
+llvm::Function* LLVMGenerator::CodeGenVisitor::createFunction(
+    llvm::FunctionType* type, FunInst& i) {
+  auto link = llvm::Function::ExternalLinkage;
+  auto* f = llvm::Function::Create(type, link, i.lv_name, *G.module);
+  G.setValuetoMap(i.lv_name, f);
+  return f;
+}
+void LLVMGenerator::CodeGenVisitor::addArgstoMap(llvm::Function* f,
+                                                 FunInst& i) {
+  auto f_it = std::begin(f->args());
+  for (auto& a : i.args) {
+    f_it->setName(a);
+    G.setValuetoMap(a, f_it++);
+  }
+}
+
 void LLVMGenerator::CodeGenVisitor::setFvsToMap(FunInst& i, llvm::Function* f) {
   auto arg_end = f->arg_end();
   auto* lastarg = --arg_end;

@@ -53,13 +53,12 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
   void createMainFun();
   void createTaskRegister(bool isclosure);
 
+  void createNewBasicBlock(std::string name, llvm::Function* f);
   void visitInstructions(Instructions& inst, bool isglobal);
 
   void dropAllReferences();
   llvm::FunctionCallee addtask;
   llvm::FunctionCallee addtask_cls;
-
-  [[maybe_unused]] unsigned int taskfn_typeid;
   void initJit();
   llvm::Error doJit(size_t opt_level = 1);
 
@@ -87,6 +86,9 @@ class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
     llvm::Value* getDirFun(FcallInst& i);
     llvm::Value* getClsFun(FcallInst& i);
     llvm::Value* getExtFun(FcallInst& i);
+
+    llvm::Function* createFunction(llvm::FunctionType* type,FunInst& i);
+    void addArgstoMap(llvm::Function* f,FunInst& i);
 
     void setFvsToMap(FunInst& i, llvm::Function* f);
     llvm::Value* createAllocation(bool isglobal, llvm::Type* type,
