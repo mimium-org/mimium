@@ -1,13 +1,11 @@
 #pragma once
 #include <queue>
 
-#include "basic/ast.hpp"
 #include "basic/helper_functions.hpp"
 #include "runtime/backend/audiodriver.hpp"
-// #include "runtime/backend/rtaudio/driver_rtaudio.hpp"
 
 #include "runtime/JIT/runtime_jit.hpp"
-#include "sndfile.h"
+// #include "sndfile.h"
 
 namespace mimium {
 struct LLVMTaskType;
@@ -22,8 +20,8 @@ class Scheduler {  // scheduler interface
       : waitc(waitc), runtime(runtime_i), time(0) {}
 
   virtual ~Scheduler()=default;
-  virtual void start() = 0;
-  virtual void stop() = 0;
+  virtual void start();
+  virtual void stop();
   void haltRuntime();
 
   bool hasTask() { return !tasks.empty(); }
@@ -34,7 +32,7 @@ class Scheduler {  // scheduler interface
   // time,address to fun, arg(double), addresstoclosure,
   void addTask(double time, void* addresstofn, double arg, void* addresstocls);
 
-  virtual void setDsp(DspFnType fn,void* cls)=0;
+  virtual void setDsp(DspFnType fn,void* cls);
 
   bool isactive = true;
   Runtime_LLVM& getRuntime() { return *runtime; };
@@ -60,35 +58,22 @@ class Scheduler {  // scheduler interface
   queue_type tasks;
   virtual void executeTask(const LLVMTaskType& task);
 };
-using DspFnType = double (*)(double, void*);
 
-class SchedulerRT : public Scheduler {
- public:
-  explicit SchedulerRT(std::shared_ptr<Runtime_LLVM> runtime_i,
-                       WaitController& waitc);
-  ~SchedulerRT()override =default;
+// class SchedulerSndFile : public Scheduler {
+//  public:
+//   explicit SchedulerSndFile(std::shared_ptr<Runtime_LLVM> runtime_i,
+//                             WaitController& waitc);
+//   ~SchedulerSndFile()=default;
 
-  void start() override;
-  void stop() override;
-  void setDsp(DspFnType fn,void* cls)override;
- private:
-};
-
-class SchedulerSndFile : public Scheduler {
- public:
-  explicit SchedulerSndFile(std::shared_ptr<Runtime_LLVM> runtime_i,
-                            WaitController& waitc);
-  ~SchedulerSndFile()=default;
-
-  void start() override;
-  void stop() override;
-  void setDsp(DspFnType fn,void* cls)override{
-// later
-  }
- private:
-  SNDFILE* fp;
-  SF_INFO sfinfo;
-  std::vector<double> buffer;
-};
+//   void start() override;
+//   void stop() override;
+//   void setDsp(DspFnType fn,void* cls)override{
+// // later
+//   }
+//  private:
+//   SNDFILE* fp;
+//   SF_INFO sfinfo;
+//   std::vector<double> buffer;
+// };
 
 }  // namespace mimium

@@ -36,12 +36,8 @@ void Runtime_LLVM::executeModule(std::unique_ptr<llvm::Module> module) {
   }
 }
 // run audio driver and scheduler if theres some task, dsp function, or both.
-  void Runtime_LLVM::addScheduler(bool issoundfile){
-    if (issoundfile) {
-      sch = std::make_shared<SchedulerSndFile>(this->shared_from_this(),waitc);
-    } else {
-      sch = std::make_shared<SchedulerRT>(this->shared_from_this(),waitc);
-    }
+  void Runtime_LLVM::addScheduler(){
+      sch = std::make_shared<Scheduler>(this->shared_from_this(),waitc);
 }
 
  void Runtime_LLVM::addAudioDriver(std::shared_ptr<AudioDriver> a){

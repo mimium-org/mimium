@@ -1,6 +1,6 @@
 #pragma once
 #include "runtime/backend/audiodriver.hpp"
-#include "runtime/scheduler.hpp"
+#include "runtime/scheduler/scheduler.hpp"
 #include "RtAudio.h"
 
 namespace mimium {

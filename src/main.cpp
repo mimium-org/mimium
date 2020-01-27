@@ -75,9 +75,7 @@ auto main(int argc, char** argv) -> int {
                      "emit LLVM IR to stdout")),
       cl::cat(general_category));
   compile_stage.setInitialValue(CompileStage::EXECUTE);
-  cl::opt<bool> is_snd_file("sndfile",
-                            cl::desc("write out a sound file as an output"));
-  is_snd_file.setInitialValue(false);
+
   cl::ResetAllOptionOccurrences();
 
   cl::HideUnrelatedOptions(general_category);
@@ -96,7 +94,7 @@ auto main(int argc, char** argv) -> int {
     exit(0);
   };
 
-  runtime->addScheduler(is_snd_file);
+  runtime->addScheduler();
   global_sch = runtime->getScheduler().get();
   runtime->addAudioDriver(
       std::make_shared<mimium::AudioDriverRtAudio>(*runtime->getScheduler()));

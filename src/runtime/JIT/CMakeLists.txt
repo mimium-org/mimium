@@ -12,4 +12,4 @@ ${SNDFILE_INCLUDE_DIRS}
 # ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-# target_link_libraries(mimium_runtime mimium_backend_rtaudio LLVM)
+target_link_libraries(mimium_runtime_jit mimium_scheduler LLVM)

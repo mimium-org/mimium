@@ -19,7 +19,8 @@
 namespace cl = llvm::cl;
 using Logger = mimium::Logger;
 // #include "compiler/compiler.hpp"
-#include "runtime/runtime.hpp"
+#include "runtime/JIT/runtime_jit.hpp"
+#include "runtime/backend/rtaudio/driver_rtaudio.hpp"
 
 extern "C" {
 
@@ -79,7 +80,9 @@ auto main(int argc, char** argv) -> int {
     std::cerr << "Interuppted by key" << std::endl;
     exit(0);
   };
-  runtime->addScheduler(false);
+  runtime->addScheduler();
+    runtime->addAudioDriver(
+      std::make_shared<mimium::AudioDriverRtAudio>(*runtime->getScheduler()));
   global_sch = runtime->getScheduler().get();
 
 llvm::SMDiagnostic errorreporter;

@@ -1,4 +1,4 @@
-#include "runtime/scheduler.hpp"
+#include "runtime/scheduler/scheduler.hpp"
 
 namespace mimium {
 
@@ -58,15 +58,10 @@ void Scheduler::addAudioDriver(std::shared_ptr<AudioDriver> a){
   this->audio = a;
 }
 
-SchedulerRT::SchedulerRT(std::shared_ptr<Runtime_LLVM> runtime_i,
-                         WaitController& waitc)
-    : Scheduler(runtime_i, waitc) {
 
-    }
+void Scheduler::start() { audio->start(); }
 
-void SchedulerRT::start() { audio->start(); }
-
-void SchedulerRT::stop() {
+void Scheduler::stop() {
   audio->stop();
   //cannnot call haltRuntime()???
   isactive = false;
@@ -76,48 +71,49 @@ void SchedulerRT::stop() {
   }
   waitc.cv.notify_all();  // notify to exit runtime;
 }
-void SchedulerRT::setDsp(DspFnType fn, void *cls){
+void Scheduler::setDsp(DspFnType fn, void *cls){
     audio->setDspFn(fn,cls);
   }
-SchedulerSndFile::SchedulerSndFile(
-    std::shared_ptr<Runtime_LLVM> runtime_i, WaitController& waitc)
-    : Scheduler(runtime_i, waitc) {
-  sfinfo.channels = 2;
-  sfinfo.format = (SF_FORMAT_WAV | SF_FORMAT_PCM_16);
-  sfinfo.samplerate = 48000;
-  sfinfo.frames = 20 * 48000;  // temporary 20sec
-  buffer.reserve(sfinfo.channels * sfinfo.frames);
-}
 
-void SchedulerSndFile::start() {
-  fp = sf_open("temp.wav", SFM_WRITE, &sfinfo);
-  if (fp != nullptr) {
-    std::runtime_error("opening file failed");
-  };
-  for (int i = 0; i < 20 * 48000; i++) {
-    incrementTime();
-    for (int chan = 0; chan < sfinfo.channels; chan++) {
-      if (chan % 2) {
-        //                 buffer[sfinfo.channels*i+chan] =
-        // std::get<double>(interpreter->findVariable("dacL"));
-      } else {
-        //            buffer[sfinfo.channels*i+ chan] =
-        // std::get<double>(interpreter->findVariable("dacR"));
-      }
-    }
-  }
-  auto res = sf_writef_double(fp, buffer.data(), 20 * 48000);
-  std::cout << res << std::endl;
-  stop();
-}
+// SchedulerSndFile::SchedulerSndFile(
+//     std::shared_ptr<Runtime_LLVM> runtime_i, WaitController& waitc)
+//     : Scheduler(runtime_i, waitc) {
+//   sfinfo.channels = 2;
+//   sfinfo.format = (SF_FORMAT_WAV | SF_FORMAT_PCM_16);
+//   sfinfo.samplerate = 48000;
+//   sfinfo.frames = 20 * 48000;  // temporary 20sec
+//   buffer.reserve(sfinfo.channels * sfinfo.frames);
+// }
 
-void SchedulerSndFile::stop() {
-  if (sf_close(fp) != 0) {
-    throw std::runtime_error("File is not correctly closed");
-  } else {
-    Logger::debug_log("File is closed", Logger::INFO);
-    std::exit(0);
-  }
-}
+// void SchedulerSndFile::start() {
+//   fp = sf_open("temp.wav", SFM_WRITE, &sfinfo);
+//   if (fp != nullptr) {
+//     std::runtime_error("opening file failed");
+//   };
+//   for (int i = 0; i < 20 * 48000; i++) {
+//     incrementTime();
+//     for (int chan = 0; chan < sfinfo.channels; chan++) {
+//       if (chan % 2) {
+//         //                 buffer[sfinfo.channels*i+chan] =
+//         // std::get<double>(interpreter->findVariable("dacL"));
+//       } else {
+//         //            buffer[sfinfo.channels*i+ chan] =
+//         // std::get<double>(interpreter->findVariable("dacR"));
+//       }
+//     }
+//   }
+//   auto res = sf_writef_double(fp, buffer.data(), 20 * 48000);
+//   std::cout << res << std::endl;
+//   stop();
+// }
+
+// void SchedulerSndFile::stop() {
+//   if (sf_close(fp) != 0) {
+//     throw std::runtime_error("File is not correctly closed");
+//   } else {
+//     Logger::debug_log("File is closed", Logger::INFO);
+//     std::exit(0);
+//   }
+// }
 
 }  // namespace mimium

@@ -1,6 +1,6 @@
 #pragma once
 #include "basic/helper_functions.hpp"
-#include "runtime/scheduler.hpp"
+#include "runtime/scheduler/scheduler.hpp"
 
 namespace mimium{
 class Scheduler;
@@ -17,7 +17,7 @@ class Runtime {
 
   virtual ~Runtime() = default;
 
-  virtual void addScheduler(bool issoundfile)=0;
+  virtual void addScheduler()=0;
 
   virtual void start()=0;
   bool isrunning() { return running_status; };

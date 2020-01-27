@@ -15,7 +15,7 @@ namespace mimium{
                         bool isjit = true);
 
   ~Runtime_LLVM() = default;
-void addScheduler(bool is_soundfile)override;
+void addScheduler()override;
   void start() override;
   DspFnType getDspFn() override;
   void* getDspFnCls()override;
