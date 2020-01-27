@@ -11,7 +11,10 @@ FLEX_TARGET(MyScanner mimium.l ${CMAKE_CURRENT_BINARY_DIR}/tokens.cpp)
 
 ADD_FLEX_BISON_DEPENDENCY(MyScanner MyParser)
 
-add_library(mimium_compiler ${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} driver.cpp recursive_checker.cpp alphaconvert_visitor.cpp knormalize_visitor.cpp type_infer_visitor.cpp closure_convert.cpp collect_memoryobjs.cpp llvmgenerator.cpp ffi.cpp compiler.cpp)
+add_library(mimium_compiler ${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} driver.cpp recursive_checker.cpp alphaconvert_visitor.cpp knormalize_visitor.cpp type_infer_visitor.cpp closure_convert.cpp collect_memoryobjs.cpp  ffi.cpp compiler.cpp)
+
+add_subdirectory(codegen)
+
 llvm_map_components_to_libnames(compilerllvm core orcjit)
 message(STATUS "Components mapped by llvm_config: ${compilerllvm}")
 target_compile_options(mimium_compiler PUBLIC -std=c++17)
@@ -22,4 +25,4 @@ ${FLEX_INCLUDE_DIRS}
 ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-target_link_libraries(mimium_compiler mimium_utils LLVM)
+target_link_libraries(mimium_compiler mimium_llvm_codegen mimium_utils LLVM)

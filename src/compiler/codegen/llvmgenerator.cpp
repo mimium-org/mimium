@@ -1,4 +1,5 @@
-#include "compiler/llvmgenerator.hpp"
+#include "compiler/codegen/llvmgenerator.hpp"
+
 
 namespace mimium {
 
@@ -49,11 +50,9 @@ llvm::Type* LLVMGenerator::getType(const std::string& name) {
 }
 llvm::Type* LLVMGenerator::getClosureToFunType(types::Value& type) {
   auto aliasty = rv::get<types::Alias>(type);
-  auto clsty =
-      rv::get<types::Closure>(aliasty.target);
+  auto clsty = rv::get<types::Closure>(aliasty.target);
 
-  auto fty =
-      rv::get<types::Function>(clsty.fun.val);
+  auto fty = rv::get<types::Function>(clsty.fun.val);
   fty.arg_types.emplace_back(types::Ref(clsty.captures));
   types::Value v = fty;
   return std::visit(typeconverter, v);
@@ -65,8 +64,8 @@ void LLVMGenerator::switchToMainFun() {
 }
 llvm::Function* LLVMGenerator::getForeignFunction(std::string name) {
   auto& [type, targetname] = LLVMBuiltin::ftable.find(name)->second;
-  auto fnc = module->getOrInsertFunction(
-      name, llvm::cast<llvm::FunctionType>(getType(type)));
+  auto funtype = llvm::cast<llvm::FunctionType>(getType(type));
+  auto fnc = module->getOrInsertFunction(name, funtype);
   auto* fn = llvm::cast<llvm::Function>(fnc.getCallee());
   fn->setCallingConv(llvm::CallingConv::C);
   return fn;
@@ -89,13 +88,13 @@ void LLVMGenerator::createMiscDeclarations() {
 void LLVMGenerator::createMainFun() {
   auto* fntype = llvm::FunctionType::get(builder->getInt8PtrTy(), false);
   auto* mainfun = llvm::Function::Create(
-      fntype, llvm::Function::ExternalLinkage, "mimium_main", module.get());
+      fntype, llvm::Function::ExternalLinkage, "mimium_main", *module);
   mainfun->setCallingConv(llvm::CallingConv::C);
   curfunc = mainfun;
   variable_map.emplace(curfunc, std::make_shared<namemaptype>());
   using Akind = llvm::Attribute;
-  std::vector<llvm::Attribute::AttrKind> attrs = {
-      Akind::NoUnwind, Akind::NoInline, Akind::OptimizeNone};
+  std::vector<Akind::AttrKind> attrs = {Akind::NoUnwind, Akind::NoInline,
+                                        Akind::OptimizeNone};
   llvm::AttributeSet aset;
   for (auto& a : attrs) {
     aset = aset.addAttribute(ctx, a);
@@ -121,8 +120,8 @@ void LLVMGenerator::createTaskRegister(bool isclosure = false) {
 
   addtaskfun->setCallingConv(llvm::CallingConv::C);
   using Akind = llvm::Attribute;
-  std::vector<llvm::Attribute::AttrKind> attrs = {
-      Akind::NoUnwind, Akind::NoInline, Akind::OptimizeNone};
+  std::vector<Akind::AttrKind> attrs = {Akind::NoUnwind, Akind::NoInline,
+                                        Akind::OptimizeNone};
   llvm::AttributeSet aset;
   for (auto& a : attrs) {
     aset = aset.addAttribute(ctx, a);
@@ -131,22 +130,6 @@ void LLVMGenerator::createTaskRegister(bool isclosure = false) {
   setValuetoMap(name, addtask.getCallee());
 }
 
-// llvm::Type* LLVMGenerator::getOrCreateTimeStruct(types::Time& t) {
-//   llvm::StringRef name = types::toString(t);
-//   llvm::Type* res = module->getTypeByName(name);
-//   if (res == nullptr) {
-//     llvm::Type* containtype = std::visit(
-//         overloaded{[&](types::Float& /*f*/) { return builder->getDoubleTy();
-//         },
-//                    [&](auto& /*v*/) { return builder->getVoidTy(); }},
-//         t.val);
-
-//     res = llvm::StructType::create(ctx, {builder->getDoubleTy(),
-//     containtype},
-//                                    name);
-//   }
-//   return res;
-// }
 void LLVMGenerator::preprocess() {
   createMainFun();
   createMiscDeclarations();
@@ -163,7 +146,8 @@ void LLVMGenerator::generateCode(std::shared_ptr<MIRblock> mir) {
   if (mainentry->getTerminator() == nullptr) {  // insert return
     auto dspaddress = variable_map[curfunc]->find("dsp_cls_capture_ptr");
     if (dspaddress != variable_map[curfunc]->end()) {
-      auto res = builder->CreateBitCast(dspaddress->second, builder->getInt8PtrTy(),"res");
+      auto res = builder->CreateBitCast(dspaddress->second,
+                                        builder->getInt8PtrTy(), "res");
       builder->CreateRet(res);
     } else {
       builder->CreateRet(
@@ -473,9 +457,11 @@ void LLVMGenerator::CodeGenVisitor::operator()(
   // always heap allocation!
   auto* closure_ptr =
       createAllocation(true, closuretype, nullptr, closureptrname);
-  auto* fun_ptr = G.builder->CreateStructGEP(closure_ptr, 0, i.lv_name+"_fun_ptr");
+  auto* fun_ptr =
+      G.builder->CreateStructGEP(closure_ptr, 0, i.lv_name + "_fun_ptr");
   G.builder->CreateStore(targetf, fun_ptr);
-  auto* capture_ptr = G.builder->CreateStructGEP(closure_ptr, 1, i.lv_name+"_capture_ptr");
+  auto* capture_ptr =
+      G.builder->CreateStructGEP(closure_ptr, 1, i.lv_name + "_capture_ptr");
   unsigned int idx = 0;
   for (auto& cap : i.captures) {
     llvm::Value* fv = G.tryfindValue(cap);
@@ -483,7 +469,7 @@ void LLVMGenerator::CodeGenVisitor::operator()(
     G.builder->CreateStore(fv, gep);
     idx += 1;
   }
-  G.setValuetoMap(i.lv_name+"_capture_ptr", capture_ptr);  
+  G.setValuetoMap(i.lv_name + "_capture_ptr", capture_ptr);
   G.setValuetoMap(closureptrname, closure_ptr);
 }
 void LLVMGenerator::CodeGenVisitor::operator()(ArrayInst& i) {}

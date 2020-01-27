@@ -11,7 +11,7 @@
 #include "compiler/knormalize_visitor.hpp"
 #include "compiler/closure_convert.hpp"
 #include "compiler/collect_memoryobjs.hpp"
-#include "compiler/llvmgenerator.hpp"
+#include "compiler/codegen/llvmgenerator.hpp"
 
 namespace mimium {
 // compiler class  that load source code,analyze, and emit llvm IR.

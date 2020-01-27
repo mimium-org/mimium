@@ -1,6 +1,6 @@
 #include "compiler/alphaconvert_visitor.hpp"
 #include "compiler/closure_convert.hpp"
-#include "compiler/llvmgenerator.hpp"
+#include "compiler/codegen/llvmgenerator.hpp"
 #include "gtest/gtest.h"
 #include "gtest/internal/gtest-port.h"
 #include "basic/helper_functions.hpp"
