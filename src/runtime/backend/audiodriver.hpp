@@ -5,13 +5,8 @@
 
 namespace mimium {
 using DspFnType = double (*)(double, void*);
-
 class Scheduler;
-// fn (input_buffer*, output_buffer*,
-// samplerate,buffersize,channels,userdata)->status
 
-using AudioCallBackFn = std::function<int(double*, double*, unsigned int,
-                                          unsigned int, unsigned int, void*)>;
 class AudioDriver {
  protected:
   unsigned int sample_rate = 44100;
@@ -24,7 +19,8 @@ class AudioDriver {
  public:
   AudioDriver() = delete;
   explicit AudioDriver(Scheduler& sch, unsigned int sr, unsigned int bs,
-                       unsigned int chs);
+                       unsigned int chs)
+      : sample_rate(sr), buffer_size(bs), channels(chs), sch(sch){};
   void setDspFn(DspFnType fn, void* cls) {
     dspfn = fn;
     dspfn_cls_address = cls;

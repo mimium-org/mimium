@@ -30,6 +30,6 @@ target_include_directories(mimium_backend_rtaudio PUBLIC ${SNDFILE_INCLUDE_DIRS}
 
 target_link_directories(mimium_backend_rtaudio PUBLIC ${CMAKE_BINARY_DIR}/externals/rtaudio/build)
 
-target_link_libraries(mimium_backend_rtaudio mimium_backend rtaudio)
+target_link_libraries(mimium_backend_rtaudio rtaudio)
 
 
