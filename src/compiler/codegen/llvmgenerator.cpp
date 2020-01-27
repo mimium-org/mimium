@@ -27,8 +27,6 @@ void LLVMGenerator::reset(std::string filename) {
   init(filename);
 }
 
-void LLVMGenerator::initJit() {}
-
 LLVMGenerator::~LLVMGenerator() { dropAllReferences(); }
 void LLVMGenerator::dropAllReferences() {
   variable_map.clear();
@@ -178,21 +176,6 @@ void LLVMGenerator::setValuetoMap(std::string name, llvm::Value* val) {
   map->try_emplace(name, val);
 }
 
-llvm::Error LLVMGenerator::doJit(const size_t opt_level) {
-  return jitengine->addModule(
-      std::move(module));  // do JIT compilation for module
-}
-void* LLVMGenerator::execute() {
-  llvm::Error err = doJit();
-  Logger::debug_log(err, Logger::ERROR);
-  auto mainfun = jitengine->lookup("mimium_main");
-  Logger::debug_log(mainfun, Logger::ERROR);
-  auto fnptr =
-      llvm::jitTargetAddressToPointer<void* (*)()>(mainfun->getAddress());
-  //
-  void* res = fnptr();
-  return res;
-}
 void LLVMGenerator::outputToStream(llvm::raw_ostream& stream) {
   module->print(stream, nullptr, false, true);
 }
