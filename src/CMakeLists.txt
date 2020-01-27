@@ -19,8 +19,8 @@ message(STATUS "Components mapped by llvm_config: ${mimiumllvm}")
 
 target_include_directories(mimium
 PRIVATE
-${CMAKE_SOURCE_DIR}/libs/rtaudio
-${CMAKE_SOURCE_DIR}/libs/rtmidi
+# ${CMAKE_SOURCE_DIR}/libs/rtaudio
+# ${CMAKE_SOURCE_DIR}/libs/rtmidi
 ${SNDFILE_INCLUDE_DIRS}
 #to include bison/flex-generated files
 ${FLEX_INCLUDE_DIR}
@@ -28,8 +28,8 @@ ${CMAKE_CURRENT_BINARY_DIR}/compiler
 )
 target_include_directories(mimium_llloader
 PRIVATE
-${CMAKE_SOURCE_DIR}/libs/rtaudio
-${CMAKE_SOURCE_DIR}/libs/rtmidi
+# ${CMAKE_SOURCE_DIR}/libs/rtaudio
+# ${CMAKE_SOURCE_DIR}/libs/rtmidi
 ${SNDFILE_INCLUDE_DIRS}
 #to include bison/flex-generated files
 ${FLEX_INCLUDE_DIR}
