@@ -11,6 +11,17 @@ enum FCALLTYPE { DIRECT, CLOSURE, EXTERNAL };
 static std::map<FCALLTYPE, std::string> fcalltype_str = {
     {DIRECT, ""}, {CLOSURE, "cls"}, {EXTERNAL, "ext"}};
 
+
+struct uniquestr{
+  std::string str;
+  unsigned int count;
+  inline static unsigned int global_count=0;
+  uniquestr(std::string& s):str(s),count(global_count++){};
+  uniquestr(std::string&& s):str(std::move(s)),count(global_count++){};
+  uniquestr(char* s):str(s),count(global_count++){};
+  operator std::string(){return str+std::to_string(count);}
+};
+
 class MIRblock;
 struct MIRinstruction {  // base class for MIR instruction
   std::string lv_name;
@@ -80,7 +91,11 @@ struct FunInst : public MIRinstruction {
   std::deque<std::string> args;
   std::shared_ptr<MIRblock> body;
   std::vector<std::string> freevariables;  // introduced in closure conversion;
+  // introduced in closure conversion;contains self & delay, and fcall which has self&delay
+  std::vector<std::string> memory_objects;  
+
   bool ccflag = false;                     // utility for closure conversion
+  bool hasself;
   bool isrecursive;
   explicit FunInst(std::string name, std::deque<std::string> newargs,
                    types::Value _type = types::Void(),

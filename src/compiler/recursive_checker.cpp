@@ -22,6 +22,10 @@ void RecursiveChecker::visit(LvarAST& ast) {
 void RecursiveChecker::visit(RvarAST& ast) {
   // do nothing
 }
+
+void RecursiveChecker::visit(SelfAST& ast) {
+  hasself = true;
+}
 void RecursiveChecker::visit(OpAST& ast) {
   ast.lhs->accept(*this);
   ast.rhs->accept(*this);
@@ -58,11 +62,13 @@ void RecursiveChecker::visit(FcallAST& ast) {
   }
 }
 void RecursiveChecker::visit(LambdaAST& ast) {
-  isrecursive = false;       // reset flag
+  isrecursive = false;  
+  hasself = false;   // reset flag
   if (!tmp_fname.empty()) {  // ignore anonymous function
     target_fname = tmp_fname;
     ast.getBody()->accept(*this);
     ast.isrecursive = isrecursive;
+    ast.hasself = hasself;
   }
 }
 void RecursiveChecker::visit(IfAST& ast) {

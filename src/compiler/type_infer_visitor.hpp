@@ -18,6 +18,7 @@ class TypeInferVisitor : public ASTVisitor {
   void visit(NumberAST& ast) override;
   void visit(LvarAST& ast) override;
   void visit(RvarAST& ast) override;
+  void visit(SelfAST& ast) override;
   void visit(AssignAST& ast) override;
   void visit(ArgumentsAST& ast) override;
   void visit(FcallArgsAST& ast) override;
@@ -47,11 +48,15 @@ class TypeInferVisitor : public ASTVisitor {
     res_stack.pop();
     return res;
   }
-  std::string_view tmpfname;
+  std::string tmpfname;
 
+  TypeEnv& infer(AST_Ptr toplevel);
+  void replaceTypeVars();
  private:
   std::stack<types::Value> res_stack;
-  static bool checkArg(const types::Value& fnarg, const types::Value& givenarg);
+  static bool checkArg(types::Value& fnarg, types::Value& givenarg);
+  //hold value for infer type of "self"
+  std::optional<types::Value> current_return_type;
   TypeEnv typeenv;
   bool has_return;
 };

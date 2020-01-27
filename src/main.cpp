@@ -131,6 +131,7 @@ auto main(int argc, char** argv) -> int {
           break;
         }
         auto mir_cc = compiler->closureConvert(mir);
+        mir_cc = compiler->collectMemoryObjs(mir_cc);
         if (stage == CompileStage::MIR_CC) {
           std::cout << mir_cc->toString() << std::endl;
           break;

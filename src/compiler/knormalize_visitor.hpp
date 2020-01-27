@@ -1,8 +1,8 @@
 #pragma once
 #include "basic/ast.hpp"
 #include "basic/mir.hpp"
-#include "compiler/type_infer_visitor.hpp"
 #include "compiler/ffi.hpp"
+#include "compiler/type_infer_visitor.hpp"
 
 namespace mimium {
 class KNormalizeVisitor : public ASTVisitor {
@@ -16,6 +16,8 @@ class KNormalizeVisitor : public ASTVisitor {
   void visit(NumberAST& ast) override;
   void visit(LvarAST& ast) override;
   void visit(RvarAST& ast) override;
+  void visit(SelfAST& ast) override;
+
   void visit(AssignAST& ast) override;
   void visit(ArgumentsAST& ast) override;
   void visit(FcallArgsAST& ast) override;
@@ -34,8 +36,7 @@ class KNormalizeVisitor : public ASTVisitor {
   std::shared_ptr<MIRblock> getResult();
 
  private:
-  TypeInferVisitor&
-      typeinfer;  // to resolve anonymous function type;
+  TypeInferVisitor& typeinfer;  // to resolve anonymous function type;
 
   std::shared_ptr<MIRblock> rootblock;
   std::shared_ptr<MIRblock> currentblock;
@@ -46,11 +47,12 @@ class KNormalizeVisitor : public ASTVisitor {
   std::string tmpname;
   std::shared_ptr<ListAST> current_context;
   AST_Ptr insertAssign(AST_Ptr ast);
-  void insertOverWrite(AST_Ptr body,const std::string& name);
-  void insertAlloca(AST_Ptr body,const std::string& name);
-  void insertRef(AST_Ptr body,const std::string& name);
+  void insertOverWrite(AST_Ptr body, const std::string& name);
+  void insertAlloca(AST_Ptr body, const std::string& name);
+  void insertRef(AST_Ptr body, const std::string& name);
 
   std::stack<std::string> res_stack_str;
+  std::stack<types::Value> type_stack;
   std::vector<std::string> lvar_list;
   std::string stackPopStr() {
     auto ret = res_stack_str.top();

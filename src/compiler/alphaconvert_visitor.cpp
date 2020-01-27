@@ -50,6 +50,10 @@ void AlphaConvertVisitor::visit(RvarAST& ast) {
   AST_Ptr newast = std::make_shared<RvarAST>(newname);
   res_stack.push(std::move(newast));
 }
+void AlphaConvertVisitor::visit(SelfAST& ast) {
+  res_stack.push(std::make_shared<SelfAST>());
+}
+
 void AlphaConvertVisitor::visit(OpAST& ast) {
   ast.rhs->accept(*this);
   ast.lhs->accept(*this);
