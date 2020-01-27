@@ -30,11 +30,6 @@ void ClosureConverter::moveFunToTop(std::shared_ptr<MIRblock> mir) {
       });
     }
   }
-  // toplevel->instructions.sort([](Instructions& i1, Instructions& i2) -> bool
-  // {
-  //   auto fn = [](auto& i) { return i.isFunction(); };
-  //   return std::visit(fn, i1) == true && std::visit(fn, i2) == false;
-  // });
 }
 
 std::shared_ptr<MIRblock> ClosureConverter::convert(
@@ -47,7 +42,7 @@ std::shared_ptr<MIRblock> ClosureConverter::convert(
   std::vector<std::string> localvlist;
   std::vector<std::string> funlist;
 
-  auto ccvis = CCVisitor(*this, fvlist, localvlist, funtoclsmap, pos);
+  auto ccvis = CCVisitor(*this, fvlist, localvlist,  pos);
   for (auto it = inss.begin(), end = inss.end(); it != end; ++it) {
     auto& cinst = *it;
     ccvis.position = it;
@@ -56,27 +51,38 @@ std::shared_ptr<MIRblock> ClosureConverter::convert(
   }
   moveFunToTop(this->toplevel);
 
-  //  typeenv.dump();
   return this->toplevel;
 };
 void ClosureConverter::CCVisitor::registerFv(std::string& name) {
   auto isself = name == "self";
-  auto islocal =
-      std::find(localvlist.begin(), localvlist.end(), name) != localvlist.end();
+  auto islocal = has(localvlist, name);
   bool isext = LLVMBuiltin::isBuiltin(name);
-  // bool isknownfun =
-  // cc.isKnownFunction(name);//std::holds_alternative<Rec_Wrap<types::Function>>(
-  // cc.typeenv.find(name));
-  auto alreadycheked =
-      std::find(fvlist.begin(), fvlist.end(), name) != fvlist.end();
+  auto alreadycheked = has(fvlist, name);
   bool isfreevar = !(islocal || isext || alreadycheked || isself);
   if (isfreevar) {
     fvlist.push_back(name);
   }
-  // if (isfun && cc.known_functions.count(name) >= 0) {
-  //   name = name + "_cls";
-  // }
 };
+void ClosureConverter::registerMemoryObjs(std::string& funname, std::string& name){
+//   //self,delayがある場合はそれを引数へと伝搬する
+//   //また、内部でself,delayを使っていたらそれを全て引数へと伝搬する
+//   bool isself = name=="self";
+//   bool ismemoryfun =fun_to_memory_objs.find(name)!=fun_to_memory_objs.end();
+//    bool haskey = fun_to_memory_objs.find(funname)!=fun_to_memory_objs.end();
+//   if(haskey){
+//     auto& vec = fun_to_memory_objs[funname];
+//     if (isself&&!has(vec,name)){
+//       vec.push_back(name);
+//     }else if(ismemoryfun)
+//   }
+
+
+//   if(name=="self" || fun_to_memory_objs.count(name)>0 ){
+//   fun_to_memory_objs.emplace(funname,)
+//   }
+}
+
+
 
 void ClosureConverter::CCVisitor::operator()(FunInst& i) {
   this->localvlist.push_back(i.lv_name);
@@ -86,7 +92,7 @@ void ClosureConverter::CCVisitor::operator()(FunInst& i) {
     localvlist.push_back(a);
   }
   auto pos = i.body->begin();
-  auto ccvis = CCVisitor(cc, fvlist, localvlist, funtoclsmap, pos);
+  auto ccvis = CCVisitor(cc, fvlist, localvlist,  pos);
   cc.known_functions.emplace(i.lv_name, 1);
   bool checked = false;
 checkpoint:
@@ -164,9 +170,9 @@ void ClosureConverter::CCVisitor::operator()(FcallInst& i) {
   for (auto& a : i.args) {
     registerFv(a);
   }
-  if(cc.isKnownFunction(i.fname)){
+  if (cc.isKnownFunction(i.fname)) {
     i.ftype = DIRECT;
-  }else{
+  } else {
     registerFv(i.fname);
   }
   localvlist.push_back(i.lv_name);

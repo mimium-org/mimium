@@ -1,23 +1,22 @@
 #pragma once
 
-#include <numeric>
-
+#include <condition_variable>
+#include <deque>
 #include <iostream>
-#include <stack>
 #include <map>
-#include <unordered_map>
 #include <memory>
-#include <string>
+#include <mutex>
+#include <numeric>
 #include <sstream>
+#include <stack>
+#include <string>
+#include <unordered_map>
 #include <utility>  //pair
 #include <variant>
 #include <vector>
-#include <deque>
 
-#include <mutex>
-#include <condition_variable>
-#include "variant_visitor_helper.hpp"
 #include "llvm/Support/Error.h"
+#include "variant_visitor_helper.hpp"
 
 #ifdef _WIN32
 SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE),
@@ -26,46 +25,56 @@ SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE),
 
 namespace mimium {
 
-struct WaitController{
+struct WaitController {
   std::mutex mtx;
   std::condition_variable cv;
-  bool isready =false;
+  bool isready = false;
 };
 
-//for ast
+// for ast
 template <class ElementType>
 static std::string join(std::deque<ElementType>& vec, std::string delim) {
-  return std::accumulate(
-      std::next(vec.begin()), vec.end(),
-      vec.begin()->toString(), 
-      [&](std::string a, std::shared_ptr<ElementType>& b) { return std::move(a) + delim + b.toString(); });
+  return std::accumulate(std::next(vec.begin()), vec.end(),
+                         vec.begin()->toString(),
+                         [&](std::string a, std::shared_ptr<ElementType>& b) {
+                           return std::move(a) + delim + b.toString();
+                         });
 };
 
+template <class T>
+bool has(std::vector<T> t, T s) {
+  return std::find(t.begin(), t.end(), s) != t.end();
+}
+inline bool has(std::vector<std::string> t, char* s) {
+  return std::find(t.begin(), t.end(), std::string(s)) != t.end();
+}
 
-[[maybe_unused]] static std::string join(std::deque<std::string>& vec, std::string delim) {
+[[maybe_unused]] static std::string join(std::deque<std::string>& vec,
+                                         std::string delim) {
   std::string res;
-  if(!vec.empty()){
- res =std::accumulate(
-      std::next(vec.begin()), vec.end(),
-      *(vec.begin()), 
-      [&](std::string a, std::string b) { return std::move(a) + delim + b; });
+  if (!vec.empty()) {
+    res = std::accumulate(
+        std::next(vec.begin()), vec.end(), *(vec.begin()),
+        [&](std::string a, std::string b) { return std::move(a) + delim + b; });
   }
   return res;
 };
 template <class T>
-static std::string join(std::deque<std::shared_ptr<T>>& vec, std::string delim) {
-    std::string res;
-  if(!vec.empty()){
-
-  res= std::accumulate(
-      std::next(vec.begin()), vec.end(),
-      (*(vec.begin()))->toString(), 
-      [&](std::string a, std::shared_ptr<T>& b) { return std::move(a) + delim + b->toString(); });
+static std::string join(std::deque<std::shared_ptr<T>>& vec,
+                        std::string delim) {
+  std::string res;
+  if (!vec.empty()) {
+    res = std::accumulate(std::next(vec.begin()), vec.end(),
+                          (*(vec.begin()))->toString(),
+                          [&](std::string a, std::shared_ptr<T>& b) {
+                            return std::move(a) + delim + b->toString();
+                          });
   }
   return res;
 };
 
-// static std::string join(const std::vector<TypedVal>& vec, std::string delim) {
+// static std::string join(const std::vector<TypedVal>& vec, std::string delim)
+// {
 //   std::string s;
 //   for (auto& elem : vec) {
 //     s += elem.name;

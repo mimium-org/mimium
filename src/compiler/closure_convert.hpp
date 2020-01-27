@@ -22,27 +22,23 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
   int capturecount;
   int closurecount;
   std::unordered_map<std::string, int> known_functions;
-  std::unordered_map<std::string, types::Closure> funtoclsmap;
   FunInst tmp_globalfn;
-  
+
  private:
   void moveFunToTop(std::shared_ptr<MIRblock> mir);
+
+  std::unordered_map<std::string, std::vector<std::string>> fun_to_memory_objs;
+  void registerMemoryObjs(std::string& funname, std::string& name);
+
   struct CCVisitor {
-    explicit CCVisitor(
-        ClosureConverter& cc, std::vector<std::string>& fvlist,
-        std::vector<std::string>& localvlist,
-        std::unordered_map<std::string, types::Closure>& funtoclsmap,
-        std::list<Instructions>::iterator& position)
-        : cc(cc),
-          fvlist(fvlist),
-          localvlist(localvlist),
-          funtoclsmap(funtoclsmap),
-          position(position) {}
+    explicit CCVisitor(ClosureConverter& cc, std::vector<std::string>& fvlist,
+                       std::vector<std::string>& localvlist,
+                       std::list<Instructions>::iterator& position)
+        : cc(cc), fvlist(fvlist), localvlist(localvlist), position(position) {}
 
     ClosureConverter& cc;
     std::vector<std::string>& fvlist;
     std::vector<std::string>& localvlist;
-    std::unordered_map<std::string, types::Closure>& funtoclsmap;
     std::list<Instructions>::iterator position;
     void updatepos() { ++position; }
     void registerFv(std::string& name);
@@ -62,61 +58,61 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
     bool isFreeVar(const std::string& name);
   };
   struct FunTypeReplacer {
-    explicit FunTypeReplacer(ClosureConverter& cc)
-        : cc(cc){}
+    explicit FunTypeReplacer(ClosureConverter& cc) : cc(cc) {}
 
     ClosureConverter& cc;
-    bool isClosure(std::string& name){
-      return (cc.typeenv.tryFind(name+"_cls")!=nullptr);
+    bool isClosure(std::string& name) {
+      return (cc.typeenv.tryFind(name + "_cls") != nullptr);
     }
-    void replaceType(types::Value& val,const std::string& name){
-      val = cc.typeenv.find(name+"_cls");
+    void replaceType(types::Value& val, const std::string& name) {
+      val = cc.typeenv.find(name + "_cls");
       cc.typeenv.emplace(name, val);
     }
     void operator()(NumberInst& i){};
-    void operator()(AllocaInst& i){
-          if(isClosure(i.lv_name))replaceType(i.type,i.lv_name);
+    void operator()(AllocaInst& i) {
+      if (isClosure(i.lv_name)) replaceType(i.type, i.lv_name);
     };
-    void operator()(RefInst& i){
-      if(isClosure(i.val))replaceType(i.type,i.val);
+    void operator()(RefInst& i) {
+      if (isClosure(i.val)) replaceType(i.type, i.val);
     };
-    void operator()(AssignInst& i){
-      if(isClosure(i.val))replaceType(i.type,i.val);
+    void operator()(AssignInst& i) {
+      if (isClosure(i.val)) replaceType(i.type, i.val);
     };
     void operator()(TimeInst& i){};
     void operator()(OpInst& i){};
-    void operator()(FunInst& i){
-      for(auto&inst: i.body->instructions ){
-          std::visit(*this,inst);
+    void operator()(FunInst& i) {
+      for (auto& inst : i.body->instructions) {
+        std::visit(*this, inst);
       }
       auto it = i.body->instructions.rbegin();
-      auto lastinst = *it; 
-      if(auto ret =std::get_if<ReturnInst>(&lastinst)){
+      auto lastinst = *it;
+      if (auto ret = std::get_if<ReturnInst>(&lastinst)) {
         auto& ft = rv::get<types::Function>(i.type);
-        ft.ret_type = (types::isPrimitive(ret->type))?ret->type:types::Ref(ret->type);
+        ft.ret_type =
+            (types::isPrimitive(ret->type)) ? ret->type : types::Ref(ret->type);
       }
       cc.typeenv.emplace(i.lv_name, i.type);
-
     };
-    void operator()(FcallInst& i){
-      if(auto* ftype = std::get_if<Rec_Wrap<types::Function>>(&cc.typeenv.find(i.fname))){
-          types::Function& f  = ftype->getraw();
-          std::optional<types::Value> cls = types::getNamedClosure(f.ret_type);
-          if(cls){
-            cc.typeenv.emplace(i.lv_name, std::move(cls.value()));
-          }
+    void operator()(FcallInst& i) {
+      if (auto* ftype = std::get_if<Rec_Wrap<types::Function>>(
+              &cc.typeenv.find(i.fname))) {
+        types::Function& f = ftype->getraw();
+        std::optional<types::Value> cls = types::getNamedClosure(f.ret_type);
+        if (cls) {
+          cc.typeenv.emplace(i.lv_name, std::move(cls.value()));
+        }
       }
     };
     void operator()(MakeClosureInst& i){};
-    void operator()(ArrayInst& i){
-    };
+    void operator()(ArrayInst& i){};
     void operator()(ArrayAccessInst& i){};
     void operator()(IfInst& i){};
-    void operator()(ReturnInst& i){
-      if(isClosure(i.val)){replaceType(i.type,i.val);}
-
+    void operator()(ReturnInst& i) {
+      if (isClosure(i.val)) {
+        replaceType(i.type, i.val);
+      }
     };
-  }typereplacer;
+  } typereplacer;
 };
 
 }  // namespace mimium
