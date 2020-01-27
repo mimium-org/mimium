@@ -6,6 +6,9 @@ AudioDriverRtAudio::AudioDriverRtAudio(Scheduler& sch, unsigned int sr,
     : AudioDriver(sch, sr, bs, chs),
       callbackdata{&sch, sch.getRuntime().getDspFn(),
                    sch.getRuntime().getDspFnCls(), 0} {
+
+  dspfn = sch.getRuntime().getDspFn();
+  dspfn_cls_address = sch.getRuntime().getDspFnCls();
   try {
     rtaudio = std::make_unique<RtAudio>();
   } catch (RtAudioError& e) {

@@ -54,10 +54,14 @@ void Scheduler::haltRuntime(){
   waitc.cv.notify_all();  // notify to exit runtime;
 }
 
+void Scheduler::addAudioDriver(std::shared_ptr<AudioDriver> a){
+  this->audio = a;
+}
+
 SchedulerRT::SchedulerRT(std::shared_ptr<Runtime_LLVM> runtime_i,
                          WaitController& waitc)
     : Scheduler(runtime_i, waitc) {
-      audio= std::make_shared<AudioDriverRtAudio>(*this);
+
     }
 
 void SchedulerRT::start() { audio->start(); }

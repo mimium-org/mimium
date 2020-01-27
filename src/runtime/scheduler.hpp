@@ -3,6 +3,8 @@
 #include "basic/ast.hpp"
 #include "basic/helper_functions.hpp"
 #include "runtime/backend/audiodriver.hpp"
+// #include "runtime/backend/rtaudio/driver_rtaudio.hpp"
+
 #include "runtime/runtime.hpp"
 #include "sndfile.h"
 
@@ -37,12 +39,18 @@ class Scheduler {  // scheduler interface
   Runtime_LLVM& getRuntime() { return *runtime; };
   auto getTime() { return time; };
 
+  void addAudioDriver(std::shared_ptr<AudioDriver> a);
+
  protected:
   WaitController& waitc;
   std::shared_ptr<Runtime_LLVM> runtime;
+  std::shared_ptr<AudioDriver> audio;
+
   using key_type = std::pair<int64_t, LLVMTaskType>;
   struct Greater {
     bool operator()(const key_type& l, const key_type& r) const;
+
+
   };
 
   using queue_type =
@@ -63,7 +71,6 @@ class SchedulerRT : public Scheduler {
   void stop() override;
   void setDsp(DspFnType fn,void* cls)override;
  private:
-  std::shared_ptr<AudioDriver> audio;
 };
 
 class SchedulerSndFile : public Scheduler {

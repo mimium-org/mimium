@@ -2,7 +2,7 @@
 #include "basic/helper_functions.hpp"
 #include "jit_engine.hpp"
 #include "runtime/scheduler.hpp"
-
+#include "runtime/backend/rtaudio/driver_rtaudio.hpp"
 namespace mimium{
 class Scheduler;
 class SchedulerRT;

@@ -12,13 +12,14 @@ ExternalProject_Add(
   GIT_TAG master
   ### Path to source tree
   SOURCE_DIR ${CMAKE_BINARY_DIR}/externals/rtaudio
-  ### Specify Generator
-  CMAKE_GENERATOR "Linux Makefiles"
   ### Add cmake args 
-  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/externals/rtaudio/build -DCMAKE_BUILD_TYPE=Release
+  CONFIGURE_COMMAND
+  "${CMAKE_COMMAND}"
+  "-H${CMAKE_BINARY_DIR}/externals/rtaudio"
+  "-B${CMAKE_BINARY_DIR}/externals/rtaudio/build"
+  INSTALL_COMMAND ""
   ### Path to build tree
-  BINARY_DIR ${CMAKE_BINARY_DIR}/externals/rtaudio/build
-  BUILD_COMMAND make install
+  BUILD_COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}/externals/rtaudio/build
 )
 
 # add_subdirectory( ${CMAKE_SOURCE_DIR}/libs/rtaudio [EXCLUDE_FROM_ALL])

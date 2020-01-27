@@ -1,8 +1,10 @@
 #pragma once
 #include "runtime/backend/audiodriver.hpp"
+#include "runtime/scheduler.hpp"
 #include "RtAudio.h"
 
 namespace mimium {
+class Scheduler;
 
 class AudioDriverRtAudio : public AudioDriver {
   struct CallbackData {

@@ -43,6 +43,7 @@ void Runtime_LLVM::executeModule(std::unique_ptr<llvm::Module> module) {
       sch = std::make_shared<SchedulerSndFile>(this->shared_from_this(),waitc);
     } else {
       sch = std::make_shared<SchedulerRT>(this->shared_from_this(),waitc);
+      sch->addAudioDriver(std::make_shared<AudioDriverRtAudio>(*sch));
     }
 }
 void Runtime_LLVM::start() {
