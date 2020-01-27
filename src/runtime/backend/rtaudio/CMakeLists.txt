@@ -22,13 +22,13 @@ ExternalProject_Add(
   BUILD_COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}/externals/rtaudio/build
 )
 
-# add_subdirectory( ${CMAKE_SOURCE_DIR}/libs/rtaudio [EXCLUDE_FROM_ALL])
-
 add_dependencies(mimium_backend_rtaudio rtaudio_ext)
 
 target_compile_options(mimium_backend_rtaudio PUBLIC -std=c++17)
 
 target_include_directories(mimium_backend_rtaudio PUBLIC ${SNDFILE_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/externals/rtaudio)
+
+target_link_directories(mimium_backend_rtaudio PUBLIC ${CMAKE_BINARY_DIR}/externals/rtaudio/build)
 
 target_link_libraries(mimium_backend_rtaudio mimium_backend rtaudio)
 
