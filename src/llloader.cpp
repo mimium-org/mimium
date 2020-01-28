@@ -32,17 +32,6 @@ void addTask_cls(double time, void* addresstofn,  double arg,
              void* addresstocls) {
   global_sch->addTask(time, addresstofn, arg, addresstocls);
 }
-int myprint(double d) {
-  std::cerr << d << std::endl;
-  return 0;
-}
-// double asyncTaskCaller(double d,double(*fnptr)(double)){
-//  auto future = std::async(std::launch::deferred,fnptr,d);
-//  global_sch->addTask(time,future);//executeTask()でfuture.getする
-//  future.wait();
-//   return future.get();
-// }
-
 }
 
 std::function<void(int)> shutdown_handler;
