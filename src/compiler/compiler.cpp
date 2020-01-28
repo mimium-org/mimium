@@ -10,7 +10,7 @@ Compiler::Compiler(llvm::LLVMContext& ctx)
       closureconverter(
           std::make_shared<ClosureConverter>(typevisitor.getEnv())),
       memobjcollector(typevisitor.getEnv()),
-      llvmgenerator(ctx, typevisitor.getEnv()) {}
+      llvmgenerator(ctx, typevisitor.getEnv(),memobjcollector) {}
 Compiler::~Compiler() = default;
 void Compiler::setFilePath(std::string path) {
   this->path = path;

@@ -3,7 +3,7 @@
 
 namespace mimium {
 class LLVMGenerator;
-struct CodeGenVisitor :public std::enable_shared_from_this<CodeGenVisitor>{
+struct CodeGenVisitor : public std::enable_shared_from_this<CodeGenVisitor> {
   friend LLVMGenerator;
   CodeGenVisitor(LLVMGenerator& g);
   void operator()(NumberInst& i);
@@ -28,10 +28,16 @@ struct CodeGenVisitor :public std::enable_shared_from_this<CodeGenVisitor>{
   llvm::Value* getClsFun(FcallInst& i);
   llvm::Value* getExtFun(FcallInst& i);
 
-  llvm::Function* createFunction(llvm::FunctionType* type, FunInst& i);
-  void addArgstoMap(llvm::Function* f, FunInst& i);
+  llvm::FunctionType* createFunctionType(FunInst& i,
+                                         std::optional<types::Alias>& memobj);
 
-  void setFvsToMap(FunInst& i, llvm::Function* f);
+  llvm::Function* createFunction(llvm::FunctionType* type, FunInst& i);
+  void addArgstoMap(llvm::Function* f, FunInst& i,
+                    std::optional<types::Alias>& memobj);
+
+  void setFvsToMap(FunInst& i, llvm::Value* clsarg);
+  void setMemObjsToMap(FunInst& i, llvm::Value* memarg);
+
   llvm::Value* createAllocation(bool isglobal, llvm::Type* type,
                                 llvm::Value* ArraySize,
                                 const llvm::Twine& name);

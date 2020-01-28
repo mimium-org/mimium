@@ -17,7 +17,7 @@ std::shared_ptr<MIRblock> MemoryObjsCollector::process(
   }
   //register to typeenv
   for(auto&&[name,val]:type_alias_map){
-    typeenv.emplace(val.name, val);
+    typeenv.emplace(val.name+"obj", val);
   }
   return toplevel;
 }
@@ -26,13 +26,13 @@ void MemoryObjsCollector::emplaceNewAlias(std::string& name,
   type_alias_map.emplace(name, types::Alias(name, type));
 }
 
-types::Alias& MemoryObjsCollector::getAliasFromMap(std::string name) {
+std::optional<types::Alias> MemoryObjsCollector::getAliasFromMap(std::string name) {
   auto it = type_alias_map.find(name);
-  if (it == type_alias_map.end()) {
-    throw std::runtime_error("could not find alias type for name \"" + name +
-                             "\"");
+  std::optional<types::Alias> res;
+  if(it != type_alias_map.end()){
+    res =it->second;
   }
-  return it->second;
+  return  res;
 }
 void MemoryObjsCollector::collectSelf(std::string& funname,
                                       std::string& varname) {
@@ -40,10 +40,15 @@ void MemoryObjsCollector::collectSelf(std::string& funname,
   bool isself = (varname == "self");
   // self is counted only once in 1 function.
   bool ischecked = type_alias_map.count(newname) > 0;
-  if (isself && !ischecked) {
+  if (isself&& !ischecked) {
     auto& ftype = rv::get<types::Function>(typeenv.find(funname));
     emplaceNewAlias(newname, ftype.ret_type);
     memobjs_map[funname].emplace_back(newname);
+    //destructive: rewrite name of "self"
+    
+  }
+  if(isself){
+    varname = newname+".mem";
   }
 }
 void MemoryObjsCollector::collectDelay(std::string& funname, int delay_size) {
@@ -96,25 +101,29 @@ void MemoryObjsCollector::CollectMemVisitor::operator()(OpInst& i) {
   M.collectSelf(cur_fun, i.rhs);
 }
 void MemoryObjsCollector::CollectMemVisitor::operator()(FunInst& i) {
+  auto memname =i.lv_name + ".mem";
   this->cur_fun = i.lv_name;
   for (auto& inst : *i.body) {
     std::visit(*this, inst);
   }
-  if(!M.memobjs_map[i.lv_name].empty()){
+  auto result = M.memobjs_map[i.lv_name];
+  if(!result.empty()){
   std::vector<types::Value> objs;
-  for (auto& alias_name : M.memobjs_map[i.lv_name]) {
-    objs.emplace_back(M.getAliasFromMap(alias_name));
+  for (auto& alias_name : result) {
+    objs.emplace_back(M.getAliasFromMap(alias_name).value());
   }
-  auto type = types::Alias(i.lv_name + ".mem", types::Tuple(std::move(objs)));
+  auto type = types::Alias(memname, types::Tuple(std::move(objs)));
   
   if(i.lv_name == "dsp"){
     insertAllocaInst(i,type);
   }
   M.type_alias_map.emplace(i.lv_name, std::move(type));
+  i.args.push_back(memname);
+  i.memory_objects = result;
   }
 }
 void MemoryObjsCollector::CollectMemVisitor::insertAllocaInst(FunInst& i,types::Alias& type){
-  i.parent->instructions.insert(std::next(position),AllocaInst(i.lv_name+".mem", type));
+  i.parent->instructions.insert(std::next(position),AllocaInst(i.lv_name+".memobj", type));
 }
 
 void MemoryObjsCollector::CollectMemVisitor::operator()(FcallInst& i) {

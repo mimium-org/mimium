@@ -116,6 +116,28 @@ void CodeGenVisitor::operator()(OpInst& i) {
 }
 void CodeGenVisitor::operator()(FunInst& i) {
   bool hasfv = !i.freevariables.empty();
+  auto memobj = G.memobjcoll.getAliasFromMap(i.lv_name);
+
+  auto* ft = createFunctionType(i, memobj);
+  auto* f = createFunction(ft, i);
+
+  G.curfunc = f;
+  G.variable_map.emplace(f, std::make_shared<LLVMGenerator::namemaptype>());
+  G.createNewBasicBlock("entry", f);
+
+  addArgstoMap(f, i, memobj);
+  for (auto& cinsts : i.body->instructions) {
+    G.visitInstructions(cinsts, false);
+  }
+  if (G.currentblock->getTerminator() == nullptr &&
+      ft->getReturnType()->isVoidTy()) {
+    G.builder->CreateRetVoid();
+  }
+  G.switchToMainFun();
+}
+llvm::FunctionType* CodeGenVisitor::createFunctionType(
+    FunInst& i, std::optional<types::Alias>& memobj) {
+  bool hasfv = !i.freevariables.empty();
   llvm::FunctionType* ft;
   if (hasfv) {
     auto& type = G.typeenv.find(i.lv_name + "_cls");
@@ -126,39 +148,18 @@ void CodeGenVisitor::operator()(FunInst& i) {
   } else {
     ft = llvm::cast<llvm::FunctionType>(G.getType(G.typeenv.find(i.lv_name)));
   }
-
-  auto* f = createFunction(ft, i);
-  G.curfunc = f;
-  G.variable_map.emplace(f, std::make_shared<LLVMGenerator::namemaptype>());
-  addArgstoMap(f, i);
-
-  // if function is closure,append closure argument, dsp function is
-  // forced to be closure function
-  if (hasfv || i.lv_name == "dsp") {
-    auto it = std::end(f->args());
-    auto lastelem = --it;
-    auto name = "clsarg_" + i.lv_name;
-    lastelem->setName(name);
-    G.setValuetoMap(name, lastelem);
+  // add memory object such as self
+  if (memobj) {
+    auto reftype = types::Ref(memobj.value());
+    auto* memobjtype = G.typeconverter(reftype);
+    std::vector<llvm::Type*> newsubtype = ft->subtypes();
+    newsubtype.pop_back();
+    newsubtype.push_back(memobjtype);
+    ft = llvm::FunctionType::get(ft->getReturnType(), newsubtype, false);
   }
-
-  G.createNewBasicBlock("entry", f);
-
-  if (hasfv) {
-    setFvsToMap(i, f);
-  }
-  if(hasfv&&i.isrecursive){
-    G.setValuetoMap(i.lv_name+"_cls", f);
-  }
-  for (auto& cinsts : i.body->instructions) {
-    G.visitInstructions(cinsts, false);
-  }
-  if (G.currentblock->getTerminator() == nullptr &&
-      ft->getReturnType()->isVoidTy()) {
-    G.builder->CreateRetVoid();
-  }
-  G.switchToMainFun();
+  return ft;
 }
+
 llvm::Function* CodeGenVisitor::createFunction(llvm::FunctionType* type,
                                                FunInst& i) {
   auto link = llvm::Function::ExternalLinkage;
@@ -166,16 +167,36 @@ llvm::Function* CodeGenVisitor::createFunction(llvm::FunctionType* type,
   G.setValuetoMap(i.lv_name, f);
   return f;
 }
-void CodeGenVisitor::addArgstoMap(llvm::Function* f, FunInst& i) {
+void CodeGenVisitor::addArgstoMap(llvm::Function* f, FunInst& i,
+                                  std::optional<types::Alias>& memobj) {
+  // arguments are [actual arguments], capture , memobjs
   auto f_it = std::begin(f->args());
   for (auto& a : i.args) {
     f_it->setName(a);
     G.setValuetoMap(a, f_it++);
   }
+  auto lastelem = std::prev(f->args().end());
+  if (memobj) {
+    auto name = i.lv_name + ".mem";
+    lastelem->setName(name);
+    G.setValuetoMap(name, lastelem);
+    setMemObjsToMap(i, lastelem);
+    lastelem = std::prev(lastelem);
+  }
+  bool hasfv = !i.freevariables.empty() || i.lv_name == "dsp";
+  if (hasfv) {
+    auto name = "clsarg_" + i.lv_name;
+    lastelem->setName(name);
+    G.setValuetoMap(name, lastelem);
+    setFvsToMap(i, lastelem);
+    if (i.isrecursive) {
+      G.setValuetoMap(i.lv_name + "_cls", f);
+    }
+  }
 }
 
-void CodeGenVisitor::setFvsToMap(FunInst& i, llvm::Function* f) {
-  auto* lastarg = std::prev(f->arg_end());
+void CodeGenVisitor::setFvsToMap(FunInst& i, llvm::Value* clsarg) {
+  auto* lastarg = clsarg;
   for (int id = 0; id < i.freevariables.size(); id++) {
     std::string newname = i.freevariables[id];
     auto* gep = G.builder->CreateStructGEP(lastarg, id, "fv");
@@ -185,6 +206,22 @@ void CodeGenVisitor::setFvsToMap(FunInst& i, llvm::Function* f) {
     // auto* ptype = llvm::cast<llvm::PointerType>(ptrload->getType());
     // if (ptype->getElementType()->isFirstClassType()) {
     G.setValuetoMap("ptr_" + newname, gep);
+    llvm::Value* valload = G.builder->CreateLoad(gep, newname);
+    G.setValuetoMap(newname, valload);
+    // }
+  }
+}
+void CodeGenVisitor::setMemObjsToMap(FunInst& i, llvm::Value* memarg) {
+  auto* lastarg = memarg;
+  for (int id = 0; id < i.memory_objects.size(); id++) {
+    std::string newname = i.memory_objects[id]+".mem";
+    auto* gep = G.builder->CreateStructGEP(lastarg, id, "memobj");
+    // auto ptrname = "ptr_" + newname;
+    // auto* ptrload = G.builder->CreateLoad(gep, ptrname);
+    // G.setValuetoMap(ptrname, ptrload);
+    // auto* ptype = llvm::cast<llvm::PointerType>(ptrload->getType());
+    // if (ptype->getElementType()->isFirstClassType()) {
+    G.setValuetoMap("ptr_"+newname, gep);
     llvm::Value* valload = G.builder->CreateLoad(gep, newname);
     G.setValuetoMap(newname, valload);
     // }
@@ -203,6 +240,9 @@ void CodeGenVisitor::operator()(FcallInst& i) {
       args.emplace_back(G.findValue("ptr_" + a));
     }
   }
+  if(G.memobjcoll.getAliasFromMap(i.fname)){
+    args.emplace_back(G.findValue("ptr_"+i.fname+".mem"));
+  }
 
   llvm::Value* fun;
   switch (i.ftype) {
@@ -211,7 +251,9 @@ void CodeGenVisitor::operator()(FcallInst& i) {
       break;
     case CLOSURE: {
       auto* cls = getClsFun(i);
-      if (llvm::cast<llvm::PointerType>(cls->getType())->getElementType()->isFunctionTy()) {
+      if (llvm::cast<llvm::PointerType>(cls->getType())
+              ->getElementType()
+              ->isFunctionTy()) {
         fun = cls;
       } else {
         auto* capptr = G.builder->CreateStructGEP(cls, 1, i.fname + "_cap");
@@ -247,7 +289,7 @@ llvm::Value* CodeGenVisitor::getDirFun(FcallInst& i) {
   return fun;
 }
 llvm::Value* CodeGenVisitor::getClsFun(FcallInst& i) {
-  auto fptr = G.findValue(i.fname+"_cls");
+  auto fptr = G.findValue(i.fname + "_cls");
   return fptr;
 }
 llvm::Value* CodeGenVisitor::getExtFun(FcallInst& i) {

@@ -8,7 +8,7 @@ class MemoryObjsCollector {
  public:
   explicit MemoryObjsCollector(TypeEnv& typeenv);
   std::shared_ptr<MIRblock> process(std::shared_ptr<MIRblock> toplevel);
-  types::Alias& getAliasFromMap(std::string name);
+  std::optional<types::Alias> getAliasFromMap(std::string name);
   void dump();
  private:
   TypeEnv& typeenv;

@@ -2,14 +2,15 @@
 
 namespace mimium {
 
-LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv)
+LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv,MemoryObjsCollector& memobjcoll)
     : ctx(ctx),
       module(std::make_unique<llvm::Module>("no_file_name.mmm", ctx)),
       builder(std::make_unique<llvm::IRBuilder<>>(ctx)),
       mainentry(nullptr),
       currentblock(nullptr),
       typeenv(typeenv),
-      typeconverter(*builder, *module) {}
+      typeconverter(*builder, *module),
+      memobjcoll(memobjcoll) {}
 void LLVMGenerator::init(std::string filename) {
   codegenvisitor = std::make_shared<CodeGenVisitor>(*this);
   module->setSourceFileName(filename);

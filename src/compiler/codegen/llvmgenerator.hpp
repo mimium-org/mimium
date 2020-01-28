@@ -2,6 +2,7 @@
 #include "basic/ast.hpp"
 #include "basic/helper_functions.hpp"
 #include "basic/mir.hpp"
+#include "compiler/collect_memoryobjs.hpp"
 #include "compiler/ffi.hpp"
 #include "compiler/codegen/llvm_header.hpp"
 
@@ -25,6 +26,7 @@ friend struct CodeGenVisitor;
   TypeEnv& typeenv;
   TypeConverter typeconverter;
   std::shared_ptr<CodeGenVisitor> codegenvisitor;
+  MemoryObjsCollector& memobjcoll;
 
   llvm::FunctionCallee addtask;
   llvm::FunctionCallee addtask_cls;
@@ -52,7 +54,7 @@ friend struct CodeGenVisitor;
   void dropAllReferences();
 
  public:
-  LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv);
+  LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv,MemoryObjsCollector& memobjcoll);
 
   llvm::Module& getModule() { return *module; }
   auto moveModule() { return std::move(module); }
