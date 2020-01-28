@@ -4,6 +4,7 @@ add_subdirectory(compiler)
 add_subdirectory(runtime)
 
 add_executable(mimium main.cpp)
+
 add_executable(mimium_llloader llloader.cpp)
 
 target_compile_options(mimium PUBLIC -std=c++17)
@@ -40,7 +41,6 @@ target_link_libraries(mimium
     mimium_backend_rtaudio
     LLVM
     )
-
     target_link_libraries(mimium_llloader
     mimium_utils
     mimium_compiler

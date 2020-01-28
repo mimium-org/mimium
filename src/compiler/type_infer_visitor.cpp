@@ -1,9 +1,5 @@
 #include "compiler/type_infer_visitor.hpp"
 
-#include <variant>
-
-#include "basic/type.hpp"
-
 namespace mimium {
 TypeInferVisitor::TypeInferVisitor()
     : has_return(false) {

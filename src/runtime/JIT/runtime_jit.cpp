@@ -12,6 +12,7 @@ void Runtime_LLVM::executeModule(std::unique_ptr<llvm::Module> module) {
   llvm::Error err = jitengine->addModule(std::move(module));
   Logger::debug_log(err, Logger::ERROR);
   auto mainfun = jitengine->lookup("mimium_main");
+
   Logger::debug_log(mainfun, Logger::ERROR);
   auto fnptr =
       llvm::jitTargetAddressToPointer<void* (*)()>(mainfun->getAddress());

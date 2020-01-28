@@ -12,6 +12,8 @@ ExternalProject_Add(
   GIT_TAG master
   ### Path to source tree
   SOURCE_DIR ${CMAKE_BINARY_DIR}/externals/rtaudio
+  #prevent from updating everytime - for offline environment
+  UPDATE_COMMAND ""
   ### Add cmake args 
   CONFIGURE_COMMAND
   "${CMAKE_COMMAND}"
