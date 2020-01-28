@@ -92,7 +92,6 @@ struct TypeVar {
   void setIndex(int newindex) { index = newindex; }
   constexpr inline static Kind kind = Kind::INTERMEDIATE;
 };
-void unifyTypeVars(TypeVar& tv, Value& v);
 
 inline bool operator==(const TypeVar& t1, const TypeVar& t2) {
   return t1.index == t2.index;
@@ -117,6 +116,8 @@ inline bool operator!=(const Ref& t1, const Ref& t2) {
   return t1.val != t2.val;
 }
 struct Pointer : PointerBase {
+  Pointer() = default;
+  explicit Pointer(Value v) : val(std::move(v)){};
   Value val;
 };
 inline bool operator==(const Pointer& t1, const Pointer& t2) {
@@ -129,6 +130,8 @@ struct Aggregate {
   constexpr inline static Kind kind = Kind::AGGREGATE;
 };
 struct Time : Aggregate {
+  Time()=default;
+  explicit Time(Value v):val(std::move(v)){};
   Value val;
   Float time;
 };
@@ -177,6 +180,8 @@ struct Closure : Aggregate {
   Value captures;
   explicit Closure(Ref fun, Value captures)
       : fun(std::move(fun)), captures(std::move(captures)){};
+    explicit Closure(Value fun, Value captures)
+      : fun(std::move(rv::get<Ref>(fun))), captures(std::move(captures)){};
   Closure() = default;
 };
 inline bool operator==(const Closure& t1, const Closure& t2) {
@@ -339,6 +344,8 @@ class TypeEnv {
   TypeEnv() : env() {}
   types::TypeVar createNewTypeVar() { return types::TypeVar(typeid_count++); }
   bool exist(std::string key) { return (env.count(key) > 0); }
+  auto begin(){ return env.begin();}
+  auto end(){return env.end();}
   types::Value* tryFind(std::string key) {
     auto it = env.find(key);
     types::Value* res;

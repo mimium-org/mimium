@@ -42,7 +42,7 @@ std::shared_ptr<MIRblock> ClosureConverter::convert(
   std::vector<std::string> localvlist;
   std::vector<std::string> funlist;
 
-  auto ccvis = CCVisitor(*this, fvlist, localvlist,  pos);
+  auto ccvis = CCVisitor(*this, fvlist, localvlist, pos);
   for (auto it = inss.begin(), end = inss.end(); it != end; ++it) {
     auto& cinst = *it;
     ccvis.position = it;
@@ -50,7 +50,11 @@ std::shared_ptr<MIRblock> ClosureConverter::convert(
     std::visit(typereplacer, cinst);
   }
   moveFunToTop(this->toplevel);
-
+  if(!typeenv.exist("dsp_cls")){
+    auto dummycapture= types::Alias(makeCaptureName(),types::Tuple({}));
+    auto dummytype = types::Alias(makeClosureTypeName(),types::Closure(types::Ref(types::Function(types::Float(),{types::Float(),types::Ref(dummycapture)})),dummycapture));
+    typeenv.emplace("dsp_cls", std::move(dummytype));
+  }
   return this->toplevel;
 };
 void ClosureConverter::CCVisitor::registerFv(std::string& name) {
@@ -63,57 +67,46 @@ void ClosureConverter::CCVisitor::registerFv(std::string& name) {
     fvlist.push_back(name);
   }
 };
-void ClosureConverter::registerMemoryObjs(std::string& funname, std::string& name){
-//   //self,delayがある場合はそれを引数へと伝搬する
-//   //また、内部でself,delayを使っていたらそれを全て引数へと伝搬する
-//   bool isself = name=="self";
-//   bool ismemoryfun =fun_to_memory_objs.find(name)!=fun_to_memory_objs.end();
-//    bool haskey = fun_to_memory_objs.find(funname)!=fun_to_memory_objs.end();
-//   if(haskey){
-//     auto& vec = fun_to_memory_objs[funname];
-//     if (isself&&!has(vec,name)){
-//       vec.push_back(name);
-//     }else if(ismemoryfun)
-//   }
 
-
-//   if(name=="self" || fun_to_memory_objs.count(name)>0 ){
-//   fun_to_memory_objs.emplace(funname,)
-//   }
-}
-
-
-
-void ClosureConverter::CCVisitor::operator()(FunInst& i) {
-  this->localvlist.push_back(i.lv_name);
-  std::vector<std::string> fvlist;
-  std::vector<std::string> localvlist;
-  for (auto& a : i.args) {
-    localvlist.push_back(a);
-  }
-  auto pos = i.body->begin();
-  auto ccvis = CCVisitor(cc, fvlist, localvlist,  pos);
-  cc.known_functions.emplace(i.lv_name, 1);
-  bool checked = false;
-checkpoint:
+void ClosureConverter::CCVisitor::visitinsts(
+    FunInst& i, CCVisitor& ccvis, std::list<Instructions>::iterator pos) {
   for (auto &it = pos, end = i.body->end(); pos != end; ++it) {
     auto& child = *it;
     ccvis.position = it;
     std::visit(ccvis, child);
     std::visit(cc.typereplacer, child);
   }
+}
+
+void ClosureConverter::CCVisitor::operator()(FunInst& i) {
+  this->localvlist.push_back(i.lv_name);
+  std::vector<std::string> fvlist;
+  std::vector<std::string> localvlist= {i.lv_name};
+  for (auto& a : i.args) {
+    localvlist.emplace_back(a);
+  }
+  auto pos = i.body->begin();
+  auto ccvis = CCVisitor(cc, fvlist, localvlist, pos);
+  cc.known_functions.emplace(i.lv_name, 1);
+  bool checked = false;
+checkpoint:
+  visitinsts(i, ccvis, pos);
   if (!fvlist.empty()) {
     cc.known_functions.erase(i.lv_name);
     if (!checked) {
       checked = true;
       goto checkpoint;  // NOLINT
     }
+    // if (i.isrecursive) {//to replace recursive call to appcls
+    //   visitinsts(i, ccvis,pos);
+    // }
     // make closure
     i.freevariables = fvlist;  // copy;
     std::vector<types::Value> fvtype_inside;
     fvtype_inside.reserve(fvlist.size());
     for (auto& fv : fvlist) {
-      fvtype_inside.emplace_back(cc.typeenv.find(fv));
+      auto ft = cc.typeenv.find(fv);
+      fvtype_inside.emplace_back(ft);
     }
 
     auto clsname = i.lv_name + "_cls";
@@ -173,6 +166,9 @@ void ClosureConverter::CCVisitor::operator()(FcallInst& i) {
   if (cc.isKnownFunction(i.fname)) {
     i.ftype = DIRECT;
   } else {
+    if (i.ftype != EXTERNAL) {
+      i.ftype = CLOSURE;
+    }
     registerFv(i.fname);
   }
   localvlist.push_back(i.lv_name);

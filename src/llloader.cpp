@@ -19,11 +19,19 @@
 namespace cl = llvm::cl;
 using Logger = mimium::Logger;
 // #include "compiler/compiler.hpp"
-#include "runtime/runtime.hpp"
+#include "runtime/JIT/runtime_jit.hpp"
+#include "runtime/backend/rtaudio/driver_rtaudio.hpp"
 
 extern "C" {
 
 mimium::Scheduler* global_sch;
+
+void setDspParams(void* dspfn,void* clsaddress, void* memobjaddress){
+
+  global_sch->setDsp(reinterpret_cast<mimium::DspFnType>(dspfn));
+  global_sch->setDsp_ClsAddress(clsaddress);
+  global_sch->setDsp_MemobjAddress(memobjaddress);
+}
 void addTask(double time, void* addresstofn,  double arg) {
   global_sch->addTask(time, addresstofn, arg, nullptr);
 }
@@ -31,17 +39,6 @@ void addTask_cls(double time, void* addresstofn,  double arg,
              void* addresstocls) {
   global_sch->addTask(time, addresstofn, arg, addresstocls);
 }
-int myprint(double d) {
-  std::cerr << d << std::endl;
-  return 0;
-}
-// double asyncTaskCaller(double d,double(*fnptr)(double)){
-//  auto future = std::async(std::launch::deferred,fnptr,d);
-//  global_sch->addTask(time,future);//executeTask()でfuture.getする
-//  future.wait();
-//   return future.get();
-// }
-
 }
 
 std::function<void(int)> shutdown_handler;
@@ -79,7 +76,9 @@ auto main(int argc, char** argv) -> int {
     std::cerr << "Interuppted by key" << std::endl;
     exit(0);
   };
-  runtime->addScheduler(false);
+  runtime->addScheduler();
+    runtime->addAudioDriver(
+      std::make_shared<mimium::AudioDriverRtAudio>(*runtime->getScheduler()));
   global_sch = runtime->getScheduler().get();
 
 llvm::SMDiagnostic errorreporter;

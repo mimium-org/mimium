@@ -10,20 +10,12 @@ bool isPrimitive(const Value& v) { return kindOf(v) == Kind::PRIMITIVE; }
 bool isTypeVar(types::Value t) {
   return std::holds_alternative<Rec_Wrap<types::TypeVar>>(t);
 }
-void unifyTypeVars(TypeVar &tv, Value &v){
-  auto& tmp = tv.getFirstLink();
-  tmp.contained = v;
-  while(tmp.next){
-    tmp.next.value()->contained = v;
-    tmp = *tmp.next.value();
-  }
-}
-
 
 std::string toString(const Value& v, bool verbose) {
   tostrvisitor.verbose = verbose;
   return std::visit(tostrvisitor, v);
 }
+
 void dump(const Value& v, bool verbose) {
   std::cerr << toString(v, verbose) << "\n";
 }

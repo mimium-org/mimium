@@ -10,6 +10,8 @@ build/*
 docs/_*
 docs/api
 
+externals
+
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json

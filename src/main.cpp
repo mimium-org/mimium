@@ -15,29 +15,25 @@
 namespace cl = llvm::cl;
 using Logger = mimium::Logger;
 #include "compiler/compiler.hpp"
-#include "runtime/runtime.hpp"
+#include "runtime/JIT/runtime_jit.hpp"
+#include "runtime/backend/rtaudio/driver_rtaudio.hpp"
 
 extern "C" {
 
 mimium::Scheduler* global_sch;
-void addTask(double time, void* addresstofn,  double arg) {
+void setDspParams(void* dspfn,void* clsaddress, void* memobjaddress){
+  global_sch->setDsp(reinterpret_cast<mimium::DspFnType>(dspfn));
+  global_sch->setDsp_ClsAddress(clsaddress);
+  global_sch->setDsp_MemobjAddress(memobjaddress);
+}
+
+void addTask(double time, void* addresstofn, double arg) {
   global_sch->addTask(time, addresstofn, arg, nullptr);
 }
-void addTask_cls(double time, void* addresstofn,  double arg,
-             void* addresstocls) {
+void addTask_cls(double time, void* addresstofn, double arg,
+                 void* addresstocls) {
   global_sch->addTask(time, addresstofn, arg, addresstocls);
 }
-int myprint(double d) {
-  std::cerr << d << std::endl;
-  return 0;
-}
-// double asyncTaskCaller(double d,double(*fnptr)(double)){
-//  auto future = std::async(std::launch::deferred,fnptr,d);
-//  global_sch->addTask(time,future);//executeTask()でfuture.getする
-//  future.wait();
-//   return future.get();
-// }
-
 }
 
 std::function<void(int)> shutdown_handler;
@@ -53,7 +49,7 @@ auto main(int argc, char** argv) -> int {
     LLVMIR,
     EXECUTE
   };
-  int returncode=0;
+  int returncode = 0;
   cl::OptionCategory general_category("General Options", "");
   cl::opt<std::string> input_filename(cl::Positional, cl::desc("<input file>"),
                                       cl::init("-"), cl::cat(general_category));
@@ -75,9 +71,7 @@ auto main(int argc, char** argv) -> int {
                      "emit LLVM IR to stdout")),
       cl::cat(general_category));
   compile_stage.setInitialValue(CompileStage::EXECUTE);
-  cl::opt<bool> is_snd_file("sndfile",
-                         cl::desc("write out a sound file as an output"));
-  is_snd_file.setInitialValue(false);
+
   cl::ResetAllOptionOccurrences();
 
   cl::HideUnrelatedOptions(general_category);
@@ -86,7 +80,7 @@ auto main(int argc, char** argv) -> int {
   std::ifstream input(input_filename.c_str());
   signal(SIGINT, signalHandler);
   Logger::current_report_level = Logger::INFO;
-    auto runtime = std::make_shared<mimium::Runtime_LLVM>();
+  auto runtime = std::make_shared<mimium::Runtime_LLVM>();
   auto compiler = std::make_unique<mimium::Compiler>(runtime->getLLVMContext());
   shutdown_handler = [&runtime](int /*signal*/) {
     if (runtime->isrunning()) {
@@ -96,11 +90,15 @@ auto main(int argc, char** argv) -> int {
     exit(0);
   };
 
-  runtime->addScheduler(is_snd_file);
+  runtime->addScheduler();
   global_sch = runtime->getScheduler().get();
-  if (!input.good()) {  
-    Logger::debug_log("Specify file name, repl mode is not implemented yet",Logger::ERROR);
-// filename is empty:enter repl mode
+  runtime->addAudioDriver(
+      std::make_shared<mimium::AudioDriverRtAudio>(*runtime->getScheduler()));
+
+  if (!input.good()) {
+    Logger::debug_log("Specify file name, repl mode is not implemented yet",
+                      Logger::ERROR);
+    // filename is empty:enter repl mode
   } else {  // try to parse and exec input file
     try {
       std::string filename = input_filename.c_str();
@@ -138,11 +136,11 @@ auto main(int argc, char** argv) -> int {
         }
         auto& llvm_module = compiler->generateLLVMIr(mir_cc);
         if (stage == CompileStage::LLVMIR) {
-          llvm_module.print(llvm::outs(),nullptr, false, true);
+          llvm_module.print(llvm::outs(), nullptr, false, true);
           break;
         }
         runtime->executeModule(compiler->moveLLVMModule());
-        runtime->start();//start() blocks thread until scheduler stops
+        runtime->start();  // start() blocks thread until scheduler stops
         returncode = 0;
         break;
       } while (false);
@@ -150,9 +148,9 @@ auto main(int argc, char** argv) -> int {
     } catch (std::exception& e) {
       mimium::Logger::debug_log(e.what(), mimium::Logger::ERROR);
       runtime->stop();
-      returncode=1;
+      returncode = 1;
     }
-  } 
+  }
   std::cerr << "return code: " << returncode << std::endl;
   return returncode;
 }

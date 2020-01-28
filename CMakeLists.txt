@@ -34,12 +34,9 @@ SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 # Including custom cmake rules for clang-tidy and clang-format
 include(cmake/clang-cxx-dev-tools.cmake)
 
-set(RTAUDIO_BUILD_TESTING FALSE)
-add_subdirectory( libs/rtaudio )
-
-set(RTMIDI_BUILD_TESTING FALSE)
-set(RTMIDI_TARGETNAME_UNINSTALL "uninstall_rtmidi" CACHE STRING "Name of 'uninstall' build target")
-add_subdirectory( libs/rtmidi )
+# set(RTMIDI_BUILD_TESTING FALSE)
+# set(RTMIDI_TARGETNAME_UNINSTALL "uninstall_rtmidi" CACHE STRING "Name of 'uninstall' build target")
+# add_subdirectory( libs/rtmidi )
 
 find_package(SndFile REQUIRED)
 include_directories(src)

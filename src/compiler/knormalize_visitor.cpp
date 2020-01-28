@@ -182,15 +182,17 @@ void KNormalizeVisitor::visit(FcallAST& ast) {
     newarg.push_back(stackPopStr());
   }
   ast.accept(typeinfer);
+  auto lasttype = typeinfer.getLastType();
   auto fnkind =
       (LLVMBuiltin::ftable.find(resfname) != LLVMBuiltin::ftable.end())
           ? EXTERNAL
           : CLOSURE;
+  // auto type = std::holds_alternative<types::Void>(lasttype) ? lasttype: type_stack.top();
   Instructions newinst = FcallInst(newname, resfname, std::move(newarg), fnkind,
-                                   type_stack.top(), isArgTime(*args));
+                                   lasttype, isArgTime(*args));
 
   currentblock->addInst(newinst);
-  typeinfer.getEnv().emplace(newname, type_stack.top());
+  typeinfer.getEnv().emplace(newname, lasttype);
 
   res_stack_str.push(newname);
 };

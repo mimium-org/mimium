@@ -91,7 +91,7 @@ struct FunInst : public MIRinstruction {
   std::deque<std::string> args;
   std::shared_ptr<MIRblock> body;
   std::vector<std::string> freevariables;  // introduced in closure conversion;
-  // introduced in closure conversion;contains self & delay, and fcall which has self&delay
+  // introduced after closure conversion;contains self & delay, and fcall which has self&delay
   std::vector<std::string> memory_objects;  
 
   bool ccflag = false;                     // utility for closure conversion
