@@ -2,7 +2,8 @@
 
 namespace mimium {
 
-LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv,MemoryObjsCollector& memobjcoll)
+LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv,
+                             MemoryObjsCollector& memobjcoll)
     : ctx(ctx),
       module(std::make_unique<llvm::Module>("no_file_name.mmm", ctx)),
       builder(std::make_unique<llvm::IRBuilder<>>(ctx)),
@@ -70,10 +71,19 @@ void LLVMGenerator::setBB(llvm::BasicBlock* newblock) {
 }
 void LLVMGenerator::createMiscDeclarations() {
   // create malloc
-  auto* malloctype = llvm::FunctionType::get(builder->getInt8PtrTy(),
-                                             {builder->getInt64Ty()}, false);
+  auto vo = builder->getVoidTy();
+  auto i8 = builder->getInt8Ty();
+  auto i8ptr = builder->getInt8PtrTy();
+  auto i64 = builder->getInt64Ty();
+  auto b = builder->getInt64Ty();
+
+  auto* malloctype = llvm::FunctionType::get(i8ptr, {i64}, false);
   auto res = module->getOrInsertFunction("malloc", malloctype).getCallee();
   setValuetoMap("malloc", res);
+  // create llvm memset
+  auto* memsettype = llvm::FunctionType::get(vo, {i8ptr, i8, i64, b}, false);
+  auto memset =module->getOrInsertFunction("llvm.memset.p0i8.i64",memsettype).getCallee();
+
 }
 
 // Create mimium_main() function it returns address of closure object for dsp()
@@ -129,13 +139,47 @@ void LLVMGenerator::createNewBasicBlock(std::string name, llvm::Function* f) {
   builder->SetInsertPoint(bb);
   currentblock = bb;
 }
+void LLVMGenerator::CreateRuntimeSetDspFn() {
+  auto voidptrtype = builder->getInt8PtrTy();
+  auto dspfnaddress =
+      builder->CreateBitCast(module->getFunction("dsp"), voidptrtype);
+  llvm::Value* dspclsaddress;
+  auto dspcls_cap = variable_map[curfunc]->find("dsp_cls_capture_ptr");
+  if (dspcls_cap != variable_map[curfunc]->end()) {
+    dspclsaddress = builder->CreateBitCast(dspcls_cap->second, voidptrtype);
+  } else {
+    dspclsaddress = llvm::ConstantPointerNull::get(voidptrtype);
+  }
+  llvm::Value* dspmemobjaddress;
+  auto dspmemobj = variable_map[curfunc]->find("ptr_dsp.memobj");
+  if (dspmemobj != variable_map[curfunc]->end()) {
+    dspmemobjaddress = builder->CreateBitCast(dspmemobj->second, voidptrtype);
+//insert 0 initialization of memobjs
+    auto* memsetfn = module->getFunction("llvm.memset.p0i8.i64");
+    auto t = llvm::cast<llvm::PointerType>(dspmemobj->second->getType())->getElementType();
+    auto size = module->getDataLayout().getTypeAllocSize(t);
+    auto sizeinst = llvm::ConstantInt::get(ctx, llvm::APInt(64, size, false));
+    auto zero = llvm::ConstantInt::get(ctx,llvm::APInt(8,0,false));
+    auto falsev = llvm::ConstantInt::get(ctx,llvm::APInt(64,0,false));
+    builder->CreateCall(memsetfn,{dspmemobjaddress,zero,sizeinst,falsev});
 
-llvm::Value* LLVMGenerator::getOrCreateFunctionPointer(llvm::Function* f){
-  auto name = std::string(f->getName())+"_ptr";
+  } else {
+    dspmemobjaddress = llvm::ConstantPointerNull::get(voidptrtype);
+  }
+  auto setdsp = module->getOrInsertFunction(
+      "setDspParams",
+      llvm::FunctionType::get(builder->getVoidTy(),
+                              {voidptrtype, voidptrtype, voidptrtype}, false));
+  builder->CreateCall(setdsp, {dspfnaddress, dspclsaddress, dspmemobjaddress});
+}
+
+llvm::Value* LLVMGenerator::getOrCreateFunctionPointer(llvm::Function* f) {
+  auto name = std::string(f->getName()) + "_ptr";
   llvm::Value* funptr = module->getNamedGlobal(name);
-  if(funptr==nullptr){
-  funptr = module->getOrInsertGlobal(name,llvm::PointerType::get(f->getType(),0));
-  builder->CreateStore(f,funptr);
+  if (funptr == nullptr) {
+    funptr = module->getOrInsertGlobal(name,
+                                       llvm::PointerType::get(f->getType(), 0));
+    builder->CreateStore(f, funptr);
   }
   return funptr;
 }
@@ -157,17 +201,9 @@ void LLVMGenerator::generateCode(std::shared_ptr<MIRblock> mir) {
   for (auto& inst : mir->instructions) {
     visitInstructions(inst, true);
   }
-  if (mainentry->getTerminator() == nullptr) {  // insert return
-    auto dspaddress = variable_map[curfunc]->find("dsp_cls_capture_ptr");
-    if (dspaddress != variable_map[curfunc]->end()) {
-      auto res = builder->CreateBitCast(dspaddress->second,
-                                        builder->getInt8PtrTy(), "res");
-      builder->CreateRet(res);
-    } else {
-      builder->CreateRet(
-          llvm::ConstantPointerNull::get(builder->getInt8PtrTy()));
-    }
-  }
+  CreateRuntimeSetDspFn();
+  // main always return null for now;
+  builder->CreateRet(llvm::ConstantPointerNull::get(builder->getInt8PtrTy()));
 }
 
 llvm::Value* LLVMGenerator::tryfindValue(std::string name) {

@@ -126,9 +126,12 @@ void CodeGenVisitor::operator()(FunInst& i) {
   G.createNewBasicBlock("entry", f);
 
   addArgstoMap(f, i, memobj);
+  context_hasself = (i.hasself)? "ptr_"+i.lv_name + ".self.mem": "";
+
   for (auto& cinsts : i.body->instructions) {
     G.visitInstructions(cinsts, false);
   }
+
   if (G.currentblock->getTerminator() == nullptr &&
       ft->getReturnType()->isVoidTy()) {
     G.builder->CreateRetVoid();
@@ -139,7 +142,7 @@ llvm::FunctionType* CodeGenVisitor::createFunctionType(
     FunInst& i, std::optional<types::Alias>& memobj) {
   bool hasfv = !i.freevariables.empty();
   llvm::FunctionType* ft;
-  if (hasfv) {
+  if (hasfv || i.lv_name == "dsp") {
     auto& type = G.typeenv.find(i.lv_name + "_cls");
     auto clsty = llvm::cast<llvm::StructType>(G.getType(type));
     auto funty = llvm::cast<llvm::PointerType>(clsty->getElementType(0))
@@ -152,10 +155,13 @@ llvm::FunctionType* CodeGenVisitor::createFunctionType(
   if (memobj) {
     auto reftype = types::Ref(memobj.value());
     auto* memobjtype = G.typeconverter(reftype);
-    std::vector<llvm::Type*> newsubtype = ft->subtypes();
-    newsubtype.pop_back();
-    newsubtype.push_back(memobjtype);
-    ft = llvm::FunctionType::get(ft->getReturnType(), newsubtype, false);
+
+    std::vector<llvm::Type*> newparams = ft->params();
+    // if(i.lv_name!="dsp"){
+    // newparams.pop_back();
+    // }
+    newparams.push_back(memobjtype);
+    ft = llvm::FunctionType::get(ft->getReturnType(), newparams, false);
   }
   return ft;
 }
@@ -214,14 +220,14 @@ void CodeGenVisitor::setFvsToMap(FunInst& i, llvm::Value* clsarg) {
 void CodeGenVisitor::setMemObjsToMap(FunInst& i, llvm::Value* memarg) {
   auto* lastarg = memarg;
   for (int id = 0; id < i.memory_objects.size(); id++) {
-    std::string newname = i.memory_objects[id]+".mem";
+    std::string newname = i.memory_objects[id] + ".mem";
     auto* gep = G.builder->CreateStructGEP(lastarg, id, "memobj");
     // auto ptrname = "ptr_" + newname;
     // auto* ptrload = G.builder->CreateLoad(gep, ptrname);
     // G.setValuetoMap(ptrname, ptrload);
     // auto* ptype = llvm::cast<llvm::PointerType>(ptrload->getType());
     // if (ptype->getElementType()->isFirstClassType()) {
-    G.setValuetoMap("ptr_"+newname, gep);
+    G.setValuetoMap("ptr_" + newname, gep);
     llvm::Value* valload = G.builder->CreateLoad(gep, newname);
     G.setValuetoMap(newname, valload);
     // }
@@ -240,8 +246,8 @@ void CodeGenVisitor::operator()(FcallInst& i) {
       args.emplace_back(G.findValue("ptr_" + a));
     }
   }
-  if(G.memobjcoll.getAliasFromMap(i.fname)){
-    args.emplace_back(G.findValue("ptr_"+i.fname+".mem"));
+  if (G.memobjcoll.getAliasFromMap(i.fname)) {
+    args.emplace_back(G.findValue("ptr_" + i.fname + ".mem"));
   }
 
   llvm::Value* fun;
@@ -369,10 +375,18 @@ void CodeGenVisitor::operator()(ArrayAccessInst& i) {}
 void CodeGenVisitor::operator()(IfInst& i) {}
 void CodeGenVisitor::operator()(ReturnInst& i) {
   auto v = G.tryfindValue(i.val);
+
   if (v == nullptr) {
     // case of returning function;
     v = G.tryfindValue(i.val + "_cls");
   }
+  if (!context_hasself.empty()) {
+    auto selfv = G.tryfindValue(context_hasself);
+    if(selfv!=nullptr){
+    G.builder->CreateStore(v,selfv);
+    }
+  }
   G.builder->CreateRet(v);
+
 }
 }  // namespace mimium

@@ -6,7 +6,6 @@ AudioDriverRtAudio::AudioDriverRtAudio(Scheduler& sch, unsigned int sr,
     : AudioDriver(sch, sr, bs, chs),
       callbackdata{&sch, sch.getRuntime().getDspFn(),
                    sch.getRuntime().getDspFnCls(), 0} {
-
   dspfn = sch.getRuntime().getDspFn();
   dspfn_cls_address = sch.getRuntime().getDspFnCls();
   try {
@@ -22,14 +21,16 @@ AudioDriverRtAudio::AudioDriverRtAudio(Scheduler& sch, unsigned int sr,
   parameters.nChannels = chs;
   parameters.firstChannel = 0;
 }
-
+struct tmptype{
+  double f1;
+  double f2;
+  double f3;
+};
 RtAudioCallback AudioDriverRtAudio::callback =
     [](void* output, void* input, unsigned int nFrames, double time,
        RtAudioStreamStatus status, void* userdata) -> int {
   auto data = static_cast<CallbackData*>(userdata);
-  auto sch = data->scheduler;
-  auto dspfn = data->dspfn_ptr;
-  auto dspfn_cls = data->dspfncls_ptr;
+  auto& [sch, dspfn, dspfn_cls, dspfn_memobj, timeelapsed] = *data;
 
   if (sch->isactive) {
     auto* output_buffer_d = static_cast<double*>(output);
@@ -43,7 +44,8 @@ RtAudioCallback AudioDriverRtAudio::callback =
         break;
       }
       if (dspfn != nullptr) {
-        double res = dspfn((double)data->timeelapsed, dspfn_cls);
+        // std::cerr << dspfn_memobj << "\n";
+        double res = dspfn((double)timeelapsed, dspfn_cls, dspfn_memobj);
         output_buffer_d[i * 2] = res;
         output_buffer_d[i * 2 + 1] = res;
       }
@@ -57,6 +59,8 @@ bool AudioDriverRtAudio::start() {
   try {
     callbackdata.dspfn_ptr = dspfn;
     callbackdata.dspfncls_ptr = dspfn_cls_address;
+    callbackdata.dspfn_memobj_ptr = dspfn_memobj_address;
+
     sample_rate =
         rtaudio->getDeviceInfo(parameters.deviceId).preferredSampleRate;
     rtaudio->openStream(&parameters, nullptr, RTAUDIO_FLOAT64, sample_rate,

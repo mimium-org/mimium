@@ -45,7 +45,6 @@ void MemoryObjsCollector::collectSelf(std::string& funname,
     emplaceNewAlias(newname, ftype.ret_type);
     memobjs_map[funname].emplace_back(newname);
     //destructive: rewrite name of "self"
-    
   }
   if(isself){
     varname = newname+".mem";
@@ -120,6 +119,7 @@ void MemoryObjsCollector::CollectMemVisitor::operator()(FunInst& i) {
   M.type_alias_map.emplace(i.lv_name, std::move(type));
   i.args.push_back(memname);
   i.memory_objects = result;
+  i.hasself=true;
   }
 }
 void MemoryObjsCollector::CollectMemVisitor::insertAllocaInst(FunInst& i,types::Alias& type){

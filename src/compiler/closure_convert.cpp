@@ -50,7 +50,11 @@ std::shared_ptr<MIRblock> ClosureConverter::convert(
     std::visit(typereplacer, cinst);
   }
   moveFunToTop(this->toplevel);
-
+  if(!typeenv.exist("dsp_cls")){
+    auto dummycapture= types::Alias(makeCaptureName(),types::Tuple({}));
+    auto dummytype = types::Alias(makeClosureTypeName(),types::Closure(types::Ref(types::Function(types::Float(),{types::Float(),types::Ref(dummycapture)})),dummycapture));
+    typeenv.emplace("dsp_cls", std::move(dummytype));
+  }
   return this->toplevel;
 };
 void ClosureConverter::CCVisitor::registerFv(std::string& name) {

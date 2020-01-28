@@ -71,10 +71,15 @@ void Scheduler::stop() {
   }
   waitc.cv.notify_all();  // notify to exit runtime;
 }
-void Scheduler::setDsp(DspFnType fn, void *cls){
-    audio->setDspFn(fn,cls);
+void Scheduler::setDsp(DspFnType fn){
+    audio->setDspFn(fn);
   }
-
+void Scheduler::setDsp_ClsAddress(void* address){
+  audio->setDspClsAddress(address);
+}
+void Scheduler::setDsp_MemobjAddress(void* address){
+  audio->setDspMemObjAddress(address);
+}
 // SchedulerSndFile::SchedulerSndFile(
 //     std::shared_ptr<LLVMRuntime> runtime_i, WaitController& waitc)
 //     : Scheduler(runtime_i, waitc) {

@@ -11,6 +11,7 @@ class AudioDriverRtAudio : public AudioDriver {
     Scheduler* scheduler;
     DspFnType dspfn_ptr;
     void* dspfncls_ptr;
+    void* dspfn_memobj_ptr;
     int64_t timeelapsed;
   } callbackdata;
   std::unique_ptr<RtAudio> rtaudio;

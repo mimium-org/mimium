@@ -1,14 +1,10 @@
 #pragma once
 #include "basic/helper_functions.hpp"
-
+#include "runtime/runtime_defs.hpp"
 namespace mimium{
 class Scheduler;
 class AudioDriver;
 struct TaskType;
-
-
-using DspFnType= double(*)(double,void*);
-
 
 template <typename TaskType>
 class Runtime {

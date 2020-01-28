@@ -1,7 +1,6 @@
 #pragma once
-
+#include "runtime/runtime_defs.hpp"
 namespace mimium {
-using DspFnType = double (*)(double, void*);
 class Scheduler;
 
 class AudioDriver {
@@ -11,6 +10,8 @@ class AudioDriver {
   unsigned int channels = 2;
   Scheduler& sch;
   void* dspfn_cls_address;
+  void* dspfn_memobj_address;
+
   DspFnType dspfn;
 
  public:
@@ -18,9 +19,14 @@ class AudioDriver {
   explicit AudioDriver(Scheduler& sch, unsigned int sr, unsigned int bs,
                        unsigned int chs)
       : sample_rate(sr), buffer_size(bs), channels(chs), sch(sch){};
-  void setDspFn(DspFnType fn, void* cls) {
+  void setDspFn(DspFnType fn) {
     dspfn = fn;
-    dspfn_cls_address = cls;
+  }
+  void setDspClsAddress(void* address){
+      dspfn_cls_address = address;
+  }
+  void setDspMemObjAddress(void* address){
+      dspfn_memobj_address = address;
   }
   virtual ~AudioDriver() = default;
 

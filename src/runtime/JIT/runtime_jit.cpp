@@ -14,20 +14,15 @@ void Runtime_LLVM::executeModule(std::unique_ptr<llvm::Module> module) {
   auto mainfun = jitengine->lookup("mimium_main");
 
   Logger::debug_log(mainfun, Logger::ERROR);
-  auto fnptr =
+  auto mimium_main_function =
       llvm::jitTargetAddressToPointer<void* (*)()>(mainfun->getAddress());
   //
-  auto dsp_cls_address = fnptr();
+ mimium_main_function();
   //
   if (auto symbolorerror = jitengine->lookup("dsp")) {
     auto address = (DspFnType)symbolorerror->getAddress();
     dspfn_address = address;
     hasdsp = true;
-    hasdspcls = dsp_cls_address != nullptr;
-    if (hasdspcls) {
-      this->dspfn_cls_address = dsp_cls_address;
-    }
-
   } else {
     auto err = symbolorerror.takeError();
     Logger::debug_log("dsp function not found", Logger::INFO);
@@ -49,7 +44,7 @@ void Runtime_LLVM::executeModule(std::unique_ptr<llvm::Module> module) {
 void Runtime_LLVM::start() {
   running_status = true;
   if (hasdsp || sch->hasTask()) {
-    sch->setDsp(dspfn_address,dspfn_cls_address);
+    sch->setDsp(dspfn_address);
     sch->start();
     {
       std::unique_lock<std::mutex> uniq_lk(waitc.mtx);

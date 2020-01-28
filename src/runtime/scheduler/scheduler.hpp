@@ -37,7 +37,10 @@ class Scheduler {  // scheduler interface
   // time,address to fun, arg(double), addresstoclosure,
   void addTask(double time, void* addresstofn, double arg, void* addresstocls);
 
-  virtual void setDsp(DspFnType fn,void* cls);
+  virtual void setDsp(DspFnType fn);
+  virtual void setDsp_ClsAddress(void* address);
+  virtual void setDsp_MemobjAddress(void* address);
+
 
   bool isactive = true;
   LLVMRuntime& getRuntime() { return *runtime; };

@@ -1,5 +1,6 @@
 #include "compiler/ffi.hpp"
 extern "C" {
+void dumpaddress(void* a) { std::cerr << a <<"\n"; }
 
 void printdouble(double d) { std::cerr << d; }
 void printlndouble(double d) { std::cerr << d << "\n"; }

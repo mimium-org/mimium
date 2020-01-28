@@ -1,14 +1,11 @@
 
 
 fn lowpass(input,fb)->float{
-    hoge = self
     return input*(1-fb) + self*fb
 }
-
-fn nested(input:float){
-    return lowpass(input,0.9)+lowpass(input,0.5)+self*0.5
+fn phasor(period)->float{
+     return (period+self)%1
 }
-
 fn dsp(time:float)->float{
-    return nested(random())
+    return lowpass((phasor(0.01)+random()*0.25), sin(time/1000)/2+0.5)
 }
