@@ -2,14 +2,13 @@
 
 namespace mimium {
 // Creates Allocation instruction or call malloc function depends on context
-llvm::Value* CodeGenVisitor::createAllocation(
-    bool isglobal, llvm::Type* type, llvm::Value* ArraySize = nullptr,
-    const llvm::Twine& name = "") {
+CodeGenVisitor::CodeGenVisitor(LLVMGenerator& g) : G(g) {}
+
+llvm::Value* CodeGenVisitor::createAllocation(bool isglobal, llvm::Type* type,
+                                              llvm::Value* ArraySize = nullptr,
+                                              const llvm::Twine& name = "") {
   llvm::Value* res = nullptr;
   llvm::Type* t = type;
-  if (type->isFunctionTy()) {
-    t = llvm::ArrayType::get(llvm::PointerType::get(type, 0), 1);
-  }
   if (isglobal) {
     auto rawname = "ptr_" + name.str() + "_raw";
     auto size = G.module->getDataLayout().getTypeAllocSize(t);
@@ -26,7 +25,7 @@ llvm::Value* CodeGenVisitor::createAllocation(
 };
 // Create StoreInst if storing to already allocated value
 bool CodeGenVisitor::createStoreOw(std::string varname,
-                                                  llvm::Value* val_to_store) {
+                                   llvm::Value* val_to_store) {
   bool res = false;
   auto ptrname = "ptr_" + varname;
   auto& map = G.variable_map[G.curfunc];
@@ -37,11 +36,6 @@ bool CodeGenVisitor::createStoreOw(std::string varname,
     res = true;
   }
   return res;
-}
-
-void LLVMGenerator::visitInstructions(Instructions& inst, bool isglobal) {
-  codegenvisitor.isglobal = isglobal;
-  std::visit(codegenvisitor, inst);
 }
 
 void CodeGenVisitor::operator()(NumberInst& i) {
@@ -153,6 +147,9 @@ void CodeGenVisitor::operator()(FunInst& i) {
   if (hasfv) {
     setFvsToMap(i, f);
   }
+  if(hasfv&&i.isrecursive){
+    G.setValuetoMap(i.lv_name+"_cls", f);
+  }
   for (auto& cinsts : i.body->instructions) {
     G.visitInstructions(cinsts, false);
   }
@@ -162,15 +159,14 @@ void CodeGenVisitor::operator()(FunInst& i) {
   }
   G.switchToMainFun();
 }
-llvm::Function* CodeGenVisitor::createFunction(
-    llvm::FunctionType* type, FunInst& i) {
+llvm::Function* CodeGenVisitor::createFunction(llvm::FunctionType* type,
+                                               FunInst& i) {
   auto link = llvm::Function::ExternalLinkage;
   auto* f = llvm::Function::Create(type, link, i.lv_name, *G.module);
   G.setValuetoMap(i.lv_name, f);
   return f;
 }
-void CodeGenVisitor::addArgstoMap(llvm::Function* f,
-                                                 FunInst& i) {
+void CodeGenVisitor::addArgstoMap(llvm::Function* f, FunInst& i) {
   auto f_it = std::begin(f->args());
   for (auto& a : i.args) {
     f_it->setName(a);
@@ -215,11 +211,14 @@ void CodeGenVisitor::operator()(FcallInst& i) {
       break;
     case CLOSURE: {
       auto* cls = getClsFun(i);
-      auto* capptr = G.builder->CreateStructGEP(cls, 1, i.fname + "_cap");
-      auto* fnptr = G.builder->CreateStructGEP(cls, 0, i.fname + "_funptr");
-      args.emplace_back(capptr);
-      fun = G.builder->CreateLoad(fnptr, i.fname + "_fun");
-
+      if (llvm::cast<llvm::PointerType>(cls->getType())->getElementType()->isFunctionTy()) {
+        fun = cls;
+      } else {
+        auto* capptr = G.builder->CreateStructGEP(cls, 1, i.fname + "_cap");
+        auto* fnptr = G.builder->CreateStructGEP(cls, 0, i.fname + "_funptr");
+        args.emplace_back(capptr);
+        fun = G.builder->CreateLoad(fnptr, i.fname + "_fun");
+      }
     } break;
     case EXTERNAL:
       fun = getExtFun(i);
@@ -248,7 +247,7 @@ llvm::Value* CodeGenVisitor::getDirFun(FcallInst& i) {
   return fun;
 }
 llvm::Value* CodeGenVisitor::getClsFun(FcallInst& i) {
-  auto fptr = G.findValue(i.fname);
+  auto fptr = G.findValue(i.fname+"_cls");
   return fptr;
 }
 llvm::Value* CodeGenVisitor::getExtFun(FcallInst& i) {
@@ -265,9 +264,8 @@ llvm::Value* CodeGenVisitor::getExtFun(FcallInst& i) {
   return f;
 }
 
-void CodeGenVisitor::createAddTaskFn(FcallInst& i,
-                                                    const bool isclosure,
-                                                    const bool isglobal) {
+void CodeGenVisitor::createAddTaskFn(FcallInst& i, const bool isclosure,
+                                     const bool isglobal) {
   auto tv = G.findValue("ptr_" + i.args[0]);
 
   auto timeptr = G.builder->CreateStructGEP(tv, 0);
@@ -285,7 +283,7 @@ void CodeGenVisitor::createAddTaskFn(FcallInst& i,
   llvm::Value* addtask_fn;
   auto globalspace = G.variable_map[G.mainentry->getParent()];
   if (isclosure) {
-    llvm::Value* clsptr = (isglobal) ? G.findValue(i.fname + "_cap")
+    llvm::Value* clsptr = (isglobal) ? G.findValue(i.fname + "_cls_capture_ptr")
                                      : G.findValue("clsarg_" + i.fname);
 
     auto* upcasted =
@@ -335,4 +333,4 @@ void CodeGenVisitor::operator()(ReturnInst& i) {
   }
   G.builder->CreateRet(v);
 }
-}
+}  // namespace mimium

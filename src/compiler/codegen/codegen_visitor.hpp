@@ -3,8 +3,9 @@
 
 namespace mimium {
 class LLVMGenerator;
-struct CodeGenVisitor {
-  CodeGenVisitor(LLVMGenerator& g) : G(g){};
+struct CodeGenVisitor :public std::enable_shared_from_this<CodeGenVisitor>{
+  friend LLVMGenerator;
+  CodeGenVisitor(LLVMGenerator& g);
   void operator()(NumberInst& i);
   void operator()(AllocaInst& i);
   void operator()(RefInst& i);
@@ -18,10 +19,11 @@ struct CodeGenVisitor {
   void operator()(ArrayAccessInst& i);
   void operator()(IfInst& i);
   void operator()(ReturnInst& i);
-  bool isglobal;
 
  private:
   LLVMGenerator& G;
+  bool isglobal;
+
   llvm::Value* getDirFun(FcallInst& i);
   llvm::Value* getClsFun(FcallInst& i);
   llvm::Value* getExtFun(FcallInst& i);

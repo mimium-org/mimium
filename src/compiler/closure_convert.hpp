@@ -28,7 +28,6 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
   void moveFunToTop(std::shared_ptr<MIRblock> mir);
 
   std::unordered_map<std::string, std::vector<std::string>> fun_to_memory_objs;
-  void registerMemoryObjs(std::string& funname, std::string& name);
 
   struct CCVisitor {
     explicit CCVisitor(ClosureConverter& cc, std::vector<std::string>& fvlist,
@@ -56,6 +55,8 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
     void operator()(IfInst& i);
     void operator()(ReturnInst& i);
     bool isFreeVar(const std::string& name);
+    private:
+    void visitinsts(FunInst& i,CCVisitor& ccvis,std::list<Instructions>::iterator pos);
   };
   struct FunTypeReplacer {
     explicit FunTypeReplacer(ClosureConverter& cc) : cc(cc) {}

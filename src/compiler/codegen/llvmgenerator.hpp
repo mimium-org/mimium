@@ -1,8 +1,4 @@
 #pragma once
-#include <algorithm>
-#include <memory>
-#include <unordered_map>
-
 #include "basic/ast.hpp"
 #include "basic/helper_functions.hpp"
 #include "basic/mir.hpp"
@@ -15,7 +11,7 @@
 namespace mimium {
 struct LLVMBuiltin;
 struct CodeGenVisitor;
-class LLVMGenerator : public std::enable_shared_from_this<LLVMGenerator> {
+class LLVMGenerator{
 friend struct CodeGenVisitor;
 
  private:
@@ -28,7 +24,7 @@ friend struct CodeGenVisitor;
 
   TypeEnv& typeenv;
   TypeConverter typeconverter;
-  CodeGenVisitor& codegenvisitor;
+  std::shared_ptr<CodeGenVisitor> codegenvisitor;
 
   llvm::FunctionCallee addtask;
   llvm::FunctionCallee addtask_cls;
@@ -50,6 +46,7 @@ friend struct CodeGenVisitor;
   void createMainFun();
   void createTaskRegister(bool isclosure);
   void createNewBasicBlock(std::string name, llvm::Function* f);
+  llvm::Value* getOrCreateFunctionPointer(llvm::Function* f);
   void visitInstructions(Instructions& inst, bool isglobal);
 
   void dropAllReferences();

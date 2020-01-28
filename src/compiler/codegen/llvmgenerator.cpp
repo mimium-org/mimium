@@ -3,15 +3,15 @@
 namespace mimium {
 
 LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv)
-      :ctx(ctx),
+    : ctx(ctx),
       module(std::make_unique<llvm::Module>("no_file_name.mmm", ctx)),
       builder(std::make_unique<llvm::IRBuilder<>>(ctx)),
       mainentry(nullptr),
       currentblock(nullptr),
       typeenv(typeenv),
-      typeconverter(*builder, *module),
-      codegenvisitor(*std::make_unique<CodeGenVisitor>(*this)) {}
+      typeconverter(*builder, *module) {}
 void LLVMGenerator::init(std::string filename) {
+  codegenvisitor = std::make_shared<CodeGenVisitor>(*this);
   module->setSourceFileName(filename);
   module->setModuleIdentifier(filename);
   module->setTargetTriple(llvm::sys::getDefaultTargetTriple());
@@ -129,12 +129,26 @@ void LLVMGenerator::createNewBasicBlock(std::string name, llvm::Function* f) {
   currentblock = bb;
 }
 
+llvm::Value* LLVMGenerator::getOrCreateFunctionPointer(llvm::Function* f){
+  auto name = std::string(f->getName())+"_ptr";
+  llvm::Value* funptr = module->getNamedGlobal(name);
+  if(funptr==nullptr){
+  funptr = module->getOrInsertGlobal(name,llvm::PointerType::get(f->getType(),0));
+  builder->CreateStore(f,funptr);
+  }
+  return funptr;
+}
+
 void LLVMGenerator::preprocess() {
   createMainFun();
   createMiscDeclarations();
   createTaskRegister(true);   // for non-closure function
   createTaskRegister(false);  // for closure
   setBB(mainentry);
+}
+void LLVMGenerator::visitInstructions(Instructions& inst, bool isglobal) {
+  codegenvisitor->isglobal = isglobal;
+  std::visit(*codegenvisitor, inst);
 }
 
 void LLVMGenerator::generateCode(std::shared_ptr<MIRblock> mir) {

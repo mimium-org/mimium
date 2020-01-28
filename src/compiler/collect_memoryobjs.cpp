@@ -15,6 +15,10 @@ std::shared_ptr<MIRblock> MemoryObjsCollector::process(
     }
     ++it;
   }
+  //register to typeenv
+  for(auto&&[name,val]:type_alias_map){
+    typeenv.emplace(val.name, val);
+  }
   return toplevel;
 }
 void MemoryObjsCollector::emplaceNewAlias(std::string& name,
@@ -96,7 +100,7 @@ void MemoryObjsCollector::CollectMemVisitor::operator()(FunInst& i) {
   for (auto& inst : *i.body) {
     std::visit(*this, inst);
   }
-
+  if(!M.memobjs_map[i.lv_name].empty()){
   std::vector<types::Value> objs;
   for (auto& alias_name : M.memobjs_map[i.lv_name]) {
     objs.emplace_back(M.getAliasFromMap(alias_name));
@@ -107,6 +111,7 @@ void MemoryObjsCollector::CollectMemVisitor::operator()(FunInst& i) {
     insertAllocaInst(i,type);
   }
   M.type_alias_map.emplace(i.lv_name, std::move(type));
+  }
 }
 void MemoryObjsCollector::CollectMemVisitor::insertAllocaInst(FunInst& i,types::Alias& type){
   i.parent->instructions.insert(std::next(position),AllocaInst(i.lv_name+".mem", type));
