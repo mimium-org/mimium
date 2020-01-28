@@ -179,8 +179,7 @@ void CodeGenVisitor::addArgstoMap(llvm::Function* f,
 }
 
 void CodeGenVisitor::setFvsToMap(FunInst& i, llvm::Function* f) {
-  auto arg_end = f->arg_end();
-  auto* lastarg = --arg_end;
+  auto* lastarg = std::prev(f->arg_end());
   for (int id = 0; id < i.freevariables.size(); id++) {
     std::string newname = i.freevariables[id];
     auto* gep = G.builder->CreateStructGEP(lastarg, id, "fv");

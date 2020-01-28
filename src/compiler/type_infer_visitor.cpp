@@ -5,7 +5,8 @@
 #include "basic/type.hpp"
 
 namespace mimium {
-TypeInferVisitor::TypeInferVisitor() : has_return(false) {
+TypeInferVisitor::TypeInferVisitor()
+    : has_return(false) {
   for (const auto& [key, val] : LLVMBuiltin::ftable) {
     typeenv.emplace(key, val.mmmtype);
   }
@@ -27,15 +28,13 @@ bool TypeInferVisitor::unify(types::Value& lt, types::Value& rt) {
   bool res = true;
   if (istvl && !istvr) {
     auto& lhs = rv::get<types::TypeVar>(lt);
-    types::unifyTypeVars(lhs, rt);
+    unifyTypeVar(lhs, rt);
   } else if (!istvl && istvr) {
     auto& rhs = rv::get<types::TypeVar>(rt);
-    types::unifyTypeVars(rhs, lt);
+    unifyTypeVar(rhs, lt);
   } else if (istvl && istvr) {
     auto& lhs = rv::get<types::TypeVar>(lt);
-    auto& rhs = rv::get<types::TypeVar>(rt);
-    // link typevars
-    lhs.getLastLink().next = &rhs.getFirstLink();
+    unifyTypeVar(lhs, rt);
   } else {
     res = typeCheck(lt, rt);
   }
@@ -47,6 +46,18 @@ bool TypeInferVisitor::unify(std::string lname, types::Value& rt) {
 }
 bool TypeInferVisitor::unify(std::string lname, std::string rname) {
   return unify(typeenv.find(lname), typeenv.find(rname));
+}
+
+void TypeInferVisitor::unifyTypeVar(types::TypeVar& tv, types::Value& v) {
+  auto it = tvreplacevisitor.tvmap.find(tv.index);
+  if (it != tvreplacevisitor.tvmap.end()) {
+    bool issametype = it->second.index() == v.index();
+    if (!issametype) {
+      std::runtime_error("typevars assigned to different type");
+    }
+  } else {
+    tvreplacevisitor.tvmap.emplace(tv.index, v);
+  }
 }
 
 bool TypeInferVisitor::unifyArg(types::Value& target, types::Value& realarg) {
@@ -118,7 +129,7 @@ void TypeInferVisitor::visit(SelfAST& ast) {
 
 void TypeInferVisitor::visit(OpAST& ast) {
   ast.lhs->accept(*this);
-  types::Value  lhstype = stackPop();
+  types::Value lhstype = stackPop();
   ;
   ast.rhs->accept(*this);
   types::Value rhstype = stackPop();
@@ -187,7 +198,6 @@ void TypeInferVisitor::visit(FcallAST& ast) {
   auto fnargtypes = fn.getArgTypes();
   types::Value res;
   auto args = ast.getArgs()->getElements();
-
   std::vector<types::Value> argtypes;
   bool checkflag = true;
   for (int i = 0; i < args.size(); i++) {
@@ -214,7 +224,6 @@ void TypeInferVisitor::visit(LambdaAST& ast) {
       std::holds_alternative<Rec_Wrap<types::Function>>(ast.type);
   // case of no type specifier
 
-
   if (isspecified) {
     auto fntype = rv::get<types::Function>(ast.type);
     current_return_type = fntype.ret_type;
@@ -224,26 +233,18 @@ void TypeInferVisitor::visit(LambdaAST& ast) {
     }
     current_return_type = typeenv.createNewTypeVar();
   }
-    types::Value res_type = types::Function(current_return_type.value(), argtypes);
-    typeenv.emplace(tmpfname,res_type);
-    ast.getBody()->accept(*this);
-    auto& ref = rv::get<types::Function>(typeenv.find(tmpfname));
-    types::Value ret_type = (has_return) ? stackPop() : types::Void();
-    unify(ret_type,ref.ret_type);
-   
-    if(types::isTypeVar(ref.ret_type)){
-      ref.ret_type = types::Float();
-    }
-     for (auto& a : ref.arg_types) {
-        if(types::isTypeVar(a)){
-          a=types::Float();
-        }
-     }
+  types::Value res_type =
+      types::Function(current_return_type.value(), argtypes);
+  typeenv.emplace(tmpfname, res_type);
+  ast.getBody()->accept(*this);
+  auto& ref = rv::get<types::Function>(typeenv.find(tmpfname));
+  types::Value ret_type = (has_return) ? stackPop() : types::Void();
+  unify(ret_type, ref.ret_type);
 
-    tmpfname = "";
-    res_stack.push(ref);
-    has_return = false;  // switch back flag
-    current_return_type = std::nullopt;
+  tmpfname = "";
+  res_stack.push(ref);
+  has_return = false;  // switch back flag
+  current_return_type = std::nullopt;
 }
 void TypeInferVisitor::visit(IfAST& ast) {
   ast.getCond()->accept(*this);
@@ -291,7 +292,8 @@ void TypeInferVisitor::visit(TimeAST& ast) {
   ast.getTime()->accept(*this);
   auto r = stackPop();
   types::Value tmpf = types::Float();
-  // typeCheck(r, tmpf);
+  unify(r, tmpf);
+  t.val=r;
   t.time = types::Float();
   res_stack.push(t);
 }
@@ -304,6 +306,12 @@ TypeEnv& TypeInferVisitor::infer(AST_Ptr toplevel) {
   return typeenv;
 }
 
-void TypeInferVisitor::replaceTypeVars() { typeenv.replaceTypeVars(); }
+void TypeInferVisitor::replaceTypeVars() {
+  for (auto&& [name, type] : typeenv) {
+    auto newv = std::visit(tvreplacevisitor, type);
+    typeenv.emplace(name,std::move(newv));
+  }
+}
+
 
 }  // namespace mimium
