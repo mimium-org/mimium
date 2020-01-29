@@ -6,7 +6,8 @@ branches:
 dist: xenial
 os: osx
 language: cpp
-
+git:
+  submodule: false
 addons:
   homebrew:
     packages:
