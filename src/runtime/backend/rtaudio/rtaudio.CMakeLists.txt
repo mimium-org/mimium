@@ -1,0 +1,18 @@
+project(rtaudio-download NONE)
+
+include(ExternalProject)
+ExternalProject_Add(rtaudio_project
+  GIT_REPOSITORY https://github.com/thestk/rtaudio
+  GIT_TAG master
+  SOURCE_DIR ${CMAKE_BINARY_DIR}/rtaudio-src
+  BINARY_DIR "${CMAKE_BINARY_DIR}/rtaudio-build"
+  #prevent from updating everytime - for offline environment
+  UPDATE_COMMAND ""
+  ### Add cmake args 
+  CONFIGURE_COMMAND ""
+	BUILD_COMMAND ""
+	INSTALL_COMMAND ""
+	TEST_COMMAND ""
+	LOG_DOWNLOAD ON
+)
+set(RTAUDIO_BUILD_TESTING FALSE)

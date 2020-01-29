@@ -93,12 +93,23 @@ size_t getAddressfromFun(std::function<T(U...)> f) {
 
 class Logger {
  public:
-  Logger();
-  explicit Logger(std::ostream& out);
+  Logger() {
+    setoutput(std::cerr);
+    Logger::current_report_level = Logger::DEBUG;
+  };
+  explicit Logger(std::ostream& out) {
+    setoutput(out);
+    Logger::current_report_level = Logger::DEBUG;
+  };
   virtual ~Logger() = default;
   using REPORT_LEVEL = enum { FATAL = 1, ERROR, WARNING, INFO, DEBUG, TRACE };
   /// @callgraph
-  static void debug_log(const std::string& str, REPORT_LEVEL report_level);
+  static void debug_log(const std::string& str, REPORT_LEVEL report_level) {
+    if (report_level <= Logger::current_report_level) {
+      *output << report_str.at(report_level) << ": " << str << norm
+              << std::endl;
+    }
+  }
   static void debug_log(llvm::Error& err, REPORT_LEVEL report_level) {
     if (bool(err) && report_level <= Logger::current_report_level) {
       llvm::errs() << report_str.at(report_level) << ": " << err << norm
@@ -116,10 +127,10 @@ class Logger {
   }
 
   inline void setoutput(std::ostream& out) { Logger::output = &out; }
-  static REPORT_LEVEL current_report_level;
+  static inline REPORT_LEVEL current_report_level =Logger::WARNING;
 
  private:
-  static std::ostream* output;
+  static inline std::ostream* output = &std::cerr;
 
   static inline const std::string red = "\033[1;31m";
   static inline const std::string green = "\033[1;32m";

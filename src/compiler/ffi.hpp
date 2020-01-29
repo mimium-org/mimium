@@ -1,4 +1,5 @@
 #pragma once
+#define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
 #include <initializer_list>
 #include <unordered_map>
 

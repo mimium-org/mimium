@@ -35,13 +35,15 @@ include(cmake/clang-cxx-dev-tools.cmake)
 # set(RTMIDI_TARGETNAME_UNINSTALL "uninstall_rtmidi" CACHE STRING "Name of 'uninstall' build target")
 # add_subdirectory( libs/rtmidi )
 
-find_package(SndFile REQUIRED)
+# find_package(SndFile REQUIRED)
+
 include_directories(src)
+
 add_custom_target(default_build)
 
 add_subdirectory( src )
-
 add_subdirectory( docs )
+#add_subdirectory( test )
 
 
 install (TARGETS mimium mimium_llloader DESTINATION bin)
@@ -57,4 +59,3 @@ add_custom_command(TARGET uninstall
 COMMAND cat install_manifest.txt | sudo xargs rm -f
 COMMAND cat install_manifest.txt | xargs -L1 dirname | sudo xargs  rmdir -p 2&> /dev/null
 )
-#add_subdirectory( test )

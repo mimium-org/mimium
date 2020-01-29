@@ -1,52 +1,50 @@
-find_package(PkgConfig)
+
+
+# ----start rtaudio config
+message(STATUS "Subproject: Rtaudio...")
+
+configure_file(
+	${CMAKE_CURRENT_SOURCE_DIR}/rtaudio.CMakeLists.txt
+  ${CMAKE_BINARY_DIR}/rtaudio-download/CMakeLists.txt)
+set(RTAUDIO_TARGETNAME_UNINSTALL "uninstall_mimium")
+execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
+  RESULT_VARIABLE result
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/rtaudio-download)
+if(result)
+  message(FATAL_ERROR "CMake step for rtaudio failed: ${result}")
+endif()
+execute_process(COMMAND ${CMAKE_COMMAND} --build .
+  RESULT_VARIABLE result
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/rtaudio-download)
+if(result)
+  message(FATAL_ERROR "Build step for rtaudio failed: ${result}")
+endif()
+
+add_subdirectory(
+	${CMAKE_BINARY_DIR}/rtaudio-src
+	${CMAKE_BINARY_DIR}/rtaudio-build)
+
+message(STATUS "Subproject: RtAudio...DONE")
+
+find_package(RtAudio REQUIRED)
 
 add_library(mimium_backend_rtaudio STATIC driver_rtaudio.cpp)
 
-set(RTAUDIO_BUILD_TESTING FALSE)
+set(RTAUDIO_INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/rtaudio-src)
+get_target_property(RTAUDIO_INTERFACE_LIBS RtAudio::rtaudio INTERFACE_LINK_LIBRARIES)
 
-include(ExternalProject)
-ExternalProject_Add(
-  ### Target name
-  rtaudio_ext
-  ### Path to Git repository
-  GIT_REPOSITORY https://github.com/thestk/rtaudio
-  ### Specify TAG
-  GIT_TAG master
-  ### Path to source tree
-  SOURCE_DIR ${CMAKE_BINARY_DIR}/externals/rtaudio
-  #prevent from updating everytime - for offline environment
-  UPDATE_COMMAND ""
-  ### Add cmake args 
-  CONFIGURE_COMMAND
-  "${CMAKE_COMMAND}"
-  "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/externals/rtaudio/build"
-  "-H${CMAKE_BINARY_DIR}/externals/rtaudio"
-  "-B${CMAKE_BINARY_DIR}/externals/rtaudio/build"
-  "-DRTAUDIO_BUILD_STATIC_LIBS=TRUE"
-  INSTALL_COMMAND sh -c "${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/externals/rtaudio/build/cmake_install.cmake"
-  ### Path to build tree
-  BUILD_COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}/externals/rtaudio/build
+target_include_directories(mimium_backend_rtaudio PUBLIC
+${RTAUDIO_INCLUDE_DIRECTORIES}
 )
+target_compile_options(mimium_backend_rtaudio PRIVATE 
+-std=c++17)
 
-add_dependencies(mimium_backend_rtaudio rtaudio_ext)
+target_compile_definitions(mimium_backend_rtaudio PRIVATE
+	)
 
-pkg_check_modules(RTAUDIO REQUIRED ${CMAKE_BINARY_DIR}/externals/rtaudio/build/rtaudio.pc)
-
-message(${RTAUDIO_FOUND})
-message(${RTAUDIO_INCLUDE_DIRS})
-message(${RTAUDIO_PREFIX})
-message(${RTAUDIO_LIBRARIES})
-message(${RTAUDIO_CFLAGS})
-
-target_compile_options(mimium_backend_rtaudio PRIVATE -std=c++17)
-if (${APPLE})
-  find_library(COREAUDIO_LIB CoreAudio)
-  find_library(COREFOUNDATION_LIB CoreFoundation)
-  # list(APPEND LINKLIBS ${COREAUDIO_LIB} ${COREFOUNDATION_LIB})
-endif()
-target_include_directories(mimium_backend_rtaudio PRIVATE ${RTAUDIO_INCLUDE_DIRS})
-target_compile_options(mimium_backend_rtaudio INTERFACE ${RTAUDIO_CFLAGS})
-target_link_directories(mimium_backend_rtaudio INTERFACE ${RTAUDIO_LIBRARY_DIRS})
-target_link_libraries(mimium_backend_rtaudio INTERFACE ${RTAUDIO_LIBRARIES} ${COREAUDIO_LIB} ${COREFOUNDATION_LIB})
+target_link_libraries(mimium_backend_rtaudio INTERFACE 
+rtaudio
+${RTAUDIO_INTERFACE_LIBS}
+)
 
 
