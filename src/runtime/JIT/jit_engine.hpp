@@ -26,12 +26,23 @@
 #include "llvm/Transforms/Utils.h"
 #include "llvm/Transforms/Vectorize.h"
 
+#define LAZY_ENABLE 0
+#if LAZY_ENABLE
+#define LLJITCLASS LLLazyJIT
+#else
+#define LLJITCLASS LLJIT
+#endif
+
 namespace llvm {
 namespace orc {
 
 class MimiumJIT {
  private:
-  std::unique_ptr<LLLazyJIT> lllazyjit;
+  #if LAZY_ENABLE
+  std::unique_ptr<LLJITCLASS> lllazyjit;
+  #else
+  std::unique_ptr<LLJIT> lllazyjit;
+  #endif
   ExecutionSession& ES;
   const DataLayout& DL;
   JITDylib& MainJD;
@@ -47,7 +58,9 @@ class MimiumJIT {
         MainJD(lllazyjit->getMainJITDylib()),
         Mangle(ES, this->DL),
         Ctx(std::make_unique<LLVMContext>()) {
+    #if LAZY_ENABLE
     lllazyjit->setLazyCompileTransform(optimizeModule);
+    #endif
 // MainJD.getExecutionSession()
 #if LLVM_VERSION_MAJOR >= 10
     MainJD.addGenerator(
@@ -59,14 +72,22 @@ class MimiumJIT {
             DL.getGlobalPrefix())));
 #endif
   }
-  static std::unique_ptr<LLLazyJIT> createEngine() {
+  static std::unique_ptr<LLJITCLASS> createEngine() {
+    #if LAZY_ENABLE
     auto builder = LLLazyJITBuilder();
+    #else
+    auto builder = LLJITBuilder();
+    #endif
     auto jit = builder.create();
     llvm::logAllUnhandledErrors(jit.takeError(), llvm::errs());
     return std::move(jit.get());
   }
   Error addModule(std::unique_ptr<Module> M) {
+    #if LAZY_ENABLE
     return lllazyjit->addLazyIRModule(ThreadSafeModule(std::move(M), Ctx));
+    #else
+    return  lllazyjit->addIRModule(ThreadSafeModule(std::move(M), Ctx));
+    #endif
   }
   Expected<JITEvaluatedSymbol> lookup(StringRef name) {
     return lllazyjit->lookup(name);

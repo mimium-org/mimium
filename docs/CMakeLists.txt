@@ -21,15 +21,15 @@ configure_file(${DOXYFILE_IN} ${DOXYFILE_OUT} @ONLY)
 file(MAKE_DIRECTORY ${DOXYGEN_OUTPUT_DIR})
  
 # # Only regenerate Doxygen when the Doxyfile or public headers change
-# add_custom_command(OUTPUT ${DOXYGEN_INDEX_FILE}
-#                    DEPENDS ${MIMIUM_PUBLIC_HEADERS}
-#                    COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYFILE_OUT}
-#                    MAIN_DEPENDENCY ${DOXYFILE_OUT} ${DOXYFILE_IN}
-#                    COMMENT "Generating docs"
-#                    VERBATIM)
+add_custom_command(OUTPUT ${DOXYGEN_INDEX_FILE}
+                   DEPENDS ${MIMIUM_PUBLIC_HEADERS}
+                   COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYFILE_OUT}
+                   MAIN_DEPENDENCY ${DOXYFILE_OUT} ${DOXYFILE_IN}
+                   COMMENT "Generating docs"
+                   VERBATIM)
  
 # # Nice named target so we can run the job easily
-# add_custom_target(Doxygen ALL DEPENDS ${DOXYGEN_INDEX_FILE})
+add_custom_target(Doxygen ALL DEPENDS ${DOXYGEN_INDEX_FILE})
  
 set(SPHINX_SOURCE ${CMAKE_CURRENT_SOURCE_DIR})
 set(SPHINX_BUILD ${CMAKE_CURRENT_BINARY_DIR}/sphinx)
@@ -61,5 +61,9 @@ add_custom_target(Sphinx ALL DEPENDS ${SPHINX_INDEX_FILE})
  
 # Add an install target to install the docs
 include(GNUInstallDirs)
+OPTION(INSTALL_DOCS "Install Documentation" OFF)
+
+if(INSTALL_DOCS)
 install(DIRECTORY ${SPHINX_BUILD}
 DESTINATION ${CMAKE_INSTALL_DOCDIR})
+endif()

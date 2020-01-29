@@ -1,0 +1,24 @@
+branches:
+  only:
+  - master
+  - dev
+
+dist: xenial
+os: osx
+language: cpp
+
+addons:
+  homebrew:
+    packages:
+    - cmake
+    - llvm
+    - bison
+    - flex
+script:
+- export CC=/usr/local/opt/llvm/bin/clang;
+- export CXX=/usr/local/opt/llvm/bin/clang++;
+- mkdir build
+- cmake ..
+- cmake  --build .. --config Release --target mimium
+- cmake --build .. --target install
+- mimium --version
