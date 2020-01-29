@@ -15,6 +15,11 @@ addons:
     - llvm
     - bison
     - flex
+cache:
+  directories:
+    - $HOME/Library/Caches/Homebrew
+before_cache:
+  - brew cleanup
 script:
 - export CC=/usr/local/opt/llvm/bin/clang;
 - export CXX=/usr/local/opt/llvm/bin/clang++;
