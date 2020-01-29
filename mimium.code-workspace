@@ -98,6 +98,7 @@
 			"queue": "cpp",
 			"complex": "cpp"
 		},
+		"cmake.installPrefix": "/usr/local/opt/mimium",
 		"git.ignoreLimitWarning": true,
 		"clangd.arguments": [
 			"-clang-tidy",

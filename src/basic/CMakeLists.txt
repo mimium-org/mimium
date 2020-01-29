@@ -11,3 +11,4 @@ target_include_directories(mimium_utils
 )
 
 target_link_libraries(mimium_utils LLVM)
+
