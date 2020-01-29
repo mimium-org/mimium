@@ -15,14 +15,17 @@ addons:
     - llvm
     - bison
     - flex
+    - libsndfile
 cache:
   directories:
     - $HOME/Library/Caches/Homebrew
 before_cache:
   - brew cleanup
 script:
+- export LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib"
 - export CC=/usr/local/opt/llvm/bin/clang;
 - export CXX=/usr/local/opt/llvm/bin/clang++;
+- export LLVM_DIR=/usr/local/opt/llvm;
 - mkdir build && cd build
 - cmake ..
 - cmake  --build .. --config Release --target mimium
