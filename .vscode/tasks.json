@@ -6,11 +6,11 @@
             "command": "cmake",
             "args": [
                 "--build",
-                "/Users/tomoya/codes/mimium/build",
+                "./",
                 "--config",
                 "Debug",
                 "--target",
-                "mimium",
+                "default_build",
                 "--",
                 "-j",
                 "18"
@@ -22,6 +22,21 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "type": "shell",
+            "label": "install",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "./",
+                "--target",
+                "install"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/build"
+            },
+            "problemMatcher": []
         }
     ],
     "version": "2.0.0"
