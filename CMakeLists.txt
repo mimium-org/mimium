@@ -35,6 +35,7 @@ include(cmake/EnableCcache.cmake)
 
 # find_package(SndFile REQUIRED)
 
+#[FIXME] this is unsafe,,,
 include_directories(src)
 
 add_custom_target(default_build)

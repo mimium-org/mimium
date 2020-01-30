@@ -25,6 +25,9 @@ add_subdirectory(
 	${CMAKE_BINARY_DIR}/rtaudio-build)
 
 message(STATUS "Subproject: RtAudio...DONE")
+execute_process(COMMAND ls 
+  RESULT_VARIABLE result
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/rtaudio-build)
 
 find_package(RtAudio REQUIRED)
 
