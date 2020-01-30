@@ -9,8 +9,7 @@ ExternalProject_Add(rtaudio_project
   #prevent from updating everytime - for offline environment
   UPDATE_COMMAND ""
   ### Add cmake args 
-  CONFIGURE_COMMAND ""
-	BUILD_COMMAND ""
+	### BUILD_COMMAND ""
 	INSTALL_COMMAND ""
 	TEST_COMMAND ""
 	LOG_DOWNLOAD ON
