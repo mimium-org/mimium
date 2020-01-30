@@ -29,6 +29,6 @@ script:
 - export LLVM_DIR=/usr/local/opt/llvm;
 - mkdir build && cd build
 - cmake ..
-- cmake  --build .. --config Release --target mimium
-- cmake --build .. --target install
+- cmake  --build .
+- cmake --build . --target install
 - mimium --version
