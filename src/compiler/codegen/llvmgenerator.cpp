@@ -82,7 +82,7 @@ void LLVMGenerator::createMiscDeclarations() {
   setValuetoMap("malloc", res);
   // create llvm memset
   auto* memsettype = llvm::FunctionType::get(vo, {i8ptr, i8, i64, b}, false);
-  auto memset =module->getOrInsertFunction("llvm.memset.p0i8.i64",memsettype).getCallee();
+  module->getOrInsertFunction("llvm.memset.p0i8.i64",memsettype).getCallee();
 
 }
 

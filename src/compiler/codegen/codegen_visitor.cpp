@@ -115,7 +115,6 @@ void CodeGenVisitor::operator()(OpInst& i) {
   G.setValuetoMap(i.lv_name, retvalue);
 }
 void CodeGenVisitor::operator()(FunInst& i) {
-  bool hasfv = !i.freevariables.empty();
   auto memobj = G.memobjcoll.getAliasFromMap(i.lv_name);
 
   auto* ft = createFunctionType(i, memobj);

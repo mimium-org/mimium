@@ -5,7 +5,7 @@ AudioDriverRtAudio::AudioDriverRtAudio(Scheduler& sch, unsigned int sr,
                                        unsigned int bs, unsigned int chs)
     : AudioDriver(sch, sr, bs, chs),
       callbackdata{&sch, sch.getRuntime().getDspFn(),
-                   sch.getRuntime().getDspFnCls(), 0} {
+                   sch.getRuntime().getDspFnCls(), nullptr,0} {
   dspfn = sch.getRuntime().getDspFn();
   dspfn_cls_address = sch.getRuntime().getDspFnCls();
   try {
@@ -21,11 +21,6 @@ AudioDriverRtAudio::AudioDriverRtAudio(Scheduler& sch, unsigned int sr,
   parameters.nChannels = chs;
   parameters.firstChannel = 0;
 }
-struct tmptype{
-  double f1;
-  double f2;
-  double f3;
-};
 RtAudioCallback AudioDriverRtAudio::callback =
     [](void* output, void* input, unsigned int nFrames, double time,
        RtAudioStreamStatus status, void* userdata) -> int {

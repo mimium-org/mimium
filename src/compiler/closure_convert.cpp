@@ -15,12 +15,12 @@ bool ClosureConverter::isKnownFunction(const std::string& name) {
 }
 
 void ClosureConverter::moveFunToTop(std::shared_ptr<MIRblock> mir) {
+  auto& tinsts = toplevel->instructions;
   for (auto it = mir->instructions.begin(), end = mir->instructions.end();
        it != end; ++it) {
     auto& cinst = *it;
     if (std::holds_alternative<FunInst>(cinst)) {
       auto f = std::get<FunInst>(cinst);  // copy
-      auto& tinsts = toplevel->instructions;
       moveFunToTop(f.body);
       if (this->toplevel != mir) {
         tinsts.insert(tinsts.begin(), f);  // move on top op toplevel
