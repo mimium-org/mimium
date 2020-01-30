@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 #pragma once
 #include "runtime/backend/audiodriver.hpp"
 #include "runtime/scheduler/scheduler.hpp"
@@ -21,7 +25,7 @@ class AudioDriverRtAudio : public AudioDriver {
  public:
   explicit AudioDriverRtAudio(Scheduler& sch, unsigned int sr = 48000,
                               unsigned int bs = 256, unsigned int chs = 2);
-  ~AudioDriverRtAudio() = default;
+  ~AudioDriverRtAudio()override = default;
   bool start() override;
   bool stop() override;
   static RtAudioCallback callback;

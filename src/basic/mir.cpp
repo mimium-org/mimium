@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+ 
 #include "basic/mir.hpp"
 
 namespace mimium {
@@ -36,13 +40,13 @@ std::string AssignInst::toString() { return lv_name + " =(overwrite) " + val; }
 std::string TimeInst::toString() { return lv_name + " = " + val + +"@" + time; }
 
 std::string OpInst::toString() { return lv_name + " = " + lhs + op + rhs; }
-FunInst::FunInst(std::string name, std::deque<std::string> newargs,
-                 types::Value _type, bool isrecursive)
-    : MIRinstruction(name, std::move(_type)),
+FunInst::FunInst(const std::string& name, std::deque<std::string> newargs,
+                 types::Value type, bool isrecursive)
+    : MIRinstruction(name, std::move(type)),
       args(std::move(newargs)),
-      isrecursive(isrecursive) {
-  body = std::make_shared<MIRblock>(std::move(name));
-}
+      isrecursive(isrecursive),
+      hasself(false),
+      body(std::make_shared<MIRblock>(name)) {}
 std::string FunInst::toString() {
   std::string s;
   s += lv_name + " = fun";
@@ -51,10 +55,10 @@ std::string FunInst::toString() {
   }
   s += " " + join(args, " , ");
   if (!freevariables.empty()) {
-    s+= " fv{";
-      for (auto& cap : freevariables) {
-    s += cap + ",";
-  }
+    s += " fv{";
+    for (auto& cap : freevariables) {
+      s += cap + ",";
+    }
     s = s.substr(0, s.size() - 1) + "}";
   }
   s += "\n";

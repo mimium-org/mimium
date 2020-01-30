@@ -1,9 +1,14 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+ 
 #include "compiler/closure_convert.hpp"
 
 namespace mimium {
-ClosureConverter::ClosureConverter(TypeEnv& _typeenv)
-    : typeenv(_typeenv),
+ClosureConverter::ClosureConverter(TypeEnv& typeenv)
+    : typeenv(typeenv),
       capturecount(0),
+      closurecount(0),
       tmp_globalfn("tmp", {}),
       typereplacer(*this) {}
 
@@ -15,12 +20,12 @@ bool ClosureConverter::isKnownFunction(const std::string& name) {
 }
 
 void ClosureConverter::moveFunToTop(std::shared_ptr<MIRblock> mir) {
+  auto& tinsts = toplevel->instructions;
   for (auto it = mir->instructions.begin(), end = mir->instructions.end();
        it != end; ++it) {
     auto& cinst = *it;
     if (std::holds_alternative<FunInst>(cinst)) {
       auto f = std::get<FunInst>(cinst);  // copy
-      auto& tinsts = toplevel->instructions;
       moveFunToTop(f.body);
       if (this->toplevel != mir) {
         tinsts.insert(tinsts.begin(), f);  // move on top op toplevel

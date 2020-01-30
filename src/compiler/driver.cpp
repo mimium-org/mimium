@@ -1,9 +1,7 @@
-#include <iostream>
-#include <fstream>
-
-#include <memory>
-#include <string>
-#include <sstream>
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+ 
 
 #include "compiler/driver.hpp"
 
@@ -28,7 +26,7 @@ void MimiumDriver::parsestring(const std::string str){
    parse(instream);
 }
 
-void MimiumDriver::parsefile(const std::string filename){
+void MimiumDriver::parsefile(const std::string& filename){
    std::ifstream ifs;
    ifs.exceptions(std::fstream::failbit | std::fstream::badbit);
    try{
@@ -38,7 +36,7 @@ void MimiumDriver::parsefile(const std::string filename){
          ifs.open(working_directory + filename);
       }
       parse(ifs);
-   }catch( std::ios_base::failure e){
+   }catch(const std::ios_base::failure& e){
         std::cerr << "File read error" << std::endl;
         if(ifs.fail()){
          std::cerr << "no such file:" << filename <<std::endl;
@@ -50,12 +48,12 @@ void MimiumDriver::clear(){
    mainast = std::make_shared<ListAST>();
 }
 
-void MimiumDriver::setWorkingDirectory(const std::string str){
-   working_directory = str;
+void MimiumDriver::setWorkingDirectory(const std::string cwd){
+   working_directory = cwd;
 }
 
 AST_Ptr MimiumDriver::add_number(double num){
-   return std::make_unique<NumberAST>(std::move(num));
+   return std::make_unique<NumberAST>(num);
 }
 
 std::shared_ptr<LvarAST> MimiumDriver::add_lvar(std::string str){
@@ -69,7 +67,7 @@ std::shared_ptr<LvarAST> MimiumDriver::add_lvar(std::string str, mimium::types::
 std::shared_ptr<RvarAST> MimiumDriver::add_rvar(std::string str){
    return std::make_unique<RvarAST>(std::move(str));
 }
-std::shared_ptr<SelfAST> MimiumDriver::add_self(std::string str){
+std::shared_ptr<SelfAST> MimiumDriver::add_self(std::string  /*str*/){
    return std::make_shared<SelfAST>();
 }
 

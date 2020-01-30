@@ -5,20 +5,31 @@ branches:
 
 dist: xenial
 os: osx
+osx_image: xcode10.2	
 language: cpp
-
+git:
+  submodules: false
 addons:
   homebrew:
     packages:
     - cmake
+    - doxygen
     - llvm
     - bison
     - flex
+    - libsndfile
+cache:
+  directories:
+    - $HOME/Library/Caches/Homebrew
+before_cache:
+  - brew cleanup
 script:
+- export LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib"
 - export CC=/usr/local/opt/llvm/bin/clang;
 - export CXX=/usr/local/opt/llvm/bin/clang++;
-- mkdir build
-- cmake ..
-- cmake  --build .. --config Release --target mimium
-- cmake --build .. --target install
+- export LLVM_DIR=/usr/local/opt/llvm;
+- mkdir build && cd build
+- cmake .. -DBUILD_DOCS=FALSE
+- cmake  --build .
+- cmake --build . --target install
 - mimium --version

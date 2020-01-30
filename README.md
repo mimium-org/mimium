@@ -1,5 +1,8 @@
 # mimium
 
+[![Build Status](https://travis-ci.org/tomoyanonymous/mimium.svg?branch=master)](https://travis-ci.org/tomoyanonymous/mimium) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/de5190beb61f4ea9a337becdb21f8328)](https://www.codacy.com/manual/tomoyanonymous/mimium?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=tomoyanonymous/mimium&amp;utm_campaign=Badge_Grade)
+
+
 mimium(*MInimal-Musical-medIUM*) is a domain specific programming language for describing/generating sound and music.
 
 mimium is assumed to be used in a composition, rather than real-time performance.
@@ -12,11 +15,13 @@ More specific info about language is currently in [design](design/design-proposa
 
 # Dependency
 
-- llvm
-- clang > 8.0.0(depends on features of C++ 17)
+- llvm >= 9.0.0
+- bison
+- flex
+- clang (depends on features of C++ 17)
 - RtAudio
 - RtMidi
-- LibSndFile
+
 
 # Author
 

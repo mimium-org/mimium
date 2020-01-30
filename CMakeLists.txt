@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.4)
- 
+option(BUILD_DOCS "build a documentation")
+
+
 set(CMAKE_CXX_COMPILER /usr/local/opt/llvm/bin/clang++)
 set(CMAKE_C_COMPILER /usr/local/opt/llvm/bin/clang) 
 
@@ -18,12 +20,6 @@ message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1 -Wall")
-set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
-set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
-set(CMAKE_CXX_FLAGS_MINSIZEREL "-Os -DNDEBUG")
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-Og -g -DNDEBUG")
-
 SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
 
@@ -31,17 +27,27 @@ SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 # Including custom cmake rules for clang-tidy and clang-format
 include(cmake/clang-cxx-dev-tools.cmake)
 
+#include ccache
+include(cmake/EnableCcache.cmake)
+
+
 # set(RTMIDI_BUILD_TESTING FALSE)
 # set(RTMIDI_TARGETNAME_UNINSTALL "uninstall_rtmidi" CACHE STRING "Name of 'uninstall' build target")
 # add_subdirectory( libs/rtmidi )
 
-find_package(SndFile REQUIRED)
+# find_package(SndFile REQUIRED)
+
+#[FIXME] this is unsafe,,,
 include_directories(src)
+
 add_custom_target(default_build)
 
 add_subdirectory( src )
-
+if(BUILD_DOCS)
 add_subdirectory( docs )
+endif()
+
+#add_subdirectory( test )
 
 
 install (TARGETS mimium mimium_llloader DESTINATION bin)
@@ -57,4 +63,3 @@ add_custom_command(TARGET uninstall
 COMMAND cat install_manifest.txt | sudo xargs rm -f
 COMMAND cat install_manifest.txt | xargs -L1 dirname | sudo xargs  rmdir -p 2&> /dev/null
 )
-#add_subdirectory( test )

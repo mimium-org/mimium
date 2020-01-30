@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+ 
 #include "compiler/codegen/llvmgenerator.hpp"
 
 namespace mimium {
@@ -9,6 +13,7 @@ LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv,
       builder(std::make_unique<llvm::IRBuilder<>>(ctx)),
       mainentry(nullptr),
       currentblock(nullptr),
+      curfunc(nullptr),
       typeenv(typeenv),
       typeconverter(*builder, *module),
       memobjcoll(memobjcoll) {}
@@ -82,7 +87,7 @@ void LLVMGenerator::createMiscDeclarations() {
   setValuetoMap("malloc", res);
   // create llvm memset
   auto* memsettype = llvm::FunctionType::get(vo, {i8ptr, i8, i64, b}, false);
-  auto memset =module->getOrInsertFunction("llvm.memset.p0i8.i64",memsettype).getCallee();
+  module->getOrInsertFunction("llvm.memset.p0i8.i64",memsettype).getCallee();
 
 }
 
@@ -139,7 +144,7 @@ void LLVMGenerator::createNewBasicBlock(std::string name, llvm::Function* f) {
   builder->SetInsertPoint(bb);
   currentblock = bb;
 }
-void LLVMGenerator::CreateRuntimeSetDspFn() {
+void LLVMGenerator::createRuntimeSetDspFn() {
   auto voidptrtype = builder->getInt8PtrTy();
   auto dspfnaddress =
       builder->CreateBitCast(module->getFunction("dsp"), voidptrtype);
@@ -201,7 +206,7 @@ void LLVMGenerator::generateCode(std::shared_ptr<MIRblock> mir) {
   for (auto& inst : mir->instructions) {
     visitInstructions(inst, true);
   }
-  CreateRuntimeSetDspFn();
+  createRuntimeSetDspFn();
   // main always return null for now;
   builder->CreateRet(llvm::ConstantPointerNull::get(builder->getInt8PtrTy()));
 }

@@ -1,11 +1,15 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+ 
 #include "compiler/codegen/codegen_visitor.hpp"
 
 namespace mimium {
 // Creates Allocation instruction or call malloc function depends on context
-CodeGenVisitor::CodeGenVisitor(LLVMGenerator& g) : G(g) {}
+CodeGenVisitor::CodeGenVisitor(LLVMGenerator& g) : G(g),isglobal(false) {}
 
 llvm::Value* CodeGenVisitor::createAllocation(bool isglobal, llvm::Type* type,
-                                              llvm::Value* ArraySize = nullptr,
+                                              llvm::Value* arraysize = nullptr,
                                               const llvm::Twine& name = "") {
   llvm::Value* res = nullptr;
   llvm::Type* t = type;
@@ -19,7 +23,7 @@ llvm::Value* CodeGenVisitor::createAllocation(bool isglobal, llvm::Type* type,
                                        "ptr_" + name);
     G.setValuetoMap(rawname, rawres);
   } else {
-    res = G.builder->CreateAlloca(type, ArraySize, "ptr_" + name);
+    res = G.builder->CreateAlloca(type, arraysize, "ptr_" + name);
   }
   return res;
 };
@@ -115,7 +119,6 @@ void CodeGenVisitor::operator()(OpInst& i) {
   G.setValuetoMap(i.lv_name, retvalue);
 }
 void CodeGenVisitor::operator()(FunInst& i) {
-  bool hasfv = !i.freevariables.empty();
   auto memobj = G.memobjcoll.getAliasFromMap(i.lv_name);
 
   auto* ft = createFunctionType(i, memobj);

@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 #pragma once
 #include "basic/ast.hpp"
 #include "basic/helper_functions.hpp"
@@ -45,7 +49,7 @@ friend struct CodeGenVisitor;
   void preprocess();
   llvm::Function* getForeignFunction(std::string name);
   void createMiscDeclarations();
-  void CreateRuntimeSetDspFn();
+  void createRuntimeSetDspFn();
   void createMainFun();
   void createTaskRegister(bool isclosure);
   void createNewBasicBlock(std::string name, llvm::Function* f);
