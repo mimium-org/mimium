@@ -1,4 +1,6 @@
 #pragma once
+#define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
+
 #include <queue>
 
 #include "basic/helper_functions.hpp"

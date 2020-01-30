@@ -28,7 +28,7 @@ message(STATUS "Subproject: RtAudio...DONE")
 
 find_package(RtAudio REQUIRED)
 
-add_library(mimium_backend_rtaudio STATIC driver_rtaudio.cpp)
+add_library(mimium_backend_rtaudio SHARED driver_rtaudio.cpp)
 
 set(RTAUDIO_INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/rtaudio-src)
 get_target_property(RTAUDIO_INTERFACE_LIBS RtAudio::rtaudio INTERFACE_LINK_LIBRARIES)
@@ -42,8 +42,9 @@ target_compile_options(mimium_backend_rtaudio PRIVATE
 target_compile_definitions(mimium_backend_rtaudio PRIVATE
 	)
 
-target_link_libraries(mimium_backend_rtaudio INTERFACE 
+target_link_libraries(mimium_backend_rtaudio PUBLIC 
 rtaudio
+mimium_scheduler
 ${RTAUDIO_INTERFACE_LIBS}
 )
 

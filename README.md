@@ -1,6 +1,7 @@
 # mimium
 
-[![Build Status](https://travis-ci.org/tomoyanonymous/mimium.svg?branch=master)](https://travis-ci.org/tomoyanonymous/mimium)
+[![Build Status](https://travis-ci.org/tomoyanonymous/mimium.svg?branch=master)](https://travis-ci.org/tomoyanonymous/mimium) [![CodeFactor](https://www.codefactor.io/repository/github/tomoyanonymous/mimium/badge)](https://www.codefactor.io/repository/github/tomoyanonymous/mimium)
+
 
 mimium(*MInimal-Musical-medIUM*) is a domain specific programming language for describing/generating sound and music.
 
