@@ -74,7 +74,7 @@ class MimiumDriver {
   AST_Ptr add_fdef(AST_Ptr fname, AST_Ptr args, AST_Ptr statements);
 
   AST_Ptr add_if(AST_Ptr condition, AST_Ptr thenstatement,
-                 AST_Ptr elsestatement);
+                 AST_Ptr elsestatement,bool isexpr=false);
 
   AST_Ptr add_forloop(AST_Ptr var, AST_Ptr iterator, AST_Ptr expression);
 

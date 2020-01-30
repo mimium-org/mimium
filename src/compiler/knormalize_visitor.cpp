@@ -227,9 +227,19 @@ void KNormalizeVisitor::visit(ArrayAccessAST& ast) {  // access index may be
 }
 void KNormalizeVisitor::visit(IfAST& ast) {
   auto tmpcontext = currentblock;
+    auto newname = getVarName();
   ast.getCond()->accept(*this);
-  auto newname = getVarName();
-  IfInst newinst(newname, stackPopStr());
+  auto condname =  stackPopStr();
+    ast.getThen()->accept(*this);
+    auto thenval =stackPopStr();
+    ast.getElse()->accept(*this);
+    auto elseval = stackPopStr();
+  if(ast.isexpr){
+    Instructions res = FcallInst(newname,"ifexpr",{condname,thenval,elseval},EXTERNAL);
+    currentblock->addInst(res);
+    res_stack_str.push(newname);
+  }else{
+  IfInst newinst(newname, condname);
   Instructions res = newinst;
   currentblock->indent_level++;
   newinst.thenblock->indent_level = currentblock->indent_level;
@@ -242,6 +252,7 @@ void KNormalizeVisitor::visit(IfAST& ast) {
   res_stack_str.push(newname);
   currentblock = tmpcontext;
   currentblock->indent_level--;
+  }
 }
 void KNormalizeVisitor::visit(ReturnAST& ast) {
   ast.getExpr()->accept(*this);

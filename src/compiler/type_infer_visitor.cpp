@@ -138,7 +138,7 @@ void TypeInferVisitor::visit(OpAST& ast) {
     std::logic_error("type of lhs and rhs is not matched");
   }
   // anyway return type is float for now
-  res_stack.push(*std::make_unique<types::Float>());
+  res_stack.push(rhstype);
 }
 void TypeInferVisitor::visit(ListAST& ast) {
   for (auto& line : ast.getElements()) {
@@ -248,11 +248,18 @@ void TypeInferVisitor::visit(LambdaAST& ast) {
 }
 void TypeInferVisitor::visit(IfAST& ast) {
   ast.getCond()->accept(*this);
-
+  auto condval =stackPop();
+  types::Value ref =types::Float();
+  unify(condval,ref);
+  if(ast.isexpr){
   // auto newcond = stack_pop_ptr();
   ast.getThen()->accept(*this);
-  // auto newthen = stack_pop_ptr();
+  auto thenval = stackPop();
   ast.getElse()->accept(*this);
+  auto elseval =stackPop();
+  unify(thenval,elseval);
+  res_stack.push(thenval);
+  }
   // auto newelse = stack_pop_ptr();
   // auto newast =
   // std::make_unique<IfAST>(std::move(newcond),std::move(newthen),std::move(newelse));

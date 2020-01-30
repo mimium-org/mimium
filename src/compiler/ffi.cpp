@@ -9,6 +9,41 @@ void dumpaddress(void* a) { std::cerr << a <<"\n"; }
 void printdouble(double d) { std::cerr << d; }
 void printlndouble(double d) { std::cerr << d << "\n"; }
 double mimiumrand(){return ((double)rand()/RAND_MAX)*2 -1  ;}
+
+double mimium_ifexpr(double cond,double thenval,double elseval){
+    return (cond>0)?thenval:elseval;
+}
+bool mimium_dtob(double d){
+    return d>0;
+}
+int64_t mimium_dtoi(double d){
+    return static_cast<int64_t>(d);
+}
+double mimium_gt(double d1,double d2){
+    return static_cast<double>(d1>d2);
+}
+double mimium_lt(double d1,double d2){
+    return static_cast<double>(d1<d2);
+}
+double mimium_ge(double d1,double d2){
+    return static_cast<double>(d1>=d2);
+}
+double mimium_le(double d1,double d2){
+    return static_cast<double>(d1<=d2);
+}
+double mimium_and(double d1,double d2){
+    return static_cast<double>(mimium_dtob(d1)&&mimium_dtob(d2));
+}
+double mimium_or(double d1,double d2){
+    return static_cast<double>(mimium_dtob(d1)||mimium_dtob(d2));
+}
+double mimium_lshift(double d1,double d2){
+    return static_cast<double>(mimium_dtoi(d1)<<mimium_dtoi(d2));
+}
+double mimium_rshift(double d1,double d2){
+    return static_cast<double>(mimium_dtoi(d1)>>mimium_dtoi(d2));
+}
+
 }
 
 namespace mimium {
@@ -52,6 +87,16 @@ std::unordered_map<std::string, BuiltinFnInfo> LLVMBuiltin::ftable = {
     {"min", FI{Function(Float(), {Float(),Float()}), "fmin"}},
     {"max", FI{Function(Float(), {Float(),Float()}), "fmax"}},
 
+
+    {"ge", FI{Function(Float(), {Float(),Float()}), "mimium_ge"}},
+    {"le", FI{Function(Float(), {Float(),Float()}), "mimium_le"}},
+    {"gt", FI{Function(Float(), {Float(),Float()}), "mimium_gt"}},
+    {"lt", FI{Function(Float(), {Float(),Float()}), "mimium_lt"}},
+    {"and", FI{Function(Float(), {Float(),Float()}), "mimium_and"}},
+    {"or", FI{Function(Float(), {Float(),Float()}), "mimium_or"}},
+    {"lshift", FI{Function(Float(), {Float(),Float()}), "mimium_lshift"}},
+    {"rshift", FI{Function(Float(), {Float(),Float()}), "mimium_rshift"}},
+    {"ifexpr", FI{Function(Float(), {Float(),Float(),Float()}), "mimium_ifexpr"}}
 };
 
 }  // namespace mimium

@@ -47,7 +47,7 @@ friend struct CodeGenVisitor;
   void switchToMainFun();
   void setValuetoMap(std::string name, llvm::Value* val);
   void preprocess();
-  llvm::Function* getForeignFunction(std::string name);
+  llvm::Function* getForeignFunction(const std::string& name);
   void createMiscDeclarations();
   void createRuntimeSetDspFn();
   void createMainFun();

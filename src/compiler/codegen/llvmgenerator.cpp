@@ -62,10 +62,10 @@ void LLVMGenerator::switchToMainFun() {
   currentblock = mainentry;
   curfunc = mainentry->getParent();
 }
-llvm::Function* LLVMGenerator::getForeignFunction(std::string name) {
+llvm::Function* LLVMGenerator::getForeignFunction(const std::string& name) {
   auto& [type, targetname] = LLVMBuiltin::ftable.find(name)->second;
   auto funtype = llvm::cast<llvm::FunctionType>(getType(type));
-  auto fnc = module->getOrInsertFunction(name, funtype);
+  auto fnc = module->getOrInsertFunction(targetname, funtype);
   auto* fn = llvm::cast<llvm::Function>(fnc.getCallee());
   fn->setCallingConv(llvm::CallingConv::C);
   return fn;
