@@ -12,6 +12,7 @@ addons:
   homebrew:
     packages:
     - cmake
+    - doxygen
     - llvm
     - bison
     - flex
