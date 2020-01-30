@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.4)
- 
+option(BUILD_DOCS "build a documentation")
+
+
 set(CMAKE_CXX_COMPILER /usr/local/opt/llvm/bin/clang++)
 set(CMAKE_C_COMPILER /usr/local/opt/llvm/bin/clang) 
 
@@ -41,7 +43,10 @@ include_directories(src)
 add_custom_target(default_build)
 
 add_subdirectory( src )
+if(BUILD_DOCS)
 add_subdirectory( docs )
+endif()
+
 #add_subdirectory( test )
 
 

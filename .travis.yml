@@ -5,6 +5,7 @@ branches:
 
 dist: xenial
 os: osx
+osx_image: xcode10.2	
 language: cpp
 git:
   submodules: false
@@ -28,7 +29,7 @@ script:
 - export CXX=/usr/local/opt/llvm/bin/clang++;
 - export LLVM_DIR=/usr/local/opt/llvm;
 - mkdir build && cd build
-- cmake ..
+- cmake .. -DBUILD_DOCS=FALSE
 - cmake  --build .
 - cmake --build . --target install
 - mimium --version
