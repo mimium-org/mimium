@@ -1,12 +1,21 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
- 
+
 #include "compiler/codegen/codegen_visitor.hpp"
 
 namespace mimium {
+
+const std::unordered_map<OP_ID, std::string> CodeGenVisitor::opid_to_ffi = {
+    // names are declared in ffi.cpp
+    {OP_ID::EXP, "pow"},  {OP_ID::MOD, "fmod"},      {OP_ID::GE, "ge"},
+    {OP_ID::LE, "le"},    {OP_ID::GT, "gt"},         {OP_ID::LT, "lt"},
+    {OP_ID::AND, "and"},  {OP_ID::BITAND, "and"},    {OP_ID::OR, "or"},
+    {OP_ID::BITOR, "or"}, {OP_ID::LSHIFT, "lshift"}, {OP_ID::RSHIFT, "rshift"},
+};
+
 // Creates Allocation instruction or call malloc function depends on context
-CodeGenVisitor::CodeGenVisitor(LLVMGenerator& g) : G(g),isglobal(false) {}
+CodeGenVisitor::CodeGenVisitor(LLVMGenerator& g) : G(g), isglobal(false) {}
 
 llvm::Value* CodeGenVisitor::createAllocation(bool isglobal, llvm::Type* type,
                                               llvm::Value* arraysize = nullptr,
@@ -108,13 +117,17 @@ void CodeGenVisitor::operator()(OpInst& i) {
     case OP_ID::DIV:
       retvalue = G.builder->CreateFDiv(lhs, rhs, i.lv_name);
       break;
-    case OP_ID::MOD:
-      retvalue = G.builder->CreateCall(G.getForeignFunction("fmod"), {lhs, rhs},
-                                       i.lv_name);
+    default: {
+      auto id = i.getOPid();
+      if (opid_to_ffi.count(id)) {
+        auto fname = opid_to_ffi.find(id)->second;
+        retvalue = G.builder->CreateCall(G.getForeignFunction(fname),
+                                         {lhs, rhs}, i.lv_name);
+      } else {
+        retvalue = G.builder->CreateUnreachable();
+      }
       break;
-    default:
-      retvalue = G.builder->CreateUnreachable();
-      break;
+    }
   }
   G.setValuetoMap(i.lv_name, retvalue);
 }
@@ -129,7 +142,7 @@ void CodeGenVisitor::operator()(FunInst& i) {
   G.createNewBasicBlock("entry", f);
 
   addArgstoMap(f, i, memobj);
-  context_hasself = (i.hasself)? "ptr_"+i.lv_name + ".self.mem": "";
+  context_hasself = (i.hasself) ? "ptr_" + i.lv_name + ".self.mem" : "";
 
   for (auto& cinsts : i.body->instructions) {
     G.visitInstructions(cinsts, false);
@@ -385,11 +398,10 @@ void CodeGenVisitor::operator()(ReturnInst& i) {
   }
   if (!context_hasself.empty()) {
     auto selfv = G.tryfindValue(context_hasself);
-    if(selfv!=nullptr){
-    G.builder->CreateStore(v,selfv);
+    if (selfv != nullptr) {
+      G.builder->CreateStore(v, selfv);
     }
   }
   G.builder->CreateRet(v);
-
 }
 }  // namespace mimium

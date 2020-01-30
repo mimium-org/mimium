@@ -112,10 +112,10 @@ return token::SELF;}
 "!"  return token::NOT;
 "<=" return token::LE;
 ">=" return token::GE;
-"<<" return token::LSHIFT;
+"<<" return token::LSHIFT;
 ">>" return token::RSHIFT;
 ">" return token::GT;
-"<" return token::LT;
+"<" return token::LT;
 
 "@" return token::AT;
 

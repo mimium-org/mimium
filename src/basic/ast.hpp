@@ -306,10 +306,12 @@ class ReturnAST : public AST {
 class IfAST : public AST {
  public:
   AST_Ptr condition, thenstatement, elsestatement;
-  IfAST(AST_Ptr Condition, AST_Ptr Thenstatement, AST_Ptr Elsestatement)
+  bool isexpr;
+  IfAST(AST_Ptr Condition, AST_Ptr Thenstatement, AST_Ptr Elsestatement,bool isexpr = false)
       : condition(std::move(Condition)),
         thenstatement(std::move(Thenstatement)),
-        elsestatement(std::move(Elsestatement)) {
+        elsestatement(std::move(Elsestatement)),
+        isexpr(isexpr) {
     id = IF;
   }
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); };

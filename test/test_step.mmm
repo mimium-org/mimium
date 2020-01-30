@@ -1,0 +1,34 @@
+fn inrangeof(input,min,max){
+    return (input>min)&&(input<max)
+}
+
+fn step(time,thresh)->float{
+    return if(time>thresh) 1 else 0
+}
+
+fn stepinout(input,time1,time2){
+    return step(input,time1)&& (1-step(input,time2))
+}
+
+fn sampstosec(sample){
+    return sample/48000
+}
+fn sectosamps(sec){
+    return sec*48000
+}
+
+fn diff(input){
+    return input
+}
+
+fn ar(attack,release,input){
+    return if(input>0.5) min(1,(self +1/sectosamps(attack) )) else max(0,(self-1/sectosamps(release)))
+}
+// fn adsr(attack,decay,sustain,release,input){
+//     atsig = (self +1/sectosamps(attack)
+//     if(input>0.5) min(1,(self + attack/48000))
+// }
+
+fn dsp(time){
+    return sin(time/10) * ar(0.2,0.2, stepinout(time,44100,120000))
+}

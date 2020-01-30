@@ -117,7 +117,7 @@ void AlphaConvertVisitor::visit(IfAST& ast) {
   ast.getElse()->accept(*this);
   auto newelse = stackPopPtr();
   auto newast = std::make_unique<IfAST>(std::move(newcond), std::move(newthen),
-                                        std::move(newelse));
+                                        std::move(newelse),ast.isexpr);
   res_stack.push(std::move(newast));
 };
 

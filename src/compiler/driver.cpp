@@ -134,8 +134,8 @@ AST_Ptr MimiumDriver::add_declaration( std::string fname,AST_Ptr args){
 };
 
 
-AST_Ptr MimiumDriver::add_if(AST_Ptr condition,AST_Ptr thenstatement,AST_Ptr elsestatement=nullptr){
-   return std::make_unique<IfAST>(std::move(condition),std::move(thenstatement),std::move(elsestatement));
+AST_Ptr MimiumDriver::add_if(AST_Ptr condition,AST_Ptr thenstatement,AST_Ptr elsestatement=nullptr,bool isexpr){
+   return std::make_unique<IfAST>(std::move(condition),std::move(thenstatement),std::move(elsestatement),isexpr);
 };
 
 AST_Ptr MimiumDriver::add_forloop(AST_Ptr var,AST_Ptr iterator,AST_Ptr expression){

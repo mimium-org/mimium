@@ -153,6 +153,9 @@ using namespace mimium;
 %type <AST_Ptr> fcall "fcall"
 
 %type <AST_Ptr> ifstatement "if statement"
+
+%type <AST_Ptr> ifexpr "if expr"
+
 %type <AST_Ptr> statement "single statement"
 %type <std::shared_ptr<ListAST>> statements "statements"
 %type <AST_Ptr> block "block"
@@ -166,6 +169,7 @@ using namespace mimium;
 
 %nonassoc '(' ')'
 
+%left ELSE
 %left PIPE
 %left ARROW
 %left LSHIFT RSHIFT
@@ -227,6 +231,8 @@ ifstatement: IF '(' expr ')' block {$$ = driver.add_if(std::move($3),std::move($
             |IF '(' expr ')' block ELSE block {$$ = driver.add_if(std::move($3),std::move($5),std::move($7));}
 ;
 
+ifexpr: IF '(' expr ')' expr ELSE expr{$$ = driver.add_if(std::move($3),std::move($5),std::move($7),true);}
+
 forloop: FOR lvar IN expr block {$$ = driver.add_forloop(std::move($2),std::move($4),std::move($5));};
 
 /* end : END; */
@@ -287,6 +293,7 @@ term : single {$$ = std::move($1);}
       |array {$$ = std::move($1);}
       |array_access {$$ = std::move($1);}
       |lambda {$$ = std::move($1);}
+      |ifexpr {$$ = std::move($1);}
       | '(' expr ')' {$$ =std::move($2);}
 
 

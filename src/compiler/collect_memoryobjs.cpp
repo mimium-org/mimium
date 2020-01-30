@@ -63,7 +63,9 @@ void MemoryObjsCollector::collectMemFun(std::string& funname,
                                         std::string& varname) {
   auto it = memobjs_map.find(varname);
   if (it != memobjs_map.end()) {
+    if(!it->second.empty()){
     memobjs_map[funname].emplace_back(varname);
+    }
   }
 }
 
