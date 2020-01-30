@@ -29,7 +29,7 @@ struct MIRinstruction {  // base class for MIR instruction
   std::shared_ptr<MIRblock> parent = nullptr;
   MIRinstruction() = default;
   virtual ~MIRinstruction() = default;
-  MIRinstruction(std::string lv_name, types::Value type = types::None())
+  explicit MIRinstruction(std::string  lv_name, types::Value type = types::None())
       : lv_name(std::move(lv_name)), type(std::move(type)) {}
   virtual void setParent(std::shared_ptr<MIRblock> block) { parent = block; }
   virtual std::string toString() = 0;
@@ -38,39 +38,39 @@ struct MIRinstruction {  // base class for MIR instruction
 
 struct NumberInst : public MIRinstruction {
  public:
-  NumberInst(std::string _lv, double _val)
-      : MIRinstruction(_lv, types::Float()), val(std::move(_val)) {}
+  NumberInst(const std::string& lv, double val)
+      : MIRinstruction(lv, types::Float()), val(val) {}
   double val;
   std::string toString() override;
 };
 struct AllocaInst : public MIRinstruction {
-  AllocaInst(std::string lv, types::Value type = types::Float())
+  explicit AllocaInst(const std::string& lv, types::Value type = types::Float())
       : MIRinstruction(lv, type) {}
   std::string toString() override;
 };
 struct RefInst : public MIRinstruction {
   std::string val;
-  RefInst(std::string _lv, std::string _val,
-          types::Value _type = types::Float())
-      : MIRinstruction(_lv, _type), val(std::move(_val)) {}
+  RefInst(const std::string& lv, std::string val,
+          types::Value type = types::Float())
+      : MIRinstruction(lv, type), val(std::move(val)) {}
   std::string toString() override;
 };
 struct AssignInst : public MIRinstruction {
   std::string val;
-  AssignInst(std::string _lv, std::string _val,
-             types::Value _type = types::Float())
-      : MIRinstruction(_lv, _type), val(std::move(_val)) {}
+  AssignInst(const std::string& lv, std::string val,
+             types::Value type = types::Float())
+      : MIRinstruction(lv, type), val(std::move(val)) {}
   std::string toString() override;
 };
 
 struct TimeInst : public MIRinstruction {
   std::string time;
   std::string val;
-  TimeInst(std::string _lv, std::string _val, std::string _time,
-           types::Value _type)
-      : MIRinstruction(_lv, _type),
-        time(std::move(_time)),
-        val(std::move(_val)) {}
+  TimeInst(const std::string& lv, std::string val, std::string time,
+           types::Value type)
+      : MIRinstruction(lv, type),
+        time(std::move(time)),
+        val(std::move(val)) {}
   std::string toString() override;
 };
 struct OpInst : public MIRinstruction {
@@ -78,11 +78,11 @@ struct OpInst : public MIRinstruction {
   std::string op;
   std::string lhs;
   std::string rhs;
-  OpInst(std::string _lv, std::string _op, std::string _lhs, std::string _rhs)
-      : MIRinstruction(_lv, types::Float()),
-        op(std::move(_op)),
-        lhs(std::move(_lhs)),
-        rhs(std::move(_rhs)){};
+  OpInst(const std::string& lv, std::string op, std::string lhs, std::string rhs)
+      : MIRinstruction(lv, types::Float()),
+        op(std::move(op)),
+        lhs(std::move(lhs)),
+        rhs(std::move(rhs)){};
   std::string toString() override;
   OP_ID getOPid() { return optable[op]; }
 };
@@ -97,8 +97,8 @@ struct FunInst : public MIRinstruction {
   bool ccflag = false;                     // utility for closure conversion
   bool hasself;
   bool isrecursive;
-  explicit FunInst(std::string name, std::deque<std::string> newargs,
-                   types::Value _type = types::Void(),
+  explicit FunInst(const std::string& name, std::deque<std::string> newargs,
+                   types::Value type = types::Void(),
                    bool isrecursive = false);
   std::string toString() override;
   bool isFunction() override { return true; }
@@ -108,13 +108,13 @@ struct FcallInst : public MIRinstruction {
   std::deque<std::string> args;
   FCALLTYPE ftype;
   bool istimed;
-  FcallInst(std::string _lv, std::string _fname, std::deque<std::string> _args,
-            FCALLTYPE _ftype = CLOSURE, types::Value _type = types::Float(),
+  FcallInst(const std::string& lv, std::string fname, std::deque<std::string> args,
+            FCALLTYPE ftype = CLOSURE, types::Value type = types::Float(),
             bool istimed = false)
-      : MIRinstruction(_lv, _type),
-        fname(std::move(_fname)),
-        args(std::move(_args)),
-        ftype(_ftype),
+      : MIRinstruction(lv, type),
+        fname(std::move(fname)),
+        args(std::move(args)),
+        ftype(ftype),
         istimed(istimed){};
   std::string toString() override;
 };
@@ -123,38 +123,38 @@ struct MakeClosureInst : public MIRinstruction {
   std::vector<std::string> captures;
   types::Value capturetype;
   std::string toString() override;
-  MakeClosureInst(std::string _lv, std::string _fname,
-                  std::vector<std::string> _captures, types::Value _captype)
-      : MIRinstruction(_lv, types::Ref()),
-        fname(std::move(_fname)),
-        captures(std::move(_captures)),
-        capturetype(std::move(_captype)) {}
+  MakeClosureInst(const std::string& lv, std::string fname,
+                  std::vector<std::string> captures, types::Value captype)
+      : MIRinstruction(lv, types::Ref()),
+        fname(std::move(fname)),
+        captures(std::move(captures)),
+        capturetype(std::move(captype)) {}
 };
 struct ArrayInst : public MIRinstruction {
   std::string name;
   int size;
   std::deque<std::string> args;
-  ArrayInst(std::string _lv, std::deque<std::string> _args)
-      : MIRinstruction(_lv, types::Array(types::Float(), _args.size())),
-        args(std::move(_args)) {}
+  ArrayInst(const std::string& lv, std::deque<std::string> args)
+      : MIRinstruction(lv, types::Array(types::Float(), args.size())),
+        args(std::move(args)),size(0) {}
 
   std::string toString() override;
 };
 struct ArrayAccessInst : public MIRinstruction {
   std::string name;
   std::string index;
-  ArrayAccessInst(std::string _lv, std::string _name, std::string _index)
-      : MIRinstruction(_lv, types::Float()),
-        name(std::move(_name)),
-        index(std::move(_index)) {}
+  ArrayAccessInst(const std::string& lv,std::string  name, std::string index)
+      : MIRinstruction(lv, types::Float()),
+        name(std::move(name)),
+        index(std::move(index)) {}
   std::string toString() override;
 };
 struct IfInst : public MIRinstruction {
   std::string cond;
   std::shared_ptr<MIRblock> thenblock;
   std::shared_ptr<MIRblock> elseblock;
-  IfInst(std::string name, std::string _cond)
-      : MIRinstruction(name, types::Void()), cond(std::move(_cond)) {
+  IfInst(const std::string& name, std::string cond)
+      : MIRinstruction(name, types::Void()), cond(std::move(cond)) {
     thenblock = std::make_shared<MIRblock>(name + "$then");
     elseblock = std::make_shared<MIRblock>(name + "$else");
   }
@@ -162,9 +162,9 @@ struct IfInst : public MIRinstruction {
 };
 struct ReturnInst : public MIRinstruction {
   std::string val;
-  ReturnInst(std::string name, std::string _val,
-             types::Value _type = types::Float())
-      : MIRinstruction(name, _type), val(std::move(_val)) {}
+  ReturnInst(const std::string& name, std::string val,
+             types::Value type = types::Float())
+      : MIRinstruction(name, type), val(std::move(val)) {}
   std::string toString() override;
 };
 using Instructions =
@@ -175,8 +175,8 @@ using Instructions =
 class MIRblock : public std::enable_shared_from_this<MIRblock> {
  public:
   MIRblock(MIRblock& origin) = default;
-  explicit MIRblock(std::string _label)
-      : label(std::move(_label)), prev(nullptr), next(nullptr) {
+  explicit MIRblock(std::string label)
+      : label(std::move(label)), prev(nullptr), next(nullptr) {
     indent_level = 0;
   };
   auto begin() { return instructions.begin(); }

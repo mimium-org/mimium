@@ -1,9 +1,10 @@
 #include "compiler/closure_convert.hpp"
 
 namespace mimium {
-ClosureConverter::ClosureConverter(TypeEnv& _typeenv)
-    : typeenv(_typeenv),
+ClosureConverter::ClosureConverter(TypeEnv& typeenv)
+    : typeenv(typeenv),
       capturecount(0),
+      closurecount(0),
       tmp_globalfn("tmp", {}),
       typereplacer(*this) {}
 

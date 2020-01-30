@@ -2,6 +2,7 @@
 #define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
 
 #include <queue>
+#include <utility>
 
 #include "basic/helper_functions.hpp"
 #include "runtime/backend/audiodriver.hpp"
@@ -24,7 +25,7 @@ class Scheduler {  // scheduler interface
  public:
   explicit Scheduler(std::shared_ptr<LLVMRuntime> runtime_i,
                      WaitController& waitc)
-      : waitc(waitc), runtime(runtime_i), time(0) {}
+      : waitc(waitc), runtime(std::move(runtime_i)), time(0) {}
 
   virtual ~Scheduler()=default;
   virtual void start();

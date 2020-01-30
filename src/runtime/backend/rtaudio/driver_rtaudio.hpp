@@ -21,7 +21,7 @@ class AudioDriverRtAudio : public AudioDriver {
  public:
   explicit AudioDriverRtAudio(Scheduler& sch, unsigned int sr = 48000,
                               unsigned int bs = 256, unsigned int chs = 2);
-  ~AudioDriverRtAudio() = default;
+  ~AudioDriverRtAudio()override = default;
   bool start() override;
   bool stop() override;
   static RtAudioCallback callback;

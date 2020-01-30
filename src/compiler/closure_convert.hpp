@@ -6,7 +6,7 @@ namespace mimium {
 
 class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
  public:
-  explicit ClosureConverter(TypeEnv& _typeenv);
+  explicit ClosureConverter(TypeEnv& typeenv);
   ~ClosureConverter();
   std::shared_ptr<MIRblock> convert(std::shared_ptr<MIRblock> toplevel);
   void reset();
@@ -17,14 +17,15 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
   std::string makeClosureTypeName() {
     return "Closure." + std::to_string(closurecount++);
   }
+
+
+ private:
   TypeEnv& typeenv;
   std::shared_ptr<MIRblock> toplevel;
   int capturecount;
   int closurecount;
   std::unordered_map<std::string, int> known_functions;
   FunInst tmp_globalfn;
-
- private:
   void moveFunToTop(std::shared_ptr<MIRblock> mir);
 
   std::unordered_map<std::string, std::vector<std::string>> fun_to_memory_objs;
@@ -62,7 +63,7 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
     explicit FunTypeReplacer(ClosureConverter& cc) : cc(cc) {}
 
     ClosureConverter& cc;
-    bool isClosure(std::string& name) {
+    bool isClosure(const std::string& name) {
       return (cc.typeenv.tryFind(name + "_cls") != nullptr);
     }
     void replaceType(types::Value& val, const std::string& name) {

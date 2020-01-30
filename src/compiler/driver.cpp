@@ -38,7 +38,7 @@ void MimiumDriver::parsefile(const std::string& filename){
          ifs.open(working_directory + filename);
       }
       parse(ifs);
-   }catch( std::ios_base::failure e){
+   }catch(const std::ios_base::failure& e){
         std::cerr << "File read error" << std::endl;
         if(ifs.fail()){
          std::cerr << "no such file:" << filename <<std::endl;
@@ -50,12 +50,12 @@ void MimiumDriver::clear(){
    mainast = std::make_shared<ListAST>();
 }
 
-void MimiumDriver::setWorkingDirectory(const std::string str){
-   working_directory = str;
+void MimiumDriver::setWorkingDirectory(const std::string cwd){
+   working_directory = cwd;
 }
 
 AST_Ptr MimiumDriver::add_number(double num){
-   return std::make_unique<NumberAST>(std::move(num));
+   return std::make_unique<NumberAST>(num);
 }
 
 std::shared_ptr<LvarAST> MimiumDriver::add_lvar(std::string str){
@@ -69,7 +69,7 @@ std::shared_ptr<LvarAST> MimiumDriver::add_lvar(std::string str, mimium::types::
 std::shared_ptr<RvarAST> MimiumDriver::add_rvar(std::string str){
    return std::make_unique<RvarAST>(std::move(str));
 }
-std::shared_ptr<SelfAST> MimiumDriver::add_self(std::string str){
+std::shared_ptr<SelfAST> MimiumDriver::add_self(std::string  /*str*/){
    return std::make_shared<SelfAST>();
 }
 

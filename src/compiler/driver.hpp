@@ -8,10 +8,7 @@
 #include "compiler/scanner.hpp"
 #include "mimium_parser.hpp"
 
-template <class T>
-AST_Ptr createAST_Ptr(T inputs) {
-  return std::dynamic_pointer_cast<AST>(std::make_unique<T>(inputs));
-}
+
 using tokentype = mmmpsr::MimiumParser::token::yytokentype;
 
 namespace mmmpsr {

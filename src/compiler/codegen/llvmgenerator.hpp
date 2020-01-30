@@ -45,7 +45,7 @@ friend struct CodeGenVisitor;
   void preprocess();
   llvm::Function* getForeignFunction(std::string name);
   void createMiscDeclarations();
-  void CreateRuntimeSetDspFn();
+  void createRuntimeSetDspFn();
   void createMainFun();
   void createTaskRegister(bool isclosure);
   void createNewBasicBlock(std::string name, llvm::Function* f);

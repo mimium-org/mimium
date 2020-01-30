@@ -2,10 +2,10 @@
 
 namespace mimium {
 // Creates Allocation instruction or call malloc function depends on context
-CodeGenVisitor::CodeGenVisitor(LLVMGenerator& g) : G(g) {}
+CodeGenVisitor::CodeGenVisitor(LLVMGenerator& g) : G(g),isglobal(false) {}
 
 llvm::Value* CodeGenVisitor::createAllocation(bool isglobal, llvm::Type* type,
-                                              llvm::Value* ArraySize = nullptr,
+                                              llvm::Value* arraysize = nullptr,
                                               const llvm::Twine& name = "") {
   llvm::Value* res = nullptr;
   llvm::Type* t = type;
@@ -19,7 +19,7 @@ llvm::Value* CodeGenVisitor::createAllocation(bool isglobal, llvm::Type* type,
                                        "ptr_" + name);
     G.setValuetoMap(rawname, rawres);
   } else {
-    res = G.builder->CreateAlloca(type, ArraySize, "ptr_" + name);
+    res = G.builder->CreateAlloca(type, arraysize, "ptr_" + name);
   }
   return res;
 };

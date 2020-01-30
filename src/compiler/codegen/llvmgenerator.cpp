@@ -9,6 +9,7 @@ LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv,
       builder(std::make_unique<llvm::IRBuilder<>>(ctx)),
       mainentry(nullptr),
       currentblock(nullptr),
+      curfunc(nullptr),
       typeenv(typeenv),
       typeconverter(*builder, *module),
       memobjcoll(memobjcoll) {}
@@ -139,7 +140,7 @@ void LLVMGenerator::createNewBasicBlock(std::string name, llvm::Function* f) {
   builder->SetInsertPoint(bb);
   currentblock = bb;
 }
-void LLVMGenerator::CreateRuntimeSetDspFn() {
+void LLVMGenerator::createRuntimeSetDspFn() {
   auto voidptrtype = builder->getInt8PtrTy();
   auto dspfnaddress =
       builder->CreateBitCast(module->getFunction("dsp"), voidptrtype);
@@ -201,7 +202,7 @@ void LLVMGenerator::generateCode(std::shared_ptr<MIRblock> mir) {
   for (auto& inst : mir->instructions) {
     visitInstructions(inst, true);
   }
-  CreateRuntimeSetDspFn();
+  createRuntimeSetDspFn();
   // main always return null for now;
   builder->CreateRet(llvm::ConstantPointerNull::get(builder->getInt8PtrTy()));
 }
