@@ -44,6 +44,12 @@ double mimium_rshift(double d1,double d2){
     return static_cast<double>(mimium_dtoi(d1)>>mimium_dtoi(d2));
 }
 
+double mimium_memprim(double d,double* mem){
+    auto tmp = *mem;
+    *mem = d;
+    return tmp;
+}
+
 }
 
 namespace mimium {
@@ -96,7 +102,10 @@ std::unordered_map<std::string, BuiltinFnInfo> LLVMBuiltin::ftable = {
     {"or", FI{Function(Float(), {Float(),Float()}), "mimium_or"}},
     {"lshift", FI{Function(Float(), {Float(),Float()}), "mimium_lshift"}},
     {"rshift", FI{Function(Float(), {Float(),Float()}), "mimium_rshift"}},
-    {"ifexpr", FI{Function(Float(), {Float(),Float(),Float()}), "mimium_ifexpr"}}
+    {"ifexpr", FI{Function(Float(), {Float(),Float(),Float()}), "mimium_ifexpr"}},
+
+    {"mem", FI{Function(Float(), {Float()}), "mimium_memprim"}}
+
 };
 
 }  // namespace mimium

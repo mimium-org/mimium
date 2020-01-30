@@ -1,0 +1,30 @@
+fn step(time,thresh)->float{
+    return if(time>thresh) 1 else 0
+}
+
+fn stepinout(input,time1,time2){
+    return step(input,time1)&& (1-step(input,time2))
+}
+
+fn diff(input){
+    return input - mem(input)
+}
+fn sectosamps(sec){
+    return sec*48000
+}
+fn sigdir(input){
+    return diff(input)>0
+}
+fn adsr(attack,decay,sustain,release,input){
+    at_or_rel = input>0.5
+    dir =  sigdir(self)
+    atsig = min(1,(self + 1/sectosamps(attack)))
+    decsig = max(sustain,(self-1/sectosamps(decay)))
+    releasesig =max(0,(self-1/sectosamps(release)))
+    at_dec_sus_sig = if (dir) atsig else decsig
+    return if (at_or_rel) at_dec_sus_sig else releasesig
+}
+
+fn dsp(time){
+    return sin(time/10) * adsr(0.1,0.2,0.1,0.1, stepinout(time,44100,120000))
+}

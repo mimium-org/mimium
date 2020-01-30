@@ -23,6 +23,8 @@ class MemoryObjsCollector {
   void emplaceNewAlias(std::string& name,types::Value type);
   void collectSelf(std::string& funname, std::string& varname);
   void collectDelay(std::string& funname, int delay_size);
+  void collectMemPrim(std::string& funname,std::string& argname);
+
   void collectMemFun(std::string& funname, std::string& varname);
   struct CollectMemVisitor {
     explicit CollectMemVisitor(MemoryObjsCollector& m) : M(m){};
