@@ -36,7 +36,7 @@
             "type": "lldb",
             "request": "launch",
             "program": "${workspaceFolder}/build/src/mimium",
-            "args": [ "/Users/tomoya/codes/mimium/test/test_self.mmm"], 
+            "args": [ "/Users/tomoya/codes/mimium/test/test_mem.mmm"], 
             "cwd": "${workspaceFolder}/build", 
         },
 
