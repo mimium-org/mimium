@@ -111,7 +111,7 @@ checkpoint:
     fvtype_inside.reserve(fvlist.size());
     for (auto& fv : fvlist) {
       auto ft = cc.typeenv.find(fv);
-      fvtype_inside.emplace_back(ft);
+      fvtype_inside.emplace_back(types::Ref(ft));
     }
 
     auto clsname = i.lv_name + "_cls";

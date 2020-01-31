@@ -222,15 +222,15 @@ void CodeGenVisitor::setFvsToMap(FunInst& i, llvm::Value* clsarg) {
   for (int id = 0; id < i.freevariables.size(); id++) {
     std::string newname = i.freevariables[id];
     auto* gep = G.builder->CreateStructGEP(lastarg, id, "fv");
-    // auto ptrname = "ptr_" + newname;
-    // auto* ptrload = G.builder->CreateLoad(gep, ptrname);
-    // G.setValuetoMap(ptrname, ptrload);
-    // auto* ptype = llvm::cast<llvm::PointerType>(ptrload->getType());
-    // if (ptype->getElementType()->isFirstClassType()) {
-    G.setValuetoMap("ptr_" + newname, gep);
-    llvm::Value* valload = G.builder->CreateLoad(gep, newname);
+    auto ptrname = "ptr_" + newname;
+    auto* ptrload = G.builder->CreateLoad(gep, ptrname);
+    G.setValuetoMap(ptrname, ptrload);
+    auto* ptype = llvm::cast<llvm::PointerType>(ptrload->getType());
+    if (ptype->getElementType()->isFirstClassType()) {
+    // G.setValuetoMap("ptr_" + newname, gep);
+    llvm::Value* valload = G.builder->CreateLoad(ptrload, newname);
     G.setValuetoMap(newname, valload);
-    // }
+    }
   }
 }
 void CodeGenVisitor::setMemObjsToMap(FunInst& i, llvm::Value* memarg) {
@@ -378,7 +378,7 @@ void CodeGenVisitor::operator()(
       G.builder->CreateStructGEP(closure_ptr, 1, i.lv_name + "_capture_ptr");
   unsigned int idx = 0;
   for (auto& cap : i.captures) {
-    llvm::Value* fv = G.tryfindValue(cap);
+    llvm::Value* fv = G.tryfindValue("ptr_"+cap);
     auto gep = G.builder->CreateStructGEP(capture_ptr, idx, "capture_" + cap);
     G.builder->CreateStore(fv, gep);
     idx += 1;
