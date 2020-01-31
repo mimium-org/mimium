@@ -81,7 +81,7 @@ void LLVMGenerator::createMiscDeclarations() {
   auto i8 = builder->getInt8Ty();
   auto i8ptr = builder->getInt8PtrTy();
   auto i64 = builder->getInt64Ty();
-  auto b = builder->getInt64Ty();
+  auto b = builder->getInt1Ty();
 
   auto* malloctype = llvm::FunctionType::get(i8ptr, {i64}, false);
   auto res = module->getOrInsertFunction("malloc", malloctype).getCallee();
@@ -166,7 +166,7 @@ void LLVMGenerator::createRuntimeSetDspFn() {
     auto size = module->getDataLayout().getTypeAllocSize(t);
     auto sizeinst = llvm::ConstantInt::get(ctx, llvm::APInt(64, size, false));
     auto zero = llvm::ConstantInt::get(ctx,llvm::APInt(8,0,false));
-    auto falsev = llvm::ConstantInt::get(ctx,llvm::APInt(64,0,false));
+    auto falsev = llvm::ConstantInt::get(ctx,llvm::APInt(1,0,false));
     builder->CreateCall(memsetfn,{dspmemobjaddress,zero,sizeinst,falsev});
 
   } else {
