@@ -14,6 +14,21 @@ namespace mimium {
 struct TypevarReplaceVisitor {
   std::unordered_map<int, types::Value> tvmap;
   void replace();
+  types::Value getTypeVarFromMap(types::TypeVar& i) {
+    types::Value res;
+    if (auto tvi = std::get_if<Rec_Wrap<types::TypeVar>>(&tvmap[i.index])) {
+      if (tvi->getraw().index == i.index) {
+        Logger::debug_log("typevar loop detected, deducted to Float",
+                          Logger::WARNING);
+        res = types::Float();
+      } else {
+        res = std::visit(*this, tvmap[i.index]);
+      }
+    } else {
+      res = std::visit(*this, tvmap[i.index]);
+    }
+    return res;
+  }
   // default behaviour for primitive
   types::Value operator()(types::Float& i) { return i; }
   types::Value operator()(types::String& i) { return i; }
@@ -29,7 +44,7 @@ struct TypevarReplaceVisitor {
   types::Value operator()(types::TypeVar& i) {
     types::Value res;
     if (tvmap.count(i.index) > 0) {
-        res = std::visit(*this, tvmap[i.index]);     
+      res = getTypeVarFromMap(i);
     } else {
       // case of fail to infer
       Logger::debug_log("failed to infer type", Logger::WARNING);
