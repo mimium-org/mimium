@@ -23,10 +23,10 @@ std::shared_ptr<MIRblock> MemoryObjsCollector::process(
     }
     ++it;
   }
-  // register to typeenv
-  for (auto&& [name, val] : type_alias_map) {
-    typeenv.emplace(val.name + "obj", val);
-  }
+  // // register to typeenv
+  // for (auto&& [name, val] : type_alias_map) {
+  //   typeenv.emplace(val.name + "obj", val);
+  // }
   return toplevel;
 }
 void MemoryObjsCollector::emplaceNewAlias(std::string& name,
@@ -140,6 +140,7 @@ void MemoryObjsCollector::CollectMemVisitor::operator()(FunInst& i) {
 
     if (i.lv_name == "dsp") {
       insertAllocaInst(i, type);
+      M.typeenv.emplace("dsp.memobj", type);
     }
     M.type_alias_map.emplace(i.lv_name, std::move(type));
     i.args.push_back(memname);

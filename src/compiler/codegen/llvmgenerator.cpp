@@ -6,7 +6,7 @@
 
 namespace mimium {
 
-LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv,
+LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv,ClosureConverter& cc,
                              MemoryObjsCollector& memobjcoll)
     : ctx(ctx),
       module(std::make_unique<llvm::Module>("no_file_name.mmm", ctx)),
@@ -16,6 +16,7 @@ LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv,
       curfunc(nullptr),
       typeenv(typeenv),
       typeconverter(*builder, *module),
+      cc(cc),
       memobjcoll(memobjcoll) {}
 void LLVMGenerator::init(std::string filename) {
   codegenvisitor = std::make_shared<CodeGenVisitor>(*this);
@@ -149,7 +150,7 @@ void LLVMGenerator::createRuntimeSetDspFn() {
   auto dspfnaddress =
       builder->CreateBitCast(module->getFunction("dsp"), voidptrtype);
   llvm::Value* dspclsaddress;
-  auto dspcls_cap = variable_map[curfunc]->find("dsp_cls_capture_ptr");
+  auto dspcls_cap = variable_map[curfunc]->find("ptr_dsp.cap");
   if (dspcls_cap != variable_map[curfunc]->end()) {
     dspclsaddress = builder->CreateBitCast(dspcls_cap->second, voidptrtype);
   } else {

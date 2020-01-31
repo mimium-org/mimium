@@ -12,7 +12,10 @@ class MemoryObjsCollector {
  public:
   explicit MemoryObjsCollector(TypeEnv& typeenv);
   std::shared_ptr<MIRblock> process(std::shared_ptr<MIRblock> toplevel);
-  std::optional<types::Alias> getAliasFromMap(std::string name);
+  bool hasMemObj(const std::string& fname){return getAliasFromMap(fname).has_value();};
+  auto getMemObjType(const std::string& fname){return getAliasFromMap(fname).value();};
+  auto& getMemObjNames(const std::string& fname){return memobjs_map[fname];};
+
   void dump();
  private:
   TypeEnv& typeenv;
@@ -21,6 +24,8 @@ class MemoryObjsCollector {
   std::unordered_map<std::string, std::vector<std::string>> memobjs_map;
   std::unordered_map<std::string, types::Alias> type_alias_map;
   void emplaceNewAlias(std::string& name,types::Value type);
+  std::optional<types::Alias> getAliasFromMap(std::string name);
+
   void collectSelf(std::string& funname, std::string& varname);
   void collectDelay(std::string& funname, int delay_size);
   void collectMemPrim(std::string& funname,std::string& argname);
