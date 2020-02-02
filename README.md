@@ -36,6 +36,7 @@ Tomoya Matsuura 松浦知也
 
 The source code is lisenced under [Mozilla Puclic License 2.0](https://www.mozilla.org/en-US/MPL/2.0/).
 
+The source code contains some third party libraries with BSD-like lincenses, see [COPYRIGHT](./COPYRIGHT).
 
 # Acknowledgements
 
