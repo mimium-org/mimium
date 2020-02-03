@@ -11,7 +11,9 @@ ClosureConverter::ClosureConverter(TypeEnv& typeenv)
       closurecount(0),
       tmp_globalfn("tmp", {})
       // ,typereplacer(*this)
-       {}
+       {  
+      known_functions.emplace("mimium_getnow",1);
+       }
 
 void ClosureConverter::reset() { capturecount = 0; }
 ClosureConverter::~ClosureConverter() = default;

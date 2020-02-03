@@ -10,6 +10,7 @@ TypeInferVisitor::TypeInferVisitor()
   for (const auto& [key, val] : LLVMBuiltin::ftable) {
     typeenv.emplace(key, val.mmmtype);
   }
+  typeenv.emplace("mimium_getnow", types::Function(types::Float(),{}));
 }
 
 void TypeInferVisitor::init() { has_return = false; }

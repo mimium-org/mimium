@@ -196,6 +196,9 @@ void KNormalizeVisitor::visit(FcallAST& ast) {
       (LLVMBuiltin::ftable.find(resfname) != LLVMBuiltin::ftable.end())
           ? EXTERNAL
           : CLOSURE;
+  if(newname=="mimium_getnow"){
+    fnkind=DIRECT;
+  }
   // auto type = std::holds_alternative<types::Void>(lasttype) ? lasttype:
   // type_stack.top();
   Instructions newinst = FcallInst(newname, resfname, std::move(newarg), fnkind,

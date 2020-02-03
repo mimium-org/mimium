@@ -90,6 +90,11 @@ void LLVMGenerator::createMiscDeclarations() {
   auto* memsettype = llvm::FunctionType::get(vo, {i8ptr, i8, i64, b}, false);
   module->getOrInsertFunction("llvm.memset.p0i8.i64",memsettype).getCallee();
 
+  auto* getnowtype =  llvm::FunctionType::get(builder->getDoubleTy(), {}, false);
+  auto gnr = module->getOrInsertFunction("mimium_getnow",getnowtype).getCallee();
+    setValuetoMap("mimium_getnow", gnr);
+
+
 }
 
 // Create mimium_main() function it returns address of closure object for dsp()

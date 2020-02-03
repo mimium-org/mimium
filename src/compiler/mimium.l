@@ -60,6 +60,9 @@ NEWLINE {BREAK}* | ";"
     return token::NUM;
 };
 
+"now"   return token::NOW;
+
+
 "float" return token::TYPEFLOAT;
 "void" return token::TYPEVOID;
 "Fn" return token::TYPEFN;

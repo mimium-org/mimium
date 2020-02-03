@@ -331,6 +331,10 @@ void CodeGenVisitor::createAddTaskFn(FcallInst& i, const bool isclosure,
   for (auto& a : i.args) {
     args.emplace_back(G.findValue(a));
   }
+  if(i.args.empty()){
+    auto zero = llvm::ConstantFP::get(G.ctx,llvm::APFloat((double)0.0));
+    args.emplace_back(zero);
+  }
 
   llvm::Value* addtask_fn;
   auto globalspace = G.variable_map[G.mainentry->getParent()];

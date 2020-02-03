@@ -75,6 +75,8 @@ using namespace mimium;
    LSHIFT "<<"
    RSHIFT ">>"
    
+   NOW "now_token"
+
    ASSIGN "="
    AT "@"
    
@@ -103,6 +105,7 @@ using namespace mimium;
    ENDFILE    0     "end of file"
    NEWLINE "line break"
 ;
+// %token <double> NOW "now_token"
 %token <double> NUM "number_token"
 %token  <std::string> SYMBOL "symbol_token"
 %token <std::string>    SELF "self_token"
@@ -116,7 +119,6 @@ using namespace mimium;
 %type <std::vector<mimium::types::Value>> fntype_args "fntype_args"
 
 
-
 %type <AST_Ptr> num "number"
 %type <std::shared_ptr<LvarAST>> lvar "left value"
 %type <std::shared_ptr<LvarAST>> fname "function prototype name"
@@ -125,6 +127,9 @@ using namespace mimium;
 %type <std::shared_ptr<SelfAST>> self "self"
 
 // %type <AST_Ptr> string "string" //temporary comment out
+
+%type <AST_Ptr> now "now"
+
 
 %type <AST_Ptr> single "symbol or number"
 
@@ -207,7 +212,7 @@ block: LBRACE  NEWLINE statements opt_nl RBRACE {$$ = std::move($3);}
       |LBRACE expr RBRACE {$$ = std::move($2);}
       |LBRACE RETURN expr RBRACE {$$ = driver.add_return(std::move($3));}
 
-opt_nl: {}
+opt_nl:%empty
       | NEWLINE {};
 
 statement : assign {$$=std::move($1);} 
@@ -231,7 +236,7 @@ arguments_top: '(' arguments ')' {$$=std::move($2);};
 arguments : lvar ',' arguments   {$3->addAST(std::move($1));
                                     $$ = std::move($3); }
          |  lvar {$$ = driver.add_arguments(std::move($1));}
-         | {$$ = driver.add_arguments();}
+         | %empty {$$ = driver.add_arguments();}
 
 ifstatement: IF '(' expr ')' block {$$ = driver.add_if(std::move($3),std::move($5),nullptr);}
             |IF '(' expr ')' block ELSE block {$$ = driver.add_if(std::move($3),std::move($5),std::move($7));}
@@ -285,7 +290,7 @@ fcall : term '(' arguments_fcall ')' {$$ = driver.add_fcall(std::move($1),std::m
 arguments_fcall : expr ',' arguments_fcall   {$3->addAST(std::move($1));
                                           $$ = std::move($3); }
          | expr {$$ = driver.add_fcallargs(std::move($1));}
-         | {$$ = driver.add_fcallargs();}
+         | %empty {$$ = driver.add_fcallargs();}
          ;
 
 
@@ -306,10 +311,14 @@ lambda: OR arguments OR block {$$ = driver.add_lambda(std::move($2),std::move($4
 ifexpr: IF '(' expr ')' expr ELSE expr{$$ = driver.add_if(std::move($3),std::move($5),std::move($7),true);}
 
 single :   self{$$=std::move($1);}
+            |now{$$ = std::move($1);}
             |rvar{$$=std::move($1);}
       // | string{$$=std::move($1);}
       |  num {$$=std::move($1);}
 
+now : NOW{ 
+      auto name = driver.add_rvar("mimium_getnow");
+      $$ = driver.add_fcall(std::move(name),driver.add_fcallargs());}
 
 /// primitive declaration
 
