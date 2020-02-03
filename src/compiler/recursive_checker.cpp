@@ -64,6 +64,12 @@ void RecursiveChecker::visit(FcallAST& ast) {
     isrecursive = true;
   }
   }
+  for(auto& a:ast.getArgs()->getElements()){
+    a->accept(*this);
+  }
+  if(ast.time!=nullptr){
+    ast.time->accept(*this);
+  }
 }
 void RecursiveChecker::visit(LambdaAST& ast) {
   isrecursive = false;  
@@ -91,11 +97,11 @@ void RecursiveChecker::visit(ForAST& ast) {
 void RecursiveChecker::visit(DeclarationAST& ast) {
   // will not be called
 }
-void RecursiveChecker::visit(TimeAST& ast) {
-  ast.getExpr()->accept(*this);
-  ast.getTime()->accept(*this);
+// void RecursiveChecker::visit(TimeAST& ast) {
+//   ast.getExpr()->accept(*this);
+//   ast.getTime()->accept(*this);
 
-}
+// }
 
 void RecursiveChecker::visit(StructAST& ast) {}
 void RecursiveChecker::visit(StructAccessAST& ast) {}

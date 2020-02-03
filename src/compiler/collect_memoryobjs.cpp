@@ -116,10 +116,10 @@ void MemoryObjsCollector::CollectMemVisitor::operator()(RefInst& i) {
 void MemoryObjsCollector::CollectMemVisitor::operator()(AssignInst& i) {
   M.collectSelf(cur_fun, i.val);
 }
-void MemoryObjsCollector::CollectMemVisitor::operator()(TimeInst& i) {
-  M.collectSelf(cur_fun, i.time);
-  M.collectSelf(cur_fun, i.val);
-}
+// void MemoryObjsCollector::CollectMemVisitor::operator()(TimeInst& i) {
+//   M.collectSelf(cur_fun, i.time);
+//   M.collectSelf(cur_fun, i.val);
+// }
 void MemoryObjsCollector::CollectMemVisitor::operator()(OpInst& i) {
   M.collectSelf(cur_fun, i.lhs);
   M.collectSelf(cur_fun, i.rhs);
@@ -163,6 +163,9 @@ void MemoryObjsCollector::CollectMemVisitor::operator()(FcallInst& i) {
   }
   for (auto& a : i.args) {
     M.collectSelf(cur_fun, a);
+  }
+  if(i.time){
+    M.collectSelf(cur_fun,i.time.value());
   }
 }
 void MemoryObjsCollector::CollectMemVisitor::operator()(MakeClosureInst& i) {

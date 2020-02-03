@@ -28,7 +28,7 @@ struct TypeConverter {
   llvm::Type* operator()(types::Array& i);
   llvm::Type* operator()(types::Struct& i);
   llvm::Type* operator()(types::Tuple& i);
-  llvm::Type* operator()(types::Time& i);
+  // llvm::Type* operator()(types::Time& i);
   llvm::Type* operator()(types::Alias& i);
 
  private:

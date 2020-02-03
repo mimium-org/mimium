@@ -33,7 +33,7 @@ class KNormalizeVisitor : public ASTVisitor {
   void visit(ReturnAST& ast) override;
   void visit(ForAST& ast) override;
   void visit(DeclarationAST& ast) override;
-  void visit(TimeAST& ast) override;
+  // void visit(TimeAST& ast) override;
   void visit(StructAST& ast) override;
   void visit(StructAccessAST& ast) override;
 

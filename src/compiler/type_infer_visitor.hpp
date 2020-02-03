@@ -83,9 +83,9 @@ struct TypevarReplaceVisitor {
     }
     return types::Tuple(std::move(newarg));
   }
-  types::Value operator()(types::Time& i) {
-    return types::Time(std::visit(*this, i.val));
-  }
+  // types::Value operator()(types::Time& i) {
+  //   return types::Time(std::visit(*this, i.val));
+  // }
   types::Value operator()(types::Alias& i) {
     return types::Alias(i.name, std::visit(*this, i.target));
   };
@@ -114,7 +114,7 @@ class TypeInferVisitor : public ASTVisitor {
   void visit(ReturnAST& ast) override;
   void visit(ForAST& ast) override;
   void visit(DeclarationAST& ast) override;
-  void visit(TimeAST& ast) override;
+  // void visit(TimeAST& ast) override;
   void visit(StructAST& ast) override;
   void visit(StructAccessAST& ast) override;
 
@@ -123,7 +123,7 @@ class TypeInferVisitor : public ASTVisitor {
 
   bool unify(std::string lname, std::string rname);
   bool unify(std::string lname, types::Value& rt);
-  bool unifyArg(types::Value& target, types::Value& realarg);
+  // bool unifyArg(types::Value& target, types::Value& realarg);
 
   TypeEnv& getEnv() { return typeenv; };
   types::Value getLastType() { return res_stack.top(); }
@@ -139,7 +139,7 @@ class TypeInferVisitor : public ASTVisitor {
 
  private:
   std::stack<types::Value> res_stack;
-  static bool checkArg(types::Value& fnarg, types::Value& givenarg);
+  // static bool checkArg(types::Value& fnarg, types::Value& givenarg);
   void unifyTypeVar(types::TypeVar& tv, types::Value& v);
   // hold value for infer type of "self"
   std::optional<types::Value> current_return_type;

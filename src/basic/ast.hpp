@@ -54,7 +54,7 @@ using ListAST = AbstractListAST<std::shared_ptr<AST>, LIST>;
 using ArrayAST = AbstractListAST<std::shared_ptr<AST>, ARRAY>;
 
 class ArrayAccessAST;
-class TimeAST;
+// class TimeAST;
 class ReturnAST;
 class DeclarationAST;
 class ForAST;
@@ -87,7 +87,7 @@ class ASTVisitor {
   virtual void visit(ReturnAST& ast) = 0;
   virtual void visit(ForAST& ast) = 0;
   virtual void visit(DeclarationAST& ast) = 0;
-  virtual void visit(TimeAST& ast) = 0;
+  // virtual void visit(TimeAST& ast) = 0;
   virtual void visit(StructAST& ast) = 0;
   virtual void visit(StructAccessAST& ast) = 0;
 
@@ -269,8 +269,9 @@ class FcallAST : public AST {
  public:
   std::shared_ptr<AST> fname;
   std::shared_ptr<FcallArgsAST> args;
-  FcallAST(std::shared_ptr<AST> Fname, std::shared_ptr<FcallArgsAST> Args)
-      : fname(std::move(Fname)), args(std::move(Args)) {
+  std::shared_ptr<AST> time;
+  FcallAST(std::shared_ptr<AST> Fname, std::shared_ptr<FcallArgsAST> Args,std::shared_ptr<AST> time=nullptr)
+      : fname(std::move(Fname)), args(std::move(Args)),time(std::move(time)) {
     id = FCALL;
   }
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
@@ -339,20 +340,20 @@ class ForAST : public AST {
   std::string toJson() override;
 };
 
-class TimeAST : public AST {
- public:
-  AST_Ptr expr;
-  AST_Ptr time;
-  explicit TimeAST(AST_Ptr Expr, AST_Ptr Time)
-      : expr(std::move(Expr)), time(std::move(Time)) {
-    id = TIME;
-  }
-  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
-  auto getTime() { return time; }
-  auto getExpr() { return expr; }
-  std::string toString() override;
-  std::string toJson() override;
-};
+// class TimeAST : public AST {
+//  public:
+//   AST_Ptr expr;
+//   AST_Ptr time;
+//   explicit TimeAST(AST_Ptr Expr, AST_Ptr Time)
+//       : expr(std::move(Expr)), time(std::move(Time)) {
+//     id = TIME;
+//   }
+//   void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
+//   auto getTime() { return time; }
+//   auto getExpr() { return expr; }
+//   std::string toString() override;
+//   std::string toJson() override;
+// };
 
 class StructAST : public AST {
  public:

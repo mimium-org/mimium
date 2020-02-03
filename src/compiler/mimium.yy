@@ -129,7 +129,7 @@ using namespace mimium;
 %type <AST_Ptr> single "symbol or number"
 
 %type <AST_Ptr> expr "expression"
-%type <AST_Ptr> term_time "term @ something"
+// %type <AST_Ptr> term_time "term @ something"
 %type <AST_Ptr> term "primary"
 
 %type <AST_Ptr> lambda "lambda"
@@ -219,30 +219,12 @@ statement : assign {$$=std::move($1);}
          | expr {$$ = std::move($1);}//for void function
          ;
 
-include : INCLUDE '(' arguments_fcall ')' {$$ = driver.add_declaration("include",std::move($3)); }
-
+assign : lvar ASSIGN expr {$$ = driver.add_assign(std::move($1),std::move($3));}
 
 fdef : FUNC fname arguments_top block {$$ = driver.add_assign(std::move($2),driver.add_lambda(std::move($3),std::move($4)));}
       |FUNC fname arguments_top ARROW types block {$$ = driver.add_assign(std::move($2),driver.add_lambda_only_with_returntype(std::move($3),std::move($6),std::move($5)));};
 
-fname : SYMBOL {$$ = driver.add_lvar($1);};
-
-ifstatement: IF '(' expr ')' block {$$ = driver.add_if(std::move($3),std::move($5),nullptr);}
-            |IF '(' expr ')' block ELSE block {$$ = driver.add_if(std::move($3),std::move($5),std::move($7));}
-;
-
-ifexpr: IF '(' expr ')' expr ELSE expr{$$ = driver.add_if(std::move($3),std::move($5),std::move($7),true);}
-
-forloop: FOR lvar IN expr block {$$ = driver.add_forloop(std::move($2),std::move($4),std::move($5));};
-
-/* end : END; */
-
-lambda: OR arguments OR block {$$ = driver.add_lambda(std::move($2),std::move($4));};
-      |OR arguments OR expr {$$ = driver.add_lambda(std::move($2),std::move($4));};
-       |OR arguments OR ARROW types block{$$=driver.add_lambda_only_with_returntype(std::move($2),std::move($6),std::move($5));};
-
-assign : lvar ASSIGN expr {$$ = driver.add_assign(std::move($1),std::move($3));}
-;
+fname : SYMBOL {$$ = driver.add_lvar($1);}
 
 arguments_top: '(' arguments ')' {$$=std::move($2);};
 
@@ -250,17 +232,16 @@ arguments : lvar ',' arguments   {$3->addAST(std::move($1));
                                     $$ = std::move($3); }
          |  lvar {$$ = driver.add_arguments(std::move($1));}
          | {$$ = driver.add_arguments();}
-         ;
+
+ifstatement: IF '(' expr ')' block {$$ = driver.add_if(std::move($3),std::move($5),nullptr);}
+            |IF '(' expr ')' block ELSE block {$$ = driver.add_if(std::move($3),std::move($5),std::move($7));}
+
+forloop: FOR lvar IN expr block {$$ = driver.add_forloop(std::move($2),std::move($4),std::move($5));};
 
 
-arguments_fcall : expr ',' arguments_fcall   {$3->addAST(std::move($1));
-                                          $$ = std::move($3); }
-         | expr {$$ = driver.add_fcallargs(std::move($1));}
-         | {$$ = driver.add_fcallargs();}
-         ;
+declaration : include {$$=std::move($1);} 
 
-fcall : term '(' arguments_fcall ')' {$$ = driver.add_fcall(std::move($1),std::move($3));};
-      
+include : INCLUDE '(' arguments_fcall ')' {$$ = driver.add_declaration("include",std::move($3)); }
 
 
 
@@ -283,21 +264,30 @@ expr : expr ADD    expr  {$$ = driver.add_op("+" , std::move($1),std::move($3));
      | expr NOT expr  {$$ = driver.add_op("!", std::move($1),std::move($3));}
      | SUB expr {$$ = driver.add_op("-" ,driver.add_number(0),std::move($2));}
      | expr PIPE expr {$$ = driver.add_fcall(std::move($3),std::move($1));}
-     | term_time {$$ = std::move($1);};
+     | term {$$ = std::move($1);};
 
-term_time : term AT term {$$ = driver.set_time(std::move($1),std::move($3));}
-         | term {$$ = std::move($1);}
-         ;
-term : single {$$ = std::move($1);}
-      |fcall {$$ = std::move($1);}
+// term_time : term AT term {$$ = driver.set_time(std::move($1),std::move($3));}
+//          | term {$$ = std::move($1);}
+//          ;
+term : 
+      fcall {$$ = std::move($1);}
       |array {$$ = std::move($1);}
       |array_access {$$ = std::move($1);}
       |lambda {$$ = std::move($1);}
       |ifexpr {$$ = std::move($1);}
+      |single {$$ = std::move($1);}
       | '(' expr ')' {$$ =std::move($2);}
 
 
-declaration : include {$$=std::move($1);} 
+fcall : term '(' arguments_fcall ')' {$$ = driver.add_fcall(std::move($1),std::move($3));};
+      |term '(' arguments_fcall ')' AT term {$$ = driver.add_fcall(std::move($1),std::move($3),std::move($6));}
+      
+arguments_fcall : expr ',' arguments_fcall   {$3->addAST(std::move($1));
+                                          $$ = std::move($3); }
+         | expr {$$ = driver.add_fcallargs(std::move($1));}
+         | {$$ = driver.add_fcallargs();}
+         ;
+
 
 
 
@@ -307,6 +297,13 @@ array_elems : single ',' array_elems   {$3->addAST(std::move($1));
                                     $$ = std::move($3); }
          |  single {$$ = driver.add_array(std::move($1));}
 array_access: rvar '[' term ']' {$$ = driver.add_array_access(std::move($1),std::move($3));}
+
+lambda: OR arguments OR block {$$ = driver.add_lambda(std::move($2),std::move($4));};
+      |OR arguments OR expr {$$ = driver.add_lambda(std::move($2),std::move($4));};
+       |OR arguments OR ARROW types block{$$=driver.add_lambda_only_with_returntype(std::move($2),std::move($6),std::move($5));};
+
+
+ifexpr: IF '(' expr ')' expr ELSE expr{$$ = driver.add_if(std::move($3),std::move($5),std::move($7),true);}
 
 single :   self{$$=std::move($1);}
             |rvar{$$=std::move($1);}

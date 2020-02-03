@@ -60,14 +60,14 @@ void TypeInferVisitor::unifyTypeVar(types::TypeVar& tv, types::Value& v) {
   }
 }
 
-bool TypeInferVisitor::unifyArg(types::Value& target, types::Value& realarg) {
-  if (auto* timeptr = std::get_if<Rec_Wrap<types::Time>>(&realarg)) {
-    types::Time time = *timeptr;
-    return unify(time.val, target);
-  } else {
-    return unify(realarg, target);
-  }
-}
+// bool TypeInferVisitor::unifyArg(types::Value& target, types::Value& realarg) {
+//   if (auto* timeptr = std::get_if<Rec_Wrap<types::Time>>(&realarg)) {
+//     types::Time time = *timeptr;
+//     return unify(time.val, target);
+//   } else {
+//     return unify(realarg, target);
+//   }
+// }
 
 void TypeInferVisitor::visit(AssignAST& ast) {
   auto lvar = ast.getName();
@@ -180,16 +180,16 @@ void TypeInferVisitor::visit(ArrayAccessAST& ast) {
 
   res_stack.push(res);
 }
-bool TypeInferVisitor::checkArg(types::Value& fnarg, types::Value& givenarg) {
-  bool res;
-  if (std::holds_alternative<Rec_Wrap<types::Time>>(givenarg)) {
-    auto v = rv::get<types::Time>(givenarg);
-    res = fnarg.index() == v.val.index();  // currently
-  } else {
-    res = fnarg.index() == givenarg.index();
-  }
-  return res;
-}
+// bool TypeInferVisitor::checkArg(types::Value& fnarg, types::Value& givenarg) {
+//   bool res;
+//   if (std::holds_alternative<Rec_Wrap<types::Time>>(givenarg)) {
+//     auto v = rv::get<types::Time>(givenarg);
+//     res = fnarg.index() == v.val.index();  // currently
+//   } else {
+//     res = fnarg.index() == givenarg.index();
+//   }
+//   return res;
+// }
 
 void TypeInferVisitor::visit(FcallAST& ast) {
   ast.getFname()->accept(*this);
@@ -203,10 +203,16 @@ void TypeInferVisitor::visit(FcallAST& ast) {
   for (int i = 0; i < args.size(); i++) {
     args[i]->accept(*this);
     auto r = stackPop();
-    checkflag &= unifyArg(fnargtypes[i], r);
+    checkflag &= unify(fnargtypes[i], r);
   }
   if (!checkflag) {
     throw std::invalid_argument("argument types were invalid");
+  }
+  if(ast.time!=nullptr){
+    ast.time->accept(*this);
+    auto timetype = stackPop();
+    types::Value f= types::Float();
+    unify(timetype,f);
   }
   res_stack.push(fn.getReturnType());
 }
@@ -287,23 +293,23 @@ void TypeInferVisitor::visit(ForAST& ast) {
 void TypeInferVisitor::visit(DeclarationAST& ast) {
   // will not be called
 }
-void TypeInferVisitor::visit(TimeAST& ast) {
-  types::Time t;
-  ast.getExpr()->accept(*this);
-  auto res = stackPop();
-  if (std::holds_alternative<Rec_Wrap<types::Time>>(res)) {
-    throw std::logic_error("Time type can not be nested.");
-  }
+// void TypeInferVisitor::visit(TimeAST& ast) {
+//   types::Time t;
+//   ast.getExpr()->accept(*this);
+//   auto res = stackPop();
+//   if (std::holds_alternative<Rec_Wrap<types::Time>>(res)) {
+//     throw std::logic_error("Time type can not be nested.");
+//   }
 
-  t.val = res;
-  ast.getTime()->accept(*this);
-  auto r = stackPop();
-  types::Value tmpf = types::Float();
-  unify(r, tmpf);
-  t.val=r;
-  t.time = types::Float();
-  res_stack.push(t);
-}
+//   t.val = res;
+//   ast.getTime()->accept(*this);
+//   auto r = stackPop();
+//   types::Value tmpf = types::Float();
+//   unify(r, tmpf);
+//   t.val=r;
+//   t.time = types::Float();
+//   res_stack.push(t);
+// }
 
 void TypeInferVisitor::visit(StructAST& ast) {}
 void TypeInferVisitor::visit(StructAccessAST& ast) {}

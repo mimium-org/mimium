@@ -124,7 +124,7 @@ void LLVMGenerator::createTaskRegister(bool isclosure = false) {
     argtypes.push_back(builder->getInt8PtrTy());
     name = "addTask_cls";
   }  // address to closure args(instead of void* type)
-  auto* fntype = llvm::FunctionType::get(builder->getVoidTy(), argtypes, false);
+  auto* fntype = llvm::FunctionType::get(builder->getVoidTy(), argtypes,false);
   auto addtask = module->getOrInsertFunction(name, fntype);
   auto addtaskfun = llvm::cast<llvm::Function>(addtask.getCallee());
 

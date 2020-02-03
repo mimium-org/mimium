@@ -60,10 +60,10 @@ std::string AssignAST::toJson() {
 }
 
 std::string FcallAST::toString() {
-  return "(" + fname->toString() + " " + args->toString() + ")";
+  return "(" + fname->toString() + " " + args->toString() + ((time)?"@"+time->toString():"") +")";
 }
 std::string FcallAST::toJson() {
-  return "[" + fname->toJson() + ", " + args->toJson() + "]";
+  return "[" + fname->toJson() + ", " + args->toJson() + ((time)?"@"+time->toString():"")+ "]";
 }
 
 std::string DeclarationAST::toString() {
@@ -92,13 +92,13 @@ std::string ForAST::toJson() {
          expression->toJson() + "]";
 }
 
-std::string TimeAST::toString() {
-  return expr->toString() + "@" + time->toString();
-}
+// std::string TimeAST::toString() {
+//   return expr->toString() + "@" + time->toString();
+// }
 
-std::string TimeAST::toJson() {
-  return "[ 'time', " + expr->toJson() + ", " + time->toJson() + "]";
-}
+// std::string TimeAST::toJson() {
+//   return "[ 'time', " + expr->toJson() + ", " + time->toJson() + "]";
+// }
 
 std::string StructAST::toString() {//this is not lisp like style,,
   std::stringstream ss;

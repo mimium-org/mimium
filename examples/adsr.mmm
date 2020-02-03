@@ -23,17 +23,16 @@ fn setval(val){
     triggerval = val
 }
 fn trigger(time,dur)->void{
-    setval(1@time)
-    setval(0@(time+dur))
+    setval(1)@time
+    setval(0)@(time+dur)
 }
 fn loopnote(time)->void{
     freq = (324+freq*17>>1) % 4800
     trigger(time,10000)
-    nt = time+28000
-    loopnote(nt@nt)
+    loopnote(time+28000)@(time+28000)
 }
 phasor = |f:float|{return (self+f/48000)%1}
 fn dsp(time){
     return ((phasor(freq)*PI*2) |> sin) * adsr(0.05,0.2,0.5,0.1,triggerval)
 }
-loopnote(0@0)
+loopnote(0)@0

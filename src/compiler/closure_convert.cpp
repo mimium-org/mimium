@@ -182,11 +182,11 @@ void ClosureConverter::CCVisitor::operator()(AssignInst& i) {
   registerFv(i.val);
 }
 
-void ClosureConverter::CCVisitor::operator()(TimeInst& i) {
-  registerFv(i.val);
-  registerFv(i.time);
-  localvlist.push_back(i.lv_name);
-}
+// void ClosureConverter::CCVisitor::operator()(TimeInst& i) {
+//   registerFv(i.val);
+//   registerFv(i.time);
+//   localvlist.push_back(i.lv_name);
+// }
 
 void ClosureConverter::CCVisitor::operator()(OpInst& i) {
   registerFv(i.lhs);
@@ -197,6 +197,9 @@ void ClosureConverter::CCVisitor::operator()(OpInst& i) {
 void ClosureConverter::CCVisitor::operator()(FcallInst& i) {
   for (auto& a : i.args) {
     registerFv(a);
+  }
+  if(i.time){
+  registerFv(i.time.value());
   }
   if (cc.isKnownFunction(i.fname)) {
     i.ftype = DIRECT;

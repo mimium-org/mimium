@@ -14,7 +14,7 @@ struct CodeGenVisitor : public std::enable_shared_from_this<CodeGenVisitor> {
   void operator()(AllocaInst& i);
   void operator()(RefInst& i);
   void operator()(AssignInst& i);
-  void operator()(TimeInst& i);
+  // void operator()(TimeInst& i);
   void operator()(OpInst& i);
   void operator()(FunInst& i);
   void operator()(FcallInst& i);
