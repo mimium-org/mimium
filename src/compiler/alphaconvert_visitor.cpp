@@ -69,6 +69,8 @@ void AlphaConvertVisitor::visit(OpAST& ast) {
 }
 void AlphaConvertVisitor::visit(ListAST& ast) { listastvisit(ast); }
 void AlphaConvertVisitor::visit(NumberAST& ast) { defaultvisit(ast); }
+void AlphaConvertVisitor::visit(StringAST& ast) { defaultvisit(ast); }
+
 void AlphaConvertVisitor::visit(AssignAST& ast) {
   ast.getName()->accept(*this);
   auto newname = std::static_pointer_cast<LvarAST>(stackPopPtr());

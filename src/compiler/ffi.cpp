@@ -9,6 +9,9 @@ void dumpaddress(void* a) { std::cerr << a <<"\n"; }
 
 void printdouble(double d) { std::cerr << d; }
 void printlndouble(double d) { std::cerr << d << "\n"; }
+
+void printlnstr(char* str){ std::cerr << str << "\n"; }
+
 double mimiumrand(){return ((double)rand()/RAND_MAX)*2 -1  ;}
 
 double mimium_ifexpr(double cond,double thenval,double elseval){
@@ -59,6 +62,9 @@ using FI = BuiltinFnInfo;
 std::unordered_map<std::string, BuiltinFnInfo> LLVMBuiltin::ftable = {
     {"print", FI{Function(Void(), {Float()}), "printdouble"}},
     {"println", FI{Function(Void(), {Float()}), "printlndouble"}},
+    {"printlnstr", FI{Function(Void(), {String()}), "printlnstr"}},
+
+
 
     {"sin", FI{Function(Float(), {Float()}), "sin"}},
     {"cos", FI{Function(Float(), {Float()}), "cos"}},

@@ -30,6 +30,10 @@ std::string MIRblock::toString() {
 std::string NumberInst::toString() {
   return lv_name + " = " + std::to_string(val);
 }
+std::string StringInst::toString() {
+  return lv_name + " = " + val;
+}
+
 std::string AllocaInst::toString() {
   return "alloca: " + lv_name + " (" + types::toString(type) + ")";
 }

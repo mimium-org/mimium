@@ -42,6 +42,10 @@ void RecursiveChecker::visit(ListAST& ast) {
 void RecursiveChecker::visit(NumberAST& /*ast*/) {  // do nothing
 }
 
+void RecursiveChecker::visit(StringAST& /*ast*/) {  // do nothing
+}
+
+
 void RecursiveChecker::visit(ArgumentsAST& ast) {
   // do nothing
 }

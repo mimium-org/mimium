@@ -117,6 +117,13 @@ void KNormalizeVisitor::visit(NumberAST& ast) {
   res_stack_str.push(name);
   typeinfer.getEnv().emplace(name, types::Float());
 }
+void KNormalizeVisitor::visit(StringAST& ast) {
+  auto name = getVarName();
+  Instructions newinst = StringInst(name, ast.val);
+  currentblock->addInst(newinst);
+  res_stack_str.push(name);
+  typeinfer.getEnv().emplace(name, types::String());
+}
 void KNormalizeVisitor::visit(LvarAST& ast) {
   res_stack_str.push(ast.getVal());
 }

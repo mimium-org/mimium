@@ -107,6 +107,9 @@ void MemoryObjsCollector::dump() {
 void MemoryObjsCollector::CollectMemVisitor::operator()(NumberInst& i) {
   // do nothing
 }
+void MemoryObjsCollector::CollectMemVisitor::operator()(StringInst& i) {
+  // do nothing
+}
 void MemoryObjsCollector::CollectMemVisitor::operator()(AllocaInst& i) {
   // do nothing
 }

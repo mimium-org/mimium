@@ -11,6 +11,8 @@ struct CodeGenVisitor : public std::enable_shared_from_this<CodeGenVisitor> {
   friend LLVMGenerator;
   CodeGenVisitor(LLVMGenerator& g);
   void operator()(NumberInst& i);
+  void operator()(StringInst& i);
+
   void operator()(AllocaInst& i);
   void operator()(RefInst& i);
   void operator()(AssignInst& i);

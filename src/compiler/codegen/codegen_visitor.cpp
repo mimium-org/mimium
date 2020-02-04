@@ -62,6 +62,20 @@ void CodeGenVisitor::operator()(NumberInst& i) {
     G.setValuetoMap(i.lv_name, finst);
   }
 }
+void CodeGenVisitor::operator()(StringInst& i) {
+  auto* cstr = llvm::ConstantDataArray::getString(G.ctx, i.val);
+  auto i8ptrty = G.builder->getInt8PtrTy();
+  auto gvalue = llvm::cast<llvm::GlobalVariable>(G.module->getOrInsertGlobal(i.val, cstr->getType() )); 
+  gvalue->setInitializer(cstr);
+  gvalue->setLinkage(llvm::GlobalValue::InternalLinkage);
+  gvalue->setName("str");
+  auto bitcast = G.builder->CreateBitCast(gvalue,i8ptrty);
+  // auto zero =
+      // llvm::ConstantInt::get(G.builder->getInt64Ty(), llvm::APInt(64, 0));
+  // auto strptr = G.builder->CreateInBoundsGEP(gvalue, {zero, zero}, "gep");
+  // auto strptr = G.builder->CreateLoad(gvalue,i.lv_name);
+  G.setValuetoMap(i.lv_name, bitcast);
+}
 void CodeGenVisitor::operator()(AllocaInst& i) {
   auto ptrname = "ptr_" + i.lv_name;
   auto* type = G.getType(i.lv_name);
@@ -331,8 +345,8 @@ void CodeGenVisitor::createAddTaskFn(FcallInst& i, const bool isclosure,
   for (auto& a : i.args) {
     args.emplace_back(G.findValue(a));
   }
-  if(i.args.empty()){
-    auto zero = llvm::ConstantFP::get(G.ctx,llvm::APFloat((double)0.0));
+  if (i.args.empty()) {
+    auto zero = llvm::ConstantFP::get(G.ctx, llvm::APFloat((double)0.0));
     args.emplace_back(zero);
   }
 

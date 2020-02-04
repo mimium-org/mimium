@@ -47,6 +47,13 @@ struct NumberInst : public MIRinstruction {
   double val;
   std::string toString() override;
 };
+struct StringInst : public MIRinstruction {
+ public:
+  StringInst(const std::string& lv, std::string& val)
+      : MIRinstruction(lv, types::String()), val(val) {}
+  std::string val;
+  std::string toString() override;
+};
 struct AllocaInst : public MIRinstruction {
   explicit AllocaInst(const std::string& lv, types::Value type = types::Float())
       : MIRinstruction(lv, type) {}
@@ -172,7 +179,7 @@ struct ReturnInst : public MIRinstruction {
   std::string toString() override;
 };
 using Instructions =
-    std::variant<NumberInst, AllocaInst, RefInst, AssignInst, OpInst,
+    std::variant<NumberInst, StringInst,AllocaInst, RefInst, AssignInst, OpInst,
                  FunInst, FcallInst, MakeClosureInst, ArrayInst,
                  ArrayAccessInst, IfInst, ReturnInst>;
 

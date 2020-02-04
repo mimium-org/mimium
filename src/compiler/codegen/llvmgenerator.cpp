@@ -212,7 +212,9 @@ void LLVMGenerator::generateCode(std::shared_ptr<MIRblock> mir) {
   for (auto& inst : mir->instructions) {
     visitInstructions(inst, true);
   }
+  if(module->getFunction("dsp")!=nullptr){
   createRuntimeSetDspFn();
+  }
   // main always return null for now;
   builder->CreateRet(llvm::ConstantPointerNull::get(builder->getInt8PtrTy()));
 }

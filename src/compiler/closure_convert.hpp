@@ -55,6 +55,8 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
     void updatepos() { ++position; }
     void registerFv(std::string& name);
     void operator()(NumberInst& i);
+      void operator()(StringInst& i);
+
     void operator()(AllocaInst& i);
     void operator()(RefInst& i);
     void operator()(AssignInst& i);

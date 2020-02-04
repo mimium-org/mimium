@@ -150,6 +150,10 @@ void TypeInferVisitor::visit(NumberAST& /*ast*/) {
   res_stack.push(*std::make_unique<types::Float>());
 }
 
+void TypeInferVisitor::visit(StringAST& /*ast*/) {
+  res_stack.push(*std::make_unique<types::String>());
+}
+
 void TypeInferVisitor::visit(ArgumentsAST& ast) {
   //
 }

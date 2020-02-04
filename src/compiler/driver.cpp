@@ -55,6 +55,9 @@ void MimiumDriver::setWorkingDirectory(const std::string cwd){
 AST_Ptr MimiumDriver::add_number(double num){
    return std::make_unique<NumberAST>(num);
 }
+AST_Ptr MimiumDriver::add_string(std::string& val){
+   return std::make_unique<StringAST>(std::move(val));
+}
 
 std::shared_ptr<LvarAST> MimiumDriver::add_lvar(std::string str){
    return std::make_unique<LvarAST>(std::move(str));

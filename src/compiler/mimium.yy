@@ -126,7 +126,7 @@ using namespace mimium;
 %type <std::shared_ptr<RvarAST>> rvar "right value"
 %type <std::shared_ptr<SelfAST>> self "self"
 
-// %type <AST_Ptr> string "string" //temporary comment out
+%type <AST_Ptr> string "string" 
 
 %type <AST_Ptr> now "now"
 
@@ -313,7 +313,7 @@ ifexpr: IF '(' expr ')' expr ELSE expr{$$ = driver.add_if(std::move($3),std::mov
 single :   self{$$=std::move($1);}
             |now{$$ = std::move($1);}
             |rvar{$$=std::move($1);}
-      // | string{$$=std::move($1);}
+      | string{$$=std::move($1);}
       |  num {$$=std::move($1);}
 
 now : NOW{ 
@@ -322,7 +322,7 @@ now : NOW{
 
 /// primitive declaration
 
-// string : STRING {$$ = driver.add_rvar($1,mimium::types::String());}
+string : STRING {$$ = driver.add_string($1);}
 
 num :NUM {$$ = driver.add_number($1);}
 

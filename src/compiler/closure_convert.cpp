@@ -168,6 +168,9 @@ checkpoint:
 void ClosureConverter::CCVisitor::operator()(NumberInst& i) {
   localvlist.push_back(i.lv_name);
 }
+void ClosureConverter::CCVisitor::operator()(StringInst& i) {
+  localvlist.push_back(i.lv_name);
+}
 
 void ClosureConverter::CCVisitor::operator()(AllocaInst& i) {
   localvlist.push_back(i.lv_name);

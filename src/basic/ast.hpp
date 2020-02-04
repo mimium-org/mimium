@@ -12,6 +12,7 @@ namespace mimium {
 enum AST_ID {
   BASE,
   NUMBER,
+  STRING,
   LVAR,
   RVAR,
   SELF,
@@ -38,6 +39,8 @@ enum AST_ID {
 class AST;  // forward
 class OpAST;
 class NumberAST;
+class StringAST;
+
 class SymbolAST;
 class LvarAST;
 class RvarAST;
@@ -71,6 +74,8 @@ class ASTVisitor {
   virtual void visit(ListAST& ast) = 0;
   virtual void visit(OpAST& ast) = 0;
   virtual void visit(NumberAST& ast) = 0;
+  virtual void visit(StringAST& ast) = 0;
+
   virtual void visit(LvarAST& ast) = 0;
   virtual void visit(RvarAST& ast) = 0;
   virtual void visit(SelfAST& ast) = 0;
@@ -152,9 +157,18 @@ class OpAST : public AST {
 class NumberAST : public AST {
  public:
   double val;
-  explicit NumberAST(double input) : AST(NUMBER),val(input) {}
+  explicit NumberAST(double input) : AST(NUMBER), val(input) {}
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
   double getVal() { return val; };
+  std::string toString() override;
+  std::string toJson() override;
+};
+
+class StringAST : public AST {
+ public:
+  std::string val;
+  explicit StringAST(std::string input) : AST(STRING), val(std::move(input)) {}
+  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
   std::string toString() override;
   std::string toJson() override;
 };
@@ -176,7 +190,8 @@ class LvarAST : public SymbolAST {
     id = LVAR;
   };
   explicit LvarAST(std::string input, types::Value _type)
-      : SymbolAST(input) ,type(std::move(_type)){ id=LVAR;
+      : SymbolAST(input), type(std::move(_type)) {
+    id = LVAR;
   }
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
   auto& getType() { return type; }
@@ -189,7 +204,7 @@ class RvarAST : public SymbolAST {
 
 class SelfAST : public SymbolAST {
  public:
-    types::Value type=types::None();
+  types::Value type = types::None();
   explicit SelfAST() : SymbolAST("self") { id = SELF; };
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
 };
@@ -207,12 +222,8 @@ class AbstractListAST : public AST {
   void addAST(T arg) { elements.push_front(std::move(arg)); };
   void appendAST(T arg) { elements.push_back(std::move(arg)); };
   auto& getElements() { return elements; }
-  std::string toString() override {
-    return "(" + join(elements, " ") + ")";
-  };
-  std::string toJson() override {
-    return "[" + join(elements, " , ") + "]";
-  };
+  std::string toString() override { return "(" + join(elements, " ") + ")"; };
+  std::string toJson() override { return "[" + join(elements, " , ") + "]"; };
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
 };
 
@@ -236,7 +247,7 @@ class LambdaAST : public AST {
   AST_Ptr body;  // statements
   types::Value type;
   bool isrecursive = false;
-  bool hasself=false;
+  bool hasself = false;
   LambdaAST(std::shared_ptr<ArgumentsAST> Args, AST_Ptr Body,
             types::Value type = types::None())
       : args(std::move(Args)), body(std::move(Body)), type(std::move(type)) {
@@ -270,8 +281,9 @@ class FcallAST : public AST {
   std::shared_ptr<AST> fname;
   std::shared_ptr<FcallArgsAST> args;
   std::shared_ptr<AST> time;
-  FcallAST(std::shared_ptr<AST> Fname, std::shared_ptr<FcallArgsAST> Args,std::shared_ptr<AST> time=nullptr)
-      : fname(std::move(Fname)), args(std::move(Args)),time(std::move(time)) {
+  FcallAST(std::shared_ptr<AST> Fname, std::shared_ptr<FcallArgsAST> Args,
+           std::shared_ptr<AST> time = nullptr)
+      : fname(std::move(Fname)), args(std::move(Args)), time(std::move(time)) {
     id = FCALL;
   }
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
@@ -308,7 +320,8 @@ class IfAST : public AST {
  public:
   AST_Ptr condition, thenstatement, elsestatement;
   bool isexpr;
-  IfAST(AST_Ptr Condition, AST_Ptr Thenstatement, AST_Ptr Elsestatement,bool isexpr = false)
+  IfAST(AST_Ptr Condition, AST_Ptr Thenstatement, AST_Ptr Elsestatement,
+        bool isexpr = false)
       : condition(std::move(Condition)),
         thenstatement(std::move(Thenstatement)),
         elsestatement(std::move(Elsestatement)),

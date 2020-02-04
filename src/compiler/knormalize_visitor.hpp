@@ -18,6 +18,8 @@ class KNormalizeVisitor : public ASTVisitor {
   void visit(OpAST& ast) override;
   void visit(ListAST& ast) override;
   void visit(NumberAST& ast) override;
+  void visit(StringAST& ast) override;
+
   void visit(LvarAST& ast) override;
   void visit(RvarAST& ast) override;
   void visit(SelfAST& ast) override;

@@ -33,6 +33,8 @@ class MimiumDriver {
   void setWorkingDirectory(const std::string cwd);
 
   AST_Ptr add_number(double num);
+    AST_Ptr add_string(std::string& val);
+
   std::shared_ptr<LvarAST> add_lvar(std::string str);
   std::shared_ptr<LvarAST> add_lvar(std::string str, mimium::types::Value type);
 
