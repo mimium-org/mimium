@@ -17,23 +17,8 @@ using Logger = mimium::Logger;
 #include "runtime/JIT/runtime_jit.hpp"
 #include "runtime/backend/rtaudio/driver_rtaudio.hpp"
 
-extern "C" {
+extern mimium::Scheduler* global_sch;
 
-mimium::Scheduler* global_sch;
-void setDspParams(void* dspfn,void* clsaddress, void* memobjaddress){
-  global_sch->setDsp(reinterpret_cast<mimium::DspFnType>(dspfn));
-  global_sch->setDsp_ClsAddress(clsaddress);
-  global_sch->setDsp_MemobjAddress(memobjaddress);
-}
-
-void addTask(double time, void* addresstofn, double arg) {
-  global_sch->addTask(time, addresstofn, arg, nullptr);
-}
-void addTask_cls(double time, void* addresstofn, double arg,
-                 void* addresstocls) {
-  global_sch->addTask(time, addresstofn, arg, addresstocls);
-}
-}
 
 std::function<void(int)> shutdown_handler;
 void signalHandler(int signo) { shutdown_handler(signo); }

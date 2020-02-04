@@ -24,27 +24,80 @@ else (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
     NAMES
       sndfile.h
     PATHS
-      /usr/include
-      /usr/local/include
-      /opt/local/include
-      /sw/include
+      /usr/local/opt/libsndfile/include
+      # /usr/include
+      # /usr/local/include
+      # /opt/local/include
+      # /sw/include
   )
   
   find_library(SNDFILE_LIBRARY
     NAMES
       sndfile
     PATHS
+    /usr/local/opt/libsndfile/lib
       /usr/lib
       /usr/local/lib
       /opt/local/lib
       /sw/lib
   )
 
+  find_library(OGG_LIBRARY
+  NAMES
+  ogg
+  PATHS
+  /usr/lib
+  /usr/local/lib
+  /opt/local/lib
+  /sw/lib
+  )
+  find_library(VORBIS_LIBRARY
+  NAMES
+  vorbis
+  PATHS
+  /usr/lib
+  /usr/local/lib
+  /opt/local/lib
+  /sw/lib
+  )
+  find_library(VORBISENC_LIBRARY
+  NAMES
+  vorbisenc
+  PATHS
+  /usr/lib
+  /usr/local/lib
+  /opt/local/lib
+  /sw/lib
+  )
+  find_library(FLAC_LIBRARY
+  NAMES
+  flac
+  PATHS
+  /usr/lib
+  /usr/local/lib
+  /opt/local/lib
+  /sw/lib
+  )
+  find_library(OPUS_LIBRARY
+  NAMES
+  opus
+  PATHS
+  /usr/lib
+  /usr/local/lib
+  /opt/local/lib
+  /sw/lib
+  )
   set(SNDFILE_INCLUDE_DIRS
     ${SNDFILE_INCLUDE_DIR}
   )
   set(SNDFILE_LIBRARIES
     ${SNDFILE_LIBRARY}
+    ${OGG_LIBRARY}
+    ${VORBIS_LIBRARY}
+    ${VORBISENC_LIBRARY}
+    ${FLAC_LIBRARY}
+    ${OPUS_LIBRARY}
+
   )
 
   if (SNDFILE_INCLUDE_DIRS AND SNDFILE_LIBRARIES)

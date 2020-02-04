@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
- 
+
 #include "compiler/knormalize_visitor.hpp"
 
 namespace mimium {
@@ -117,6 +117,13 @@ void KNormalizeVisitor::visit(NumberAST& ast) {
   res_stack_str.push(name);
   typeinfer.getEnv().emplace(name, types::Float());
 }
+void KNormalizeVisitor::visit(StringAST& ast) {
+  auto name = getVarName();
+  Instructions newinst = StringInst(name, ast.val);
+  currentblock->addInst(newinst);
+  res_stack_str.push(name);
+  typeinfer.getEnv().emplace(name, types::String());
+}
 void KNormalizeVisitor::visit(LvarAST& ast) {
   res_stack_str.push(ast.getVal());
 }
@@ -154,26 +161,26 @@ void KNormalizeVisitor::visit(LambdaAST& ast) {
   --currentblock->indent_level;
   res_stack_str.push(name);
 }
-bool KNormalizeVisitor::isArgTime(FcallArgsAST& args) {
-  auto& elems = args.getElements();
-  bool res = false;
+// bool KNormalizeVisitor::isArgTime(FcallArgsAST& args) {
+//   auto& elems = args.getElements();
+//   bool res = false;
 
-  if (!elems.empty()) {
-    auto id = elems[0]->getid();
-    switch (id) {
-      case TIME:
-        res = true;
-        break;
-      case RVAR:
-        res = rv::holds_alternative<types::Time>(typeinfer.getEnv().find(
-            std::static_pointer_cast<RvarAST>(elems[0])->getVal()));
-        break;
-      default:
-        res = false;
-    }
-  }
-  return res;
-}
+//   if (!elems.empty()) {
+//     auto id = elems[0]->getid();
+//     switch (id) {
+//       case TIME:
+//         res = true;
+//         break;
+//       case RVAR:
+//         res = rv::holds_alternative<types::Time>(typeinfer.getEnv().find(
+//             std::static_pointer_cast<RvarAST>(elems[0])->getVal()));
+//         break;
+//       default:
+//         res = false;
+//     }
+//   }
+//   return res;
+// }
 void KNormalizeVisitor::visit(FcallAST& ast) {
   ast.getFname()->accept(*this);
   auto resfname = stackPopStr();
@@ -187,13 +194,22 @@ void KNormalizeVisitor::visit(FcallAST& ast) {
   }
   ast.accept(typeinfer);
   auto lasttype = typeinfer.getLastType();
+  std::optional<std::string> time = std::nullopt;
+  if (ast.time != nullptr) {
+    ast.time->accept(*this);
+    time = stackPopStr();
+  }
   auto fnkind =
       (LLVMBuiltin::ftable.find(resfname) != LLVMBuiltin::ftable.end())
           ? EXTERNAL
           : CLOSURE;
-  // auto type = std::holds_alternative<types::Void>(lasttype) ? lasttype: type_stack.top();
+  if(newname=="mimium_getnow"){
+    fnkind=DIRECT;
+  }
+  // auto type = std::holds_alternative<types::Void>(lasttype) ? lasttype:
+  // type_stack.top();
   Instructions newinst = FcallInst(newname, resfname, std::move(newarg), fnkind,
-                                   lasttype, isArgTime(*args));
+                                   lasttype, std::move(time));
 
   currentblock->addInst(newinst);
   typeinfer.getEnv().emplace(newname, lasttype);
@@ -217,8 +233,9 @@ void KNormalizeVisitor::visit(ArrayAST& ast) {
 }
 void KNormalizeVisitor::visit(ArrayAccessAST& ast) {  // access index may be
                                                       // expr
-  ast.getIndex()->accept(*this);
   auto newname = getVarName();
+  ast.getIndex()->accept(*this);
+
   ArrayAccessInst newinst(newname, ast.getName()->getVal(), stackPopStr());
   Instructions res = newinst;
 
@@ -227,31 +244,32 @@ void KNormalizeVisitor::visit(ArrayAccessAST& ast) {  // access index may be
 }
 void KNormalizeVisitor::visit(IfAST& ast) {
   auto tmpcontext = currentblock;
-    auto newname = getVarName();
+  auto newname = getVarName();
   ast.getCond()->accept(*this);
-  auto condname =  stackPopStr();
-    ast.getThen()->accept(*this);
-    auto thenval =stackPopStr();
-    ast.getElse()->accept(*this);
-    auto elseval = stackPopStr();
-  if(ast.isexpr){
-    Instructions res = FcallInst(newname,"ifexpr",{condname,thenval,elseval},EXTERNAL);
+  auto condname = stackPopStr();
+  ast.getThen()->accept(*this);
+  auto thenval = stackPopStr();
+  ast.getElse()->accept(*this);
+  auto elseval = stackPopStr();
+  if (ast.isexpr) {
+    Instructions res =
+        FcallInst(newname, "ifexpr", {condname, thenval, elseval}, EXTERNAL);
     currentblock->addInst(res);
     res_stack_str.push(newname);
-  }else{
-  IfInst newinst(newname, condname);
-  Instructions res = newinst;
-  currentblock->indent_level++;
-  newinst.thenblock->indent_level = currentblock->indent_level;
-  newinst.elseblock->indent_level = currentblock->indent_level;
-  currentblock->addInst(res);
-  currentblock = newinst.thenblock;
-  ast.getThen()->accept(*this);
-  currentblock = newinst.elseblock;
-  ast.getElse()->accept(*this);
-  res_stack_str.push(newname);
-  currentblock = tmpcontext;
-  currentblock->indent_level--;
+  } else {
+    IfInst newinst(newname, condname);
+    Instructions res = newinst;
+    currentblock->indent_level++;
+    newinst.thenblock->indent_level = currentblock->indent_level;
+    newinst.elseblock->indent_level = currentblock->indent_level;
+    currentblock->addInst(res);
+    currentblock = newinst.thenblock;
+    ast.getThen()->accept(*this);
+    currentblock = newinst.elseblock;
+    ast.getElse()->accept(*this);
+    res_stack_str.push(newname);
+    currentblock = tmpcontext;
+    currentblock->indent_level--;
   }
 }
 void KNormalizeVisitor::visit(ReturnAST& ast) {
@@ -269,22 +287,22 @@ void KNormalizeVisitor::visit(ForAST& ast) {
 void KNormalizeVisitor::visit(DeclarationAST& ast) {
   current_context->appendAST(std::make_unique<DeclarationAST>(ast));
 }
-void KNormalizeVisitor::visit(TimeAST& ast) {
-  //ここ考えどこだな　functionにパスするときのなんかもここで処理するかMIRの先で処理するか
-  //とりあえずこの先で処理します
-  auto newname = getVarName();
+// void KNormalizeVisitor::visit(TimeAST& ast) {
+//   //ここ考えどこだな　functionにパスするときのなんかもここで処理するかMIRの先で処理するか
+//   //とりあえずこの先で処理します
+//   auto newname = getVarName();
 
-  ast.getTime()->accept(*this);
-  ast.getExpr()->accept(*this);
-  ast.accept(typeinfer);
-  auto t = typeinfer.getLastType();
-  TimeInst newinst(newname, stackPopStr(), stackPopStr(), t);
-  Instructions res = newinst;
+//   ast.getTime()->accept(*this);
+//   ast.getExpr()->accept(*this);
+//   ast.accept(typeinfer);
+//   auto t = typeinfer.getLastType();
+//   TimeInst newinst(newname, stackPopStr(), stackPopStr(), t);
+//   Instructions res = newinst;
 
-  currentblock->addInst(res);
-  res_stack_str.push(newname);
-  typeinfer.getEnv().emplace(newname, t);
-}
+//   currentblock->addInst(res);
+//   res_stack_str.push(newname);
+//   typeinfer.getEnv().emplace(newname, t);
+// }
 
 void KNormalizeVisitor::visit(StructAST& ast) {
   // will not be used for now,,,

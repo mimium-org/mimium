@@ -1,0 +1,38 @@
+fn sectosamps(sec){
+    return sec*48000
+}
+fn diff(input){
+    return input - mem(input)
+}
+fn sigdir(input){
+    return diff(input)>0
+}
+fn adsr(attack,decay,sustain,release,input){
+    at_or_rel = input>0.5
+    dir =  sigdir(self)
+    atsig = min(1,(self + 1/sectosamps(attack)))
+    decsig = max(sustain,(self-1/sectosamps(decay)))
+    releasesig =max(0,(self-1/sectosamps(release)))
+    at_dec_sus_sig = if (dir) atsig else decsig
+    return if (at_or_rel) at_dec_sus_sig else releasesig
+}
+PI=3.141595
+freq=1000
+triggerval = 0
+fn setval(val){
+    triggerval = val
+}
+fn trigger(dur)->void{
+    setval(1)@now
+    setval(0)@(now+dur)
+}
+fn loopnote()->void{
+    freq = (324+freq*17>>1) % 4800
+    trigger(10000)
+    loopnote()@(now+28000)
+}
+phasor = |f:float|{return (self+f/48000)%1}
+fn dsp(time){
+    return ((phasor(freq)*PI*2) |> sin) * adsr(0.05,0.2,0.5,0.1,triggerval)
+}
+loopnote()@0

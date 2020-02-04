@@ -1,15 +1,17 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
- 
+
 #include "basic/ast.hpp"
-namespace mimium{
+namespace mimium {
 std::string NumberAST::toString() {
   std::stringstream ss;
   ss << val;
   return ss.str();
 }
 std::string NumberAST::toJson() { return toString(); }
+std::string StringAST::toString() { return val; }
+std::string StringAST::toJson() { return val; }
 
 std::string SymbolAST::toString() { return val; }
 std::string SymbolAST::toJson() { return "'" + toString() + "'"; }
@@ -26,7 +28,6 @@ std::string OpAST::toString() {
 std::string OpAST::toJson() {
   return "[ '" + op + "', " + lhs->toJson() + ", " + rhs->toJson() + "]";
 }
-
 
 std::string ArrayAccessAST::toString() {
   return "arrayaccess " + name->toString() + " " + index->toString();
@@ -60,10 +61,12 @@ std::string AssignAST::toJson() {
 }
 
 std::string FcallAST::toString() {
-  return "(" + fname->toString() + " " + args->toString() + ")";
+  return "(" + fname->toString() + " " + args->toString() +
+         ((time) ? "@" + time->toString() : "") + ")";
 }
 std::string FcallAST::toJson() {
-  return "[" + fname->toJson() + ", " + args->toJson() + "]";
+  return "[" + fname->toJson() + ", " + args->toJson() +
+         ((time) ? "@" + time->toString() : "") + "]";
 }
 
 std::string DeclarationAST::toString() {
@@ -92,33 +95,31 @@ std::string ForAST::toJson() {
          expression->toJson() + "]";
 }
 
-std::string TimeAST::toString() {
-  return expr->toString() + "@" + time->toString();
-}
+// std::string TimeAST::toString() {
+//   return expr->toString() + "@" + time->toString();
+// }
 
-std::string TimeAST::toJson() {
-  return "[ 'time', " + expr->toJson() + ", " + time->toJson() + "]";
-}
+// std::string TimeAST::toJson() {
+//   return "[ 'time', " + expr->toJson() + ", " + time->toJson() + "]";
+// }
 
-std::string StructAST::toString() {//this is not lisp like style,,
+std::string StructAST::toString() {  // this is not lisp like style,,
   std::stringstream ss;
-  int count=0;
-  ss<< "{";
-  for(auto& [k,v] : map){
+  int count = 0;
+  ss << "{";
+  for (auto& [k, v] : map) {
     ss << k->toString() << " : " << v->toString();
     count++;
-    if (map.size() < count) ss<<",\n";
+    if (map.size() < count) ss << ",\n";
   }
-  ss<<"}";
+  ss << "}";
   return ss.str();
 }
-std::string StructAST::toJson() {
-  return this->toString();
-}
+std::string StructAST::toJson() { return this->toString(); }
 std::string StructAccessAST::toString() {
-    return "structaccess " + key->toString() + " " + val->toString();
+  return "structaccess " + key->toString() + " " + val->toString();
 }
 std::string StructAccessAST::toJson() {
-    return "[structaccess , " + key->toString() + " , " + val->toString()+"]";
+  return "[structaccess , " + key->toString() + " , " + val->toString() + "]";
 }
-}//namespace mimium
+}  // namespace mimium

@@ -30,6 +30,10 @@ std::string MIRblock::toString() {
 std::string NumberInst::toString() {
   return lv_name + " = " + std::to_string(val);
 }
+std::string StringInst::toString() {
+  return lv_name + " = " + val;
+}
+
 std::string AllocaInst::toString() {
   return "alloca: " + lv_name + " (" + types::toString(type) + ")";
 }
@@ -37,7 +41,7 @@ std::string RefInst::toString() { return lv_name + " = ref " + val; }
 
 std::string AssignInst::toString() { return lv_name + " =(overwrite) " + val; }
 
-std::string TimeInst::toString() { return lv_name + " = " + val + +"@" + time; }
+// std::string TimeInst::toString() { return lv_name + " = " + val + +"@" + time; }
 
 std::string OpInst::toString() { return lv_name + " = " + lhs + op + rhs; }
 FunInst::FunInst(const std::string& name, std::deque<std::string> newargs,
@@ -80,8 +84,9 @@ std::string MakeClosureInst::toString() {
 }
 std::string FcallInst::toString() {
   std::string s;
+  auto timestr = (time)?"@"+time.value():"";
   return lv_name + " = app" + fcalltype_str[ftype] + " " + fname + " " +
-         join(args, " , ");
+         join(args, " , ") + timestr;
 }
 
 std::string ArrayInst::toString() {

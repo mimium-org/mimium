@@ -18,6 +18,8 @@ class KNormalizeVisitor : public ASTVisitor {
   void visit(OpAST& ast) override;
   void visit(ListAST& ast) override;
   void visit(NumberAST& ast) override;
+  void visit(StringAST& ast) override;
+
   void visit(LvarAST& ast) override;
   void visit(RvarAST& ast) override;
   void visit(SelfAST& ast) override;
@@ -33,7 +35,7 @@ class KNormalizeVisitor : public ASTVisitor {
   void visit(ReturnAST& ast) override;
   void visit(ForAST& ast) override;
   void visit(DeclarationAST& ast) override;
-  void visit(TimeAST& ast) override;
+  // void visit(TimeAST& ast) override;
   void visit(StructAST& ast) override;
   void visit(StructAccessAST& ast) override;
 

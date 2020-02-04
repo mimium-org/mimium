@@ -1,7 +1,10 @@
 # mimium
 
-[![Build Status](https://travis-ci.org/tomoyanonymous/mimium.svg?branch=master)](https://travis-ci.org/tomoyanonymous/mimium) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/de5190beb61f4ea9a337becdb21f8328)](https://www.codacy.com/manual/tomoyanonymous/mimium?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=tomoyanonymous/mimium&amp;utm_campaign=Badge_Grade)
+a programming language as an infrastructure for sound and music
 
+[![Build Status](https://travis-ci.org/tomoyanonymous/mimium.svg?branch=master)](https://travis-ci.org/tomoyanonymous/mimium) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/de5190beb61f4ea9a337becdb21f8328)](https://www.codacy.com/manual/tomoyanonymous/mimium?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=tomoyanonymous/mimium&amp;utm_campaign=Badge_Grade) [![License Badge-MPL2.0](https://img.shields.io/badge/LICENSE-MPLv2.0-blue)](./LICENSE.md)
+
+![mimium_logo_slanted](./mimium_logo_slant.svg)
 
 mimium(*MInimal-Musical-medIUM*) is a domain specific programming language for describing/generating sound and music.
 
@@ -33,6 +36,7 @@ Tomoya Matsuura 松浦知也
 
 The source code is lisenced under [Mozilla Puclic License 2.0](https://www.mozilla.org/en-US/MPL/2.0/).
 
+The source code contains some third party libraries with BSD-like lincenses, see [COPYRIGHT](./COPYRIGHT).
 
 # Acknowledgements
 

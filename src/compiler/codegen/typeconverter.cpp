@@ -48,7 +48,7 @@ llvm::Type* TypeConverter::operator()(types::Closure& i) {
                                   name, false);
 }
 llvm::Type* TypeConverter::operator()(types::Array& i) {
-  return llvm::ArrayType::get(std::visit(*this, i.elem_type), i.size);
+  return llvm::PointerType::get(std::visit(*this, i.elem_type),0);
 }
 llvm::Type* TypeConverter::operator()(types::Struct& i) {
   std::vector<llvm::Type*> ar;
@@ -85,23 +85,23 @@ llvm::Type* TypeConverter::operator()(types::Tuple& i) {
   }
   return res;
 }
-llvm::Type* TypeConverter::operator()(types::Time& i) {
-  llvm::Type* res;
-  if (tmpname.empty()) {
-    res = llvm::StructType::get(
-        builder.getContext(),
-        {builder.getDoubleTy(), std::visit(*this, i.val)});
-  } else {
-    auto n = consumeAlias();
-    res = tryGetNamedType(n);
-    if (res == nullptr) {
-      res = llvm::StructType::create(
-          builder.getContext(),
-          {builder.getDoubleTy(), std::visit(*this, i.val)}, n);
-    }
-  }
-  return res;
-}
+// llvm::Type* TypeConverter::operator()(types::Time& i) {
+//   llvm::Type* res;
+//   if (tmpname.empty()) {
+//     res = llvm::StructType::get(
+//         builder.getContext(),
+//         {builder.getDoubleTy(), std::visit(*this, i.val)});
+//   } else {
+//     auto n = consumeAlias();
+//     res = tryGetNamedType(n);
+//     if (res == nullptr) {
+//       res = llvm::StructType::create(
+//           builder.getContext(),
+//           {builder.getDoubleTy(), std::visit(*this, i.val)}, n);
+//     }
+//   }
+//   return res;
+// }
 llvm::Type* TypeConverter::operator()(types::Alias& i) {
   auto it = aliasmap.find(i.name);
   llvm::Type* res;

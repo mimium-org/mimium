@@ -12,6 +12,7 @@ namespace mimium {
 enum AST_ID {
   BASE,
   NUMBER,
+  STRING,
   LVAR,
   RVAR,
   SELF,
@@ -38,6 +39,8 @@ enum AST_ID {
 class AST;  // forward
 class OpAST;
 class NumberAST;
+class StringAST;
+
 class SymbolAST;
 class LvarAST;
 class RvarAST;
@@ -54,7 +57,7 @@ using ListAST = AbstractListAST<std::shared_ptr<AST>, LIST>;
 using ArrayAST = AbstractListAST<std::shared_ptr<AST>, ARRAY>;
 
 class ArrayAccessAST;
-class TimeAST;
+// class TimeAST;
 class ReturnAST;
 class DeclarationAST;
 class ForAST;
@@ -71,6 +74,8 @@ class ASTVisitor {
   virtual void visit(ListAST& ast) = 0;
   virtual void visit(OpAST& ast) = 0;
   virtual void visit(NumberAST& ast) = 0;
+  virtual void visit(StringAST& ast) = 0;
+
   virtual void visit(LvarAST& ast) = 0;
   virtual void visit(RvarAST& ast) = 0;
   virtual void visit(SelfAST& ast) = 0;
@@ -87,7 +92,7 @@ class ASTVisitor {
   virtual void visit(ReturnAST& ast) = 0;
   virtual void visit(ForAST& ast) = 0;
   virtual void visit(DeclarationAST& ast) = 0;
-  virtual void visit(TimeAST& ast) = 0;
+  // virtual void visit(TimeAST& ast) = 0;
   virtual void visit(StructAST& ast) = 0;
   virtual void visit(StructAccessAST& ast) = 0;
 
@@ -152,9 +157,18 @@ class OpAST : public AST {
 class NumberAST : public AST {
  public:
   double val;
-  explicit NumberAST(double input) : AST(NUMBER),val(input) {}
+  explicit NumberAST(double input) : AST(NUMBER), val(input) {}
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
   double getVal() { return val; };
+  std::string toString() override;
+  std::string toJson() override;
+};
+
+class StringAST : public AST {
+ public:
+  std::string val;
+  explicit StringAST(std::string input) : AST(STRING), val(std::move(input)) {}
+  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
   std::string toString() override;
   std::string toJson() override;
 };
@@ -176,7 +190,8 @@ class LvarAST : public SymbolAST {
     id = LVAR;
   };
   explicit LvarAST(std::string input, types::Value _type)
-      : SymbolAST(input) ,type(std::move(_type)){ id=LVAR;
+      : SymbolAST(input), type(std::move(_type)) {
+    id = LVAR;
   }
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
   auto& getType() { return type; }
@@ -189,7 +204,7 @@ class RvarAST : public SymbolAST {
 
 class SelfAST : public SymbolAST {
  public:
-    types::Value type=types::None();
+  types::Value type = types::None();
   explicit SelfAST() : SymbolAST("self") { id = SELF; };
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
 };
@@ -207,12 +222,8 @@ class AbstractListAST : public AST {
   void addAST(T arg) { elements.push_front(std::move(arg)); };
   void appendAST(T arg) { elements.push_back(std::move(arg)); };
   auto& getElements() { return elements; }
-  std::string toString() override {
-    return "(" + join(elements, " ") + ")";
-  };
-  std::string toJson() override {
-    return "[" + join(elements, " , ") + "]";
-  };
+  std::string toString() override { return "(" + join(elements, " ") + ")"; };
+  std::string toJson() override { return "[" + join(elements, " , ") + "]"; };
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
 };
 
@@ -236,7 +247,7 @@ class LambdaAST : public AST {
   AST_Ptr body;  // statements
   types::Value type;
   bool isrecursive = false;
-  bool hasself=false;
+  bool hasself = false;
   LambdaAST(std::shared_ptr<ArgumentsAST> Args, AST_Ptr Body,
             types::Value type = types::None())
       : args(std::move(Args)), body(std::move(Body)), type(std::move(type)) {
@@ -269,8 +280,10 @@ class FcallAST : public AST {
  public:
   std::shared_ptr<AST> fname;
   std::shared_ptr<FcallArgsAST> args;
-  FcallAST(std::shared_ptr<AST> Fname, std::shared_ptr<FcallArgsAST> Args)
-      : fname(std::move(Fname)), args(std::move(Args)) {
+  std::shared_ptr<AST> time;
+  FcallAST(std::shared_ptr<AST> Fname, std::shared_ptr<FcallArgsAST> Args,
+           std::shared_ptr<AST> time = nullptr)
+      : fname(std::move(Fname)), args(std::move(Args)), time(std::move(time)) {
     id = FCALL;
   }
   void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
@@ -307,7 +320,8 @@ class IfAST : public AST {
  public:
   AST_Ptr condition, thenstatement, elsestatement;
   bool isexpr;
-  IfAST(AST_Ptr Condition, AST_Ptr Thenstatement, AST_Ptr Elsestatement,bool isexpr = false)
+  IfAST(AST_Ptr Condition, AST_Ptr Thenstatement, AST_Ptr Elsestatement,
+        bool isexpr = false)
       : condition(std::move(Condition)),
         thenstatement(std::move(Thenstatement)),
         elsestatement(std::move(Elsestatement)),
@@ -339,20 +353,20 @@ class ForAST : public AST {
   std::string toJson() override;
 };
 
-class TimeAST : public AST {
- public:
-  AST_Ptr expr;
-  AST_Ptr time;
-  explicit TimeAST(AST_Ptr Expr, AST_Ptr Time)
-      : expr(std::move(Expr)), time(std::move(Time)) {
-    id = TIME;
-  }
-  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
-  auto getTime() { return time; }
-  auto getExpr() { return expr; }
-  std::string toString() override;
-  std::string toJson() override;
-};
+// class TimeAST : public AST {
+//  public:
+//   AST_Ptr expr;
+//   AST_Ptr time;
+//   explicit TimeAST(AST_Ptr Expr, AST_Ptr Time)
+//       : expr(std::move(Expr)), time(std::move(Time)) {
+//     id = TIME;
+//   }
+//   void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
+//   auto getTime() { return time; }
+//   auto getExpr() { return expr; }
+//   std::string toString() override;
+//   std::string toJson() override;
+// };
 
 class StructAST : public AST {
  public:

@@ -2,12 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
  
+
 #include "compiler/ffi.hpp"
 extern "C" {
 void dumpaddress(void* a) { std::cerr << a <<"\n"; }
 
 void printdouble(double d) { std::cerr << d; }
 void printlndouble(double d) { std::cerr << d << "\n"; }
+
+void printlnstr(char* str){ std::cerr << str << "\n"; }
+
 double mimiumrand(){return ((double)rand()/RAND_MAX)*2 -1  ;}
 
 double mimium_ifexpr(double cond,double thenval,double elseval){
@@ -50,6 +54,38 @@ double mimium_memprim(double d,double* mem){
     return tmp;
 }
 
+double access_array_lin_interp(double* array,double index_d){
+    double fract = fmod(index_d,1.000);
+    int64_t index= floor(index_d);
+    return array[index]*fract + array[index+1]*(1-fract);
+}
+
+double libsndfile_loadwavsize(char* filename){
+    SF_INFO sfinfo;
+    auto sfile = sf_open(filename,SFM_READ,&sfinfo);
+    if(sfile==nullptr){
+        std::cerr << sf_strerror(sfile)<<"\n"; 
+    }
+    auto res = sfinfo.frames;   
+    sf_close(sfile);
+    return res;
+}
+
+double* libsndfile_loadwav(char* filename){
+    SF_INFO sfinfo;
+    auto sfile = sf_open(filename,SFM_READ,&sfinfo);
+    if(sfile==nullptr){
+        std::cerr << sf_strerror(sfile)<<"\n"; 
+    }
+    
+    const int bufsize = sfinfo.frames*sfinfo.channels;
+    double* buffer = new double[bufsize];
+    auto size = sf_readf_double(sfile,buffer,bufsize);
+    // sf_close(sfile);
+    // std::cerr<< filename << "(" << size << ") is succecfully loaded";
+    return buffer;
+}
+
 }
 
 namespace mimium {
@@ -58,6 +94,9 @@ using FI = BuiltinFnInfo;
 std::unordered_map<std::string, BuiltinFnInfo> LLVMBuiltin::ftable = {
     {"print", FI{Function(Void(), {Float()}), "printdouble"}},
     {"println", FI{Function(Void(), {Float()}), "printlndouble"}},
+    {"printlnstr", FI{Function(Void(), {String()}), "printlnstr"}},
+
+
 
     {"sin", FI{Function(Float(), {Float()}), "sin"}},
     {"cos", FI{Function(Float(), {Float()}), "cos"}},
@@ -104,7 +143,13 @@ std::unordered_map<std::string, BuiltinFnInfo> LLVMBuiltin::ftable = {
     {"rshift", FI{Function(Float(), {Float(),Float()}), "mimium_rshift"}},
     {"ifexpr", FI{Function(Float(), {Float(),Float(),Float()}), "mimium_ifexpr"}},
 
-    {"mem", FI{Function(Float(), {Float()}), "mimium_memprim"}}
+    {"mem", FI{Function(Float(), {Float()}), "mimium_memprim"}},
+
+    {"loadwavsize",FI{Function(Float(),{String()}),"libsndfile_loadwavsize"}},
+
+    {"loadwav",FI{Function(Array(Float()),{String()}),"libsndfile_loadwav"}},
+
+    {"access_array_lin_interp", FI{Function(Float(), {Float(),Float()}), "access_array_lin_interp"}}
 
 };
 
