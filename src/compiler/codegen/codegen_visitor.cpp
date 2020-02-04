@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 #include "compiler/codegen/codegen_visitor.hpp"
 
 namespace mimium {
@@ -302,7 +303,12 @@ void CodeGenVisitor::operator()(FcallInst& i) {
     } else {
       auto res = G.builder->CreateCall(fun, args, i.lv_name);
       G.setValuetoMap(i.lv_name, res);
+        auto resptr =G.tryfindValue("ptr_"+i.lv_name);
+      if(resptr !=nullptr){
+      G.builder->CreateStore(res,resptr);
+      }
     }
+
   }
 }
 llvm::Value* CodeGenVisitor::getDirFun(FcallInst& i) {
@@ -401,7 +407,20 @@ void CodeGenVisitor::operator()(
   // G.setValuetoMap("ptr_" + closureptrname, closure_ptr);
 }
 void CodeGenVisitor::operator()(ArrayInst& i) {}
-void CodeGenVisitor::operator()(ArrayAccessInst& i) {}
+void CodeGenVisitor::operator()(ArrayAccessInst& i) {
+  auto v = G.tryfindValue(i.name);
+  auto indexfloat = G.tryfindValue(i.index);
+  // auto indexint = G.builder->CreateBitCast(indexfloat,G.builder->getInt64Ty());
+  auto zero  = llvm::ConstantInt::get(G.builder->getInt64Ty(),llvm::APInt(64,0));
+  auto dptrtype = llvm::PointerType::get(G.builder->getDoubleTy(),0);
+  auto arraccessfun = G.module->getFunction("access_array_lin_interp");
+  // auto gep = G.builder->CreateInBoundsGEP(dptrtype,v,{indexint,zero},"arrayaccess");
+  // auto load = G.builder->CreateLoad(gep,"arraccessload");
+  // G.setValuetoMap("ptr_"+i.lv_name, gep);
+  // G.setValuetoMap(i.lv_name, load);
+  auto res = G.builder->CreateCall(arraccessfun,{v,indexfloat},"arrayaccess");
+    G.setValuetoMap(i.lv_name, res);
+}
 void CodeGenVisitor::operator()(IfInst& i) {}
 void CodeGenVisitor::operator()(ReturnInst& i) {
   auto v = G.tryfindValue(i.val);

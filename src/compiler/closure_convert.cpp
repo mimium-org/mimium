@@ -228,7 +228,9 @@ void ClosureConverter::CCVisitor::operator()(ArrayInst& i) {
 }
 
 void ClosureConverter::CCVisitor::operator()(ArrayAccessInst& i) {
-  // todo
+  registerFv(i.name);
+  registerFv(i.index);
+  localvlist.push_back(i.lv_name);
 }
 
 void ClosureConverter::CCVisitor::operator()(IfInst& i) {

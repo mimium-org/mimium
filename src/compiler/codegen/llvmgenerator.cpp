@@ -82,7 +82,7 @@ void LLVMGenerator::createMiscDeclarations() {
   auto i8ptr = builder->getInt8PtrTy();
   auto i64 = builder->getInt64Ty();
   auto b = builder->getInt1Ty();
-
+  auto d = builder->getDoubleTy();
   auto* malloctype = llvm::FunctionType::get(i8ptr, {i64}, false);
   auto res = module->getOrInsertFunction("malloc", malloctype).getCallee();
   setValuetoMap("malloc", res);
@@ -90,10 +90,13 @@ void LLVMGenerator::createMiscDeclarations() {
   auto* memsettype = llvm::FunctionType::get(vo, {i8ptr, i8, i64, b}, false);
   module->getOrInsertFunction("llvm.memset.p0i8.i64",memsettype).getCallee();
 
-  auto* getnowtype =  llvm::FunctionType::get(builder->getDoubleTy(), {}, false);
+  auto* getnowtype =  llvm::FunctionType::get(d, {}, false);
   auto gnr = module->getOrInsertFunction("mimium_getnow",getnowtype).getCallee();
     setValuetoMap("mimium_getnow", gnr);
 
+  auto* arrayaccesstype = llvm::FunctionType::get(d,{llvm::PointerType::get(d,0),d},false);
+  auto arraccess =module->getOrInsertFunction("access_array_lin_interp",arrayaccesstype).getCallee();
+  setValuetoMap("access_array_lin_interp", arraccess);
 
 }
 

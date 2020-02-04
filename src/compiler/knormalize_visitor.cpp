@@ -233,8 +233,9 @@ void KNormalizeVisitor::visit(ArrayAST& ast) {
 }
 void KNormalizeVisitor::visit(ArrayAccessAST& ast) {  // access index may be
                                                       // expr
-  ast.getIndex()->accept(*this);
   auto newname = getVarName();
+  ast.getIndex()->accept(*this);
+
   ArrayAccessInst newinst(newname, ast.getName()->getVal(), stackPopStr());
   Instructions res = newinst;
 

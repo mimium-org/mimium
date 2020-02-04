@@ -54,6 +54,12 @@ double mimium_memprim(double d,double* mem){
     return tmp;
 }
 
+double access_array_lin_interp(double* array,double index_d){
+    double fract = fmod(index_d,1.000);
+    int64_t index= floor(index_d);
+    return array[index]*fract + array[index+1]*(1-fract);
+}
+
 double libsndfile_loadwavsize(char* filename){
     SF_INFO sfinfo;
     auto sfile = sf_open(filename,SFM_READ,&sfinfo);
@@ -71,11 +77,12 @@ double* libsndfile_loadwav(char* filename){
     if(sfile==nullptr){
         std::cerr << sf_strerror(sfile)<<"\n"; 
     }
+    
     const int bufsize = sfinfo.frames*sfinfo.channels;
-    double* buffer = new double(bufsize);
-    auto size = sf_read_double(sfile,buffer,bufsize);
-    sf_close(sfile);
-    std::cerr<< filename << "(" + std::to_string(size)+ ") is succecfully loaded";
+    double* buffer = new double[bufsize];
+    auto size = sf_readf_double(sfile,buffer,bufsize);
+    // sf_close(sfile);
+    // std::cerr<< filename << "(" << size << ") is succecfully loaded";
     return buffer;
 }
 
@@ -140,7 +147,10 @@ std::unordered_map<std::string, BuiltinFnInfo> LLVMBuiltin::ftable = {
 
     {"loadwavsize",FI{Function(Float(),{String()}),"libsndfile_loadwavsize"}},
 
-    {"loadwav",FI{Function(Array(Float()),{String()}),"libsndfile_loadwav"}}
+    {"loadwav",FI{Function(Array(Float()),{String()}),"libsndfile_loadwav"}},
+
+    {"access_array_lin_interp", FI{Function(Float(), {Float(),Float()}), "access_array_lin_interp"}}
+
 };
 
 }  // namespace mimium

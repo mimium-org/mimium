@@ -180,10 +180,11 @@ void TypeInferVisitor::visit(ArrayAST& ast) {
 void TypeInferVisitor::visit(ArrayAccessAST& ast) {
   auto type = typeenv.find(ast.getName()->getVal());
   types::Value res;
-  auto arr = rv::get<types::Array>(type);  // implicit cast
-  res = arr.elem_type;
+  //fixme
+  types::Value arr = types::Array(types::Float());
+  unify(type,arr);
 
-  res_stack.push(res);
+  res_stack.push(types::Float());
 }
 // bool TypeInferVisitor::checkArg(types::Value& fnarg, types::Value& givenarg) {
 //   bool res;
