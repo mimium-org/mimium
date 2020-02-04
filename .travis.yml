@@ -17,6 +17,7 @@ addons:
     - llvm
     - bison
     - flex
+    - opus
     - libsndfile
 cache:
   directories:
