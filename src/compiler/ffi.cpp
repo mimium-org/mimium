@@ -54,6 +54,31 @@ double mimium_memprim(double d,double* mem){
     return tmp;
 }
 
+double libsndfile_loadwavsize(char* filename){
+    SF_INFO sfinfo;
+    auto sfile = sf_open(filename,SFM_READ,&sfinfo);
+    if(sfile==nullptr){
+        std::cerr << sf_strerror(sfile)<<"\n"; 
+    }
+    auto res = sfinfo.frames;   
+    sf_close(sfile);
+    return res;
+}
+
+double* libsndfile_loadwav(char* filename){
+    SF_INFO sfinfo;
+    auto sfile = sf_open(filename,SFM_READ,&sfinfo);
+    if(sfile==nullptr){
+        std::cerr << sf_strerror(sfile)<<"\n"; 
+    }
+    const int bufsize = sfinfo.frames*sfinfo.channels;
+    double* buffer = new double(bufsize);
+    auto size = sf_read_double(sfile,buffer,bufsize);
+    sf_close(sfile);
+    std::cerr<< filename << "(" + std::to_string(size)+ ") is succecfully loaded";
+    return buffer;
+}
+
 }
 
 namespace mimium {
@@ -111,8 +136,11 @@ std::unordered_map<std::string, BuiltinFnInfo> LLVMBuiltin::ftable = {
     {"rshift", FI{Function(Float(), {Float(),Float()}), "mimium_rshift"}},
     {"ifexpr", FI{Function(Float(), {Float(),Float(),Float()}), "mimium_ifexpr"}},
 
-    {"mem", FI{Function(Float(), {Float()}), "mimium_memprim"}}
+    {"mem", FI{Function(Float(), {Float()}), "mimium_memprim"}},
 
+    {"loadwavsize",FI{Function(Float(),{String()}),"libsndfile_loadwavsize"}},
+
+    {"loadwav",FI{Function(Array(Float()),{String()}),"libsndfile_loadwav"}}
 };
 
 }  // namespace mimium

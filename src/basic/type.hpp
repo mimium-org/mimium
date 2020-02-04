@@ -197,7 +197,7 @@ inline bool operator!=(const Closure& t1, const Closure& t2) {
 struct Array : Aggregate {
   Value elem_type;
   int size;
-  explicit Array(Value elem, int size)
+  explicit Array(Value elem, int size=0)
       : elem_type(std::move(elem)), size(size) {}
 };
 inline bool operator==(const Array& t1, const Array& t2) {

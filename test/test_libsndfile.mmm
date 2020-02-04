@@ -1,0 +1,3 @@
+size = loadwavsize("/Users/tomoya/Music/Pro Sound Effects 2017 Hybrid Library/animals/ANIMAL_SHEEP_DORPER_GROUP_BAA11.wav")
+
+println(size)
