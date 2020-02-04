@@ -25,10 +25,10 @@ else (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
       sndfile.h
     PATHS
       /usr/local/opt/libsndfile/include
-      # /usr/include
-      # /usr/local/include
-      # /opt/local/include
-      # /sw/include
+      /usr/include
+      /usr/local/include
+      /opt/local/include
+      /sw/include
   )
   
   find_library(SNDFILE_LIBRARY
@@ -99,10 +99,14 @@ else (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
     ${OPUS_LIBRARY}
 
   )
+  message(STATUS "------------------")
 
-  if (SNDFILE_INCLUDE_DIRS AND SNDFILE_LIBRARIES)
+message(STATUS ${SNDFILE_INCLUDE_DIR})
+message(STATUS     ${SNDFILE_LIBRARY})
+
+  if (SNDFILE_INCLUDE_DIR AND SNDFILE_LIBRARY)
     set(SNDFILE_FOUND TRUE)
-  endif (SNDFILE_INCLUDE_DIRS AND SNDFILE_LIBRARIES)
+  endif (SNDFILE_INCLUDE_DIR AND SNDFILE_LIBRARY)
 
   if (SNDFILE_FOUND)
     if (NOT SndFile_FIND_QUIETLY)
