@@ -24,7 +24,7 @@ using Logger = mimium::Logger;
 extern "C" {
 
 extern mimium::Scheduler* global_sch;
-
+}
 std::function<void(int)> shutdown_handler;
 void signalHandler(int signo) { shutdown_handler(signo); }
 
