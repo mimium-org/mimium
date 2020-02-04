@@ -56,7 +56,7 @@ struct Closure;
 struct Array;
 struct Struct;
 struct Tuple;
-struct Time;
+// struct Time;
 
 struct Alias;
 
@@ -64,7 +64,7 @@ using Value =
     std::variant<None, Void, Float, String, Rec_Wrap<Ref>, Rec_Wrap<TypeVar>,
                  Rec_Wrap<Pointer>, Rec_Wrap<Function>, Rec_Wrap<Closure>,
                  Rec_Wrap<Array>, Rec_Wrap<Struct>, Rec_Wrap<Tuple>,
-                 Rec_Wrap<Time>, Rec_Wrap<Alias>>;
+                  Rec_Wrap<Alias>>;
 
 struct ToStringVisitor;
 
@@ -133,18 +133,18 @@ inline bool operator!=(const Pointer& t1, const Pointer& t2) {
 struct Aggregate {
   constexpr inline static Kind kind = Kind::AGGREGATE;
 };
-struct Time : Aggregate {
-  Time()=default;
-  explicit Time(Value v):val(std::move(v)){};
-  Value val;
-  Float time;
-};
-inline bool operator==(const Time& t1, const Time& t2) {
-  return t1.val == t2.val;
-}
-inline bool operator!=(const Time& t1, const Time& t2) {
-  return t1.val != t2.val;
-}
+// struct Time : Aggregate {
+//   Time()=default;
+//   explicit Time(Value v):val(std::move(v)){};
+//   Value val;
+//   Float time;
+// };
+// inline bool operator==(const Time& t1, const Time& t2) {
+//   return t1.val == t2.val;
+// }
+// inline bool operator!=(const Time& t1, const Time& t2) {
+//   return t1.val != t2.val;
+// }
 struct Function : Aggregate {
   Function() = default;
   explicit Function(Value ret_type_p, std::vector<Value> arg_types_p)
@@ -308,9 +308,9 @@ struct ToStringVisitor {
   std::string operator()(const Tuple& t) const {
     return "(" + join(t.arg_types, ",") + ")";
   }
-  std::string operator()(const Time& t) const {
-    return std::visit(*this, t.val) + "@";
-  }
+  // std::string operator()(const Time& t) const {
+  //   return std::visit(*this, t.val) + "@";
+  // }
   std::string operator()(const Alias& a) const {
     return a.name + ((verbose) ? ": " + std::visit(*this, a.target) : "");
   }

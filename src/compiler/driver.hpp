@@ -33,6 +33,8 @@ class MimiumDriver {
   void setWorkingDirectory(const std::string cwd);
 
   AST_Ptr add_number(double num);
+    AST_Ptr add_string(std::string& val);
+
   std::shared_ptr<LvarAST> add_lvar(std::string str);
   std::shared_ptr<LvarAST> add_lvar(std::string str, mimium::types::Value type);
 
@@ -54,7 +56,7 @@ class MimiumDriver {
                                           mimium::types::Value rettype);
 
   std::shared_ptr<FcallAST> add_fcall(std::shared_ptr<AST> fname,
-                                      std::shared_ptr<FcallArgsAST> args);
+                                      std::shared_ptr<FcallArgsAST> args,std::shared_ptr<AST> time = nullptr);
   // mostry for pipe
   std::shared_ptr<FcallAST> add_fcall(std::shared_ptr<AST> fname,
                                       std::shared_ptr<AST> term);
@@ -78,7 +80,7 @@ class MimiumDriver {
 
   AST_Ptr add_forloop(AST_Ptr var, AST_Ptr iterator, AST_Ptr expression);
 
-  AST_Ptr set_time(AST_Ptr elem, AST_Ptr time);
+  // AST_Ptr set_time(AST_Ptr elem, AST_Ptr time);
   // void add_line(AST_Ptr in); // final action
   void add_top(AST_Ptr top);  // final action
 

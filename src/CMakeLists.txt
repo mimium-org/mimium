@@ -27,10 +27,12 @@ target_link_libraries(mimium
     mimium_scheduler
     mimium_runtime_jit
     mimium_backend_rtaudio
+    mimium_builtinfn 
     )
 target_link_libraries(mimium_llloader
     mimium_compiler
     mimium_scheduler
     mimium_runtime_jit
     mimium_backend_rtaudio
+    mimium_builtinfn 
     )

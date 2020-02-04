@@ -11,10 +11,12 @@ struct CodeGenVisitor : public std::enable_shared_from_this<CodeGenVisitor> {
   friend LLVMGenerator;
   CodeGenVisitor(LLVMGenerator& g);
   void operator()(NumberInst& i);
+  void operator()(StringInst& i);
+
   void operator()(AllocaInst& i);
   void operator()(RefInst& i);
   void operator()(AssignInst& i);
-  void operator()(TimeInst& i);
+  // void operator()(TimeInst& i);
   void operator()(OpInst& i);
   void operator()(FunInst& i);
   void operator()(FcallInst& i);
@@ -32,12 +34,9 @@ struct CodeGenVisitor : public std::enable_shared_from_this<CodeGenVisitor> {
   llvm::Value* getClsFun(FcallInst& i);
   llvm::Value* getExtFun(FcallInst& i);
 
-  llvm::FunctionType* createFunctionType(FunInst& i,
-                                         std::optional<types::Alias>& memobj);
-
+  llvm::FunctionType* createFunctionType(FunInst& i,bool hascapture,bool hasmemobj);
   llvm::Function* createFunction(llvm::FunctionType* type, FunInst& i);
-  void addArgstoMap(llvm::Function* f, FunInst& i,
-                    std::optional<types::Alias>& memobj);
+  void addArgstoMap(llvm::Function* f, FunInst& i,bool hascapture,bool hasmemobj);
 
   void setFvsToMap(FunInst& i, llvm::Value* clsarg);
   void setMemObjsToMap(FunInst& i, llvm::Value* memarg);
@@ -48,6 +47,6 @@ struct CodeGenVisitor : public std::enable_shared_from_this<CodeGenVisitor> {
   bool createStoreOw(std::string varname, llvm::Value* val_to_store);
   void createAddTaskFn(FcallInst& i, bool isclosure, bool isglobal);
 
-  const static std::unordered_map<OP_ID, std::string>opid_to_ffi;
+  const static std::unordered_map<OP_ID, std::string> opid_to_ffi;
 };
 }  // namespace mimium

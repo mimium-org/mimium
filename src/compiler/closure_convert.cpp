@@ -9,8 +9,11 @@ ClosureConverter::ClosureConverter(TypeEnv& typeenv)
     : typeenv(typeenv),
       capturecount(0),
       closurecount(0),
-      tmp_globalfn("tmp", {}),
-      typereplacer(*this) {}
+      tmp_globalfn("tmp", {})
+      // ,typereplacer(*this)
+       {  
+      known_functions.emplace("mimium_getnow",1);
+       }
 
 void ClosureConverter::reset() { capturecount = 0; }
 ClosureConverter::~ClosureConverter() = default;
@@ -52,16 +55,31 @@ std::shared_ptr<MIRblock> ClosureConverter::convert(
     auto& cinst = *it;
     ccvis.position = it;
     std::visit(ccvis, cinst);
-    std::visit(typereplacer, cinst);
+    // std::visit(typereplacer, cinst);
   }
   moveFunToTop(this->toplevel);
-  if(!typeenv.exist("dsp_cls")){
+  if(! (clstypeenv.count("dsp")>0) ){
     auto dummycapture= types::Alias(makeCaptureName(),types::Tuple({}));
     auto dummytype = types::Alias(makeClosureTypeName(),types::Closure(types::Ref(types::Function(types::Float(),{types::Float(),types::Ref(dummycapture)})),dummycapture));
-    typeenv.emplace("dsp_cls", std::move(dummytype));
+    clstypeenv.emplace("dsp",dummycapture);
+    // typeenv.emplace("dsp_cls", std::move(dummytype));
   }
   return this->toplevel;
 };
+
+void ClosureConverter::dump(){
+  std::cerr<< "----------fvinfo-----------\n";
+  for(auto&&[key,arr]:fvinfo){
+    std::cerr << key << " : {";
+    std::for_each(arr.begin(),arr.end(),[](auto& v){std::cerr << v << " ";});
+    std::cerr  << "}\n"; 
+  }
+  std::cerr<< "----------typeinfo-----------\n";
+  for(auto&&[key,val]:clstypeenv){
+    std::cerr << key << " : " << types::toString(val,true)<<"\n"; 
+  }
+}
+
 void ClosureConverter::CCVisitor::registerFv(std::string& name) {
   auto isself = name == "self";
   auto islocal = has(localvlist, name);
@@ -79,7 +97,7 @@ void ClosureConverter::CCVisitor::visitinsts(
     auto& child = *it;
     ccvis.position = it;
     std::visit(ccvis, child);
-    std::visit(cc.typereplacer, child);
+    // std::visit(cc.typereplacer, child);
   }
 }
 
@@ -106,13 +124,25 @@ checkpoint:
     //   visitinsts(i, ccvis,pos);
     // }
     // make closure
-    i.freevariables = fvlist;  // copy;
     std::vector<types::Value> fvtype_inside;
     fvtype_inside.reserve(fvlist.size());
+    auto it = std::begin(fvlist);
     for (auto& fv : fvlist) {
+      bool isrecurse =fv==i.lv_name;
+      if(!isrecurse){
       auto ft = cc.typeenv.find(fv);
-      fvtype_inside.emplace_back(ft);
+      if(rv::holds_alternative<types::Function>(ft)){
+        ft = cc.typeenv.find(fv+"_cls");
+      }
+      fvtype_inside.emplace_back(types::Ref(ft));
+      }else{
+        fvlist.erase(it);
+      }
+      ++it;
     }
+    cc.fvinfo.emplace(i.lv_name,fvlist);
+
+    i.freevariables = fvlist;  // copy;
 
     auto clsname = i.lv_name + "_cls";
     auto fvtype =
@@ -122,18 +152,23 @@ checkpoint:
     auto clstype = types::Alias(cc.makeClosureTypeName(),
                                 types::Closure(types::Ref(ftype), fvtype));
 
-    MakeClosureInst makecls(clsname, i.lv_name, fvlist, clstype);
+    MakeClosureInst makecls(clsname, i.lv_name, fvlist, fvtype);
 
     i.parent->instructions.insert(std::next(position), makecls);
-    cc.typeenv.emplace(clsname, clstype);
+    cc.typeenv.emplace(clsname, fvtype);
+
+    cc.clstypeenv.emplace(i.lv_name,fvtype);
     // replace original function type
-    cc.typeenv.emplace(i.lv_name, clstype);
+    // cc.typeenv.emplace(i.lv_name, clstype);
     // auto& ft = std::get<Rec_Wrap<types::Function>>(i.type).getraw();
     // ft.arg_types.emplace_back(fvtype);
   }
 }
 
 void ClosureConverter::CCVisitor::operator()(NumberInst& i) {
+  localvlist.push_back(i.lv_name);
+}
+void ClosureConverter::CCVisitor::operator()(StringInst& i) {
   localvlist.push_back(i.lv_name);
 }
 
@@ -152,11 +187,11 @@ void ClosureConverter::CCVisitor::operator()(AssignInst& i) {
   registerFv(i.val);
 }
 
-void ClosureConverter::CCVisitor::operator()(TimeInst& i) {
-  registerFv(i.val);
-  registerFv(i.time);
-  localvlist.push_back(i.lv_name);
-}
+// void ClosureConverter::CCVisitor::operator()(TimeInst& i) {
+//   registerFv(i.val);
+//   registerFv(i.time);
+//   localvlist.push_back(i.lv_name);
+// }
 
 void ClosureConverter::CCVisitor::operator()(OpInst& i) {
   registerFv(i.lhs);
@@ -168,13 +203,17 @@ void ClosureConverter::CCVisitor::operator()(FcallInst& i) {
   for (auto& a : i.args) {
     registerFv(a);
   }
+  if(i.time){
+  registerFv(i.time.value());
+  }
   if (cc.isKnownFunction(i.fname)) {
     i.ftype = DIRECT;
   } else {
     if (i.ftype != EXTERNAL) {
       i.ftype = CLOSURE;
+      // auto clsname = i.fname+"_cls";
+      registerFv(i.fname);
     }
-    registerFv(i.fname);
   }
   localvlist.push_back(i.lv_name);
 }

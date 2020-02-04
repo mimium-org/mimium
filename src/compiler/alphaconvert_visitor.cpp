@@ -1,10 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
- 
+
 #include "compiler/alphaconvert_visitor.hpp"
 
 #include <memory>
+
 #include "basic/helper_functions.hpp"
 namespace mimium {
 AlphaConvertVisitor::AlphaConvertVisitor() : namecount(0), envcount(0) {
@@ -46,10 +47,12 @@ void AlphaConvertVisitor::visit(RvarAST& ast) {
   std::string newname;
 
   if (env->isVariableSet(ast.getVal())) {
-      newname = env->findVariable(ast.getVal());
-  }else{
+    newname = env->findVariable(ast.getVal());
+  } else {
     newname = ast.getVal();
-    Logger::debug_log("symbol "+ast.getVal()+" not found, assumed to be external/builtin function", Logger::DEBUG);
+    Logger::debug_log("symbol " + ast.getVal() +
+                          " not found, assumed to be external/builtin function",
+                      Logger::DEBUG);
   }
   AST_Ptr newast = std::make_shared<RvarAST>(newname);
   res_stack.push(std::move(newast));
@@ -66,6 +69,8 @@ void AlphaConvertVisitor::visit(OpAST& ast) {
 }
 void AlphaConvertVisitor::visit(ListAST& ast) { listastvisit(ast); }
 void AlphaConvertVisitor::visit(NumberAST& ast) { defaultvisit(ast); }
+void AlphaConvertVisitor::visit(StringAST& ast) { defaultvisit(ast); }
+
 void AlphaConvertVisitor::visit(AssignAST& ast) {
   ast.getName()->accept(*this);
   auto newname = std::static_pointer_cast<LvarAST>(stackPopPtr());
@@ -84,7 +89,7 @@ void AlphaConvertVisitor::visit(ArrayAccessAST& ast) {
   ast.getIndex()->accept(*this);
   auto newindex = stackPopPtr();
   auto newast =
-      std::make_unique<ArrayAccessAST>(std::move(newname),std::move(newindex));
+      std::make_unique<ArrayAccessAST>(std::move(newname), std::move(newindex));
   res_stack.push(std::move(newast));
 }
 void AlphaConvertVisitor::visit(FcallAST& ast) {
@@ -92,8 +97,13 @@ void AlphaConvertVisitor::visit(FcallAST& ast) {
   auto newname = stackPopPtr();
   ast.getArgs()->accept(*this);
   auto newargs = std::static_pointer_cast<FcallArgsAST>(stackPopPtr());
-  auto newast =
-      std::make_unique<FcallAST>(std::move(newname), std::move(newargs));
+  std::shared_ptr<AST>newtime=nullptr;
+  if(ast.time!=nullptr){
+  ast.time->accept(*this);
+  newtime = stackPopPtr();
+  }
+  auto newast = std::make_unique<FcallAST>(
+      std::move(newname), std::move(newargs), std::move(newtime));
   res_stack.push(std::move(newast));
 }
 void AlphaConvertVisitor::visit(LambdaAST& ast) {
@@ -103,8 +113,8 @@ void AlphaConvertVisitor::visit(LambdaAST& ast) {
   auto newargs = std::static_pointer_cast<ArgumentsAST>(stackPopPtr());
   ast.getBody()->accept(*this);
   auto newbody = stackPopPtr();
-  auto newast =
-      std::make_unique<LambdaAST>(std::move(newargs), std::move(newbody),ast.type);
+  auto newast = std::make_unique<LambdaAST>(std::move(newargs),
+                                            std::move(newbody), ast.type);
   newast->isrecursive = ast.isrecursive;
   res_stack.push(std::move(newast));
   env = env->getParent();
@@ -117,7 +127,7 @@ void AlphaConvertVisitor::visit(IfAST& ast) {
   ast.getElse()->accept(*this);
   auto newelse = stackPopPtr();
   auto newast = std::make_unique<IfAST>(std::move(newcond), std::move(newthen),
-                                        std::move(newelse),ast.isexpr);
+                                        std::move(newelse), ast.isexpr);
   res_stack.push(std::move(newast));
 };
 
@@ -142,15 +152,15 @@ void AlphaConvertVisitor::visit(ForAST& ast) {
 void AlphaConvertVisitor::visit(DeclarationAST& ast) {
   // will not be called
 }
-void AlphaConvertVisitor::visit(TimeAST& ast) {
-  ast.getExpr()->accept(*this);
-  auto newexpr = stackPopPtr();
-  ast.getTime()->accept(*this);
-  auto newtime = stackPopPtr();
-  auto newast =
-      std::make_unique<TimeAST>(std::move(newexpr), std::move(newtime));
-  res_stack.push(std::move(newast));
-}
+// void AlphaConvertVisitor::visit(TimeAST& ast) {
+//   ast.getExpr()->accept(*this);
+//   auto newexpr = stackPopPtr();
+//   ast.getTime()->accept(*this);
+//   auto newtime = stackPopPtr();
+//   auto newast =
+//       std::make_unique<TimeAST>(std::move(newexpr), std::move(newtime));
+//   res_stack.push(std::move(newast));
+// }
 
 void AlphaConvertVisitor::visit(StructAST& ast) {
   auto newast = std::make_unique<StructAST>();  // make empty

@@ -47,6 +47,13 @@ struct NumberInst : public MIRinstruction {
   double val;
   std::string toString() override;
 };
+struct StringInst : public MIRinstruction {
+ public:
+  StringInst(const std::string& lv, std::string& val)
+      : MIRinstruction(lv, types::String()), val(val) {}
+  std::string val;
+  std::string toString() override;
+};
 struct AllocaInst : public MIRinstruction {
   explicit AllocaInst(const std::string& lv, types::Value type = types::Float())
       : MIRinstruction(lv, type) {}
@@ -67,16 +74,16 @@ struct AssignInst : public MIRinstruction {
   std::string toString() override;
 };
 
-struct TimeInst : public MIRinstruction {
-  std::string time;
-  std::string val;
-  TimeInst(const std::string& lv, std::string val, std::string time,
-           types::Value type)
-      : MIRinstruction(lv, type),
-        time(std::move(time)),
-        val(std::move(val)) {}
-  std::string toString() override;
-};
+// struct TimeInst : public MIRinstruction {
+//   std::string time;
+//   std::string val;
+//   TimeInst(const std::string& lv, std::string val, std::string time,
+//            types::Value type)
+//       : MIRinstruction(lv, type),
+//         time(std::move(time)),
+//         val(std::move(val)) {}
+//   std::string toString() override;
+// };
 struct OpInst : public MIRinstruction {
  public:
   std::string op;
@@ -110,16 +117,16 @@ struct FunInst : public MIRinstruction {
 struct FcallInst : public MIRinstruction {
   std::string fname;
   std::deque<std::string> args;
+  std::optional<std::string> time;
   FCALLTYPE ftype;
-  bool istimed;
   FcallInst(const std::string& lv, std::string fname, std::deque<std::string> args,
             FCALLTYPE ftype = CLOSURE, types::Value type = types::Float(),
-            bool istimed = false)
+            std::optional<std::string> time=std::nullopt)
       : MIRinstruction(lv, type),
         fname(std::move(fname)),
         args(std::move(args)),
         ftype(ftype),
-        istimed(istimed){};
+        time(std::move(time)){};
   std::string toString() override;
 };
 struct MakeClosureInst : public MIRinstruction {
@@ -172,7 +179,7 @@ struct ReturnInst : public MIRinstruction {
   std::string toString() override;
 };
 using Instructions =
-    std::variant<NumberInst, AllocaInst, RefInst, AssignInst, TimeInst, OpInst,
+    std::variant<NumberInst, StringInst,AllocaInst, RefInst, AssignInst, OpInst,
                  FunInst, FcallInst, MakeClosureInst, ArrayInst,
                  ArrayAccessInst, IfInst, ReturnInst>;
 

@@ -23,10 +23,10 @@ std::shared_ptr<MIRblock> MemoryObjsCollector::process(
     }
     ++it;
   }
-  // register to typeenv
-  for (auto&& [name, val] : type_alias_map) {
-    typeenv.emplace(val.name + "obj", val);
-  }
+  // // register to typeenv
+  // for (auto&& [name, val] : type_alias_map) {
+  //   typeenv.emplace(val.name + "obj", val);
+  // }
   return toplevel;
 }
 void MemoryObjsCollector::emplaceNewAlias(std::string& name,
@@ -107,6 +107,9 @@ void MemoryObjsCollector::dump() {
 void MemoryObjsCollector::CollectMemVisitor::operator()(NumberInst& i) {
   // do nothing
 }
+void MemoryObjsCollector::CollectMemVisitor::operator()(StringInst& i) {
+  // do nothing
+}
 void MemoryObjsCollector::CollectMemVisitor::operator()(AllocaInst& i) {
   // do nothing
 }
@@ -116,10 +119,10 @@ void MemoryObjsCollector::CollectMemVisitor::operator()(RefInst& i) {
 void MemoryObjsCollector::CollectMemVisitor::operator()(AssignInst& i) {
   M.collectSelf(cur_fun, i.val);
 }
-void MemoryObjsCollector::CollectMemVisitor::operator()(TimeInst& i) {
-  M.collectSelf(cur_fun, i.time);
-  M.collectSelf(cur_fun, i.val);
-}
+// void MemoryObjsCollector::CollectMemVisitor::operator()(TimeInst& i) {
+//   M.collectSelf(cur_fun, i.time);
+//   M.collectSelf(cur_fun, i.val);
+// }
 void MemoryObjsCollector::CollectMemVisitor::operator()(OpInst& i) {
   M.collectSelf(cur_fun, i.lhs);
   M.collectSelf(cur_fun, i.rhs);
@@ -140,6 +143,7 @@ void MemoryObjsCollector::CollectMemVisitor::operator()(FunInst& i) {
 
     if (i.lv_name == "dsp") {
       insertAllocaInst(i, type);
+      M.typeenv.emplace("dsp.memobj", type);
     }
     M.type_alias_map.emplace(i.lv_name, std::move(type));
     i.args.push_back(memname);
@@ -162,6 +166,9 @@ void MemoryObjsCollector::CollectMemVisitor::operator()(FcallInst& i) {
   }
   for (auto& a : i.args) {
     M.collectSelf(cur_fun, a);
+  }
+  if(i.time){
+    M.collectSelf(cur_fun,i.time.value());
   }
 }
 void MemoryObjsCollector::CollectMemVisitor::operator()(MakeClosureInst& i) {

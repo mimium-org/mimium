@@ -85,23 +85,23 @@ llvm::Type* TypeConverter::operator()(types::Tuple& i) {
   }
   return res;
 }
-llvm::Type* TypeConverter::operator()(types::Time& i) {
-  llvm::Type* res;
-  if (tmpname.empty()) {
-    res = llvm::StructType::get(
-        builder.getContext(),
-        {builder.getDoubleTy(), std::visit(*this, i.val)});
-  } else {
-    auto n = consumeAlias();
-    res = tryGetNamedType(n);
-    if (res == nullptr) {
-      res = llvm::StructType::create(
-          builder.getContext(),
-          {builder.getDoubleTy(), std::visit(*this, i.val)}, n);
-    }
-  }
-  return res;
-}
+// llvm::Type* TypeConverter::operator()(types::Time& i) {
+//   llvm::Type* res;
+//   if (tmpname.empty()) {
+//     res = llvm::StructType::get(
+//         builder.getContext(),
+//         {builder.getDoubleTy(), std::visit(*this, i.val)});
+//   } else {
+//     auto n = consumeAlias();
+//     res = tryGetNamedType(n);
+//     if (res == nullptr) {
+//       res = llvm::StructType::create(
+//           builder.getContext(),
+//           {builder.getDoubleTy(), std::visit(*this, i.val)}, n);
+//     }
+//   }
+//   return res;
+// }
 llvm::Type* TypeConverter::operator()(types::Alias& i) {
   auto it = aliasmap.find(i.name);
   llvm::Type* res;

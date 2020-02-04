@@ -55,6 +55,9 @@ void MimiumDriver::setWorkingDirectory(const std::string cwd){
 AST_Ptr MimiumDriver::add_number(double num){
    return std::make_unique<NumberAST>(num);
 }
+AST_Ptr MimiumDriver::add_string(std::string& val){
+   return std::make_unique<StringAST>(std::move(val));
+}
 
 std::shared_ptr<LvarAST> MimiumDriver::add_lvar(std::string str){
    return std::make_unique<LvarAST>(std::move(str));
@@ -105,8 +108,11 @@ AST_Ptr MimiumDriver::add_lambda_only_with_returntype(std::shared_ptr<ArgumentsA
 
 
 
-std::shared_ptr<FcallAST> MimiumDriver::add_fcall(std::shared_ptr<AST> fname,std::shared_ptr<FcallArgsAST> args){
-   return std::make_unique<FcallAST>(std::move(fname),std::move(args));
+std::shared_ptr<FcallAST> MimiumDriver::add_fcall(std::shared_ptr<AST> fname,std::shared_ptr<FcallArgsAST> args,std::shared_ptr<AST> time){
+   if(time==nullptr){
+      return std::make_unique<FcallAST>(std::move(fname),std::move(args));
+   }
+   return std::make_unique<FcallAST>(std::move(fname),std::move(args),std::move(time));
 }
 std::shared_ptr<FcallAST> MimiumDriver::add_fcall(std::shared_ptr<AST> fname,std::shared_ptr<AST> term){
       auto a = std::make_unique<FcallArgsAST>(std::move(term));
@@ -142,9 +148,9 @@ AST_Ptr MimiumDriver::add_forloop(AST_Ptr var,AST_Ptr iterator,AST_Ptr expressio
    return std::make_unique<ForAST>(std::move(var),std::move(iterator),std::move(expression));
 }
 
-AST_Ptr MimiumDriver::set_time(AST_Ptr elem,AST_Ptr time){
-    return std::make_unique<TimeAST>(std::move(elem),std::move(time));
-}
+// AST_Ptr MimiumDriver::set_time(AST_Ptr elem,AST_Ptr time){
+//     return std::make_unique<TimeAST>(std::move(elem),std::move(time));
+// }
 
 // void MimiumDriver::add_line(AST_Ptr in){
 //    mainast->addAST(std::move(in));

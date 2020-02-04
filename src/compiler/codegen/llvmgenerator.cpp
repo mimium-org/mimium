@@ -6,7 +6,7 @@
 
 namespace mimium {
 
-LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv,
+LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv,ClosureConverter& cc,
                              MemoryObjsCollector& memobjcoll)
     : ctx(ctx),
       module(std::make_unique<llvm::Module>("no_file_name.mmm", ctx)),
@@ -16,6 +16,7 @@ LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv,
       curfunc(nullptr),
       typeenv(typeenv),
       typeconverter(*builder, *module),
+      cc(cc),
       memobjcoll(memobjcoll) {}
 void LLVMGenerator::init(std::string filename) {
   codegenvisitor = std::make_shared<CodeGenVisitor>(*this);
@@ -80,7 +81,7 @@ void LLVMGenerator::createMiscDeclarations() {
   auto i8 = builder->getInt8Ty();
   auto i8ptr = builder->getInt8PtrTy();
   auto i64 = builder->getInt64Ty();
-  auto b = builder->getInt64Ty();
+  auto b = builder->getInt1Ty();
 
   auto* malloctype = llvm::FunctionType::get(i8ptr, {i64}, false);
   auto res = module->getOrInsertFunction("malloc", malloctype).getCallee();
@@ -88,6 +89,11 @@ void LLVMGenerator::createMiscDeclarations() {
   // create llvm memset
   auto* memsettype = llvm::FunctionType::get(vo, {i8ptr, i8, i64, b}, false);
   module->getOrInsertFunction("llvm.memset.p0i8.i64",memsettype).getCallee();
+
+  auto* getnowtype =  llvm::FunctionType::get(builder->getDoubleTy(), {}, false);
+  auto gnr = module->getOrInsertFunction("mimium_getnow",getnowtype).getCallee();
+    setValuetoMap("mimium_getnow", gnr);
+
 
 }
 
@@ -123,7 +129,7 @@ void LLVMGenerator::createTaskRegister(bool isclosure = false) {
     argtypes.push_back(builder->getInt8PtrTy());
     name = "addTask_cls";
   }  // address to closure args(instead of void* type)
-  auto* fntype = llvm::FunctionType::get(builder->getVoidTy(), argtypes, false);
+  auto* fntype = llvm::FunctionType::get(builder->getVoidTy(), argtypes,false);
   auto addtask = module->getOrInsertFunction(name, fntype);
   auto addtaskfun = llvm::cast<llvm::Function>(addtask.getCallee());
 
@@ -149,7 +155,7 @@ void LLVMGenerator::createRuntimeSetDspFn() {
   auto dspfnaddress =
       builder->CreateBitCast(module->getFunction("dsp"), voidptrtype);
   llvm::Value* dspclsaddress;
-  auto dspcls_cap = variable_map[curfunc]->find("dsp_cls_capture_ptr");
+  auto dspcls_cap = variable_map[curfunc]->find("ptr_dsp.cap");
   if (dspcls_cap != variable_map[curfunc]->end()) {
     dspclsaddress = builder->CreateBitCast(dspcls_cap->second, voidptrtype);
   } else {
@@ -165,7 +171,7 @@ void LLVMGenerator::createRuntimeSetDspFn() {
     auto size = module->getDataLayout().getTypeAllocSize(t);
     auto sizeinst = llvm::ConstantInt::get(ctx, llvm::APInt(64, size, false));
     auto zero = llvm::ConstantInt::get(ctx,llvm::APInt(8,0,false));
-    auto falsev = llvm::ConstantInt::get(ctx,llvm::APInt(64,0,false));
+    auto falsev = llvm::ConstantInt::get(ctx,llvm::APInt(1,0,false));
     builder->CreateCall(memsetfn,{dspmemobjaddress,zero,sizeinst,falsev});
 
   } else {
@@ -206,7 +212,9 @@ void LLVMGenerator::generateCode(std::shared_ptr<MIRblock> mir) {
   for (auto& inst : mir->instructions) {
     visitInstructions(inst, true);
   }
+  if(module->getFunction("dsp")!=nullptr){
   createRuntimeSetDspFn();
+  }
   // main always return null for now;
   builder->CreateRet(llvm::ConstantPointerNull::get(builder->getInt8PtrTy()));
 }
