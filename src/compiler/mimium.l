@@ -27,9 +27,9 @@ FLOAT    ({NONZERO}{DIGIT}*\.?|0\.|\.{DIGIT}){DIGIT}*|0
 EXPONENT [eE](-|\+?){DIGIT}+
 NUMBER   {FLOAT}{EXPONENT}?
 SYMBOL   [[:alpha:]][[:alnum:]_]*
-STRING  "\""[[:alnum:][:graph:]]+"\""
 DELIMITER "{"|"}"|"("|")"|"["|"]"|","|"\""|"\."|"/"
 WSPACE   [[:blank:]]+
+STRING  "\""[[:alnum:][:graph:][:blank:]]+"\""
 BREAK  "\r\n"|"\n"|"\r"
 NEWLINE {BREAK}* | ";"
 /*END {BREAK}{WSPACE}*"end"*/
