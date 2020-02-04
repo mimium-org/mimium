@@ -9,6 +9,7 @@
 
 // #include "compiler/runtime/mididriver.hpp"
 #include "basic/type.hpp"
+#include "sndfile.h"
 
 namespace mimium {
 

@@ -8,7 +8,7 @@ target_include_directories(mimium_runtime_jit
 PRIVATE
 #  ${CMAKE_SOURCE_DIR}/libs/rtaudio
 #  ${CMAKE_SOURCE_DIR}/libs/rtmidi 
-${SNDFILE_INCLUDE_DIRS}
+# ${SNDFILE_INCLUDE_DIRS}
 # ${CMAKE_CURRENT_BINARY_DIR}
 )
 
