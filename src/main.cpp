@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#define MIMIUM_VERSION "0.0.0"
+
 #include <unistd.h>
 
 #include <csignal>
@@ -18,7 +20,6 @@ using Logger = mimium::Logger;
 #include "runtime/backend/rtaudio/driver_rtaudio.hpp"
 
 extern mimium::Scheduler* global_sch;
-
 
 std::function<void(int)> shutdown_handler;
 void signalHandler(int signo) { shutdown_handler(signo); }
@@ -57,9 +58,18 @@ auto main(int argc, char** argv) -> int {
   compile_stage.setInitialValue(CompileStage::EXECUTE);
 
   cl::ResetAllOptionOccurrences();
-
+  cl::SetVersionPrinter([](llvm::raw_ostream& out) {
+    out << "mimium version:" << MIMIUM_VERSION;
+#ifdef MIMIUM_BUILD_DEBUG
+    out << "(debug build)";
+#endif
+    out << "\n";
+  });
   cl::HideUnrelatedOptions(general_category);
-  cl::ParseCommandLineOptions(argc, argv, "Mimium\n");  // launch cli helper
+  cl::ParseCommandLineOptions(
+      argc, argv,
+      "mimium - MInimal Musical medIUM, a programming language as an "
+      "infrastructure for sound and music\n");  // launch cli helper
 
   std::ifstream input(input_filename.c_str());
   signal(SIGINT, signalHandler);
