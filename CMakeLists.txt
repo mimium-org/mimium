@@ -30,12 +30,12 @@ include(cmake/clang-cxx-dev-tools.cmake)
 #include ccache
 include(cmake/EnableCcache.cmake)
 
+add_compile_options("$<$<CONFIG:DEBUG>:-DMIMIUM_DEBUG_BUILD>")
 
 # set(RTMIDI_BUILD_TESTING FALSE)
 # set(RTMIDI_TARGETNAME_UNINSTALL "uninstall_rtmidi" CACHE STRING "Name of 'uninstall' build target")
 # add_subdirectory( libs/rtmidi )
 
-# find_package(SndFile REQUIRED)
 
 #[FIXME] this is unsafe,,,
 include_directories(src)
