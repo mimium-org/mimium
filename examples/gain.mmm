@@ -1,7 +1,6 @@
-fn gain(x:float)->(float)->float{
-    return |y:float| x*y
+fn gain(input:float,level:float){
+    return input*level
 }
-mygain  = gain(0.5)
 fn dsp(time:float)->float{
-    return random()|>mygain
+    return gain(random(),0.2)
 }

@@ -1,12 +1,6 @@
 fn sec2samp(sec){
     return sec*48000
 }
-fn diff(input){
-    return input - mem(input)
-}
-fn sigdir(input){
-    return diff(input)>0
-}
 fn countup(active){
     return if (active) (self+1) else 0
 }
@@ -26,9 +20,15 @@ fn adsr(attack,decay,sustain,release,input){
     return if (input>0.5) at_dec_sus_sig else releasesig
 }
 fn myadsr(input){
-    return adsr(0.001,0.5,0.2,0.1,input)
+    return adsr(0.01,0.2,0.2,0.01,input)
 }
+
+fn mtof(mnum){
+    return 440 * 2 ^ ((mnum - 69)/12) 
+}
+
 PI=3.141595
+mnum = 64
 freq=1900
 triggerval = 0
 fn setval(val){
@@ -39,15 +39,14 @@ fn trigger(dur)->void{
     setval(0)@(now+dur)
 }
 fn loopnote()->void{
-    freq = (freq*12457)%4809
-    println(freq)
-    trigger(10000)
+    mnum = (mnum+135)%78
+    trigger(2000)
     loopnote()@(now+20000)
 }
 phasor = |f:float|{return (self+f/48000)%1}
 saw = |f:float|{return phasor(f)-0.5 }
 sq = |f:float|{return (phasor(f)>0.5) - 0.5 }
 fn dsp(time){
-    return sq(freq) * (triggerval |> myadsr)
+    return sq(mtof(mnum)) * (triggerval |> myadsr)
 }
 loopnote()@0

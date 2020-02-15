@@ -114,7 +114,13 @@ using namespace mimium;
 
 
 %type <mimium::types::Value> types "types"
+%type <mimium::types::Value> type_primitive "type_primitive"
+
+
 %type <mimium::types::Value> fntype "fn_type"
+%type <mimium::types::Value> reftype "ref_type"
+
+
 
 %type <std::vector<mimium::types::Value>> fntype_args "fntype_args"
 
@@ -192,6 +198,8 @@ using namespace mimium;
 %right NOT 
 
 %left ','
+%left '&'
+
 
 %left NEWLINE 
 
@@ -336,11 +344,16 @@ rvar : SYMBOL {$$ = driver.add_rvar($1);}
 
 // type specifiers
 
-types : TYPEFLOAT {;
-      $$ =mimium::types::Float();}
-      | TYPEVOID{
-            $$ = mimium::types::Void();}
-      | fntype
+types : reftype{ $$=std::move($1);}
+      | fntype{ $$=std::move($1);}
+      | type_primitive{ $$=std::move($1);}
+
+type_primitive : TYPEFLOAT {$$ =mimium::types::Float();}
+               | TYPEVOID  {$$ = mimium::types::Void();}
+reftype : types AND{
+      mimium::types::Value v = mimium::types::Ref(std::move($1));
+      $$ = std::move(v);
+} 
 
 fntype: '(' fntype_args ')' ARROW types {
       mimium::types::Function f(std::move($5),std::move($2));

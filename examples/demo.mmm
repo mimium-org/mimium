@@ -1,0 +1,11 @@
+fn count(){
+    return self + 1
+}
+
+fn loop()->void{
+    println(count())
+}
+test =0
+fn dsp(time:float)->float{
+    return (count())%1
+}
