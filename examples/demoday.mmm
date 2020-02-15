@@ -1,3 +1,6 @@
+// mitou 2019 demoday sample program
+
+
 fn scale(inmin,inmax,outmin,outmax,input){
     inrange = inmax-inmin
     outrange = outmax-outmin
