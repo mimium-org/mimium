@@ -1,0 +1,139 @@
+fn scale(inmin,inmax,outmin,outmax,input){
+    inrange = inmax-inmin
+    outrange = outmax-outmin
+    return (input - inmin)*outrange/inrange +outmin
+}
+
+fn sec2samp(sec){
+    return sec*48000
+}
+fn countup(active){
+    return if (active) (self+1) else 0
+}
+fn countupn(time,active){
+    res = countup(active)
+    return if(res<time) res else 0
+}
+fn hold(time,active){
+    return countupn(time,active)>0
+}
+fn adsr(attack,decay,sustain,release,input){
+    atsig = min(1,(self + 1/sec2samp(attack)))
+    decsig = max(sustain,(self-1/sec2samp(decay)))
+    releasesig =max(0,(self-1/sec2samp(release)))
+    at_or_dec = hold(sec2samp(attack),input) 
+    at_dec_sus_sig = if (at_or_dec) atsig else decsig
+    return if (input>0.5) at_dec_sus_sig else releasesig
+}
+fn myadsr(input){
+    return adsr(0.01,0.4,0.5,0.4,input)
+}
+
+fn phasor(freq:float){
+    return (self+(freq/48000))%1
+}
+fn saw(freq){
+    return phasor(freq)*2-1
+}
+
+fn saw2(freq){
+    return saw(freq-2)
+}
+fn rect(freq,duty){
+    phase = phasor(freq)
+    return if(phase>duty) 0 else 1
+}
+fn lpf(input:float,fb:float){    
+    return (1-fb)*input + fb*self
+}
+
+
+synt = 0
+synfreq=220
+fn mysynth(freq,trigger){
+    return (saw(freq)+saw2(freq))/2*myadsr(trigger)
+}
+fn mylpf(input){
+    return lpf(input,scale(-1,1,0.4,0.99999,sin(now/70000)))
+}
+fn tremolo(freq,input){
+    return input*scale(-1,1,0.2,1 ,sin(phasor(freq)*2*3.141595))
+}
+fn mypad(freq){
+    return tremolo(10,rect(freq+sin(now/50000)*(freq/5), scale(-1,1,0.1,0.999,sin(now/60000))))
+}
+fn mypadhigh(freq){
+    return mypad(freq*4)
+}
+fn setsyn(val){
+    synt = val
+}
+fn synthtrigger(duration:float)->void{
+    setsyn(1)@now
+    setsyn(0)@(now+10000)
+    cond = random()>0
+    fcond = (synfreq>4000)||(synfreq<100)
+    println(fcond)
+    newfreq = if(fcond) 220 else (if(cond) synfreq*4.5 else synfreq/5)
+    synfreq = newfreq
+    println(cond)
+    println(newfreq)
+    // synfreq = if(synfreq>4000) synfreq/2 else synfreq
+
+    nextdur = if(random()>0) duration*(3/8) else duration
+    synthtrigger(duration)@(now+nextdur)
+}
+synthtrigger(48000)@0
+
+kick = "/Users/tomoya/Music/Kick.wav"
+kicksize = loadwavsize(kick)
+kickwav = loadwav(kick)
+
+snare = "/Users/tomoya/Music/Hat.wav"
+snaresize = loadwavsize(snare)
+snarewav = loadwav(snare)
+
+kt=1
+st =1
+fn seek(speed,size,reset){
+    return if(reset>0) self+speed else  0
+}
+fn seek2(speed,size,reset){
+    return seek(speed,size,reset)
+}
+fn setkval(val){
+    kt=val
+}
+fn ktrigger(duration)->void{
+    setkval(0)@now
+    setkval(1)@(now+1)
+    nextdur = if(random()>0) duration else duration/2
+    ktrigger(duration)@(now+nextdur)
+}
+fn setsval(val){
+    st=val
+}
+fn strigger(duration)->void{
+    setsval(0)@now
+    setsval(1)@(now+1)
+    nextdur = if(random()>0) duration else duration/2
+    strigger(duration)@(now+nextdur)
+}
+
+seawave = "/Users/tomoya/Music/Chickens.wav"
+
+seasize = loadwavsize(seawave)
+seawav = loadwav(seawave)
+fn seekloop(speed,size)->float{
+    pos = (self+speed)%size
+    return pos
+}
+
+
+fn dsp(time)->float{
+    kpos = seek(1.0,kicksize,kt)
+    spos = seek2(1.0,snaresize,st)
+    return (kickwav[kpos] + snarewav[spos] + mysynth(synfreq,synt)+ mylpf(mypad(55)+mypadhigh(110)))*0.5 + seawav[seekloop(sin(time/48000)+1,seasize)]
+}
+ktrigger(24000)@0
+strigger(12000)@12000

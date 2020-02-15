@@ -1,0 +1,84 @@
+fn phasor(freq:float){
+    return (self+freq/48000)%1
+}
+myfreq = 1
+name = "/Users/tomoya/Music/Chickens.wav"
+mysize = loadwavsize(name)
+mywave = loadwav(name)
+fn seek(speed:float,size:float){
+    return (speed+self)%size
+}
+// ADSR
+fn countup(time:float,active:float){
+    count = if(active) self+1 else 0
+    return if (count<time) count else 0
+}
+fn hold(time:float,active:float){
+    return countup(time,active)>0
+}
+fn adsr(attack,decay,sustain,release,input){
+    atsig = min(1,self+1/(attack*48000))
+    decsig = max(sustain,self- 1/(decay*48000))
+    relsig = max(0,self-1/(release*48000))
+    at_or_dec = hold(attack,input)
+    at_dec_sig = if(at_or_dec) atsig else decsig
+    return if(input>0.5) at_dec_sig else relsig
+}
+fn rect(freq:float){
+    return phasor(freq)>0.9
+}
+trigger = 0
+fn setT(val:float){
+    trigger = val
+}
+fn play(duration:float)->void{
+    setT(1)@now
+    setT(0)@(now+duration)
+}
+
+fn myloop(period:float)->void{
+    play(5000)
+    nextperiod = if(random()) period/2 else period
+    myloop(period)@(now+nextperiod)
+}
+myloop(48000)@0
+fn mysynth(){
+    gain = adsr(0.01,0.1,0.5,0.5,trigger)
+    return  (mywave[seek(0.3,mysize)]*10 |> atan |>atan |> atan) * gain
+}
+ntrigger = 1
+fn setN(val:float){
+    ntrigger = val
+}
+fn playN(duration:float)->void{
+    setN(1)@now
+    setN(0)@(now+duration)
+}
+
+fn Nloop(period:float)->void{
+    playN(50)
+    nextperiod = if(random()>-0.3) period/2 else period
+    Nloop(period)@(now+nextperiod)
+}
+Nloop(12000)@0
+
+fn mtof(note){
+    return 440 * 2^((note-69)/12)
+}
+fn saw(freq){
+    return phasor(freq)*2 -1
+}
+fn noisesynth(){
+    gain = adsr(0.01,0.1,1,0.05,ntrigger)*0.4
+    return random()*gain
+}
+pitch = 80
+fn pitchdown(period:float)->void{
+    pitch = if(pitch<10) 80 else pitch-3
+    nexttime = if(period<10) 40000 else period*0.8
+    pitchdown(nexttime)@(now+nexttime)
+}
+pitchdown(40000)@0
+fn dsp(time:float)->float{
+    return mysynth() +noisesynth()+saw(mtof(pitch))*0.5
+}
