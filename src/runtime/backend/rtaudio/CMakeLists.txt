@@ -45,5 +45,5 @@ RtAudio::rtaudio
 mimium_scheduler
 ${RTAUDIO_INTERFACE_LIBS}
 )
-
+install( TARGETS mimium_backend_rtaudio DESTINATION lib)
 

@@ -2,16 +2,16 @@ cmake_minimum_required(VERSION 3.4)
 option(BUILD_DOCS "build a documentation")
 
 
-set(CMAKE_CXX_COMPILER /usr/local/opt/llvm/bin/clang++)
-set(CMAKE_C_COMPILER /usr/local/opt/llvm/bin/clang) 
+#set(CMAKE_CXX_COMPILER /usr/local/opt/llvm/bin/clang++)
+#set(CMAKE_C_COMPILER /usr/local/opt/llvm/bin/clang) 
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 PROJECT(mimium CXX)
 
-if(${CMAKE_BUILD_TYPE}=="Debug")
-    set(LLVM_CONFIG "/usr/local/Cellar/llvm/9.0.0debug/bin/llvm-config")
-    list(APPEND CMAKE_PREFIX_PATH "/usr/local/Cellar/llvm/9.0.0debug")
-endif()
+#if(${CMAKE_BUILD_TYPE}=="Debug")
+#    set(LLVM_CONFIG "/usr/local/Cellar/llvm/9.0.0debug/bin/llvm-config")
+#    list(APPEND CMAKE_PREFIX_PATH "/usr/local/Cellar/llvm/9.0.0debug")
+#endif()
 
 find_package(LLVM REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
@@ -35,6 +35,9 @@ add_compile_options("$<$<CONFIG:DEBUG>:-DMIMIUM_DEBUG_BUILD>")
 # set(RTMIDI_BUILD_TESTING FALSE)
 # set(RTMIDI_TARGETNAME_UNINSTALL "uninstall_rtmidi" CACHE STRING "Name of 'uninstall' build target")
 # add_subdirectory( libs/rtmidi )
+SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 
 
 #[FIXME] this is unsafe,,,
@@ -50,16 +53,3 @@ endif()
 #add_subdirectory( test )
 
 
-install (TARGETS mimium mimium_llloader DESTINATION bin)
-install (TARGETS mimium_scheduler mimium_runtime_jit mimium_backend_rtaudio mimium_utils mimium_builtinfn mimium_compiler  DESTINATION lib)
-install(DIRECTORY "${CMAKE_SOURCE_DIR}/src/" # source directory
-         DESTINATION "include" # target directory
-         FILES_MATCHING # install only matched files
-         PATTERN "*.hpp" # select header files
- )
- 
-add_custom_target(uninstall)
-add_custom_command(TARGET uninstall
-COMMAND cat install_manifest.txt | sudo xargs rm -f
-COMMAND cat install_manifest.txt | xargs -L1 dirname | sudo xargs  rmdir -p 2&> /dev/null
-)

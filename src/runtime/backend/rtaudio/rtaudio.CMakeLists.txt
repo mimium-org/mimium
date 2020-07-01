@@ -9,6 +9,7 @@ ExternalProject_Add(rtaudio_project
   #prevent from updating everytime - for offline environment
   UPDATE_COMMAND ""
   ### Add cmake args 
+  CMAKE_ARGS -DBUILD_SHARED_LIBS=FALSE -DCMAKE_POSITION_INDEPENDENT_CODE=ON
 	### BUILD_COMMAND ""
 	INSTALL_COMMAND ""
 	TEST_COMMAND ""

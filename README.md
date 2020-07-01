@@ -46,8 +46,8 @@ Currently only macOS is supported. Windows, Linux and web browser will be suppor
 ## dependency
 
 - cmake
-- llvm >= 9.0.0
-- bison
+- llvm >= 9.0.0(RTTI need to be activated)
+- bison >= 3.3
 - flex
 - Libsndfile
 
@@ -62,6 +62,14 @@ cmake --build . --target default_build -j
 #install
 cmake --build . --target install
 ```
+
+### notes for linux build
+
+Currently tested on Ubuntu 18.04(Bionic) working on Parallels Desktop(Confirmed the program can be successfully built but not running because of a problem around alsa and pulseaudio).
+
+For a compiler, using Clang, not GCC is recommended.
+
+At Bionic, a version of bison from apt is 3.0.4, which will not work. Please install latest version manually.
 
 # Author
 

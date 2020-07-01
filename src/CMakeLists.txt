@@ -1,4 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
+
+
 add_subdirectory(basic)
 add_subdirectory(compiler)
 add_subdirectory(runtime)
@@ -23,6 +25,7 @@ PRIVATE
 )
 
 target_link_libraries(mimium
+    LLVMCore
     mimium_compiler
     mimium_scheduler
     mimium_runtime_jit
@@ -35,4 +38,18 @@ target_link_libraries(mimium_llloader
     mimium_runtime_jit
     mimium_backend_rtaudio
     mimium_builtinfn 
+    )
+
+
+install (TARGETS mimium mimium_llloader DESTINATION bin)
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/src/" # source directory
+             DESTINATION "include" # target directory
+             FILES_MATCHING # install only matched files
+             PATTERN "*.hpp" # select header files
+     )
+     
+    add_custom_target(uninstall)
+    add_custom_command(TARGET uninstall
+    COMMAND cat install_manifest.txt | sudo xargs rm -f
+    COMMAND cat install_manifest.txt | xargs -L1 dirname | sudo xargs  rmdir -p 2&> /dev/null
     )
