@@ -87,7 +87,7 @@ auto main(int argc, char** argv) -> int {
   runtime->addScheduler();
   global_sch = runtime->getScheduler().get();
   runtime->addAudioDriver(
-      std::make_shared<mimium::AudioDriverRtAudio>(*runtime->getScheduler()));
+      std::make_shared<mimium::AudioDriverRtAudio>(runtime->getScheduler()));
 
   if (!input.good()) {
     Logger::debug_log("Specify file name, repl mode is not implemented yet",
