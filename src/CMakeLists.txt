@@ -23,6 +23,10 @@ PRIVATE
 # ${CMAKE_SOURCE_DIR}/libs/rtmidi
 # ${SNDFILE_INCLUDE_DIRS}
 )
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+target_link_options(mimium  PUBLIC -stdlib=libc++ -lc++abi)
+target_link_options(mimium_llloader  PUBLIC -stdlib=libc++ -lc++abi)
+endif()
 
 target_link_libraries(mimium
     LLVMCore

@@ -5,6 +5,7 @@ option(BUILD_DOCS "build a documentation")
 #set(CMAKE_CXX_COMPILER /usr/local/opt/llvm/bin/clang++)
 #set(CMAKE_C_COMPILER /usr/local/opt/llvm/bin/clang) 
 
+
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 PROJECT(mimium CXX)
 
@@ -12,8 +13,23 @@ PROJECT(mimium CXX)
 #    set(LLVM_CONFIG "/usr/local/Cellar/llvm/9.0.0debug/bin/llvm-config")
 #    list(APPEND CMAKE_PREFIX_PATH "/usr/local/Cellar/llvm/9.0.0debug")
 #endif()
+if(DEFINED $ENV{LLVM_CONFIG})
+set(LLVM_CONFIG $ENV{LLVM_CONFIG})
+else()
+if(APPLE)
+set(LLVM_CONFIG "/usr/local/opt/llvm/bin/llvm-config")
+elseif(UNIX)
+set(LLVM_CONFIG "llvm-config-10")
+endif()
+endif()
+message(STATUS "llvm-config: ${LLVM_CONFIG}")
 
-find_package(LLVM REQUIRED CONFIG)
+execute_process(COMMAND ${LLVM_CONFIG} --cmakedir OUTPUT_VARIABLE LLVM_DIR)
+
+message(STATUS "set llvm dir to ${LLVM_DIR}")
+set(ENV{LLVM_DIR} ${LLVM_DIR})
+set(CMAKE_FIND_PACKAGE_SORT_ORDER NATURAL)
+find_package(LLVM  REQUIRED CONFIG HINTS ${LLVM_DIR} NO_CMAKE_PATH NO_CMAKE_ENVIRONMENT_PATH)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
@@ -36,12 +52,17 @@ add_compile_options("$<$<CONFIG:DEBUG>:-DMIMIUM_DEBUG_BUILD>")
 # set(RTMIDI_TARGETNAME_UNINSTALL "uninstall_rtmidi" CACHE STRING "Name of 'uninstall' build target")
 # add_subdirectory( libs/rtmidi )
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 
 
 #[FIXME] this is unsafe,,,
 include_directories(src)
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    message(STATUS "CLANG SETTING!!!!!!!")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++ -lc++abi")
+endif()
 
 add_custom_target(default_build)
 
