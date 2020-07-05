@@ -47,7 +47,9 @@ else (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
   ogg
   PATHS
   /usr/lib
+  /usr/lib/x86_64-linux-gnu/
   /usr/local/lib
+  /usr/local/
   /opt/local/lib
   /sw/lib
   )
@@ -56,6 +58,7 @@ else (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
   vorbis
   PATHS
   /usr/lib
+  /usr/lib/x86_64-linux-gnu/
   /usr/local/lib
   /opt/local/lib
   /sw/lib
@@ -65,15 +68,17 @@ else (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
   vorbisenc
   PATHS
   /usr/lib
+  /usr/lib/x86_64-linux-gnu/
   /usr/local/lib
   /opt/local/lib
   /sw/lib
   )
   find_library(FLAC_LIBRARY
   NAMES
-  flac
+  flac FLAC
   PATHS
   /usr/lib
+  /usr/lib/x86_64-linux-gnu/
   /usr/local/lib
   /opt/local/lib
   /sw/lib
@@ -83,6 +88,7 @@ else (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
   opus
   PATHS
   /usr/lib
+  /usr/lib/x86_64-linux-gnu/
   /usr/local/lib
   /opt/local/lib
   /sw/lib

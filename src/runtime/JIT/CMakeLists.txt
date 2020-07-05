@@ -13,3 +13,5 @@ PRIVATE
 )
 
 target_link_libraries(mimium_runtime_jit mimium_scheduler ${llvmruntime})
+
+install(TARGETS mimium_runtime_jit DESTINATION lib)

@@ -5,13 +5,13 @@
 #include "runtime/backend/rtaudio/driver_rtaudio.hpp"
 
 namespace mimium {
-AudioDriverRtAudio::AudioDriverRtAudio(Scheduler& sch, unsigned int sr,
+AudioDriverRtAudio::AudioDriverRtAudio(std::shared_ptr<Scheduler> sch, unsigned int sr,
                                        unsigned int bs, unsigned int chs)
     : AudioDriver(sch, sr, bs, chs),
-      callbackdata{&sch, sch.getRuntime().getDspFn(),
-                   sch.getRuntime().getDspFnCls(), nullptr,0} {
-  dspfn = sch.getRuntime().getDspFn();
-  dspfn_cls_address = sch.getRuntime().getDspFnCls();
+      callbackdata{sch, this->sch->getRuntime().getDspFn(),
+                   this->sch->getRuntime().getDspFnCls(), nullptr,0} {
+  dspfn = this->sch->getRuntime().getDspFn();
+  dspfn_cls_address = this->sch->getRuntime().getDspFnCls();
   try {
     rtaudio = std::make_unique<RtAudio>();
   } catch (RtAudioError& e) {
@@ -30,8 +30,8 @@ RtAudioCallback AudioDriverRtAudio::callback =
        RtAudioStreamStatus status, void* userdata) -> int {
   auto data = static_cast<CallbackData*>(userdata);
   auto& [sch, dspfn, dspfn_cls, dspfn_memobj, timeelapsed] = *data;
-
-  if (sch->isactive) {
+  bool isactive = data->scheduler->isactive;
+  if (isactive) {
     auto* output_buffer_d = static_cast<double*>(output);
     if (status)
       Logger::debug_log("Stream underflow detected!", Logger::WARNING);

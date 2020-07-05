@@ -3,34 +3,63 @@ branches:
   - master
   - dev
 
-dist: xenial
-os: osx
-osx_image: xcode10.2	
+dist: bionic
+
 language: cpp
 git:
   submodules: false
-addons:
-  homebrew:
-    packages:
-    - cmake
-    - doxygen
-    - llvm
-    - bison
-    - flex
-    - opus
-    - libsndfile
-cache:
-  directories:
-    - $HOME/Library/Caches/Homebrew
-before_cache:
-  - brew cleanup
+
+jobs:
+  include:
+    - os: osx
+      osx_image: xcode10.2	
+      addons:
+        homebrew:
+          packages:
+            - cmake
+            - doxygen
+            - llvm
+            - bison
+            - flex
+            - opus
+            - libsndfile
+          update: true
+      env:
+        - LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib"
+        - LLVM_CONFIG=/usr/local/opt/llvm/bin/llvm-config
+        - LLVM_DIR=/usr/local/opt/llvm
+      cache:
+        directories:
+          - $HOME/Library/Caches/Homebrew
+      before_cache:
+        - brew cleanup
+    - os: linux
+      addons: 
+        apt:
+          packages:
+            - cmake
+            - build-essential
+            - libsndfile-dev
+            - libopus-dev
+#            - libbison-dev
+            - libalsa-ocaml-dev
+            - libfl-dev
+            - libz-dev
+            - llvm-10
+
+      env:
+        - LLVM_CONFIG=llvm-config-10
+        # - CC=clang-10
+        # - CXX=clang++-10
+      install:
+        - sudo apt purge llvm-7
+        - wget http://ftp.gnu.org/gnu/bison/bison-3.6.tar.gz
+        - tar -xzvf bison-3.6.tar.gz
+        - pushd bison-3.6 && ./configure --prefix=/usr && make && sudo make install && popd
+    
 script:
-- export LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib"
-- export CC=/usr/local/opt/llvm/bin/clang;
-- export CXX=/usr/local/opt/llvm/bin/clang++;
-- export LLVM_DIR=/usr/local/opt/llvm;
-- mkdir build && cd build
-- cmake .. -DBUILD_DOCS=FALSE
-- cmake  --build .
-- cmake --build . --target install
-- mimium --version
+  - mkdir build && cd build
+  - cmake .. -DBUILD_DOCS=FALSE
+  - cmake  --build .
+  - cmake --build . --target install
+  - mimium --version

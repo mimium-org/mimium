@@ -3,12 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
  
 %skeleton "lalr1.cc"
-%require "3.0"
+%require "3.3"
 %debug 
 
 
 
 %defines
+
 %define api.parser.class {MimiumParser}
 %define api.namespace{mmmpsr}
 

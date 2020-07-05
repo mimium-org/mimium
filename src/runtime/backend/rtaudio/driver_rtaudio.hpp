@@ -12,7 +12,7 @@ class Scheduler;
 
 class AudioDriverRtAudio : public AudioDriver {
   struct CallbackData {
-    Scheduler* scheduler;
+    std::shared_ptr<Scheduler> scheduler;
     DspFnType dspfn_ptr;
     void* dspfncls_ptr;
     void* dspfn_memobj_ptr;
@@ -23,7 +23,7 @@ class AudioDriverRtAudio : public AudioDriver {
   bool setCallback();
 
  public:
-  explicit AudioDriverRtAudio(Scheduler& sch, unsigned int sr = 48000,
+  explicit AudioDriverRtAudio(std::shared_ptr<Scheduler> sch, unsigned int sr = 48000,
                               unsigned int bs = 256, unsigned int chs = 2);
   ~AudioDriverRtAudio()override = default;
   bool start() override;

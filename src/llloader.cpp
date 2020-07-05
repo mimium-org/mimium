@@ -61,9 +61,9 @@ auto main(int argc, char** argv) -> int {
     exit(0);
   };
   runtime->addScheduler();
-    runtime->addAudioDriver(
-      std::make_shared<mimium::AudioDriverRtAudio>(*runtime->getScheduler()));
   global_sch = runtime->getScheduler().get();
+  runtime->addAudioDriver(
+      std::make_shared<mimium::AudioDriverRtAudio>(runtime->getScheduler()));
 
 llvm::SMDiagnostic errorreporter;
   if (!input.good()) {  
