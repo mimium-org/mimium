@@ -2,7 +2,7 @@
 
 a programming language as an infrastructure for sound and music
 
-[![Build Status](https://travis-ci.org/tomoyanonymous/mimium.svg?branch=master)](https://travis-ci.org/tomoyanonymous/mimium) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/de5190beb61f4ea9a337becdb21f8328)](https://www.codacy.com/manual/tomoyanonymous/mimium?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=tomoyanonymous/mimium&amp;utm_campaign=Badge_Grade) [![License Badge-MPL2.0](https://img.shields.io/badge/LICENSE-MPLv2.0-blue)](./LICENSE.md)
+stable: ![build status(master)](https://github.com/mimium-org/mimium/workflows/build%20&%20test/badge.svg?branch=master) dev: ![build status(dev)](https://github.com/mimium-org/mimium/workflows/build%20&%20test/badge.svg?branch=dev) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/de5190beb61f4ea9a337becdb21f8328)](https://www.codacy.com/manual/tomoyanonymous/mimium?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=tomoyanonymous/mimium&amp;utm_campaign=Badge_Grade) [![License Badge-MPL2.0](https://img.shields.io/badge/LICENSE-MPLv2.0-blue)](./LICENSE.md)
 
 ![mimium_logo_slanted](./mimium_logo_slant.svg)
 
@@ -65,11 +65,10 @@ cmake --build . --target install
 
 ### notes for linux build
 
-Currently tested on Ubuntu 18.04(Bionic) working on Parallels Desktop(Confirmed the program can be successfully built but not running because of a problem around alsa and pulseaudio).
+Currently tested building on Ubuntu 18.04(Bionic) and 20.04(Focal)
+For a compiler, GCC>9 is recommended.
 
-For a compiler, using Clang, not GCC is recommended.
-
-At Bionic, a version of bison from apt is 3.0.4, which will not work. Please install latest version manually.
+At Bionic, a version of bison from apt is 3.0.4, which will not work. Please install latest version manually.(See also github action page.)
 
 # Author
 
