@@ -53,7 +53,7 @@ using Statement = std::variant<Assign, Return, Declaration, Rec_Wrap<Fdef>,
                                Rec_Wrap<For>, Rec_Wrap<If>, Rec_Wrap<Expr>>;
 using Statements = std::deque<Statement>;
 
-using ExprPtr = std::unique_ptr<Expr>;
+using ExprPtr = std::shared_ptr<Expr>;
 
 enum class OpId {
   Add,
@@ -84,9 +84,15 @@ struct DebugInfo {
   } source_loc;
   std::string symbol;
 };
+
+// Base definition of ast. all ast must be derived from this class
+
 struct Base {
   DebugInfo debuginfo;
 };
+
+// derived AST classes are designed to be initialized with nested aggregate initialization (C++17 feature) like below:
+// Op opast = {{dbginfo}, lhs_ptr, rhs_ptr };
 
 // Operator ast. lhs might be nullopt in case of Sub and Not operator.
 
@@ -106,11 +112,11 @@ struct Rvar : public Symbol {};
 struct Self : public Base {};
 
 struct LambdaArgs : public Base {
-  std::deque<std::unique_ptr<Lvar>> args;
+  std::deque<std::shared_ptr<Lvar>> args;
 };
 struct Lambda : public Base {
-  std::unique_ptr<LambdaArgs> args;
-  std::unique_ptr<Statements> body;
+  std::shared_ptr<LambdaArgs> args;
+  std::shared_ptr<Statements> body;
 };
 struct Fdef : public Lambda {};
 
@@ -127,14 +133,29 @@ struct Fcall : public Base {
 };
 // Time ast, only a function call can be tied with time.
 struct Time : public Base {
-  std::unique_ptr<Fcall> fcall;
+  std::shared_ptr<Fcall> fcall;
   mmmfloat time;
 };
 
 struct Assign : public Base{
-    std::unique_ptr<Lvar> lvar;
+    std::shared_ptr<Lvar> lvar;
     ExprPtr expr;
 };
+
+template <typename FROM,typename TO>
+std::shared_ptr<TO> makeAst(FROM&& ast){
+    newast::Expr expr = ast;
+    return std::make_shared<TO>(expr);
+}
+
+template <typename FROM>
+std::shared_ptr<newast::Expr> makeExpr(FROM&& ast){
+    return std::make_shared<newast::Expr>(newast::Expr(ast));
+}
+template <typename FROM>
+std::shared_ptr<newast::Statement> makeStatement(FROM&& ast){
+    return std::make_shared<newast::Statement>(newast::Statement(ast));
+}
 
 
 }  // namespace newast
