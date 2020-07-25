@@ -1,3 +1,0 @@
-[submodule "libs/rtmidi"]
-	path = libs/rtmidi
-	url = git@github.com:thestk/rtmidi.git
