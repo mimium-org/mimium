@@ -6,14 +6,31 @@
 #include "basic/ast_new.hpp"
 
 namespace mimium {
-struct ToStringVisitor {
-  std::string getOutput() { return output.str(); }
-
- private:
-  std::stringstream output;
+enum class Mode{
+    Lisp,
+    Json
 };
 
-struct TermStringVisitor : public ToStringVisitor {
+struct ToStringVisitor {
+  explicit ToStringVisitor(std::ostream& output, Mode mode=Mode::Lisp);
+  std::ostream& output;
+  struct {
+  std::string lpar;
+  std::string rpar;
+  //angle brackets
+  std::string lpar_a;
+  std::string rpar_a;
+  std::string delim;
+  } format;
+ private:
+  Mode mode;
+
+
+};
+
+struct ExprStringVisitor : public ToStringVisitor {
+  explicit  ExprStringVisitor(std::ostream& output, Mode mode=Mode::Lisp);
+
   void operator()(newast::Number ast);
   void operator()(newast::String ast);
   void operator()(newast::Op ast);
@@ -29,6 +46,9 @@ struct TermStringVisitor : public ToStringVisitor {
 };
 
 struct StatementStringVisitor : public ToStringVisitor {
+  explicit StatementStringVisitor(std::ostream& output, Mode mode=Mode::Lisp);
+
+  ExprStringVisitor exprstringvisitor;
   void operator()(newast::Assign ast);
   void operator()(newast::Return ast);
   void operator()(newast::Declaration ast);
@@ -41,10 +61,21 @@ struct StatementStringVisitor : public ToStringVisitor {
 class AstStringifier {
  public:
  private:
-  TermStringVisitor term_to_string;
   StatementStringVisitor statement_to_string;
 };
 namespace newast {}
+
+template<typename CONTAINER>
+inline std::string joinVec(const CONTAINER& vec,const std::string& delim){
+  std::ostringstream stream;
+  for(auto& elem:vec){
+        if (&elem != &vec[0]) {
+            stream << delim;
+        }
+        stream << elem;
+  }
+  return stream.str();
+}
 
 inline std::ostream& operator<<(std::ostream& os,
                                 const newast::Statements& statements);

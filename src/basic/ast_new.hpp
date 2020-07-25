@@ -51,9 +51,10 @@ struct If;
 
 using Statement = std::variant<Assign, Return, Declaration, Rec_Wrap<Fdef>,
                                Rec_Wrap<For>, Rec_Wrap<If>, Rec_Wrap<Expr>>;
-using Statements = std::deque<Statement>;
+using Statements = std::deque<std::shared_ptr<Statement>>;
 
 using ExprPtr = std::shared_ptr<Expr>;
+
 
 enum class OpId {
   Add,
@@ -142,16 +143,16 @@ struct ArrayInit  : public Base {
 };
 
 struct ArrayAccess : public Base {
-  std::shared_ptr<Expr> array;
-  std::shared_ptr<Expr> index;
+  ExprPtr array;
+  ExprPtr index;
 };
 struct Struct  : public Base {
   std::deque<ExprPtr> args;
 };
 
 struct StructAccess : public Base {
-  std::shared_ptr<Expr> array;
-  std::shared_ptr<Expr> index;
+  ExprPtr array;
+  ExprPtr index;
 };
 
 // Time ast, only a function call can be tied with time.
@@ -163,6 +164,24 @@ struct Time : public Base {
 struct Assign : public Base{
     std::shared_ptr<Lvar> lvar;
     ExprPtr expr;
+};
+
+struct Return : public Base {
+  ExprPtr value;
+};
+
+struct Declaration : public Base {
+  ExprPtr value;
+};
+
+struct For : public Base {
+  Statements statements;
+};
+
+struct If : public Base {
+  ExprPtr cond;
+  Statements then_stmts;
+  std::optional<Statements> else_stmts;
 };
 
 template <typename FROM,typename TO>
