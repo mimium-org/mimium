@@ -60,6 +60,7 @@ if(BUILD_DOCS)
 add_subdirectory( docs )
 endif()
 
-#add_subdirectory( test )
+enable_testing()
 
+add_subdirectory( test )
 

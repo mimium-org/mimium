@@ -96,7 +96,8 @@ struct Base {
 
 // Operator ast. lhs might be nullopt in case of Sub and Not operator.
 
-struct Op : public Base {
+struct Op : public Base { 
+  OpId op;
   std::optional<ExprPtr> lhs;
   ExprPtr rhs;
 };
