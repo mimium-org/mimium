@@ -131,6 +131,28 @@ struct Fcall : public Base {
   ExprPtr fn;
   FcallArgs args;
 };
+
+struct Tuple : public Base {
+  std::deque<ExprPtr> args;
+};
+
+struct ArrayInit  : public Base {
+  std::deque<ExprPtr> args;
+};
+
+struct ArrayAccess : public Base {
+  std::shared_ptr<Expr> array;
+  std::shared_ptr<Expr> index;
+};
+struct Struct  : public Base {
+  std::deque<ExprPtr> args;
+};
+
+struct StructAccess : public Base {
+  std::shared_ptr<Expr> array;
+  std::shared_ptr<Expr> index;
+};
+
 // Time ast, only a function call can be tied with time.
 struct Time : public Base {
   std::shared_ptr<Fcall> fcall;
@@ -149,11 +171,11 @@ std::shared_ptr<TO> makeAst(FROM&& ast){
 }
 
 template <typename FROM>
-auto* makeExpr(FROM&& ast){
+auto makeExpr(FROM&& ast){
     return std::make_shared<newast::Expr>(newast::Expr(ast));
 }
 template <typename FROM>
-auto* makeStatement(FROM&& ast){
+auto makeStatement(FROM&& ast){
     return std::make_shared<newast::Statement>(newast::Statement(ast));
 }
 
