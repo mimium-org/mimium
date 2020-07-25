@@ -38,7 +38,7 @@ struct ArrayAccess;
 struct Time;
 
 using Expr =
-    std::variant<Op, Number, String, Rec_Wrap<Rvar>, Self, Rec_Wrap<Lambda>,
+    std::variant<Op, Number, String, Rvar, Self, Rec_Wrap<Lambda>,
                  Rec_Wrap<Fcall>, Rec_Wrap<Time>, Rec_Wrap<StructAccess>,
                  Rec_Wrap<ArrayInit>, Rec_Wrap<ArrayAccess>, Rec_Wrap<Tuple>>;
 
@@ -149,11 +149,11 @@ std::shared_ptr<TO> makeAst(FROM&& ast){
 }
 
 template <typename FROM>
-std::shared_ptr<newast::Expr> makeExpr(FROM&& ast){
+auto* makeExpr(FROM&& ast){
     return std::make_shared<newast::Expr>(newast::Expr(ast));
 }
 template <typename FROM>
-std::shared_ptr<newast::Statement> makeStatement(FROM&& ast){
+auto* makeStatement(FROM&& ast){
     return std::make_shared<newast::Statement>(newast::Statement(ast));
 }
 
