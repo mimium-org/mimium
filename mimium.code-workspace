@@ -104,6 +104,9 @@
 			"-background-index",
 			"-compile-commands-dir=build",
 			"-header-insertion=never"
-		]
+		],
+		"cmake.ctestArgs": [
+			"--verbose"
+		  ]
 	}
 }

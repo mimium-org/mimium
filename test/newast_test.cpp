@@ -18,5 +18,14 @@ TEST(newast_test, basic) {
     std::string str_target = "test!";
     EXPECT_EQ(str_answer,str_target);
 }
+TEST(newast_test, statement) {
+    newast::DebugInfo dbg;
+    auto statement = newast::makeStatement(newast::Assign{dbg,
+    {dbg,{"leftvar"},{{dbg,"test_type"}}},
+    newast::makeExpr(newast::Number{dbg,1})
+    });
+    EXPECT_TRUE(std::holds_alternative<newast::Assign>(*statement));
+    EXPECT_EQ(std::get<newast::Assign>(*statement).lvar.type->value,"test_type");
+}   
 
 }

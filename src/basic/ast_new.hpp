@@ -19,6 +19,8 @@ struct String;
 
 struct Symbol;
 struct Lvar;
+struct TypeSpec;
+
 struct Rvar;
 struct Self;
 
@@ -109,7 +111,15 @@ struct Symbol : public Base {
   std::string value{};
 };
 struct String : public Symbol {};
-struct Lvar : public Symbol {};
+
+// Type Specifier Ast. Typename may be omitted or user-defined.
+
+struct TypeSpec : public Symbol{};
+
+struct Lvar: public Symbol {
+  std::optional<TypeSpec> type;
+};
+
 struct Rvar : public Symbol {};
 struct Self : public Base {};
 
@@ -162,7 +172,7 @@ struct Time : public Base {
 };
 
 struct Assign : public Base{
-    std::shared_ptr<Lvar> lvar;
+    Lvar lvar;
     ExprPtr expr;
 };
 
