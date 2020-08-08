@@ -4,11 +4,11 @@
 
 #pragma once
 #include "basic/helper_functions.hpp"
-#include "basic/ast.hpp"
+#include "basic/ast_new.hpp"
 #include "basic/mir.hpp"
 #include "basic/type.hpp"
 
-#include "compiler/driver.hpp"
+#include "compiler/ast_loader_new.hpp"
 #include "compiler/alphaconvert_visitor.hpp"
 #include "compiler/recursive_checker.hpp"
 #include "compiler/type_infer_visitor.hpp"
@@ -24,23 +24,23 @@ public:
     Compiler();
     Compiler(llvm::LLVMContext& ctx);
     ~Compiler();
-    AST_Ptr loadSource(std::string source);
-    AST_Ptr loadSourceFile(std::string filename);
+    AstPtr loadSource(std::string source);
+    AstPtr loadSourceFile(std::string filename);
     void setFilePath(std::string path);
     void setDataLayout(const llvm::DataLayout& dl);
     void setDataLayout();
 
-    AST_Ptr alphaConvert(AST_Ptr ast);
-    TypeEnv& typeInfer(AST_Ptr ast);
-    std::shared_ptr<MIRblock> generateMir(AST_Ptr ast);
+    AstPtr alphaConvert(AstPtr ast);
+    TypeEnv& typeInfer(AstPtr ast);
+    std::shared_ptr<MIRblock> generateMir(AstPtr ast);
     std::shared_ptr<MIRblock> closureConvert(std::shared_ptr<MIRblock> mir);
     std::shared_ptr<MIRblock> collectMemoryObjs(std::shared_ptr<MIRblock> mir);
 
     llvm::Module& generateLLVMIr(std::shared_ptr<MIRblock> mir);
     auto moveLLVMModule(){return llvmgenerator.moveModule();}
  private:
-    void recursiveCheck(AST_Ptr ast);
-  mmmpsr::MimiumDriver driver;
+    void recursiveCheck(AstPtr ast);
+  Driver driver;
   AlphaConvertVisitor alphavisitor;
   TypeInferVisitor typevisitor;
   RecursiveChecker recursivechecker;

@@ -24,6 +24,7 @@ ExprStringVisitor::ExprStringVisitor(std::ostream& output, Mode mode)
     : ToStringVisitor(output, mode) {}
 StatementStringVisitor::StatementStringVisitor(std::ostream& output, Mode mode)
     : ToStringVisitor(output, mode), exprstringvisitor(output, mode) {}
+
 std::ostream& operator<<(std::ostream& os,
                          const newast::Statements& statements) {
   StatementStringVisitor svisitor(os, Mode::Lisp);
@@ -57,14 +58,14 @@ void ExprStringVisitor::operator()(const Rec_Wrap<newast::Lambda>& ast) {
   const newast::Lambda& lambda = ast;
   output << format.lpar << "lambda" << format.delim;
   auto largs = lambda.args;
-  output << format.lpar_a << joinVec(largs->args, format.delim) << format.rpar_a
+  output << format.lpar_a << joinVec(largs.args, format.delim) << format.rpar_a
          << format.br;
-  output << *lambda.body << format.rpar_a;
+  output << lambda.body << format.rpar_a;
 }
 void ExprStringVisitor::fcallHelper(const newast::Fcall& fcall) {
   output << format.lpar << "funcall" << format.delim;
   auto fargs = fcall.args;
-  output << joinVec(fargs->args, format.delim) << format.rpar_a;
+  output << joinVec(fargs.args, format.delim) << format.rpar_a;
 }
 
 void ExprStringVisitor::operator()(const Rec_Wrap<newast::Fcall>& ast) {
@@ -74,7 +75,7 @@ void ExprStringVisitor::operator()(const Rec_Wrap<newast::Fcall>& ast) {
 void ExprStringVisitor::operator()(const Rec_Wrap<newast::Time>& ast) {
   const newast::Time& time = ast;
   output << format.lpar << "time" << format.delim;
-  fcallHelper(*time.fcall);
+  fcallHelper(time.fcall);
   output << format.delim << format.rpar;
 }
 void ExprStringVisitor::operator()(const Rec_Wrap<newast::StructAccess>& ast) {
@@ -94,5 +95,7 @@ void StatementStringVisitor::operator()(const newast::Declaration& ast) {}
 void StatementStringVisitor::operator()(const Rec_Wrap<newast::Fdef>& ast) {}
 void StatementStringVisitor::operator()(const Rec_Wrap<newast::For>& ast) {}
 void StatementStringVisitor::operator()(const Rec_Wrap<newast::If>& ast) {}
-void StatementStringVisitor::operator()(const Rec_Wrap<newast::Expr>& ast) {}
+void StatementStringVisitor::operator()(const Rec_Wrap<newast::ExprPtr>& ast) {}
+
+
 }  // namespace mimium

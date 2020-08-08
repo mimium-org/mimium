@@ -6,31 +6,30 @@
 #include "basic/ast_new.hpp"
 
 namespace mimium {
-enum class Mode{
-    Lisp,
-    Json
-};
+
+
+enum class Mode { Lisp, Json };
 
 struct ToStringVisitor {
-  explicit ToStringVisitor(std::ostream& output, Mode mode=Mode::Lisp);
+  explicit ToStringVisitor(std::ostream& output, Mode mode = Mode::Lisp);
   std::ostream& output;
   struct {
-  std::string lpar;
-  std::string rpar;
-  //angle brackets
-  std::string lpar_a;
-  std::string rpar_a;
-  std::string delim;
-  std::string br;
+    std::string lpar;
+    std::string rpar;
+    // angle brackets
+    std::string lpar_a;
+    std::string rpar_a;
+    std::string delim;
+    std::string br;
   } format;
+
  private:
   Mode mode;
   bool is_prettry;
-
 };
 
 struct ExprStringVisitor : public ToStringVisitor {
-  explicit  ExprStringVisitor(std::ostream& output, Mode mode=Mode::Lisp);
+  explicit ExprStringVisitor(std::ostream& output, Mode mode = Mode::Lisp);
 
   void operator()(const newast::Number& ast);
   void operator()(const newast::String& ast);
@@ -42,14 +41,15 @@ struct ExprStringVisitor : public ToStringVisitor {
   void operator()(const Rec_Wrap<newast::Time>& ast);
   void operator()(const Rec_Wrap<newast::StructAccess>& ast);
   void operator()(const Rec_Wrap<newast::ArrayInit>& ast);
-  void operator()(const Rec_Wrap<newast::ArrayAccess> &ast);
+  void operator()(const Rec_Wrap<newast::ArrayAccess>& ast);
   void operator()(const Rec_Wrap<newast::Tuple>& ast);
-  private:
+
+ private:
   void fcallHelper(const newast::Fcall& fcall);
 };
 
 struct StatementStringVisitor : public ToStringVisitor {
-  explicit StatementStringVisitor(std::ostream& output, Mode mode=Mode::Lisp);
+  explicit StatementStringVisitor(std::ostream& output, Mode mode = Mode::Lisp);
 
   ExprStringVisitor exprstringvisitor;
   void operator()(const newast::Assign& ast);
@@ -58,7 +58,7 @@ struct StatementStringVisitor : public ToStringVisitor {
   void operator()(const Rec_Wrap<newast::Fdef>& ast);
   void operator()(const Rec_Wrap<newast::For>& ast);
   void operator()(const Rec_Wrap<newast::If>& ast);
-  void operator()(const Rec_Wrap<newast::Expr>& ast);
+  void operator()(const Rec_Wrap<newast::ExprPtr>& ast);
 };
 
 class AstStringifier {
@@ -66,18 +66,26 @@ class AstStringifier {
  private:
   StatementStringVisitor statement_to_string;
 };
-namespace newast {}
+// namespace newast {}
 
-template<typename CONTAINER>
-inline std::string joinVec(const CONTAINER& vec,const std::string& delim){
+template <typename CONTAINER>
+inline std::string joinVec(const CONTAINER& vec, const std::string& delim) {
   std::ostringstream stream;
-  for(auto& elem:vec){
-        if (&elem != &vec[0]) {
-            stream << delim;
-        }
-        stream << elem;
+  for (auto& elem : vec) {
+    if (&elem != &vec[0]) {
+      stream << delim;
+    }
+    stream << elem;
   }
   return stream.str();
+}
+
+namespace newast{
+inline std::ostream& operator<<(std::ostream& os, const newast::Lvar& lvar) {
+  os << lvar.value;
+  return os;
+}
+
 }
 
 inline std::ostream& operator<<(std::ostream& os,

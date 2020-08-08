@@ -2,8 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+// NO LONGER USED...will be deleted on next release
+
 #include <unordered_map>
-#include "mimium_parser.hpp"
+namespace mmmpsr {
+    class MimiumParser;
+}
+#include "mimium_parser.hpp" 
+
 
 using tokentype = mmmpsr::MimiumParser::token::yytokentype;
 

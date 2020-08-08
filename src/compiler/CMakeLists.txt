@@ -22,7 +22,7 @@ target_link_libraries(mimium_builtinfn PUBLIC mimium_utils  ${SNDFILE_LIBRARIES}
 
 
 add_subdirectory(codegen)
-add_library(mimium_compiler ${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} driver.cpp recursive_checker.cpp alphaconvert_visitor.cpp knormalize_visitor.cpp type_infer_visitor.cpp closure_convert.cpp collect_memoryobjs.cpp compiler.cpp)
+add_library(mimium_compiler ${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS}  ast_loader_new.cpp recursive_checker.cpp alphaconvert_visitor.cpp knormalize_visitor.cpp type_infer_visitor.cpp closure_convert.cpp collect_memoryobjs.cpp compiler.cpp)
 add_dependencies(mimium_compiler mimium_builtinfn)
 target_include_directories(mimium_compiler
 PUBLIC
