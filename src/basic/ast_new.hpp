@@ -93,7 +93,7 @@ struct Base {
 };
 
 // derived AST classes are designed to be initialized with nested aggregate initialization (C++17 feature) like below:
-// Op opast = {{dbginfo}, lhs_ptr, rhs_ptr };
+// Op opast = {{dbginfo}, operator, lhs_ptr, rhs_ptr };
 
 // Operator ast. lhs might be nullopt in case of Sub and Not operator.
 
@@ -131,7 +131,7 @@ struct FcallArgs : public Base {
 
 struct Fcall : public Base {
   ExprPtr fn;
-  FcallArgs args;
+  std::shared_ptr<FcallArgs> args;
 };
 
 struct Tuple : public Base {
@@ -151,14 +151,14 @@ struct Struct  : public Base {
 };
 
 struct StructAccess : public Base {
-  ExprPtr array;
-  ExprPtr index;
+  ExprPtr stru;
+  ExprPtr field;
 };
 
 // Time ast, only a function call can be tied with time.
 struct Time : public Base {
   std::shared_ptr<Fcall> fcall;
-  mmmfloat time;
+  ExprPtr when;
 };
 
 struct Assign : public Base{

@@ -21,41 +21,44 @@ struct ToStringVisitor {
   std::string lpar_a;
   std::string rpar_a;
   std::string delim;
+  std::string br;
   } format;
  private:
   Mode mode;
-
+  bool is_prettry;
 
 };
 
 struct ExprStringVisitor : public ToStringVisitor {
   explicit  ExprStringVisitor(std::ostream& output, Mode mode=Mode::Lisp);
 
-  void operator()(newast::Number ast);
-  void operator()(newast::String ast);
-  void operator()(newast::Op ast);
-  void operator()(newast::Rvar ast);
-  void operator()(newast::Self ast);
-  void operator()(Rec_Wrap<newast::Lambda> ast);
-  void operator()(Rec_Wrap<newast::Fcall> ast);
-  void operator()(Rec_Wrap<newast::Time> ast);
-  void operator()(Rec_Wrap<newast::StructAccess> ast);
-  void operator()(Rec_Wrap<newast::ArrayInit> ast);
-  void operator()(Rec_Wrap<newast::ArrayAccess> ast);
-  void operator()(Rec_Wrap<newast::Tuple> ast);
+  void operator()(const newast::Number& ast);
+  void operator()(const newast::String& ast);
+  void operator()(const newast::Op& ast);
+  void operator()(const newast::Rvar& ast);
+  void operator()(const newast::Self& ast);
+  void operator()(const Rec_Wrap<newast::Lambda>& ast);
+  void operator()(const Rec_Wrap<newast::Fcall>& ast);
+  void operator()(const Rec_Wrap<newast::Time>& ast);
+  void operator()(const Rec_Wrap<newast::StructAccess>& ast);
+  void operator()(const Rec_Wrap<newast::ArrayInit>& ast);
+  void operator()(const Rec_Wrap<newast::ArrayAccess> &ast);
+  void operator()(const Rec_Wrap<newast::Tuple>& ast);
+  private:
+  void fcallHelper(const newast::Fcall& fcall);
 };
 
 struct StatementStringVisitor : public ToStringVisitor {
   explicit StatementStringVisitor(std::ostream& output, Mode mode=Mode::Lisp);
 
   ExprStringVisitor exprstringvisitor;
-  void operator()(newast::Assign ast);
-  void operator()(newast::Return ast);
-  void operator()(newast::Declaration ast);
-  void operator()(Rec_Wrap<newast::Fdef> ast);
-  void operator()(Rec_Wrap<newast::For> ast);
-  void operator()(Rec_Wrap<newast::If> ast);
-  void operator()(Rec_Wrap<newast::Expr> ast);
+  void operator()(const newast::Assign& ast);
+  void operator()(const newast::Return& ast);
+  void operator()(const newast::Declaration& ast);
+  void operator()(const Rec_Wrap<newast::Fdef>& ast);
+  void operator()(const Rec_Wrap<newast::For>& ast);
+  void operator()(const Rec_Wrap<newast::If>& ast);
+  void operator()(const Rec_Wrap<newast::Expr>& ast);
 };
 
 class AstStringifier {
