@@ -91,8 +91,7 @@ void ExprStringVisitor::operator()(const Rec_Wrap<newast::ArrayAccess>& ast) {}
 void ExprStringVisitor::operator()(const Rec_Wrap<newast::Tuple>& ast) {}
 void StatementStringVisitor::operator()(const newast::Assign& ast) {}
 void StatementStringVisitor::operator()(const newast::Return& ast) {}
-void StatementStringVisitor::operator()(const newast::Declaration& ast) {}
-void StatementStringVisitor::operator()(const Rec_Wrap<newast::Fdef>& ast) {}
+// void StatementStringVisitor::operator()(const newast::Declaration& ast) {}
 void StatementStringVisitor::operator()(const Rec_Wrap<newast::For>& ast) {}
 void StatementStringVisitor::operator()(const Rec_Wrap<newast::If>& ast) {}
 void StatementStringVisitor::operator()(const Rec_Wrap<newast::ExprPtr>& ast) {}

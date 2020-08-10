@@ -45,14 +45,13 @@ using Expr =
                  Rec_Wrap<ArrayInit>, Rec_Wrap<ArrayAccess>, Rec_Wrap<Tuple>>;
 using ExprPtr = std::shared_ptr<Expr>;
 
-struct Fdef;  // internally equivalent to lambda
 struct Assign;
 struct Return;
 struct Declaration;
 struct For;
 struct If;
 
-using Statement = std::variant<Assign, Return, Declaration, Rec_Wrap<Fdef>,
+using Statement = std::variant<Assign, Return, /* Declaration, */ 
                                Rec_Wrap<For>, Rec_Wrap<If>, Rec_Wrap<ExprPtr>>;
 using Statements = std::deque<std::shared_ptr<Statement>>;
 
@@ -142,7 +141,6 @@ struct Lambda : public Base {
   Statements body;
   std::optional<types::Value> ret_type;
 };
-struct Fdef : public Lambda {};
 
 struct FcallArgs : public Base {
   std::deque<ExprPtr> args;

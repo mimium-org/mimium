@@ -55,7 +55,6 @@ struct StatementStringVisitor : public ToStringVisitor {
   void operator()(const newast::Assign& ast);
   void operator()(const newast::Return& ast);
   void operator()(const newast::Declaration& ast);
-  void operator()(const Rec_Wrap<newast::Fdef>& ast);
   void operator()(const Rec_Wrap<newast::For>& ast);
   void operator()(const Rec_Wrap<newast::If>& ast);
   void operator()(const Rec_Wrap<newast::ExprPtr>& ast);
