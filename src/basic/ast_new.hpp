@@ -41,7 +41,7 @@ struct Time;
 
 using Expr =
     std::variant<Op, Number, String, Rvar, Self, Rec_Wrap<Lambda>,
-                 Rec_Wrap<Fcall>, Rec_Wrap<Time>, Rec_Wrap<StructAccess>,
+                 Rec_Wrap<Fcall>, Rec_Wrap<Time>,Rec_Wrap<Struct>, Rec_Wrap<StructAccess>,
                  Rec_Wrap<ArrayInit>, Rec_Wrap<ArrayAccess>, Rec_Wrap<Tuple>>;
 using ExprPtr = std::shared_ptr<Expr>;
 

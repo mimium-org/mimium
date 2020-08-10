@@ -42,11 +42,12 @@ void ExprStringVisitor::operator()(const newast::String& ast) {
 }
 void ExprStringVisitor::operator()(const newast::Op& ast) {
   output << format.lpar;
-  if (ast.lhs) {
+  if (ast.lhs.has_value()) {
     std::visit(*this, *ast.lhs.value());
   }
   output << format.delim;
   std::visit(*this, *ast.rhs);
+  
 }
 void ExprStringVisitor::operator()(const newast::Rvar& ast) {
   output << ast.value;
@@ -63,7 +64,7 @@ void ExprStringVisitor::operator()(const Rec_Wrap<newast::Lambda>& ast) {
   output << lambda.body << format.rpar_a;
 }
 void ExprStringVisitor::fcallHelper(const newast::Fcall& fcall) {
-  output << format.lpar << "funcall" << format.delim;
+  output << format.lpar_a << "funcall" << format.delim;
   auto fargs = fcall.args;
   output << joinVec(fargs.args, format.delim) << format.rpar_a;
 }
@@ -74,9 +75,15 @@ void ExprStringVisitor::operator()(const Rec_Wrap<newast::Fcall>& ast) {
 }
 void ExprStringVisitor::operator()(const Rec_Wrap<newast::Time>& ast) {
   const newast::Time& time = ast;
-  output << format.lpar << "time" << format.delim;
+  output << format.lpar_a << "time" << format.delim;
   fcallHelper(time.fcall);
-  output << format.delim << format.rpar;
+  output << format.delim << format.rpar_a;
+}
+void ExprStringVisitor::operator()(const Rec_Wrap<newast::Struct>& ast) {
+  output << format.lpar << "struct" << format.delim;
+  const newast::Struct& str = ast;
+  output <<joinVec(str.args,format.delim) << format.rpar;
+  
 }
 void ExprStringVisitor::operator()(const Rec_Wrap<newast::StructAccess>& ast) {
   const newast::StructAccess& stracc = ast;

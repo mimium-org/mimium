@@ -39,6 +39,7 @@ struct ExprStringVisitor : public ToStringVisitor {
   void operator()(const Rec_Wrap<newast::Lambda>& ast);
   void operator()(const Rec_Wrap<newast::Fcall>& ast);
   void operator()(const Rec_Wrap<newast::Time>& ast);
+  void operator()(const Rec_Wrap<newast::Struct>& ast);
   void operator()(const Rec_Wrap<newast::StructAccess>& ast);
   void operator()(const Rec_Wrap<newast::ArrayInit>& ast);
   void operator()(const Rec_Wrap<newast::ArrayAccess>& ast);
@@ -54,7 +55,7 @@ struct StatementStringVisitor : public ToStringVisitor {
   ExprStringVisitor exprstringvisitor;
   void operator()(const newast::Assign& ast);
   void operator()(const newast::Return& ast);
-  void operator()(const newast::Declaration& ast);
+  // void operator()(const newast::Declaration& ast);
   void operator()(const Rec_Wrap<newast::For>& ast);
   void operator()(const Rec_Wrap<newast::If>& ast);
   void operator()(const Rec_Wrap<newast::ExprPtr>& ast);
