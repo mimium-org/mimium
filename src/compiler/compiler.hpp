@@ -30,7 +30,7 @@ public:
     void setDataLayout(const llvm::DataLayout& dl);
     void setDataLayout();
 
-    AstPtr alphaConvert(AstPtr ast);
+    AstPtr renameSymbols(AstPtr ast);
     TypeEnv& typeInfer(AstPtr ast);
     std::shared_ptr<MIRblock> generateMir(AstPtr ast);
     std::shared_ptr<MIRblock> closureConvert(std::shared_ptr<MIRblock> mir);
@@ -41,7 +41,8 @@ public:
  private:
     void recursiveCheck(AstPtr ast);
   Driver driver;
-  AlphaConvertVisitor alphavisitor;
+  // AlphaConvertVisitor alphavisitor;
+  SymbolRenamer symbolrenamer;
   TypeInferVisitor typevisitor;
   RecursiveChecker recursivechecker;
   KNormalizeVisitor knormvisitor;

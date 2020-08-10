@@ -7,7 +7,7 @@ namespace mimium {
 Compiler::Compiler() : Compiler(*std::make_shared<llvm::LLVMContext>()) {}
 Compiler::Compiler(llvm::LLVMContext& ctx)
     : driver(),
-      alphavisitor(),
+      symbolrenamer(std::make_shared<RenameEnvironment>()),
       typevisitor(),
       recursivechecker(),
       knormvisitor(typevisitor),
@@ -35,9 +35,8 @@ AstPtr Compiler::loadSourceFile(std::string filename) {
   recursiveCheck(ast);
   return ast;
 }
-AstPtr Compiler::alphaConvert(AstPtr ast) {
-  ast->accept(alphavisitor);
-  return alphavisitor.getResult();
+AstPtr Compiler::renameSymbols(AstPtr ast) {
+  return symbolrenamer.rename(*ast);
 }
 TypeEnv& Compiler::typeInfer(AstPtr ast) { return typevisitor.infer(ast); }
 
