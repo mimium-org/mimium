@@ -191,6 +191,8 @@ using namespace mimium;
 
 %nonassoc '(' ')'
 
+%nonassoc '[' ']'
+
 %left ELSE
 %left PIPE
 %left ARROW
@@ -423,7 +425,7 @@ statement: assign       {$$=newast::makeStatement(std::move($1));}
 ifstatement: IF '(' expr ')' block {$$ = newast::If{{@$,"if"},std::move($3),std::move($5),std::nullopt};}
             |IF '(' expr ')' block ELSE block {$$ = newast::If{{@$,"if"},std::move($3),std::move($5),std::move($7)};}
 
-forloop: FOR lvar IN expr block {$$ = newast::For{{@$,"if"},std::move($2),std::move($4),std::move($5)};};
+forloop: FOR '(' lvar IN expr ')' block {$$ = newast::For{{@$,"for"},std::move($3),std::move($5),std::move($7)};};
 
 
 // declaration : include {$$=std::move($1);} 

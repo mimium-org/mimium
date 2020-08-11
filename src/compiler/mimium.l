@@ -72,8 +72,7 @@ NEWLINE {BREAK}* | ";"
 "include" return token::INCLUDE;
 
 "fn" return token::FUNC;
-"self" {  yylval->emplace<std::string>(yytext);
-return token::SELF;}
+"self" { return token::SELF;}
 
 
 "for" return token::FOR;

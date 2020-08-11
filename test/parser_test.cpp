@@ -16,6 +16,12 @@ PARSER_TEST(ifexpr)
 PARSER_TEST(lambda)
 PARSER_TEST(pipeline)
 PARSER_TEST(fdef)
+PARSER_TEST(self)
 PARSER_TEST(array)
+
+TEST(parser,ast_complete){
+Driver driver{};
+auto ast = driver.parseFile("ast_complete.mmm");
+}
 
 }
