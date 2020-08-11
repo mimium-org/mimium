@@ -9,7 +9,6 @@
 #include "FlexLexer.h"
 #endif
 
-#include "location.hh"
 #include "mimium_parser.hpp"
 
 namespace mmmpsr {

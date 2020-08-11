@@ -16,7 +16,7 @@ target_include_directories(UnitTest
     .
     ${GTEST_INCLUDE_DIRS}
     ${FLEX_INCLUDE_CACHE}
-    ${FLEX_LOCATION_HEADER_DIR}
+    ${PARSER_HEADER_DIR}
     )
 
 target_link_libraries(UnitTest
