@@ -26,6 +26,8 @@ StatementStringVisitor::StatementStringVisitor(std::ostream& output, Mode mode)
     : ToStringVisitor(output, mode), exprstringvisitor(output, mode) {}
 
 namespace newast{
+
+
 std::ostream& operator<<(std::ostream& os, const newast::Expr& expr) {
   std::visit(ExprStringVisitor(os, Mode::Lisp), expr);
   return os;
@@ -54,6 +56,7 @@ std::ostream& operator<<(std::ostream& os,
   StatementStringVisitor svisitor(os, Mode::Lisp);
   for (const auto& statement : statements) {
     std::visit(svisitor, *statement);
+    os << svisitor.format.br;
   }
   os << std::flush;
   return os;
@@ -67,12 +70,11 @@ void ExprStringVisitor::operator()(const newast::String& ast) {
   output << ast.value;
 }
 void ExprStringVisitor::operator()(const newast::Op& ast) {
-  output << format.lpar;
+  output << format.lpar << newast::op_str.at(ast.op);
   if (ast.lhs.has_value()) {
-    output << ast.lhs.value();
+    output << format.delim << *ast.lhs.value();
   }
-  output << format.delim;
-  std::visit(*this, *ast.rhs);
+  output << format.delim << *ast.rhs << format.rpar;
 }
 void ExprStringVisitor::operator()(const newast::Rvar& ast) {
   output << ast.value;
@@ -83,15 +85,15 @@ void ExprStringVisitor::operator()(const newast::Self& /*ast*/) {
 void ExprStringVisitor::operator()(const Rec_Wrap<newast::Lambda>& ast) {
   const newast::Lambda& lambda = ast;
   output << format.lpar << "lambda" << format.delim;
-  auto largs = lambda.args;
-  output << format.lpar_a << joinVec(largs.args, format.delim) << format.rpar_a
-         << format.br;
-  output << lambda.body << format.rpar_a;
+  auto& largs = lambda.args;
+  output << format.lpar_a << joinVec(largs.args, format.delim) << format.rpar_a;
+  output << lambda.body << format.rpar;;
 }
 void ExprStringVisitor::fcallHelper(const newast::Fcall& fcall) {
-  output << format.lpar_a << "funcall" << format.delim;
-  auto&& fargs = fcall.args;
-  output << joinVec(fargs.args, format.delim) << format.rpar_a;
+  output << format.lpar << "funcall" << format.delim << *fcall.fn << format.delim;
+  auto& fargs = fcall.args;
+  output << format.lpar_a << joinVec(fargs.args, format.delim) << format.rpar_a <<format.rpar;
+
 }
 
 void ExprStringVisitor::operator()(const Rec_Wrap<newast::Fcall>& ast) {

@@ -23,7 +23,9 @@ void Compiler::setFilePath(std::string path) {
 void Compiler::setDataLayout(const llvm::DataLayout& dl) {
   llvmgenerator.setDataLayout(dl);
 }
-void Compiler::recursiveCheck(AstPtr ast) { ast->accept(recursivechecker); }
+void Compiler::recursiveCheck(AstPtr ast) {
+  //  ast->accept(recursivechecker);
+    }
 AstPtr Compiler::loadSource(std::string source) {
   AstPtr ast = driver.parseString(source);
   // auto ast = driver.getMainAst();
@@ -38,10 +40,12 @@ AstPtr Compiler::loadSourceFile(std::string filename) {
 AstPtr Compiler::renameSymbols(AstPtr ast) {
   return symbolrenamer.rename(*ast);
 }
-TypeEnv& Compiler::typeInfer(AstPtr ast) { return typevisitor.infer(ast); }
+TypeEnv& Compiler::typeInfer(AstPtr ast) { 
+  // return typevisitor.infer(ast); 
+}
 
 std::shared_ptr<MIRblock> Compiler::generateMir(AstPtr ast) {
-  ast->accept(knormvisitor);
+  // ast->accept(knormvisitor);
   return knormvisitor.getResult();
 }
 std::shared_ptr<MIRblock> Compiler::closureConvert(

@@ -15,11 +15,12 @@ add_library(mimium_parser ${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} as
 target_compile_options(mimium_parser PUBLIC -std=c++17)
 
 
-
+set(FLEX_LOCATION_HEADER_DIR ${CMAKE_CURRENT_BINARY_DIR} CACHE PATH "for location.hh ")# for location.hh 
+set(FLEX_INCLUDE_CACHE ${FLEX_INCLUDE_DIRS} CACHE PATH "to build test")
 target_include_directories(mimium_parser
 PUBLIC
 ${FLEX_INCLUDE_DIRS}
-${CMAKE_CURRENT_BINARY_DIR} # for mimium_parser.hpp 
+${CMAKE_CURRENT_BINARY_DIR} 
 )
 
 add_library(mimium_compiler  recursive_checker.cpp alphaconvert_visitor.cpp knormalize_visitor.cpp type_infer_visitor.cpp closure_convert.cpp collect_memoryobjs.cpp compiler.cpp)

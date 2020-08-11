@@ -24,15 +24,10 @@ TEST(asttostring_parser, basic) {
   std::ostringstream ss;
   ss << *ast;
   std::string target(
-      "(assign"
-      " (lvar test unspecified)"
-      " (lambda ((lvar x unspecified) "
-      "(lvar y unspecified) (lvar z unspecified))"
-      "\n(if x "
-      "(assign (lvar res unspecified) 0) "
-      "(if y (assign (lvar res unspecified) 100) "
-      "(assign (lvar res unspecified) z))"
-      ")(return res)))");
+      "(assign (lvar test unspecified) (lambda ((lvar x unspecified) (lvar y "
+      "unspecified) (lvar z unspecified))(if x (assign (lvar res unspecified) "
+      "0)\n (if y (assign (lvar res unspecified) 100)\n (assign (lvar res "
+      "unspecified) z)\n)\n)\n(return res)\n))\n");
   EXPECT_STREQ(ss.str().c_str(), target.c_str());
 }
 

@@ -29,6 +29,36 @@ SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE),
 
 namespace mimium {
 
+//meta function to check if it is smart pointer or not(used in ast_to_string);
+template <typename T, typename Enable = void>
+struct is_smart_pointer {
+  enum { value = false };
+};
+
+template <typename T>
+struct is_smart_pointer<
+    T, typename std::enable_if<std::is_same<
+           typename std::remove_cv<T>::type,
+           std::shared_ptr<typename T::element_type>>::value>::type> {
+  enum { value = true };
+};
+
+template <typename T>
+struct is_smart_pointer<
+    T, typename std::enable_if<std::is_same<
+           typename std::remove_cv<T>::type,
+           std::unique_ptr<typename T::element_type>>::value>::type> {
+  enum { value = true };
+};
+
+template <typename T>
+struct is_smart_pointer<
+    T, typename std::enable_if<std::is_same<
+           typename std::remove_cv<T>::type,
+           std::weak_ptr<typename T::element_type>>::value>::type> {
+  enum { value = true };
+};
+
 struct WaitController {
   std::mutex mtx;
   std::condition_variable cv;
@@ -110,8 +140,9 @@ class Logger {
   /// @callgraph
   static void debug_log(const std::string& str, REPORT_LEVEL report_level) {
     if (report_level <= Logger::current_report_level) {
-      std::string content = report_str.at(report_level) +": " + str + norm+"\n";
-      if(report_level <= REPORT_LEVEL::ERROR){
+      std::string content =
+          report_str.at(report_level) + ": " + str + norm + "\n";
+      if (report_level <= REPORT_LEVEL::ERROR) {
         throw std::runtime_error(content);
       }
       *output << content;
@@ -134,7 +165,7 @@ class Logger {
   }
 
   inline void setoutput(std::ostream& out) { Logger::output = &out; }
-  static inline REPORT_LEVEL current_report_level =Logger::WARNING;
+  static inline REPORT_LEVEL current_report_level = Logger::WARNING;
 
  private:
   static inline std::ostream* output = &std::cerr;

@@ -4,11 +4,9 @@
 
 #pragma once
 
-#ifndef __MMMSCANNER_HPP__
-#define __MMMSCANNER_HPP__ 1
 
 #if !defined(yyFlexLexerOnce)
-#include <FlexLexer.h>
+#include "FlexLexer.h"
 #endif
 
 #include "location.hh"
@@ -41,5 +39,3 @@ class MimiumScanner : public yyFlexLexer {
 };
 
 }  // namespace mmmpsr
-
-#endif /* END __MMMSCANNER_HPP__ */

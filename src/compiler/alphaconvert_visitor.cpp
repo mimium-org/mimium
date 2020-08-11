@@ -6,6 +6,7 @@
 namespace mimium {
 
 // new alphaconverter
+SymbolRenamer::SymbolRenamer() : env(std::make_shared<RenameEnvironment>()) {}
 SymbolRenamer::SymbolRenamer(std::shared_ptr<RenameEnvironment> env)
     : env(std::move(env)) {}
 
@@ -23,7 +24,7 @@ std::string SymbolRenamer::getNewName(std::string const& name) {
 std::string SymbolRenamer::searchFromEnv(std::string const& name) {
   auto res = env->search(std::optional(name));
   if (res == std::nullopt) {
-    throw std::runtime_error("variable " + name + " not found.");
+    // the variable not found, assumed to be external symbol at this stage.
     return name;
   }
   return res.value();
@@ -59,27 +60,28 @@ newast::ExprPtr ExprRenameVisitor::operator()(newast::Lambda& ast) {
     renamer.env->addToMap(a.value, newname);
     newargs.emplace_back(newast::Lvar{a.debuginfo, newname});
   }
-  auto&& newargsast =
-      newast::LambdaArgs{ast.args.debuginfo, std::move(newargs)};
-  auto&& newbody = *renamer.rename(ast.body);
+  auto newargsast = newast::LambdaArgs{ast.args.debuginfo, std::move(newargs)};
+  auto newbody = *renamer.rename(ast.body);
   renamer.env = renamer.env->parent_env;
-  return newast::makeExpr(
-      newast::Lambda{ast.debuginfo, newargsast, newbody, ast.ret_type});
+  return newast::makeExpr(newast::Lambda{ast.debuginfo, std::move(newargsast),
+                                         std::move(newbody), ast.ret_type});
 }
 newast::ExprPtr ExprRenameVisitor::operator()(newast::Fcall& ast) {
   std::deque<newast::ExprPtr> newargs;
   for (auto&& a : ast.args.args) {
     newargs.emplace_back(std::visit(*this, *a));
   }
-  auto&& newargsast = newast::FcallArgs{ast.args.debuginfo, newargs};
-  auto&& newfn = std::visit(*this, *ast.fn);
-  auto&& newfcall = newast::Fcall{ast.debuginfo, newfn, newargsast};
-  return newast::makeExpr(newfcall);
+  auto newargsast = newast::FcallArgs{ast.args.debuginfo, std::move(newargs)};
+  auto newfn = std::visit(*this, *ast.fn);
+  auto newfcall =
+      newast::Fcall{ast.debuginfo, std::move(newfn), std::move(newargsast)};
+  return newast::makeExpr(std::move(newfcall));
 }
 newast::ExprPtr ExprRenameVisitor::operator()(newast::Time& ast) {
-  auto&& newfcall = rv::get<newast::Fcall>(*(*this)(ast.fcall));
-  auto&& newwhen = std::visit(*this, *ast.when);
-  return newast::makeExpr(newast::Time{ast.debuginfo, newfcall, newwhen});
+  auto newfcall = rv::get<newast::Fcall>(*(*this)(ast.fcall));
+  auto newwhen = std::visit(*this, *ast.when);
+  return newast::makeExpr(
+      newast::Time{ast.debuginfo, std::move(newfcall), std::move(newwhen)});
 }
 newast::ExprPtr ExprRenameVisitor::operator()(newast::Struct& ast) {
   std::deque<newast::ExprPtr> newargs;
@@ -89,10 +91,10 @@ newast::ExprPtr ExprRenameVisitor::operator()(newast::Struct& ast) {
   return newast::makeExpr(newast::Struct{ast.debuginfo, std::move(newargs)});
 }
 newast::ExprPtr ExprRenameVisitor::operator()(newast::StructAccess& ast) {
-  auto&& newfield = std::visit(*this, *ast.field);
-  auto&& newstr = std::visit(*this, *ast.stru);
-  return newast::makeExpr(
-      newast::StructAccess{ast.debuginfo, newfield, newstr});
+  auto newfield = std::visit(*this, *ast.field);
+  auto newstr = std::visit(*this, *ast.stru);
+  return newast::makeExpr(newast::StructAccess{
+      ast.debuginfo, std::move(newfield), std::move(newstr)});
 }
 newast::ExprPtr ExprRenameVisitor::operator()(newast::ArrayInit& ast) {
   std::deque<newast::ExprPtr> newargs;
@@ -102,9 +104,10 @@ newast::ExprPtr ExprRenameVisitor::operator()(newast::ArrayInit& ast) {
   return newast::makeExpr(newast::ArrayInit{ast.debuginfo, std::move(newargs)});
 }
 newast::ExprPtr ExprRenameVisitor::operator()(newast::ArrayAccess& ast) {
-  auto&& newfield = std::visit(*this, *ast.array);
-  auto&& newstr = std::visit(*this, *ast.index);
-  return newast::makeExpr(newast::ArrayAccess{ast.debuginfo, newfield, newstr});
+  auto newfield = std::visit(*this, *ast.array);
+  auto newstr = std::visit(*this, *ast.index);
+  return newast::makeExpr(newast::ArrayAccess{
+      ast.debuginfo, std::move(newfield), std::move(newstr)});
 }
 newast::ExprPtr ExprRenameVisitor::operator()(newast::Tuple& ast) {
   std::deque<newast::ExprPtr> newargs;
@@ -116,31 +119,34 @@ newast::ExprPtr ExprRenameVisitor::operator()(newast::Tuple& ast) {
 
 using StatementRenameVisitor = SymbolRenamer::StatementRenameVisitor;
 StatementPtr StatementRenameVisitor::operator()(newast::Assign& ast) {
-  auto&& newrvar = std::visit(renamer.expr_renamevisitor, *ast.expr);
+  auto newrvar = std::visit(renamer.expr_renamevisitor, *ast.expr);
   auto newname = renamer.getNewName(ast.lvar.value);
   renamer.env->addToMap(ast.lvar.value, newname);
-  auto&& newlvar = newast::Lvar{ast.lvar.debuginfo, newname, ast.lvar.type};
-  return newast::makeStatement(newast::Assign{ast.debuginfo, newlvar, newrvar});
+  auto newlvar = newast::Lvar{ast.lvar.debuginfo, newname, ast.lvar.type};
+  return newast::makeStatement(
+      newast::Assign{ast.debuginfo, std::move(newlvar), std::move(newrvar)});
 }
 StatementPtr StatementRenameVisitor::operator()(newast::Return& ast) {
-  auto&& newrvar = std::visit(renamer.expr_renamevisitor, *ast.value);
-  return newast::makeStatement(newast::Return{ast.debuginfo, newrvar});
+  auto newrvar = std::visit(renamer.expr_renamevisitor, *ast.value);
+  return newast::makeStatement(
+      newast::Return{ast.debuginfo, std::move(newrvar)});
 }
 // StatementPtr StatementRenameVisitor::operator()(newast::Declaration& ast) {}
 
 StatementPtr StatementRenameVisitor::operator()(newast::For& ast) {
-  auto&& newiter = std::visit(renamer.expr_renamevisitor, *ast.iterator);
+  auto newiter = std::visit(renamer.expr_renamevisitor, *ast.iterator);
   renamer.env = renamer.env->expand();
   auto newname = renamer.getNewName(ast.index.value);
   renamer.env->addToMap(ast.index.value, newname);
-  auto&& newindex = newast::Lvar{ast.index.debuginfo, newname, ast.index.type};
+  auto newindex = newast::Lvar{ast.index.debuginfo, newname, ast.index.type};
   auto newstmts = renamer.rename(ast.statements);
   renamer.env = renamer.env->parent_env;
-  return newast::makeStatement(
-      newast::For{ast.debuginfo, newindex, newiter, std::move(*newstmts)});
+  return newast::makeStatement(newast::For{ast.debuginfo, std::move(newindex),
+                                           std::move(newiter),
+                                           std::move(*newstmts)});
 }
 StatementPtr StatementRenameVisitor::operator()(newast::If& ast) {
-  auto&& newcond = std::visit(renamer.expr_renamevisitor, *ast.cond);
+  auto newcond = std::visit(renamer.expr_renamevisitor, *ast.cond);
   auto newthenptr = renamer.rename(ast.then_stmts);
   auto newelse = ast.else_stmts;
   if (ast.else_stmts.has_value()) {

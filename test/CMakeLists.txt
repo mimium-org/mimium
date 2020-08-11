@@ -15,6 +15,8 @@ target_include_directories(UnitTest
     PRIVATE
     .
     ${GTEST_INCLUDE_DIRS}
+    ${FLEX_INCLUDE_CACHE}
+    ${FLEX_LOCATION_HEADER_DIR}
     )
 
 target_link_libraries(UnitTest
@@ -22,7 +24,7 @@ target_link_libraries(UnitTest
     GTest::GTest
     GTest::Main   # GTest::Mainをリンクすると自分でmain関数を書く必要がなくなる
     mimium_utils
-    mimium_parser
+    mimium_compiler
     ${test_llvm}
   )
 

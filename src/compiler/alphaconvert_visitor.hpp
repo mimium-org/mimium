@@ -17,6 +17,7 @@ using StatementPtr = std::shared_ptr<newast::Statement>;
 class SymbolRenamer {
 
  public:
+  SymbolRenamer();
   explicit SymbolRenamer(std::shared_ptr<RenameEnvironment> env);
   AstPtr rename(newast::Statements& ast);
 
