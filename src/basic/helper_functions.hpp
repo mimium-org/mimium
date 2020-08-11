@@ -110,8 +110,11 @@ class Logger {
   /// @callgraph
   static void debug_log(const std::string& str, REPORT_LEVEL report_level) {
     if (report_level <= Logger::current_report_level) {
-      *output << report_str.at(report_level) << ": " << str << norm
-              << std::endl;
+      std::string content = report_str.at(report_level) +": " + str + norm+"\n";
+      if(report_level <= REPORT_LEVEL::ERROR){
+        throw std::runtime_error(content);
+      }
+      *output << content;
     }
   }
   static void debug_log(llvm::Error& err, REPORT_LEVEL report_level) {

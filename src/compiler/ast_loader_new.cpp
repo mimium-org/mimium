@@ -23,13 +23,17 @@ AstPtr Driver::parseFile(const std::string& filename) {
   fs::path path(filename);
   auto abspath = fs::absolute(path);
   auto ext = path.extension().string();
-  if (fs::exists(path)) {
-    throw std::runtime_error("file " + abspath.string() + " does not exist.");
-  }
+
   if (ext != ".mmm") {
     throw std::runtime_error(
         "file type " + ext +
         " does not match to mimium source code file(.mmm).");
+  }
+  std::error_code ec;
+  auto status = fs::status(abspath,ec);
+  //memo: fs::exists(path,ec) for .mmm file returns file type of "unknown", not "regular" or "none". to prevent error, need to check specifically not to be "not found"
+  if (status.type() ==fs::file_type::none ||status.type() ==fs::file_type::not_found) {
+    throw std::runtime_error("file " + abspath.string() + " does not exist.");
   }
   std::ifstream ifs;
   ifs.exceptions(std::fstream::failbit | std::fstream::badbit);

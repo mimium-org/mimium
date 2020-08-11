@@ -3,7 +3,7 @@
 #include "basic/ast_new.hpp"
 namespace mimium{
 
-TEST(newast_test, basic) {
+TEST(newast, basic) {
     newast::DebugInfo dbg;
     newast::Number num1 = {{dbg},1};
     auto numptr = makeExpr(newast::Number{dbg,1});
@@ -18,14 +18,14 @@ TEST(newast_test, basic) {
     std::string str_target = "test!";
     EXPECT_EQ(str_answer,str_target);
 }
-TEST(newast_test, statement) {
+TEST(newast, statement) {
     newast::DebugInfo dbg;
     auto statement = newast::makeStatement(newast::Assign{dbg,
-    {dbg,{"leftvar"},{{dbg,"test_type"}}},
+    {dbg,{"leftvar"},{std::optional(types::Float())}},
     newast::makeExpr(newast::Number{dbg,1})
-    });
+    } );
     EXPECT_TRUE(std::holds_alternative<newast::Assign>(*statement));
-    EXPECT_EQ(std::get<newast::Assign>(*statement).lvar.type->value,"test_type");
+    EXPECT_EQ(std::get<newast::Assign>(*statement).lvar.type.value() ,types::Value(types::Float()));
 }   
 
 }
