@@ -7,7 +7,6 @@
 
 namespace mimium {
 
-
 enum class Mode { Lisp, Json };
 
 struct ToStringVisitor {
@@ -66,7 +65,6 @@ class AstStringifier {
  private:
   StatementStringVisitor statement_to_string;
 };
-// namespace newast {}
 
 template <typename CONTAINER>
 inline std::string joinVec(const CONTAINER& vec, const std::string& delim) {
@@ -80,15 +78,15 @@ inline std::string joinVec(const CONTAINER& vec, const std::string& delim) {
   return stream.str();
 }
 
-namespace newast{
-inline std::ostream& operator<<(std::ostream& os, const newast::Lvar& lvar) {
-  os << lvar.value;
-  return os;
-}
-
-}
+namespace newast {
+inline std::ostream& operator<<(std::ostream& os, const newast::Lvar& lvar) ;
+inline std::ostream& operator<<(std::ostream& os, const newast::Expr& expr);
+// inline std::ostream& operator<<(std::ostream& os,
+//                                 const newast::Statement& statement);
+inline std::ostream& toString(std::ostream& os,
+                                 const newast::Statement& statement);
 
 inline std::ostream& operator<<(std::ostream& os,
                                 const newast::Statements& statements);
-
+}  // namespace newast
 }  // namespace mimium
