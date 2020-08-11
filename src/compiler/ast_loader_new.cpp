@@ -6,6 +6,7 @@ namespace fs = std::filesystem;
 
 
 namespace mimium {
+
 AstPtr Driver::parse(std::istream& is) {
   scanner = std::make_unique<mmmpsr::MimiumScanner>(is);
   parser = std::make_unique<MimiumParser>(*scanner, *this);
@@ -36,6 +37,7 @@ AstPtr Driver::parseFile(const std::string& filename) {
     throw std::runtime_error("file " + abspath.string() + " does not exist.");
   }
   std::ifstream ifs;
+  ifs.open(abspath);
   ifs.exceptions(std::fstream::failbit | std::fstream::badbit);
   return std::move(parse(ifs));
 }
