@@ -1,0 +1,1 @@
+mtof = |mnum|{return 440 * 2 ^ ((mnum - 69)/12)}

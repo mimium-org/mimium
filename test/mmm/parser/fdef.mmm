@@ -1,0 +1,9 @@
+fn hoge(x){
+    localvar = x
+    fn fuga(y){
+        localvar= localvar+y
+        return localvar
+    }
+    return fuga(2.5)
+}
+main = hoge(1)

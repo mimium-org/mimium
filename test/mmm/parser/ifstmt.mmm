@@ -1,0 +1,12 @@
+fn test(x,y,z){
+    if(x){
+        res = 0
+    }else{
+        if(y){
+        res=100
+        }else{
+        res= z
+        }
+    }
+    return res
+}

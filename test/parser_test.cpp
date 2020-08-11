@@ -10,7 +10,12 @@ Driver driver{};\
 auto ast = driver.parseFile("parser/"#FILENAME".mmm");}
 
 PARSER_TEST(number)
-
 PARSER_TEST(lvar_type)
+PARSER_TEST(ifstmt)
+PARSER_TEST(ifexpr)
+PARSER_TEST(lambda)
+PARSER_TEST(pipeline)
+PARSER_TEST(fdef)
+PARSER_TEST(array)
 
 }
