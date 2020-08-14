@@ -8,13 +8,13 @@ Compiler::Compiler() : Compiler(*std::make_shared<llvm::LLVMContext>()) {}
 Compiler::Compiler(llvm::LLVMContext& ctx)
     : driver(),
       symbolrenamer(std::make_shared<RenameEnvironment>()),
-      typevisitor(),
+      typeinferer(),
       recursivechecker(),
-      knormvisitor(typevisitor),
+      knormvisitor(),
       closureconverter(
-          std::make_shared<ClosureConverter>(typevisitor.getEnv())),
-      memobjcollector(typevisitor.getEnv()),
-      llvmgenerator(ctx, typevisitor.getEnv(),*closureconverter,memobjcollector) {}
+          std::make_shared<ClosureConverter>(typeinferer.getTypeEnv())),
+      memobjcollector(typeinferer.getTypeEnv()),
+      llvmgenerator(ctx, typeinferer.getTypeEnv(),*closureconverter,memobjcollector) {}
 Compiler::~Compiler() = default;
 void Compiler::setFilePath(std::string path) {
   this->path = path;
@@ -41,7 +41,7 @@ AstPtr Compiler::renameSymbols(AstPtr ast) {
   return symbolrenamer.rename(*ast);
 }
 TypeEnv& Compiler::typeInfer(AstPtr ast) { 
-  // return typevisitor.infer(ast); 
+  return typeinferer.infer(*ast);
 }
 
 std::shared_ptr<MIRblock> Compiler::generateMir(AstPtr ast) {

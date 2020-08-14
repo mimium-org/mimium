@@ -4,6 +4,7 @@
 
 #pragma once
 #include "basic/ast.hpp"
+#include "basic/ast_new.hpp"
 #include "basic/helper_functions.hpp"
 #include "basic/type.hpp"
 #include "compiler/ffi.hpp"
@@ -148,6 +149,120 @@ class TypeInferVisitor : public ASTVisitor {
   TypevarReplaceVisitor tvreplacevisitor;
   // std::unordered_map<int, types::Value> typevar_to_actual_map;
   bool has_return;
+};
+
+struct TypeInferer {
+  struct ExprTypeVisitor {
+    explicit ExprTypeVisitor(TypeInferer& parent) : inferer(parent) {}
+    types::Value operator()(newast::Op& ast);
+    types::Value operator()(newast::Number& ast);
+    types::Value operator()(newast::String& ast);
+    types::Value operator()(newast::Rvar& ast);
+    types::Value operator()(newast::Self& ast);
+    types::Value operator()(newast::Lambda& ast);
+    types::Value operator()(newast::Fcall& ast);
+    types::Value operator()(newast::Time& ast);
+    types::Value operator()(newast::Struct& ast);
+    types::Value operator()(newast::StructAccess& ast);
+    types::Value operator()(newast::ArrayInit& ast);
+    types::Value operator()(newast::ArrayAccess& ast);
+    types::Value operator()(newast::Tuple& ast);
+    template <typename T>
+    types::Value operator()(Rec_Wrap<T>& ast) {
+      // default action
+      return (*this)(ast.getraw());
+    }
+    // in case missing to list asts
+    template <typename T>
+    types::Value operator()(T& /*ast*/) {
+      static_assert(true, "missing some visitor functions for ExprTypeVisitor");
+    }
+
+   private:
+    TypeInferer& inferer;
+  };
+  // visitor for newast::Statements. its return value will be the return/expr of
+  // last line in statements(used for inference of function return type).
+  struct StatementTypeVisitor {
+    explicit StatementTypeVisitor(TypeInferer& parent) : inferer(parent) {}
+    types::Value operator()(newast::Assign& ast);
+    types::Value operator()(newast::Return& ast);
+    // types::Value operator()(newast::Declaration& ast);
+    types::Value operator()(newast::For& ast);
+    types::Value operator()(newast::If& ast);
+    types::Value operator()(newast::ExprPtr& ast);
+    template <typename T>
+    types::Value operator()(Rec_Wrap<T>& ast) {
+      return (*this)(ast.getraw());
+    }
+    template <typename T>
+    types::Value operator()(T& /*ast*/) {
+      static_assert(
+          true, "missing some visitor functions for StatementRenameVisitor");
+    }
+
+   private:
+    TypeInferer& inferer;
+  };
+  struct TypeUnifyVisitor {
+    explicit TypeUnifyVisitor(TypeInferer& parent) : inferer(parent) {}
+    TypeInferer& inferer;
+    template <typename T>
+    types::Value operator()(T const& t1, T const& t2) {
+      return t1;  // for primitives
+    }
+    // typevar unifying
+    template <typename T>
+    types::Value operator()(T const& t1, types::TypeVar const& t2) {
+      inferer.typevarmap.emplace(t2.index, t1);
+      return t1;  //
+    }
+    template <typename T>
+    types::Value operator()(types::TypeVar const& t1, T const& t2) {
+      return (*this)(t2, t1);  //
+    }
+    types::Value operator()(types::TypeVar const& t1,
+                            types::TypeVar const& t2) {
+      inferer.typevarmap.emplace(t2.index, t1);
+      return t1;
+    }
+    // type mismatch.
+    template <typename T1, typename T2>
+    types::Value operator()(T1 const& t1, T2 const& t2) {
+      throw std::runtime_error("type mismatch");
+      return t1;  // for primitives
+    }
+    types::Value operator()(types::Pointer& p1, types::Pointer& p2);
+    types::Value operator()(types::Ref& p1, types::Ref& p2);
+    types::Value operator()(types::Function& f1, types::Function& f2);
+    types::Value operator()(types::Array& a1, types::Array& a2);
+    types::Value operator()(types::Struct& s1, types::Struct& s2);
+    types::Value operator()(types::Tuple& f1, types::Tuple& f2);
+
+    std::vector<types::Value> unifyArgs(std::vector<types::Value>& v1,
+                                        std::vector<types::Value>& v2);
+  };
+  friend struct ExprTypeVisitor;
+  friend struct StatementTypeVisitor;
+  friend struct TypeUnifyVisitor;
+  TypeInferer()
+      : exprvisitor(*this),
+        statementvisitor(*this),
+        unifyvisitor(*this),
+        typeenv() {}
+  //entry point.
+  TypeEnv& infer(newast::Statements& topast);
+  types::Value inferStatements(newast::Statements& statements);
+  TypeEnv& getTypeEnv(){return typeenv;}
+ private:
+  TypeEnv typeenv;
+  std::unordered_map<int, types::Value> typevarmap;
+  std::stack<types::Value> selftype_stack;
+  ExprTypeVisitor exprvisitor;
+  StatementTypeVisitor statementvisitor;
+  TypeUnifyVisitor unifyvisitor;
+  types::Value addLvar(newast::Lvar& lvar);
+  types::Value unify(types::Value const& lhs, types::Value const& rhs);
 };
 
 }  // namespace mimium

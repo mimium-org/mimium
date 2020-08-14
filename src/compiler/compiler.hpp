@@ -43,7 +43,7 @@ public:
   Driver driver;
   // AlphaConvertVisitor alphavisitor;
   SymbolRenamer symbolrenamer;
-  TypeInferVisitor typevisitor;
+  TypeInferer typeinferer;
   RecursiveChecker recursivechecker;
   KNormalizeVisitor knormvisitor;
   std::shared_ptr<ClosureConverter> closureconverter;

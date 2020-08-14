@@ -10,6 +10,11 @@ KNormalizeVisitor::KNormalizeVisitor(TypeInferVisitor& typeinfer)
     : typeinfer(typeinfer), var_counter(0) {
   init();
 }
+KNormalizeVisitor::KNormalizeVisitor():var_counter(0){
+  init();
+  }
+
+
 std::string KNormalizeVisitor::makeNewName() {
   return "k" + std::to_string(++var_counter);
 }
