@@ -342,10 +342,10 @@ bool isPrimitive(const Value& v);
 class TypeEnv {
  private:
   int64_t typeid_count{};
-  std::unordered_map<std::string, types::Value> env;
 
  public:
   TypeEnv() : env() {}
+  std::unordered_map<std::string, types::Value> env;
   types::TypeVar createNewTypeVar() { return types::TypeVar(typeid_count++); }
   bool exist(std::string key) { return (env.count(key) > 0); }
   auto begin(){ return env.begin();}

@@ -238,9 +238,77 @@ struct TypeInferer {
     types::Value operator()(types::Array& a1, types::Array& a2);
     types::Value operator()(types::Struct& s1, types::Struct& s2);
     types::Value operator()(types::Tuple& f1, types::Tuple& f2);
-
+    template <typename T1, typename T2>
+    types::Value operator()(Rec_Wrap<T1>& t1, Rec_Wrap<T2>& t2) {
+      return (*this)(t1.getraw(), t2.getraw());
+    }
+    template <typename T1, typename T2>
+    types::Value operator()(Rec_Wrap<T1>& t1, T2& t2) {
+      return (*this)(t1.getraw(), t2);
+    }
+    template <typename T1, typename T2>
+    types::Value operator()(T1& t1, Rec_Wrap<T2>& t2) {
+      return (*this)(t1, t2.getraw());
+    }
     std::vector<types::Value> unifyArgs(std::vector<types::Value>& v1,
                                         std::vector<types::Value>& v2);
+  };
+  struct SubstituteVisitor {
+    explicit SubstituteVisitor(TypeInferer& parent) : inferer(parent) {}
+    types::Value operator()(types::TypeVar& t){
+      auto& target = inferer.typevarmap.at(t.index);
+      if(std::visit(OccurChecker{t},target)){
+        throw std::runtime_error("failed to infer type. Type loop detected.");
+      }
+      return target;
+    }
+    template <typename T>
+    types::Value operator()(T& t) {
+      return t;
+    }
+    types::Value operator()(Rec_Wrap<types::TypeVar>& t) {
+      return (*this)(t.getraw());
+    }
+    TypeInferer& inferer;
+  };
+  struct OccurChecker {
+    types::TypeVar& tv;
+    explicit OccurChecker(types::TypeVar& target) : tv(target) {}
+    bool operator()(types::Function& t) {
+      return std::visit(*this, t.ret_type) || checkArgs(t.arg_types);
+    }
+    bool operator()(types::Array& t) { return std::visit(*this, t.elem_type); }
+    bool operator()(types::Struct& t) { return checkArgs(t.arg_types); }
+    bool operator()(types::Tuple& t) { return checkArgs(t.arg_types); };
+    bool operator()(types::TypeVar& t) { return (t.index == tv.index); }
+    template <typename T>
+    bool operator()(T& t) {
+      bool res;
+      if constexpr (T::kind == types::Kind::POINTER) {
+        res = std::visit(*this, t.val);
+      } else {
+        res = false;
+      }
+      return res;
+    }
+    template <typename T>
+    bool operator()(Rec_Wrap<T>& t) {
+      return (*this)(t.getraw());
+    }
+    bool checkArgs(std::vector<types::Value>& args) {
+      bool res = false;
+      for (auto&& a : args) {
+        res |= std::visit(*this, a);
+      }
+      return res;
+    }
+    bool checkArgs(std::vector<types::Struct::Keytype>& args) {
+      bool res = false;
+      for (auto&& a : args) {
+        res |= std::visit(*this, a.val);
+      }
+      return res;
+    }
   };
   friend struct ExprTypeVisitor;
   friend struct StatementTypeVisitor;
@@ -249,11 +317,13 @@ struct TypeInferer {
       : exprvisitor(*this),
         statementvisitor(*this),
         unifyvisitor(*this),
+        substitutevisitor(*this),
         typeenv() {}
-  //entry point.
+  // entry point.
   TypeEnv& infer(newast::Statements& topast);
   types::Value inferStatements(newast::Statements& statements);
-  TypeEnv& getTypeEnv(){return typeenv;}
+  TypeEnv& getTypeEnv() { return typeenv; }
+
  private:
   TypeEnv typeenv;
   std::unordered_map<int, types::Value> typevarmap;
@@ -261,8 +331,10 @@ struct TypeInferer {
   ExprTypeVisitor exprvisitor;
   StatementTypeVisitor statementvisitor;
   TypeUnifyVisitor unifyvisitor;
+  SubstituteVisitor substitutevisitor;
   types::Value addLvar(newast::Lvar& lvar);
   types::Value unify(types::Value const& lhs, types::Value const& rhs);
+  void substituteTypeVars();
 };
 
 }  // namespace mimium

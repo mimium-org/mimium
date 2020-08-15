@@ -516,7 +516,13 @@ types::Value TypeInferer::inferStatements(newast::Statements& statements) {
 }
 TypeEnv& TypeInferer::infer(newast::Statements& topast) {
   inferStatements(topast);
+  substituteTypeVars();
   return typeenv;
+}
+void TypeInferer::substituteTypeVars(){
+  for(auto&& [key,t]: typeenv.env){
+    auto[iter,replaced] = typeenv.env.insert_or_assign(key,std::visit(substitutevisitor,t));
+  }
 }
 
 
