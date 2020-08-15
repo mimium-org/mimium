@@ -3,7 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
-#ifndef MIMIUM_DEBUG
+
+#ifdef MIMIUM_PARSER_DEBUG
+#define DEBUG_LEVEL 4
+#else
 #define DEBUG_LEVEL 0
 #endif
 

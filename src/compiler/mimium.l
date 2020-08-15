@@ -12,8 +12,9 @@
   
   using token = MimiumParser::token;
   using namespace mimium;
-  #define yyterminate() return ( token::ENDFILE )
+  #define yyterminate() return  token::ENDFILE;
   #define YY_USER_ACTION loc->begin=loc->end; loc->end.col += yyleng;
+  #define LOC_BREAK loc->end.line+=yyleng; loc->end.col=0;
 %}
 %option c++ noyywrap nounput noinput nodefault debug
 %option yyclass="mmmpsr::MimiumParser"
@@ -45,13 +46,13 @@ NEWLINE {BREAK}* | ";"
 <comment>{
 [^*\n\r]*			/* eat anything that's not a '*' 		*/
 "*"+[^*/\n\r]*		/* eat up '*'s not followed by '/'s 	*/
-{BREAK}+			{loc->end.line+=yyleng;}
+{BREAK}+			{LOC_BREAK}
 "*"+"/"{BREAK}*				{BEGIN(INITIAL);}
 }
 
 "//" BEGIN(inlinecomment);
 <inlinecomment>{
-{BREAK}+ {BEGIN(INITIAL);loc->end.line+=yyleng;};
+{BREAK}+ {BEGIN(INITIAL);LOC_BREAK};
 [^\n\r]*
 }
 
@@ -65,6 +66,7 @@ NEWLINE {BREAK}* | ";"
 
 "float" return token::TYPEFLOAT;
 "void" return token::TYPEVOID;
+"string" return token::TYPESTRING;
 "Fn" return token::TYPEFN;
 
 ":" return token::TYPE_DELIM;
@@ -126,11 +128,13 @@ NEWLINE {BREAK}* | ";"
 "{" return token::LBRACE;
 "}" return token::RBRACE;
 
-{BREAK}+	{ loc->end.line+=yyleng; return token::NEWLINE;}
+{BREAK}+	{ LOC_BREAK return token::NEWLINE;}
 
 {DELIMITER} { return yytext[0];};
 
 {WSPACE} 
+
+<<EOF>> {return token::ENDFILE;}
 
 . {
   std::stringstream ss;

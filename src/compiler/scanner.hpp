@@ -18,7 +18,10 @@ class MimiumScanner : public yyFlexLexer {
   explicit MimiumScanner(std::istream &in)
       : yyFlexLexer(in, std::cout),
         loc(std::make_unique<MimiumParser::location_type>()){
-
+          //debug mode
+          #ifdef MIMIUM_PARSER_DEBUG
+          yy_flex_debug=1;
+          #endif
         };
 
    ~MimiumScanner()override = default;
@@ -30,8 +33,8 @@ class MimiumScanner : public yyFlexLexer {
                     MimiumParser::location_type *location);
   // YY_DECL defined in mc_lexer.l
   // Method body created by flex in mc_lexer.yy.cc
-
  private:
+  
   /* yyval ptr */
   MimiumParser::semantic_type *yylval = nullptr;
   std::shared_ptr<MimiumParser::location_type> loc = nullptr;

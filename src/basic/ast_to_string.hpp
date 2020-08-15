@@ -97,10 +97,15 @@ inline std::ostream& operator<<(std::ostream& os, const std::shared_ptr<T> expr)
 
 // inline std::ostream& operator<<(std::ostream& os,
 //                                 const newast::Statement& statement);
-inline std::ostream& toString(std::ostream& os,
+std::ostream& toString(std::ostream& os,
                                  const newast::Statement& statement);
 
+std::ostream& toString(std::ostream& os,
+                                  newast::Statements const& statements);
+
 inline std::ostream& operator<<(std::ostream& os,
-                                const newast::Statements& statements);
+                                const newast::Statements& statements){
+  return toString(os,statements);
+}
 }  // namespace newast
 }  // namespace mimium

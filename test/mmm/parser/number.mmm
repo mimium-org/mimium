@@ -1,1 +1,3 @@
 hoge = 0.002345
+fuga:float = 0.00212234
+higu:float = 0.00222

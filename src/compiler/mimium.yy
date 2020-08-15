@@ -99,6 +99,7 @@ using namespace mimium;
    TYPEFLOAT "typeid:float"
    TYPEVOID "typeid:void"
    TYPEFN "typeid:fn"
+   TYPESTRING "typeid:string"
 
    INCLUDE "include"
 
@@ -229,10 +230,10 @@ num:  NUM {
             $$ = newast::Number{{@1 ,std::to_string($1)} ,$1};}
 
 
-lvar: SYMBOL {
-            $$ = newast::Lvar{ { {@$,$1},$1,}, std::nullopt };}
-      |SYMBOL TYPE_DELIM types {
+lvar: SYMBOL TYPE_DELIM types {
             $$ = newast::Lvar{ { {@$,$1},$1,}, std::move($3)};}
+      |SYMBOL {
+            $$ = newast::Lvar{ { {@$,$1},$1,}, std::nullopt };}
 
 rvar: SYMBOL {
             @$ = @1;
@@ -247,6 +248,7 @@ self: SELF {
 
 primtypes: TYPEFLOAT {$$ =types::Float();}
                | TYPEVOID  {$$ = types::Void();}
+               | TYPESTRING  {$$ = types::String();}
 
 reftype: 
       types AND {
@@ -395,10 +397,9 @@ fdef: FUNC lvar arguments_top block {
 
 top: opt_nl statements opt_nl ENDFILE {driver.setTopAst(std::make_shared<newast::Statements>(std::move($2)));}
 
-statements: statements NEWLINE statement {$1.push_back(std::move($3));
+statements: statement{  $$ = std::deque<std::shared_ptr<newast::Statement>>{std::move($1)};}
+            |statements NEWLINE statement {$1.push_back(std::move($3));
                                           $$= std::move($1);  }
-      | statement{  $$ = std::deque<std::shared_ptr<newast::Statement>>{std::move($1)};}
-
             
       
 block: LBRACE  NEWLINE statements opt_nl RBRACE {$$ = std::move($3);}

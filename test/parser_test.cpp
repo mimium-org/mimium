@@ -1,13 +1,14 @@
 #include "gtest/gtest.h"
 #include "gtest/internal/gtest-port.h"
 #include "basic/ast_new.hpp"
+#include "basic/ast_to_string.hpp"
 #include "compiler/ast_loader_new.hpp"
 namespace mimium{
 
-#define PARSER_TEST(FILENAME)\
-TEST(parser, FILENAME) {\
+#define PARSER_TEST(FILENAME) TEST(parser, FILENAME) {\
 Driver driver{};\
-auto ast = driver.parseFile("parser/"#FILENAME".mmm");}
+newast::Statements& ast = *driver.parseFile("parser/"#FILENAME".mmm");\
+}
 
 PARSER_TEST(number)
 PARSER_TEST(lvar_type)
@@ -22,6 +23,7 @@ PARSER_TEST(array)
 TEST(parser,ast_complete){
 Driver driver{};
 auto ast = driver.parseFile("ast_complete.mmm");
+std::cerr << ast << "\n";
 }
 
 }

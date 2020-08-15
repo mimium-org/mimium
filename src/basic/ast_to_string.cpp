@@ -25,8 +25,7 @@ ExprStringVisitor::ExprStringVisitor(std::ostream& output, Mode mode)
 StatementStringVisitor::StatementStringVisitor(std::ostream& output, Mode mode)
     : ToStringVisitor(output, mode), exprstringvisitor(output, mode) {}
 
-namespace newast{
-
+namespace newast {
 
 std::ostream& operator<<(std::ostream& os, const newast::Expr& expr) {
   std::visit(ExprStringVisitor(os, Mode::Lisp), expr);
@@ -34,11 +33,21 @@ std::ostream& operator<<(std::ostream& os, const newast::Expr& expr) {
 }
 std::ostream& toString(std::ostream& os, const newast::Statement& statement) {
   StatementStringVisitor svisitor(os, Mode::Lisp);
-  std::visit(svisitor,statement);
+  std::visit(svisitor, statement);
   return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const newast::Lvar& lvar){
+std::ostream& toString(std::ostream& os, const newast::Statements& statements) {
+  StatementStringVisitor svisitor(os, Mode::Lisp);
+  for (const auto& statement : statements) {
+    std::visit(svisitor, *statement);
+    os << svisitor.format.br;
+  }
+  os << std::flush;
+  return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const newast::Lvar& lvar) {
   ExprStringVisitor evisitor(os);
   auto& format = evisitor.format;
   os << format.lpar << "lvar" << format.delim << lvar.value << format.delim;
@@ -51,16 +60,6 @@ std::ostream& operator<<(std::ostream& os, const newast::Lvar& lvar){
   return os;
 }
 
-std::ostream& operator<<(std::ostream& os,
-                                const newast::Statements& statements){
-  StatementStringVisitor svisitor(os, Mode::Lisp);
-  for (const auto& statement : statements) {
-    std::visit(svisitor, *statement);
-    os << svisitor.format.br;
-  }
-  os << std::flush;
-  return os;
-}
 }  // namespace newast
 
 void ExprStringVisitor::operator()(const newast::Number& ast) {
@@ -87,13 +86,15 @@ void ExprStringVisitor::operator()(const Rec_Wrap<newast::Lambda>& ast) {
   output << format.lpar << "lambda" << format.delim;
   auto& largs = lambda.args;
   output << format.lpar_a << joinVec(largs.args, format.delim) << format.rpar_a;
-  output << lambda.body << format.rpar;;
+  output << lambda.body << format.rpar;
+  ;
 }
 void ExprStringVisitor::fcallHelper(const newast::Fcall& fcall) {
-  output << format.lpar << "funcall" << format.delim << *fcall.fn << format.delim;
+  output << format.lpar << "funcall" << format.delim << *fcall.fn
+         << format.delim;
   auto& fargs = fcall.args;
-  output << format.lpar_a << joinVec(fargs.args, format.delim) << format.rpar_a <<format.rpar;
-
+  output << format.lpar_a << joinVec(fargs.args, format.delim) << format.rpar_a
+         << format.rpar;
 }
 
 void ExprStringVisitor::operator()(const Rec_Wrap<newast::Fcall>& ast) {
@@ -139,7 +140,8 @@ void StatementStringVisitor::operator()(const newast::Assign& ast) {
          << *ast.expr << format.rpar;
 }
 void StatementStringVisitor::operator()(const newast::Return& ast) {
-  output << format.lpar << "return" << format.delim << *ast.value << format.rpar;
+  output << format.lpar << "return" << format.delim << *ast.value
+         << format.rpar;
 }
 // void StatementStringVisitor::operator()(const newast::Declaration& ast) {}
 void StatementStringVisitor::operator()(const Rec_Wrap<newast::For>& ast) {}
