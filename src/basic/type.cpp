@@ -70,4 +70,22 @@ std::string TypeEnv::toString(bool verbose) {
 void TypeEnv::dump(bool verbose){
 std::cerr <<"-------------------\n"<< toString(verbose)<<"-------------------\n";
 }
+void TypeEnv::dumpTvLinks(){  
+  std::cerr << "------tvlinks-----\n";
+    for(auto& a : tv_container){
+      std::cerr << types::toString(*a,false)<<" : ";
+      auto tmp = a->getFirstLink();//get pointer
+      while(tmp->next.has_value()){
+        std::cerr <<types::toString(*tmp,false)<<" -> ";
+        tmp = tmp->next.value();
+      }
+        std::cerr <<types::toString(*tmp,false);
+      if(!std::holds_alternative<types::None>(tmp->contained)){
+        std::cerr << "(" << types::toString(tmp->contained,true) << ")";
+      }
+      std::cerr<<"\n";
+    }
+    std::cerr << "------tvlinks-----" << std::endl;
+  }
+
 }  // namespace mimium

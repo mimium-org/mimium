@@ -1,0 +1,10 @@
+fn add(x,y){
+    return x+y
+}
+
+fn hof(x,y:(float,float)->float){
+    localvar = 1
+    return (x)->{ return y(x,localvar) }
+}
+
+result = hof(100,add)(20)

@@ -20,7 +20,7 @@ struct Rec_Wrap {
     t.reserve(1);
     t.emplace_back(std::move(t_));
   }  // NOLINT
-
+  static constexpr bool is_recursive_wrapper=true;
   // cast back to wrapped type
   operator T&() { return t.front(); }              // NOLINT
   operator const T&() const { return t.front(); }  // NOLINT
@@ -48,6 +48,8 @@ namespace rv {
 // static auto visit(Fun f, Rec_Wrap<T> target) {
 //   return std::visit(f, static_cast<T>(target));
 // }
+
+
 
 template <class T, class... Types>
 constexpr bool holds_alternative(std::variant<Types...>& v) {

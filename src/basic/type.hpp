@@ -60,37 +60,44 @@ struct Tuple;
 
 struct Alias;
 
+using rRef = Rec_Wrap<Ref>;
+using rPointer = Rec_Wrap<Pointer>;
+using rTypeVar = Rec_Wrap<TypeVar>;
+using rFunction = Rec_Wrap<Function>;
+using rClosure = Rec_Wrap<Closure>;
+using rArray = Rec_Wrap<Array>;
+using rStruct = Rec_Wrap<Struct>;
+using rTuple = Rec_Wrap<Tuple>;
+using rArray = Rec_Wrap<Array>;
+using rAlias = Rec_Wrap<Alias>;
+
 using Value =
-    std::variant<None, Void, Float, String, Rec_Wrap<Ref>, Rec_Wrap<TypeVar>,
-                 Rec_Wrap<Pointer>, Rec_Wrap<Function>, Rec_Wrap<Closure>,
-                 Rec_Wrap<Array>, Rec_Wrap<Struct>, Rec_Wrap<Tuple>,
-                  Rec_Wrap<Alias>>;
+    std::variant<None, Void, Float, String, rRef, rTypeVar, rPointer, rFunction,
+                 rClosure, rArray, rStruct, rTuple, rAlias>;
 
 struct ToStringVisitor;
 
-struct TypeVar {
+struct TypeVar : std::enable_shared_from_this<TypeVar> {
   explicit TypeVar(int i) : index(i) {}
   int index;
   Value contained = types::None();
-  std::optional<TypeVar*> prev = std::nullopt;
-  std::optional<TypeVar*> next = std::nullopt;
-  TypeVar& getFirstLink() {
-    std::optional<TypeVar*>& tmp = this->prev;
-    TypeVar& pos=*this;
-    while (tmp) {
-        tmp = tmp.value()->prev;
-        pos = *tmp.value();
+  std::optional<std::shared_ptr<TypeVar>> prev = std::nullopt;
+  std::optional<std::shared_ptr<TypeVar>> next = std::nullopt;
+  std::shared_ptr<TypeVar> getFirstLink() {
+    auto tmpptr = shared_from_this();
+    auto tmp = std::optional(std::move(tmpptr));
+    while (tmp.value()->prev.has_value()) {
+      tmp = tmp.value()->prev;
     }
-    return pos;
+    return tmp.value();
   }
-  TypeVar& getLastLink() {
-    std::optional<TypeVar*>& tmp = this->next;
-    TypeVar& pos=*this;
-    while (tmp) {
-        tmp = tmp.value()->next;
-        pos = *tmp.value();
+  std::shared_ptr<TypeVar> getLastLink() {
+    auto tmpptr = shared_from_this();
+    auto tmp = std::optional(std::move(tmpptr));
+    while (tmp.value()->next.has_value()) {
+      tmp = tmp.value()->next;
     }
-    return pos;
+    return tmp.value();
   }
   int getIndex() { return index; }
   void setIndex(int newindex) { index = newindex; }
@@ -184,7 +191,7 @@ struct Closure : Aggregate {
   Value captures;
   explicit Closure(Ref fun, Value captures)
       : fun(std::move(fun)), captures(std::move(captures)){};
-    explicit Closure(Value fun, Value captures)
+  explicit Closure(Value fun, Value captures)
       : fun(std::move(rv::get<Ref>(fun))), captures(std::move(captures)){};
   Closure() = default;
 };
@@ -197,7 +204,7 @@ inline bool operator!=(const Closure& t1, const Closure& t2) {
 struct Array : Aggregate {
   Value elem_type;
   int size;
-  explicit Array(Value elem, int size=0)
+  explicit Array(Value elem, int size = 0)
       : elem_type(std::move(elem)), size(size) {}
 };
 inline bool operator==(const Array& t1, const Array& t2) {
@@ -346,10 +353,23 @@ class TypeEnv {
  public:
   TypeEnv() : env() {}
   std::unordered_map<std::string, types::Value> env;
-  types::TypeVar createNewTypeVar() { return types::TypeVar(typeid_count++); }
+  std::deque<std::shared_ptr<types::TypeVar>> tv_container;
+  std::shared_ptr<types::TypeVar> createNewTypeVar() {
+    auto& ref = tv_container.emplace_back(std::make_shared<types::TypeVar>(typeid_count++));
+    return ref;
+  }
+  std::shared_ptr<types::TypeVar> findTypeVar(int tindex) {
+    auto iter =
+        std::find_if(tv_container.begin(), tv_container.end(),
+                     [&](auto tvptr) { return tindex == tvptr->index; });
+    if (iter == tv_container.end()) {
+      throw std::runtime_error("failed to find typevar for specified index");
+    }
+    return *iter;
+  }
   bool exist(std::string key) { return (env.count(key) > 0); }
-  auto begin(){ return env.begin();}
-  auto end(){return env.end();}
+  auto begin() { return env.begin(); }
+  auto end() { return env.end(); }
   types::Value* tryFind(std::string key) {
     auto it = env.find(key);
     types::Value* res;
@@ -372,6 +392,7 @@ class TypeEnv {
 
   std::string toString(bool verbose = false);
   void dump(bool verbose = false);
+  void dumpTvLinks();
 };
 
 }  // namespace mimium

@@ -91,41 +91,42 @@ void TypeInferVisitor::visit(AssignAST& ast) {
 }
 
 void TypeInferVisitor::visit(LvarAST& ast) {
-  auto& ltype = ast.getType();
-  ;
-  bool is_specified = !std::holds_alternative<types::None>(ltype);
-  bool is_exist = typeenv.exist(ast.getVal());
-  if (is_exist && is_specified) {
-    if (typeenv.find(ast.getVal()) != ltype) {
-      throw std::logic_error("assignment to different type is not allowed");
-    }
-    res_stack.push(ltype);
+  // auto& ltype = ast.getType();
+  // ;
+  // bool is_specified = !std::holds_alternative<types::None>(ltype);
+  // bool is_exist = typeenv.exist(ast.getVal());
+  // if (is_exist && is_specified) {
+  //   if (typeenv.find(ast.getVal()) != ltype) {
+  //     throw std::logic_error("assignment to different type is not allowed");
+  //   }
+  //   res_stack.push(ltype);
 
-  } else if (!is_exist && !is_specified) {
-    res_stack.push(typeenv.createNewTypeVar());
-  } else if (!is_exist && is_specified) {
-    res_stack.push(ltype);
-  } else {  // case of already declared variable that have not specified in
-            // source code
+  // } else if (!is_exist && !is_specified) {
+  //   res_stack.push(typeenv.createNewTypeVar());
+  // } else if (!is_exist && is_specified) {
+  //   res_stack.push(ltype);
+  // } else {  // case of already declared variable that have not specified in
+  //           // source code
 
-    res_stack.push(typeenv.find(ast.getVal()));
-  }
+  //   res_stack.push(typeenv.find(ast.getVal()));
+  // }
 }
 
 void TypeInferVisitor::visit(RvarAST& ast) {
   res_stack.push(typeenv.find(ast.getVal()));
 }
 void TypeInferVisitor::visit(SelfAST& ast) {
-  // self is the same type as return type of its function.
-  if (!current_return_type) {
-    res_stack.push(typeenv.createNewTypeVar());
-  } else {
-    if (std::holds_alternative<types::Void>(current_return_type.value())) {
-      throw std::logic_error("Void Function cannot have a keyword \"self\"!");
-    }
-    ast.type = current_return_type.value();
-    res_stack.push(current_return_type.value());
-  }
+  // // self is the same type as return type of its function.
+  // if (!current_return_type) {
+  //   res_stack.push(typeenv.createNewTypeVar());
+  // } else {
+  //   if (std::holds_alternative<types::Void>(current_return_type.value())) {
+  //     throw std::logic_error("Void Function cannot have a keyword
+  //     \"self\"!");
+  //   }
+  //   ast.type = current_return_type.value();
+  //   res_stack.push(current_return_type.value());
+  // }
 }
 
 void TypeInferVisitor::visit(OpAST& ast) {
@@ -244,7 +245,7 @@ void TypeInferVisitor::visit(LambdaAST& ast) {
     if (ast.isrecursive) {
       throw std::logic_error("recursive function need to specify return type.");
     }
-    current_return_type = typeenv.createNewTypeVar();
+    // current_return_type = typeenv.createNewTypeVar();
   }
   types::Value res_type =
       types::Function(current_return_type.value(), argtypes);
@@ -355,7 +356,7 @@ types::Value ExprTypeVisitor::operator()(newast::Rvar& ast) {
   return inferer.typeenv.find(ast.value);
 }
 types::Value ExprTypeVisitor::operator()(newast::Self& ast) {
-  if(inferer.selftype_stack.empty()){
+  if (inferer.selftype_stack.empty()) {
     throw std::runtime_error("keyword \"self\" cannot be used out of function");
   }
   return inferer.selftype_stack.top();
@@ -365,24 +366,27 @@ types::Value ExprTypeVisitor::operator()(newast::Lambda& ast) {
   for (auto&& a : ast.args.args) {
     argtypes.emplace_back(inferer.addLvar(a));
   }
-  auto rettype_tv = ast.ret_type.value_or(inferer.typeenv.createNewTypeVar());
+  auto rettype_tv = ast.ret_type.value_or(*inferer.typeenv.createNewTypeVar());
   inferer.selftype_stack.push(rettype_tv);
   auto rettype = inferer.inferStatements(ast.body);
+  auto uni_rettype = inferer.unify(rettype_tv, rettype);
   inferer.selftype_stack.pop();
-  return types::Function(inferer.unify(rettype_tv, rettype),
-                         std::move(argtypes));
+  return types::Function(std::move(uni_rettype), std::move(argtypes));
 }
 types::Value ExprTypeVisitor::operator()(newast::Fcall& ast) {
   std::vector<types::Value> argtypes;
   for (auto&& a : ast.args.args) {
     argtypes.emplace_back(std::visit(*this, *a));
   }
-  auto frettype = inferer.typeenv.createNewTypeVar();
-  auto ftype = types::Function(std::move(frettype), std::move(argtypes));
-  return inferer.unify(std::visit(*this, *ast.fn), std::move(ftype));
+  auto frettype = *inferer.typeenv.createNewTypeVar();
+  types::Value ftype =
+      types::Function(std::move(frettype), std::move(argtypes));
+  auto targetfntype = std::visit(*this, *ast.fn);
+  auto res = inferer.unify(std::move(targetfntype), std::move(ftype));
+  return rv::get<types::Function>(res).ret_type;
 }
 types::Value ExprTypeVisitor::operator()(newast::Time& ast) {
-  inferer.unify(std::visit(*this, *ast.when), types::Float());
+  inferer.unify(std::visit(*this, *ast.when), types::Value(types::Float()));
   // anyway, this rvalue will not be used(time specification is used as void
   return (*this)(ast.fcall);
 }
@@ -415,7 +419,8 @@ types::Value ExprTypeVisitor::operator()(newast::ArrayInit& ast) {
   return types::Array(tmptype);
 }
 types::Value ExprTypeVisitor::operator()(newast::ArrayAccess& ast) {
-  auto indextype = inferer.unify(std::visit(*this, *ast.index), types::Float());
+  auto indextype = inferer.unify(std::visit(*this, *ast.index),
+                                 types::Value(types::Float()));
   auto arraytype = std::visit(*this, *ast.array);
   if (!rv::holds_alternative<types::Array>(arraytype)) {
     throw std::runtime_error(
@@ -432,7 +437,7 @@ types::Value ExprTypeVisitor::operator()(newast::Tuple& ast) {
 types::Value StatementTypeVisitor::operator()(newast::Assign& ast) {
   auto lvartype = inferer.addLvar(ast.lvar);
   auto rvartype = std::visit(inferer.exprvisitor, *ast.expr);
-  inferer.unify(lvartype, rvartype);
+  inferer.unify(std::move(lvartype), std::move(rvartype));
   return types::Void();
 }
 types::Value StatementTypeVisitor::operator()(newast::Return& ast) {
@@ -445,49 +450,54 @@ types::Value StatementTypeVisitor::operator()(newast::For& ast) {
   return types::Void();  // for loop becomes void anyway
 }
 types::Value StatementTypeVisitor::operator()(newast::If& ast) {
-  if(!ast.else_stmts.has_value()){
+  if (!ast.else_stmts.has_value()) {
     return inferer.inferStatements(ast.then_stmts);
   }
-  auto then_r_type =  inferer.inferStatements(ast.then_stmts);
+  auto then_r_type = inferer.inferStatements(ast.then_stmts);
   auto else_r_type = inferer.inferStatements(ast.else_stmts.value());
-  return inferer.unify(then_r_type, else_r_type);
+  return inferer.unify(std::move(then_r_type), std::move(else_r_type));
 }
 types::Value StatementTypeVisitor::operator()(newast::ExprPtr& ast) {
   return std::visit(inferer.exprvisitor, *ast);
 }
 
 types::Value TypeInferer::addLvar(newast::Lvar& lvar) {
-  auto res = lvar.type.value_or(typeenv.createNewTypeVar());
+  auto res = lvar.type.value_or(*typeenv.createNewTypeVar());
   auto [iter, was_newvar] = typeenv.emplace(lvar.value, res);
   return res;
 }
-types::Value TypeUnifyVisitor::operator()(types::Pointer& p1,
-                                          types::Pointer& p2) {
-  auto target = inferer.unify(p1.val, p2.val);
+types::Value TypeUnifyVisitor::unify(types::rPointer p1, types::rPointer p2) {
+  auto lhs = p1.getraw().val;
+  auto rhs = p2.getraw().val;
+  auto target = inferer.unify(std::move(lhs), std::move(rhs));
   return types::Pointer(target);
 }
-types::Value TypeUnifyVisitor::operator()(types::Ref& p1, types::Ref& p2) {
-  auto target = inferer.unify(p1.val, p2.val);
+types::Value TypeUnifyVisitor::unify(types::rRef p1, types::rRef p2) {
+  auto target = inferer.unify(p1.getraw().val, p2.getraw().val);
   return types::Pointer(target);
 }
-types::Value TypeUnifyVisitor::operator()(types::Function& f1,
-                                          types::Function& f2) {
-  auto argtype = unifyArgs(f1.arg_types, f2.arg_types);
-  auto rettype = std::visit(*this, f1.ret_type, f2.ret_type);
+types::Value TypeUnifyVisitor::unify(types::rAlias a1, types::rAlias a2) {
+  return inferer.unify(a1.getraw().target, a2.getraw().target);
+  ;
+}
+types::Value TypeUnifyVisitor::unify(types::rFunction f1, types::rFunction f2) {
+  auto argtype = unifyArgs(f1.getraw().arg_types, f2.getraw().arg_types);
+  auto rettype = inferer.unify(f1.getraw().ret_type, f2.getraw().ret_type);
   return types::Function(std::move(rettype), std::move(argtype));
 }
 
-types::Value TypeUnifyVisitor::operator()(types::Array& a1, types::Array& a2) {
-  auto elemtype = inferer.unify(a1.elem_type, a2.elem_type);
+types::Value TypeUnifyVisitor::unify(types::rArray a1, types::rArray a2) {
+  auto lhs = a1.getraw().elem_type;
+  auto rhs = a2.getraw().elem_type;
+  auto elemtype = inferer.unify(std::move(lhs), std::move(rhs));
   // size check?
-  return types::Array(elemtype, a1.size);
+  return types::Array(elemtype, a1.getraw().size);
 }
-types::Value TypeUnifyVisitor::operator()(types::Struct& s1,
-                                          types::Struct& s2) {
+types::Value TypeUnifyVisitor::unify(types::rStruct s1, types::rStruct s2) {
   // TODO(tomoya)
   return s1;
 }
-types::Value TypeUnifyVisitor::operator()(types::Tuple& f1, types::Tuple& f2) {
+types::Value TypeUnifyVisitor::unify(types::rTuple f1, types::rTuple f2) {
   // TODO(tomoya)
   return f1;
 }
@@ -498,15 +508,14 @@ std::vector<types::Value> TypeUnifyVisitor::unifyArgs(
     throw std::runtime_error("type mismatch: argument size are different");
   }
   for (int i = 0; i < v1.size(); i++) {
-    res.emplace_back(std::visit(*this, v1.at(i), v2.at(i)));  // discard return values
+    auto lhs = v1.at(i);
+    auto rhs = v2.at(i);
+    res.emplace_back(inferer.unify(std::move(lhs),
+                                   std::move(rhs)));  // discard return values
   }
   return res;
 }
 
-types::Value TypeInferer::unify(types::Value const& lhs,
-                                types::Value const& rhs) {
-  return std::visit(unifyvisitor, lhs, rhs);
-}
 types::Value TypeInferer::inferStatements(newast::Statements& statements) {
   types::Value stmttype;
   for (auto&& statement : statements) {
@@ -516,14 +525,15 @@ types::Value TypeInferer::inferStatements(newast::Statements& statements) {
 }
 TypeEnv& TypeInferer::infer(newast::Statements& topast) {
   inferStatements(topast);
+  // typeenv.dumpTvLinks();
   substituteTypeVars();
   return typeenv;
 }
-void TypeInferer::substituteTypeVars(){
-  for(auto&& [key,t]: typeenv.env){
-    auto[iter,replaced] = typeenv.env.insert_or_assign(key,std::visit(substitutevisitor,t));
+void TypeInferer::substituteTypeVars() {
+  for (auto&& [key, t] : typeenv.env) {
+    auto [iter, replaced] =
+        typeenv.env.insert_or_assign(key, std::visit(substitutevisitor, t));
   }
 }
-
 
 }  // namespace mimium

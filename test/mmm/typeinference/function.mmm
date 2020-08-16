@@ -1,0 +1,9 @@
+fn add(a,b){
+    return a+b
+}
+
+fn muladd(a,b,c){
+    return add(a,b)*c
+}
+
+result = muladd(100,20,55)
