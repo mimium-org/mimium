@@ -376,6 +376,10 @@ struct TypeInferer {
             "failed to replace typevar. decuced into float type.");
         return types::Float();
       }
+      if (std::visit(OccurChecker{*target}, target->contained)) {
+        throw std::runtime_error("type loop detected");
+        return types::Float();
+      }
       return std::visit(*this, target->contained);
     }
     types::Value operator()(types::Function& f) {

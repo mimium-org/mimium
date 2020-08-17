@@ -30,13 +30,13 @@ TEST(typeinfer, float_failure) {
 TEST(typeinfer, function) {
   PREP(function)
   auto& env = inferer.infer(*newast).env;
-  auto& add_a = env.at("a0");
-  auto& add_b = env.at("b1");
-  auto& add = env.at("add2");
-  auto& muladd_a = env.at("a3");
-  auto& muladd_b = env.at("b4");
-  auto& muladd_c = env.at("c5");
-  auto& muladd = env.at("muladd6");
+  auto& add = env.at("add0");
+  auto& add_a = env.at("a1");
+  auto& add_b = env.at("b2");
+  auto& muladd = env.at("muladd3");
+  auto& muladd_a = env.at("a4");
+  auto& muladd_b = env.at("b5");
+  auto& muladd_c = env.at("c6");
   auto& res = env.at("result7");
 
   EXPECT_TRUE(std::holds_alternative<types::Float>(add_a));
@@ -57,22 +57,40 @@ TEST(typeinfer, function) {
 TEST(typeinfer, highorderfunction) {
   PREP(highorderfunction)
   auto& env = inferer.infer(*newast).env;
-  EXPECT_TRUE(std::holds_alternative<types::Float>(env.at("x0")));
-  EXPECT_TRUE(std::holds_alternative<types::Float>(env.at("y1")));
-  auto& add = env.at("add2");
+  auto& add = env.at("add0");
+  EXPECT_TRUE(std::holds_alternative<types::Float>(env.at("x1")));
+  EXPECT_TRUE(std::holds_alternative<types::Float>(env.at("y2")));
   auto add2type =
       types::Function(types::Float(), {types::Float(), types::Float()});
   EXPECT_TRUE(std::holds_alternative<types::rFunction>(add));
   EXPECT_TRUE(rv::get<types::Function>(add) == add2type);
-  EXPECT_TRUE(std::holds_alternative<types::Float>(env.at("x3")));
-  EXPECT_TRUE(std::holds_alternative<types::rFunction>(env.at("y4")));
-  auto& hof = env.at("hof7");
+  auto& hof = env.at("hof3");
+  EXPECT_TRUE(std::holds_alternative<types::Float>(env.at("x4")));
+  EXPECT_TRUE(std::holds_alternative<types::rFunction>(env.at("y5")));
   EXPECT_TRUE(std::holds_alternative<types::rFunction>(hof));
   auto hofrettype = types::Function(types::Float(), {types::Float()});
 
   EXPECT_TRUE(rv::get<types::Function>(hof) ==
               types::Function(hofrettype, {types::Float(), add2type}));
   EXPECT_TRUE(std::holds_alternative<types::Float>(env.at("result8")));
+}
+
+TEST(typeinfer, recursivecall) {
+  PREP(recursivecall)
+  auto& env = inferer.infer(*newast).env;
+  EXPECT_TRUE(rv::get<types::Function>(env.at("fact0")) ==
+              types::Function(types::Float(), {types::Float()}));
+}
+TEST(typeinfer, self) {
+  PREP(self)
+  auto& env = inferer.infer(*newast).env;
+  EXPECT_TRUE(rv::get<types::Function>(env.at("lowpass0")) ==
+              types::Function(types::Float(), {types::Float(),types::Float()}));
+}
+
+TEST(typeinfer, occurfail) {
+  PREP(occur_failure)
+  EXPECT_THROW(auto a = inferer.infer(*newast);, std::runtime_error);
 }
 
 }  // namespace mimium

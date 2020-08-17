@@ -85,8 +85,7 @@ struct TypeVar : std::enable_shared_from_this<TypeVar> {
   std::optional<std::shared_ptr<TypeVar>> next = std::nullopt;
   template <bool IS_PREV>
   std::shared_ptr<TypeVar> getLink() {
-    auto tmpptr = shared_from_this();
-    auto tmp = std::optional(std::move(tmpptr));
+    std::optional<std::shared_ptr<TypeVar>> tmp = shared_from_this();
     if constexpr (IS_PREV) {
       while (tmp.value()->prev.has_value()) {
         tmp = tmp.value()->prev;

@@ -1,0 +1,4 @@
+fn lowpass(input,fb){
+    return input*(1-fb) + self*fb
+}
+res = lowpass(0,0.99)
