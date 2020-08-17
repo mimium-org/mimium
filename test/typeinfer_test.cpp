@@ -39,20 +39,40 @@ TEST(typeinfer, function) {
   auto& muladd = env.at("muladd6");
   auto& res = env.at("result7");
 
-  EXPECT_TRUE(std::holds_alternative<types::rFunction>(add));
   EXPECT_TRUE(std::holds_alternative<types::Float>(add_a));
   EXPECT_TRUE(std::holds_alternative<types::Float>(add_b));
-  EXPECT_TRUE(std::holds_alternative<types::rFunction>(muladd));
-  EXPECT_TRUE(std::holds_alternative<types::Float>(muladd_a));
-  EXPECT_TRUE(std::holds_alternative<types::Float>(muladd_b));
-  EXPECT_TRUE(std::holds_alternative<types::Float>(muladd_c));
-  EXPECT_TRUE(std::holds_alternative<types::Float>(res));
-
+  EXPECT_TRUE(std::holds_alternative<types::rFunction>(add));
   EXPECT_TRUE(
       rv::get<types::Function>(add) ==
       types::Function(types::Float(), {types::Float(), types::Float()}));
+  EXPECT_TRUE(std::holds_alternative<types::Float>(muladd_a));
+  EXPECT_TRUE(std::holds_alternative<types::Float>(muladd_b));
+  EXPECT_TRUE(std::holds_alternative<types::Float>(muladd_c));
+  EXPECT_TRUE(std::holds_alternative<types::rFunction>(muladd));
   EXPECT_TRUE(rv::get<types::Function>(muladd) ==
               types::Function(types::Float(), {types::Float(), types::Float(),
                                                types::Float()}));
+  EXPECT_TRUE(std::holds_alternative<types::Float>(res));
 }
+TEST(typeinfer, highorderfunction) {
+  PREP(highorderfunction)
+  auto& env = inferer.infer(*newast).env;
+  EXPECT_TRUE(std::holds_alternative<types::Float>(env.at("x0")));
+  EXPECT_TRUE(std::holds_alternative<types::Float>(env.at("y1")));
+  auto& add = env.at("add2");
+  auto add2type =
+      types::Function(types::Float(), {types::Float(), types::Float()});
+  EXPECT_TRUE(std::holds_alternative<types::rFunction>(add));
+  EXPECT_TRUE(rv::get<types::Function>(add) == add2type);
+  EXPECT_TRUE(std::holds_alternative<types::Float>(env.at("x3")));
+  EXPECT_TRUE(std::holds_alternative<types::rFunction>(env.at("y4")));
+  auto& hof = env.at("hof7");
+  EXPECT_TRUE(std::holds_alternative<types::rFunction>(hof));
+  auto hofrettype = types::Function(types::Float(), {types::Float()});
+
+  EXPECT_TRUE(rv::get<types::Function>(hof) ==
+              types::Function(hofrettype, {types::Float(), add2type}));
+  EXPECT_TRUE(std::holds_alternative<types::Float>(env.at("result8")));
+}
+
 }  // namespace mimium

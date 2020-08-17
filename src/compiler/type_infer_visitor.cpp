@@ -382,7 +382,7 @@ types::Value ExprTypeVisitor::operator()(newast::Fcall& ast) {
   types::Value ftype =
       types::Function(std::move(frettype), std::move(argtypes));
   auto targetfntype = std::visit(*this, *ast.fn);
-  auto res = inferer.unify(std::move(targetfntype), std::move(ftype));
+  auto res = inferer.unify(targetfntype, ftype);
   return rv::get<types::Function>(res).ret_type;
 }
 types::Value ExprTypeVisitor::operator()(newast::Time& ast) {
@@ -510,8 +510,7 @@ std::vector<types::Value> TypeUnifyVisitor::unifyArgs(
   for (int i = 0; i < v1.size(); i++) {
     auto lhs = v1.at(i);
     auto rhs = v2.at(i);
-    res.emplace_back(inferer.unify(std::move(lhs),
-                                   std::move(rhs)));  // discard return values
+    res.emplace_back(inferer.unify(lhs,rhs));  // discard return values
   }
   return res;
 }

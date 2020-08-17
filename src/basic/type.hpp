@@ -83,22 +83,24 @@ struct TypeVar : std::enable_shared_from_this<TypeVar> {
   Value contained = types::None();
   std::optional<std::shared_ptr<TypeVar>> prev = std::nullopt;
   std::optional<std::shared_ptr<TypeVar>> next = std::nullopt;
-  std::shared_ptr<TypeVar> getFirstLink() {
+  template <bool IS_PREV>
+  std::shared_ptr<TypeVar> getLink() {
     auto tmpptr = shared_from_this();
     auto tmp = std::optional(std::move(tmpptr));
-    while (tmp.value()->prev.has_value()) {
-      tmp = tmp.value()->prev;
+    if constexpr (IS_PREV) {
+      while (tmp.value()->prev.has_value()) {
+        tmp = tmp.value()->prev;
+      }
+    } else {
+      while (tmp.value()->next.has_value()) {
+        tmp = tmp.value()->next;
+      }
     }
     return tmp.value();
   }
-  std::shared_ptr<TypeVar> getLastLink() {
-    auto tmpptr = shared_from_this();
-    auto tmp = std::optional(std::move(tmpptr));
-    while (tmp.value()->next.has_value()) {
-      tmp = tmp.value()->next;
-    }
-    return tmp.value();
-  }
+  auto getFirstLink() { return getLink<true>(); }
+  auto getLastLink() { return getLink<false>(); }
+
   int getIndex() { return index; }
   void setIndex(int newindex) { index = newindex; }
   constexpr inline static Kind kind = Kind::INTERMEDIATE;
@@ -162,8 +164,8 @@ struct Function : Aggregate {
   //   ret_type = std::move(ret_type_p);
   //   ret_type.emplace()
   // }
-  std::vector<Value> arg_types;
   Value ret_type;
+  std::vector<Value> arg_types;
 
   Value& getReturnType() { return ret_type; }
   std::vector<Value>& getArgTypes() { return arg_types; }
@@ -355,7 +357,8 @@ class TypeEnv {
   std::unordered_map<std::string, types::Value> env;
   std::deque<std::shared_ptr<types::TypeVar>> tv_container;
   std::shared_ptr<types::TypeVar> createNewTypeVar() {
-    auto& ref = tv_container.emplace_back(std::make_shared<types::TypeVar>(typeid_count++));
+    auto& ref = tv_container.emplace_back(
+        std::make_shared<types::TypeVar>(typeid_count++));
     return ref;
   }
   std::shared_ptr<types::TypeVar> findTypeVar(int tindex) {

@@ -263,8 +263,8 @@ struct TypeInferer {
       if (OccurChecker{*t2last}(t1)) {
         throw std::runtime_error("type loop detected");
       }
-      if(t2contain){
-        res = inferer.unify(t2last->contained,types::Value(t1));
+      if (t2contain) {
+        res = inferer.unify(t2last->contained, types::Value(t1));
       }
       t2first->contained = res;
       t2last->contained = res;
@@ -275,7 +275,7 @@ struct TypeInferer {
       return unify(t2, t1);  //
     }
     types::Value unify(types::rTypeVar t1, types::rTypeVar t2) {
-        types::Value res = t1;
+      types::Value res = t1;
       if (t1.getraw().index != t2.getraw().index) {
         auto t1_real = inferer.typeenv.findTypeVar(t1.getraw().index);
         auto t2_real = inferer.typeenv.findTypeVar(t2.getraw().index);
@@ -290,10 +290,10 @@ struct TypeInferer {
         bool t2contain =
             !std::holds_alternative<types::None>(t2first->contained);
         if (t1contain && t2contain) {
-          res = inferer.unify(t1last->contained,t2first->contained );
+          res = inferer.unify(t1last->contained, t2first->contained);
         } else if (t1contain && !t2contain) {
           t2_real->getLastLink()->contained = t1last->contained;
-        } else if( t2contain&& !t1contain){
+        } else if (t2contain && !t1contain) {
           t1_real->getLastLink()->contained = t2first->contained;
         }
       }
@@ -348,6 +348,9 @@ struct TypeInferer {
     // }
     // type mismatch.
 
+    // note(tomoya): t2 in debugger may be desplayed as "error: no value"
+    // despite they are active(because of expansion of parameter pack in
+    // std::visit)
     template <typename T1, typename T2>
     types::Value operator()(T1&& t1, T2&& t2) {
       constexpr bool issame =
@@ -373,19 +376,20 @@ struct TypeInferer {
             "failed to replace typevar. decuced into float type.");
         return types::Float();
       }
-      return std::visit(*this,target->contained);
+      return std::visit(*this, target->contained);
     }
-    types::Value operator()(types::Function& f){
-      return types::Function(std::visit(*this,f.ret_type),replaceArgs(f.arg_types));
+    types::Value operator()(types::Function& f) {
+      return types::Function(std::visit(*this, f.ret_type),
+                             replaceArgs(f.arg_types));
     }
-    types::Value operator()(types::Alias& a){
-      return types::Alias(a.name,std::visit(*this,a.target));
+    types::Value operator()(types::Alias& a) {
+      return types::Alias(a.name, std::visit(*this, a.target));
     }
-    //TODO: other aggregate types...
+    // TODO(tomoya): other aggregate types...
     template <typename T>
     types::Value operator()(T& t) {
-      if constexpr(T::kind ==types::Kind::POINTER){
-        return T(std::visit(*this,t.val));
+      if constexpr (T::kind == types::Kind::POINTER) {
+        return T(std::visit(*this, t.val));
       }
       return t;
     }
@@ -393,10 +397,10 @@ struct TypeInferer {
     types::Value operator()(Rec_Wrap<T>& t) {
       return (*this)(t.getraw());
     }
-    std::vector<types::Value> replaceArgs(std::vector<types::Value>& arg){
+    std::vector<types::Value> replaceArgs(std::vector<types::Value>& arg) {
       std::vector<types::Value> res;
-      for(auto&& a:arg){
-        res.emplace_back(std::visit(*this,a));
+      for (auto&& a : arg) {
+        res.emplace_back(std::visit(*this, a));
       }
       return res;
     }
