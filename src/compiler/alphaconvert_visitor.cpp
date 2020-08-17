@@ -119,9 +119,9 @@ newast::ExprPtr ExprRenameVisitor::operator()(newast::Tuple& ast) {
 
 using StatementRenameVisitor = SymbolRenamer::StatementRenameVisitor;
 StatementPtr StatementRenameVisitor::operator()(newast::Assign& ast) {
-  auto newrvar = std::visit(renamer.expr_renamevisitor, *ast.expr);
   auto newname = renamer.getNewName(ast.lvar.value);
   renamer.env->addToMap(ast.lvar.value, newname);
+  auto newrvar = std::visit(renamer.expr_renamevisitor, *ast.expr);
   auto newlvar = newast::Lvar{ast.lvar.debuginfo, newname, ast.lvar.type};
   return newast::makeStatement(
       newast::Assign{ast.debuginfo, std::move(newlvar), std::move(newrvar)});
