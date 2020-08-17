@@ -285,9 +285,9 @@ single:
 // function call ()
 
 fcallargs: 
-       expr ',' fcallargs
-                { $3.args.push_back(std::move($1));
-                  $$ = std::move($3); }
+       fcallargs ',' expr  
+                { $1.args.push_back(std::move($3));
+                  $$ = std::move($1); }
       |expr   {$$ = newast::FcallArgs{ {@1,""}, {std::move($1)} };}
       |%empty {$$ = newast::FcallArgs{ {}, {} };}
 
