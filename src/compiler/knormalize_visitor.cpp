@@ -353,10 +353,11 @@ using ExprKnormVisitor = MirGenerator::ExprKnormVisitor;
 using StatementKnormVisitor = MirGenerator::StatementKnormVisitor;
 
 lvarid ExprKnormVisitor::operator()(newast::Op& ast) {
+  auto newname = mirgen.makeNewName();
   auto lhsname =
       ast.lhs.has_value() ? std::visit(*this, *ast.lhs.value()).first : "";
-  return mirgen.emplace(OpInst(mirgen.makeNewName(), ast.op, lhsname,
-                               std::visit(*this, *ast.rhs).first),
+  auto rhsname = std::visit(*this, *ast.rhs).first;
+  return mirgen.emplace(OpInst(newname, ast.op, lhsname, rhsname),
                         types::Float());
 }
 lvarid ExprKnormVisitor::operator()(newast::Number& ast) {
@@ -376,7 +377,7 @@ lvarid ExprKnormVisitor::operator()(newast::Rvar& ast) {
   return std::pair(ast.value, mirgen.typeenv.find(ast.value));
 }
 lvarid ExprKnormVisitor::operator()(newast::Self& ast) {
-  lvarid res = {"self" , ast.type.value_or(types::Float()) };
+  lvarid res = {"self", ast.type.value_or(types::Float())};
   return res;
 }
 lvarid ExprKnormVisitor::operator()(newast::Lambda& ast) {
@@ -408,7 +409,7 @@ lvarid ExprKnormVisitor::operator()(newast::Fcall& ast,
   types::Value rettype =
       (rettype_ptr == nullptr) ? types::Value(types::None()) : *rettype_ptr;
   auto fnkind = MirGenerator::isExternalFun(fname) ? EXTERNAL : CLOSURE;
-  auto newname  = mirgen.makeNewName();
+  auto newname = mirgen.makeNewName();
   return mirgen.emplace(
       FcallInst(newname, fname,
                 mirgen.transformArgs(
@@ -441,7 +442,8 @@ lvarid ExprKnormVisitor::operator()(newast::ArrayAccess& ast) {
     throw std::runtime_error(
         "[] operator cannot be used for other than array type");
   }
-  return mirgen.emplace(ArrayAccessInst(mirgen.makeNewName(), arrname,
+  auto newname =mirgen.makeNewName();
+  return mirgen.emplace(ArrayAccessInst(newname, arrname,
                                         std::visit(*this, *ast.index).first),
                         std::move(rettype));
 }
@@ -451,15 +453,18 @@ lvarid ExprKnormVisitor::operator()(newast::Tuple& ast) {
 }
 
 lvarid StatementKnormVisitor::operator()(newast::Assign& ast) {
-  mirgen.lvar_holder = ast.lvar.value;
   bool is_overwrite = mirgen.isOverWrite(ast.lvar.value);
-  lvarid res =std::visit(mirgen.exprvisitor, *ast.expr);
+  if(!is_overwrite){
+  mirgen.lvar_holder = ast.lvar.value;
+  }
+  lvarid res = std::visit(mirgen.exprvisitor, *ast.expr);
   if (!rv::holds_alternative<types::Function>(res.second)) {
     if (!is_overwrite) {
-      std::string ptrname = ast.lvar.value + "_ptr";
-      types::Value ptrtype = types::Pointer(res.second);
-      auto iter = mirgen.ctx->instructions.insert(--mirgen.ctx->instructions.end(),AllocaInst(ptrname,ptrtype));
-      mirgen.typeenv.emplace(ptrname,ptrtype);
+      std::string ptrname = ast.lvar.value;
+      types::Value ptrtype = res.second;
+      auto iter = mirgen.ctx->instructions.insert(
+          --mirgen.ctx->instructions.end(), AllocaInst(ptrname, ptrtype));
+      mirgen.typeenv.emplace(ptrname, ptrtype);
       mirgen.lvarlist.emplace_back(ast.lvar.value);
     }
 
