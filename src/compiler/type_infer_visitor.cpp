@@ -377,9 +377,13 @@ types::Value ExprTypeVisitor::operator()(newast::Lambda& ast) {
 }
 types::Value ExprTypeVisitor::operator()(newast::Fcall& ast) {
   std::vector<types::Value> argtypes;
-  for (auto&& a : ast.args.args) {
-    argtypes.emplace_back(std::visit(*this, *a));
-  }
+  auto args = ast.args.args;
+  std::transform(args.begin(),args.end(),std::back_inserter(argtypes),[&](newast::ExprPtr expr){
+    return std::visit(*this,*expr);
+  });
+  // for (auto& a : ast.args.args) {
+  //   argtypes.emplace_back(std::visit(*this, *a));
+  // }
   auto frettype = *inferer.typeenv.createNewTypeVar();
   types::Value ftype =
       types::Function(std::move(frettype), std::move(argtypes));

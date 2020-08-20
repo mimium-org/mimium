@@ -142,9 +142,6 @@ class Logger {
     if (report_level <= Logger::current_report_level) {
       std::string content =
           report_str.at(report_level) + ": " + str + norm + "\n";
-      if (report_level <= REPORT_LEVEL::ERROR) {
-        throw std::runtime_error(content);
-      }
       *output << content;
     }
   }

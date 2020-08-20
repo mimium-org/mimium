@@ -348,15 +348,15 @@ struct TypeInferer {
     explicit SubstituteVisitor(TypeInferer& parent) : inferer(parent) {}
     types::Value operator()(types::TypeVar& t) {
       auto& target = inferer.typeenv.findTypeVar(t.index);
+      if (std::visit(OccurChecker{t}, target)) {
+        Logger::debug_log( "type loop detected. decuced into float type.",Logger::WARNING);
+        return types::Float();
+      }
       auto contained = std::visit(*this,target);
       if (std::holds_alternative<types::None>(contained) ||
           std::holds_alternative<types::rTypeVar>(contained)) {
         throw std::runtime_error(
             "failed to replace typevar. decuced into float type.");
-        return types::Float();
-      }
-      if (std::visit(OccurChecker{t}, contained)) {
-        throw std::runtime_error("type loop detected");
         return types::Float();
       }
       return std::visit(*this, target);
