@@ -1,0 +1,45 @@
+//comment
+
+//assign,operations
+
+myvar:float = (100+ (200 - 300) * 20 / 15)^2 % 30.2
+
+// inline function
+inlinefn = |myarg:float|->float{ myarg*2 }
+// block function, if expression
+fn blockfn(x:float,y:float,z:float)->float{
+    return if(x>25) y else z
+}
+//function call(pipeline,parensis)
+
+result:float = (10 |> inlinefn) + blockfn(20,333,555)
+
+//self
+
+fn lowpass_op(input:float,fb:float)->float{
+    return (1-fb)*input + fb*self
+}
+//time 
+fn loop(input:float)->void{
+    println(input)
+    loop(input+100)@(now+1000)
+}
+//array,forloop
+fn iteration(input:float)->void{
+    myarray = [2,4,6,8,10]
+    for(elem in myarray){
+        println(elem*3)
+    }
+}
+//if statement
+fn conditional(){
+    hoge = 30
+    if(hoge<20){
+        println(hoge)
+    }
+    if(hoge>25){
+        println(hoge*100)
+    }else{
+        println(hoge*1000)
+    }
+}

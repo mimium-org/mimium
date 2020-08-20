@@ -1,15 +1,4 @@
-list(APPEND CMAKE_PREFIX_PATH  /usr/local /usr/local/opt/flex)
-list(APPEND CMAKE_PREFIX_PATH  /usr/local /usr/local/opt/bison)
-find_package(BISON 3.3 REQUIRED)
-find_package(FLEX 2.6 REQUIRED)
-
-BISON_TARGET(MyParser mimium.yy ${CMAKE_CURRENT_BINARY_DIR}/mimium_parser.cpp
-DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/mimium_parser.hpp
-VERBOSE REPORT_FILE ${CMAKE_CURRENT_BINARY_DIR}/bison.log
-)
-FLEX_TARGET(MyScanner mimium.l ${CMAKE_CURRENT_BINARY_DIR}/tokens.cpp)
-
-ADD_FLEX_BISON_DEPENDENCY(MyScanner MyParser)
+include(AddFlexBisonDeps)
 
 find_package(SndFile REQUIRED)
 
@@ -27,10 +16,10 @@ target_compile_options(mimium_parser PUBLIC -std=c++17)
 
 
 set(PARSER_HEADER_DIR ${CMAKE_CURRENT_BINARY_DIR} CACHE PATH "for mimium_parser.hpp ")# for location.hh 
-set(FLEX_INCLUDE_CACHE ${FLEX_INCLUDE_DIRS})
+set(FLEX_INCLUDE_CACHE ${FLEX_INCLUDE_DIRS} CACHE PATH "to build test")
 target_include_directories(mimium_parser
 PUBLIC
-${FLEX_INCLUDE_DIRS}
+${FLEX_INCLUDE_CACHE}
 ${PARSER_HEADER_DIR} 
 )
 
@@ -38,10 +27,9 @@ add_library(mimium_compiler  recursive_checker.cpp alphaconvert_visitor.cpp knor
 add_dependencies(mimium_compiler  mimium_parser mimium_builtinfn)
 target_include_directories(mimium_compiler
 PUBLIC
-${FLEX_INCLUDE_DIRS}
-${CMAKE_CURRENT_BINARY_DIR}
 )
+target_compile_options(mimium_compiler PUBLIC -std=c++17)
 
-target_link_libraries(mimium_compiler PRIVATE mimium_llvm_codegen mimium_utils mimium_builtinfn)
+target_link_libraries(mimium_compiler PRIVATE mimium_parser mimium_llvm_codegen mimium_utils mimium_builtinfn)
 
 install(TARGETS mimium_compiler mimium_builtinfn DESTINATION lib)

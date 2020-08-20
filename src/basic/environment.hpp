@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
+#include <future>
 #include <memory>
 #include <unordered_map>
 #include <utility>
@@ -21,10 +22,10 @@ class Environment : public std::enable_shared_from_this<Environment<T>> {
   std::unordered_map<std::string, T> variables;
 
  public:
-  Environment() :  name("") ,parent(nullptr){}
+  Environment() : name(""), parent(nullptr) {}
   Environment(std::string name_i, std::shared_ptr<Environment<T>> parent_i)
       : name(std::move(name_i)), parent(parent_i) {}
-  virtual ~Environment()=default;
+  virtual ~Environment() = default;
   auto findVariable(std::string key) -> T {
     T res;
     if (!variables.empty() && variables.count(key) > 0) {  // search dictionary
@@ -40,7 +41,7 @@ class Environment : public std::enable_shared_from_this<Environment<T>> {
   std::pair<bool, bool> isFreeVariable(std::string key) {
     // return value: [isvarset , isfv]
     std::pair<bool, bool> res;
-    if (variables.count(key)>0) {        // search dictionary
+    if (variables.count(key) > 0) {  // search dictionary
       res = std::pair(true, false);  // return false if var is local variable
     } else if (parent != nullptr) {
       auto [isvarset, isisfv] = parent->isFreeVariable(key);
@@ -53,7 +54,7 @@ class Environment : public std::enable_shared_from_this<Environment<T>> {
   };
   bool isVariableSet(std::string key) {
     bool res;
-    if (variables.count(key)>0) {  // search dictionary
+    if (variables.count(key) > 0) {  // search dictionary
       res = true;
     } else if (parent != nullptr) {
       res = parent->isVariableSet(key);  // search recursively
@@ -83,7 +84,7 @@ class Environment : public std::enable_shared_from_this<Environment<T>> {
 
   auto& getVariables() { return variables; }
   auto getParent() { return parent; }
-  bool isRoot(){return parent==nullptr;}
+  bool isRoot() { return parent == nullptr; }
   std::string getName() { return name; };
   auto createNewChild(std::string newname) -> std::shared_ptr<Environment<T>> {
     auto child =
@@ -94,5 +95,38 @@ class Environment : public std::enable_shared_from_this<Environment<T>> {
   void deleteLastChild() { children.pop_back(); }
 };
 
+struct RenameEnvironment
+    : public std::enable_shared_from_this<RenameEnvironment> {
+  std::unordered_map<std::string, std::string> rename_map{};
+  std::shared_ptr<RenameEnvironment> parent_env = nullptr;
 
-};  // namespace mimium
+  std::shared_ptr<RenameEnvironment> expand(){
+    auto newenv = std::make_shared<RenameEnvironment>();
+    newenv->parent_env = shared_from_this();
+    return newenv;
+  }
+  void addToMap(std::string const& namel,std::string const& namer){
+      rename_map.emplace(namel,namer);
+  }
+  template <typename T>
+  std::optional<T> metaSearch(std::optional<std::string> const& name,
+                              std::future<T>&& ret_local,
+                              std::future<std::optional<T>>&& ret_freevar) {
+    if (name && rename_map.count(name.value()) > 0) {
+      return ret_local.get();
+    }
+    if (name && parent_env != nullptr) {
+      return ret_freevar.get();
+    }
+    return std::nullopt;
+  }
+  #define THUNK(VAL) std::async(std::launch::deferred,[&](){ return VAL;} ) //NOLINT
+
+  std::optional<std::string> search(std::optional<std::string> const& name) {
+    return metaSearch(name,  THUNK(rename_map.at(name.value())), THUNK( parent_env->search(name)));
+  }
+  std::optional<bool> isFreeVar(std::string const& name) {
+    return metaSearch(name, THUNK(false), THUNK(std::optional(true)));
+  }
+};
+}  // namespace mimium

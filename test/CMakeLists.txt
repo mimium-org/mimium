@@ -3,7 +3,10 @@ project(Test CXX)
 
 find_package(GTest REQUIRED)
 include(GoogleTest)
-add_executable(UnitTest newast_test.cpp)
+
+file(GLOB SRCS ./*.cpp)
+
+add_executable(UnitTest ${SRCS})
 target_compile_options(UnitTest PUBLIC -std=c++17)
 llvm_map_components_to_libnames(test_llvm core)
 message(STATUS "Components mapped by llvm_config: ${test_llvm}")
@@ -12,6 +15,8 @@ target_include_directories(UnitTest
     PRIVATE
     .
     ${GTEST_INCLUDE_DIRS}
+    ${FLEX_INCLUDE_CACHE}
+    ${PARSER_HEADER_DIR}
     )
 
 target_link_libraries(UnitTest
@@ -19,10 +24,13 @@ target_link_libraries(UnitTest
     GTest::GTest
     GTest::Main   # GTest::Mainをリンクすると自分でmain関数を書く必要がなくなる
     mimium_utils
+    mimium_compiler
     ${test_llvm}
   )
 
 add_test(Name UnitTest Command UnitTest)
 
-# file(GLOB testsource *.mmm)
-# file(COPY ${testsource} DESTINATION ${CMAKE_CURRENT_BINARY_DIR} )
+file(GLOB_RECURSE testsource LIST_DIRECTORIES true mmm/*.mmm)
+
+
+file(COPY ${testsource} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

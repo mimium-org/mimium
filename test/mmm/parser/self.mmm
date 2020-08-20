@@ -1,0 +1,3 @@
+fn lowpass_op(input:float,fb:float)->float{
+    return (1-fb)*input + fb*self
+}

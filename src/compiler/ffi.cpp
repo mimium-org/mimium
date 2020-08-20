@@ -41,6 +41,10 @@ double mimium_and(double d1,double d2){
 double mimium_or(double d1,double d2){
     return static_cast<double>(mimium_dtob(d1)||mimium_dtob(d2));
 }
+double mimium_not(double d1){
+    return static_cast<double>(!mimium_dtob(d1));
+}
+
 double mimium_lshift(double d1,double d2){
     return static_cast<double>(mimium_dtoi(d1)<<mimium_dtoi(d2));
 }
@@ -58,6 +62,13 @@ double access_array_lin_interp(double* array,double index_d){
     double fract = fmod(index_d,1.000);
     int64_t index= floor(index_d);
     return array[index]*fract + array[index+1]*(1-fract);
+}
+double mimium_delayprim(double d,double time,double size,double* buffer,double* index){
+    auto readindex = fmod((*index + time),size);
+    auto res = access_array_lin_interp(buffer,readindex);
+    buffer[int(*index)] = d;
+    ++(*index);
+    return res;
 }
 
 double libsndfile_loadwavsize(char* filename){
@@ -139,11 +150,15 @@ std::unordered_map<std::string, BuiltinFnInfo> LLVMBuiltin::ftable = {
     {"lt", FI{Function(Float(), {Float(),Float()}), "mimium_lt"}},
     {"and", FI{Function(Float(), {Float(),Float()}), "mimium_and"}},
     {"or", FI{Function(Float(), {Float(),Float()}), "mimium_or"}},
+    {"not", FI{Function(Float(), {Float()}), "mimium_not"}},
+
     {"lshift", FI{Function(Float(), {Float(),Float()}), "mimium_lshift"}},
     {"rshift", FI{Function(Float(), {Float(),Float()}), "mimium_rshift"}},
     {"ifexpr", FI{Function(Float(), {Float(),Float(),Float()}), "mimium_ifexpr"}},
 
     {"mem", FI{Function(Float(), {Float()}), "mimium_memprim"}},
+    {"delay", FI{Function(Float(), {Float(),Float()}), "mimium_delayprim"}},
+
 
     {"loadwavsize",FI{Function(Float(),{String()}),"libsndfile_loadwavsize"}},
 

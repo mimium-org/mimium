@@ -47,6 +47,6 @@ struct CodeGenVisitor : public std::enable_shared_from_this<CodeGenVisitor> {
   bool createStoreOw(std::string varname, llvm::Value* val_to_store);
   void createAddTaskFn(FcallInst& i, bool isclosure, bool isglobal);
 
-  const static std::unordered_map<OP_ID, std::string> opid_to_ffi;
+  const static std::unordered_map<newast::OpId, std::string> opid_to_ffi;
 };
 }  // namespace mimium

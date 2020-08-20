@@ -7,14 +7,14 @@ namespace mimium {
 Compiler::Compiler() : Compiler(*std::make_shared<llvm::LLVMContext>()) {}
 Compiler::Compiler(llvm::LLVMContext& ctx)
     : driver(),
-      alphavisitor(),
-      typevisitor(),
+      symbolrenamer(std::make_shared<RenameEnvironment>()),
+      typeinferer(),
       recursivechecker(),
-      knormvisitor(typevisitor),
+      mirgenerator(typeinferer.getTypeEnv()),
       closureconverter(
-          std::make_shared<ClosureConverter>(typevisitor.getEnv())),
-      memobjcollector(typevisitor.getEnv()),
-      llvmgenerator(ctx, typevisitor.getEnv(),*closureconverter,memobjcollector) {}
+          std::make_shared<ClosureConverter>(typeinferer.getTypeEnv())),
+      memobjcollector(typeinferer.getTypeEnv()),
+      llvmgenerator(ctx, typeinferer.getTypeEnv(),*closureconverter,memobjcollector) {}
 Compiler::~Compiler() = default;
 void Compiler::setFilePath(std::string path) {
   this->path = path;
@@ -23,28 +23,30 @@ void Compiler::setFilePath(std::string path) {
 void Compiler::setDataLayout(const llvm::DataLayout& dl) {
   llvmgenerator.setDataLayout(dl);
 }
-void Compiler::recursiveCheck(AST_Ptr ast) { ast->accept(recursivechecker); }
-AST_Ptr Compiler::loadSource(std::string source) {
-  driver.parsestring(source);
-  auto ast = driver.getMainAst();
+void Compiler::recursiveCheck(AstPtr ast) {
+  //  ast->accept(recursivechecker);
+    }
+AstPtr Compiler::loadSource(std::string source) {
+  AstPtr ast = driver.parseString(source);
+  // auto ast = driver.getMainAst();
   recursiveCheck(ast);
   return ast;
 }
-AST_Ptr Compiler::loadSourceFile(std::string filename) {
-  driver.parsefile(filename);
-  auto ast = driver.getMainAst();
+AstPtr Compiler::loadSourceFile(std::string filename) {
+  AstPtr ast = driver.parseFile(filename);
   recursiveCheck(ast);
   return ast;
 }
-AST_Ptr Compiler::alphaConvert(AST_Ptr ast) {
-  ast->accept(alphavisitor);
-  return alphavisitor.getResult();
+AstPtr Compiler::renameSymbols(AstPtr ast) {
+  return symbolrenamer.rename(*ast);
 }
-TypeEnv& Compiler::typeInfer(AST_Ptr ast) { return typevisitor.infer(ast); }
+TypeEnv& Compiler::typeInfer(AstPtr ast) { 
+  return typeinferer.infer(*ast);
+}
 
-std::shared_ptr<MIRblock> Compiler::generateMir(AST_Ptr ast) {
-  ast->accept(knormvisitor);
-  return knormvisitor.getResult();
+std::shared_ptr<MIRblock> Compiler::generateMir(AstPtr ast) {
+  // ast->accept(knormvisitor);
+  return mirgenerator.generate(*ast);
 }
 std::shared_ptr<MIRblock> Compiler::closureConvert(
     std::shared_ptr<MIRblock> mir) {

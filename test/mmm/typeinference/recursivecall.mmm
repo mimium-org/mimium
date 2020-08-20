@@ -1,0 +1,9 @@
+fn fact(num){
+    if(num){
+        res= num*fact(num-1)
+        return res
+    }else{
+        return 1
+    }
+}
+main = fact(5)

@@ -5,13 +5,14 @@
 #include "compiler/codegen/codegen_visitor.hpp"
 
 namespace mimium {
-
-const std::unordered_map<OP_ID, std::string> CodeGenVisitor::opid_to_ffi = {
+using OpId = newast::OpId;
+const std::unordered_map<OpId, std::string> CodeGenVisitor::opid_to_ffi = {
     // names are declared in ffi.cpp
-    {OP_ID::EXP, "pow"},  {OP_ID::MOD, "fmod"},      {OP_ID::GE, "ge"},
-    {OP_ID::LE, "le"},    {OP_ID::GT, "gt"},         {OP_ID::LT, "lt"},
-    {OP_ID::AND, "and"},  {OP_ID::BITAND, "and"},    {OP_ID::OR, "or"},
-    {OP_ID::BITOR, "or"}, {OP_ID::LSHIFT, "lshift"}, {OP_ID::RSHIFT, "rshift"},
+    
+    {OpId::Exponent, "pow"},  {OpId::Mod, "fmod"},      {OpId::GreaterEq, "ge"},
+    {OpId::LessEq, "le"},    {OpId::GreaterThan, "gt"},         {OpId::LessThan, "lt"},
+    {OpId::And, "and"},  {OpId::BitAnd, "and"},    {OpId::Or, "or"},
+    {OpId::BitOr, "or"}, {OpId::LShift, "lshift"}, {OpId::RShift, "rshift"},
 };
 
 // Creates Allocation instruction or call malloc function depends on context
@@ -118,23 +119,22 @@ void CodeGenVisitor::operator()(OpInst& i) {
   llvm::Value* retvalue;
   auto* lhs = G.findValue(i.lhs);
   auto* rhs = G.findValue(i.rhs);
-  switch (i.getOPid()) {
-    case OP_ID::ADD:
+  switch (i.op) {
+    case newast::OpId::Add:
       retvalue = G.builder->CreateFAdd(lhs, rhs, i.lv_name);
       break;
-    case OP_ID::SUB:
+    case newast::OpId::Sub:
       retvalue = G.builder->CreateFSub(lhs, rhs, i.lv_name);
       break;
-    case OP_ID::MUL:
+    case newast::OpId::Mul:
       retvalue = G.builder->CreateFMul(lhs, rhs, i.lv_name);
       break;
-    case OP_ID::DIV:
+    case newast::OpId::Div:
       retvalue = G.builder->CreateFDiv(lhs, rhs, i.lv_name);
       break;
     default: {
-      auto id = i.getOPid();
-      if (opid_to_ffi.count(id)) {
-        auto fname = opid_to_ffi.find(id)->second;
+      if (opid_to_ffi.count(i.op)>0) {
+        auto fname = opid_to_ffi.find(i.op)->second;
         retvalue = G.builder->CreateCall(G.getForeignFunction(fname),
                                          {lhs, rhs}, i.lv_name);
       } else {

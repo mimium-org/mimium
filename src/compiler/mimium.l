@@ -8,12 +8,13 @@
   #include "compiler/scanner.hpp"
   #include "basic/helper_functions.hpp"
   #undef  YY_DECL
-  #define YY_DECL int mmmpsr::MimiumScanner::yylex( mmmpsr::MimiumParser::semantic_type * const lval, mmmpsr::MimiumParser::location_type *loc )
+  #define YY_DECL int mmmpsr::MimiumScanner::yylex( MimiumParser::semantic_type * const lval, MimiumParser::location_type *loc )
   
-  using token = mmmpsr::MimiumParser::token;
+  using token = MimiumParser::token;
   using namespace mimium;
-  #define yyterminate() return ( token::ENDFILE )
-  #define YY_USER_ACTION loc->step(); loc->columns(yyleng);
+  #define yyterminate() return  token::ENDFILE;
+  #define YY_USER_ACTION loc->begin=loc->end; loc->end.col += yyleng;
+  #define LOC_BREAK loc->end.line+=yyleng; loc->end.col=0;
 %}
 %option c++ noyywrap nounput noinput nodefault debug
 %option yyclass="mmmpsr::MimiumParser"
@@ -45,13 +46,13 @@ NEWLINE {BREAK}* | ";"
 <comment>{
 [^*\n\r]*			/* eat anything that's not a '*' 		*/
 "*"+[^*/\n\r]*		/* eat up '*'s not followed by '/'s 	*/
-{BREAK}+			{loc->lines(yyleng);}
+{BREAK}+			{LOC_BREAK}
 "*"+"/"{BREAK}*				{BEGIN(INITIAL);}
 }
 
 "//" BEGIN(inlinecomment);
 <inlinecomment>{
-{BREAK}+ {BEGIN(INITIAL); loc->lines(yyleng);};
+{BREAK}+ {BEGIN(INITIAL);LOC_BREAK};
 [^\n\r]*
 }
 
@@ -65,6 +66,7 @@ NEWLINE {BREAK}* | ";"
 
 "float" return token::TYPEFLOAT;
 "void" return token::TYPEVOID;
+"string" return token::TYPESTRING;
 "Fn" return token::TYPEFN;
 
 ":" return token::TYPE_DELIM;
@@ -72,8 +74,7 @@ NEWLINE {BREAK}* | ";"
 "include" return token::INCLUDE;
 
 "fn" return token::FUNC;
-"self" {  yylval->emplace<std::string>(yytext);
-return token::SELF;}
+"self" { return token::SELF;}
 
 
 "for" return token::FOR;
@@ -127,17 +128,19 @@ return token::SELF;}
 "{" return token::LBRACE;
 "}" return token::RBRACE;
 
-{BREAK}+	{ loc->lines(yyleng); return token::NEWLINE;}
+{BREAK}+	{ LOC_BREAK return token::NEWLINE;}
 
 {DELIMITER} { return yytext[0];};
 
 {WSPACE} 
 
+<<EOF>> {return token::ENDFILE;}
+
 . {
   std::stringstream ss;
   ss << "Lexer: Unrecognized char \"" << yytext[0] << "\"\n";
     mimium::Logger::debug_log( ss.str() ,mimium::Logger::ERROR);
-		loc->step();
+
 }
 %%
 
