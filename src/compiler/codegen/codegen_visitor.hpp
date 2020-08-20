@@ -12,12 +12,13 @@ struct CodeGenVisitor : public std::enable_shared_from_this<CodeGenVisitor> {
   CodeGenVisitor(LLVMGenerator& g);
   void operator()(NumberInst& i);
   void operator()(StringInst& i);
-
   void operator()(AllocaInst& i);
   void operator()(RefInst& i);
   void operator()(AssignInst& i);
   // void operator()(TimeInst& i);
   void operator()(OpInst& i);
+  void createBinOp(OpInst& i);
+  void createUniOp(OpInst& i);
   void operator()(FunInst& i);
   void operator()(FcallInst& i);
   void operator()(MakeClosureInst& i);

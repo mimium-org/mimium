@@ -46,7 +46,7 @@ TypeEnv& Compiler::typeInfer(AstPtr ast) {
 
 std::shared_ptr<MIRblock> Compiler::generateMir(AstPtr ast) {
   // ast->accept(knormvisitor);
-  return mirgenerator.generate(*ast);
+  return mirgenerator.generate(*ast);;
 }
 std::shared_ptr<MIRblock> Compiler::closureConvert(
     std::shared_ptr<MIRblock> mir) {
