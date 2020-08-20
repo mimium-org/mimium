@@ -237,18 +237,15 @@ struct TypeInferer {
     template <typename T>
     types::Value unify(T t1, types::rTypeVar t2) {
       types::Value res = t1;
-      auto t2_real = inferer.typeenv.findTypeVar(t2.getraw().index);
-      auto t2first = t2_real->getFirstLink();
-      auto t2last = t2_real->getLastLink();
-      bool t2contain = !std::holds_alternative<types::None>(t2last->contained);
-      if (OccurChecker{*t2last}(t1)) {
-        throw std::runtime_error("type loop detected");
+      auto& t2_real = inferer.typeenv.findTypeVar(t2.getraw().index);
+      if (!std::holds_alternative<types::rTypeVar>(t2_real)) {
+        res = inferer.unify(t2_real, types::Value(t1));
+      } else {
+        if (OccurChecker{rv::get<types::TypeVar>(t2_real)}(t1)) {
+          throw std::runtime_error("type loop detected");
+        }
+        inferer.typeenv.tv_container[rv::get<types::TypeVar>(t2_real).index] = t1;
       }
-      if (t2contain) {
-        res = inferer.unify(t2last->contained, types::Value(t1));
-      }
-      t2first->contained = res;
-      t2last->contained = res;
       return res;
     }
     template <typename T>
@@ -257,25 +254,24 @@ struct TypeInferer {
     }
     types::Value unify(types::rTypeVar t1, types::rTypeVar t2) {
       types::Value res = t1;
-      if (t1.getraw().index != t2.getraw().index) {
-        auto t1_real = inferer.typeenv.findTypeVar(t1.getraw().index);
-        auto t2_real = inferer.typeenv.findTypeVar(t2.getraw().index);
-        auto t1last = t1_real->getLastLink();
-        auto t2first = t2_real->getFirstLink();
-        if (t1last->index != t2first->index) {
-          t1last->next = t2first;
-          t2first->prev = t1last;
-        }
-        bool t1contain =
-            !std::holds_alternative<types::None>(t1last->contained);
-        bool t2contain =
-            !std::holds_alternative<types::None>(t2first->contained);
-        if (t1contain && t2contain) {
-          res = inferer.unify(t1last->contained, t2first->contained);
-        } else if (t1contain && !t2contain) {
-          t2_real->getLastLink()->contained = t1last->contained;
-        } else if (t2contain && !t1contain) {
-          t1_real->getLastLink()->contained = t2first->contained;
+      auto i1 = t1.getraw().index;
+      auto i2 = t2.getraw().index;
+      auto& t1_point = inferer.typeenv.tv_container[i1];
+      auto& t2_point = inferer.typeenv.tv_container[i2];
+      bool t1contain = !std::holds_alternative<types::rTypeVar>(t1_point);
+      bool t2contain = !std::holds_alternative<types::rTypeVar>(t2_point);
+      if (i1 != i2) {
+        if (!t1contain && !t2contain) {
+          if (i1 > i2) {
+            t1_point = t2_point;
+            res = t2_point;
+          } else {
+            t2_point = t1_point;
+            res = t1_point;
+          }
+
+        } else {
+          res = inferer.unify(t1_point, t2_point);
         }
       }
       return res;
@@ -351,17 +347,19 @@ struct TypeInferer {
   struct SubstituteVisitor {
     explicit SubstituteVisitor(TypeInferer& parent) : inferer(parent) {}
     types::Value operator()(types::TypeVar& t) {
-      auto target = inferer.typeenv.findTypeVar(t.index)->getLastLink();
-      if (std::holds_alternative<types::None>(target->contained)) {
+      auto& target = inferer.typeenv.findTypeVar(t.index);
+      auto contained = std::visit(*this,target);
+      if (std::holds_alternative<types::None>(contained) ||
+          std::holds_alternative<types::rTypeVar>(contained)) {
         throw std::runtime_error(
             "failed to replace typevar. decuced into float type.");
         return types::Float();
       }
-      if (std::visit(OccurChecker{*target}, target->contained)) {
+      if (std::visit(OccurChecker{t}, contained)) {
         throw std::runtime_error("type loop detected");
         return types::Float();
       }
-      return std::visit(*this, target->contained);
+      return std::visit(*this, target);
     }
     types::Value operator()(types::Function& f) {
       return types::Function(std::visit(*this, f.ret_type),
@@ -400,7 +398,12 @@ struct TypeInferer {
         statementvisitor(*this),
         unifyvisitor(*this),
         substitutevisitor(*this),
-        typeenv() {}
+        typeenv() {
+    for (const auto& [key, val] : LLVMBuiltin::ftable) {
+      typeenv.emplace(key, val.mmmtype);
+    }
+    typeenv.emplace("mimium_getnow", types::Function(types::Float(), {}));
+  }
   // entry point.
   TypeEnv& infer(newast::Statements& topast);
   types::Value inferStatements(newast::Statements& statements);

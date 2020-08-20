@@ -58,7 +58,7 @@ newast::ExprPtr ExprRenameVisitor::operator()(newast::Lambda& ast) {
   for (auto&& a : ast.args.args) {
     auto newname = renamer.getNewName(a.value);
     renamer.env->addToMap(a.value, newname);
-    newargs.emplace_back(newast::Lvar{a.debuginfo, newname});
+    newargs.emplace_back(newast::Lvar{a.debuginfo, newname,a.type});
   }
   auto newargsast = newast::LambdaArgs{ast.args.debuginfo, std::move(newargs)};
   auto newbody = *renamer.rename(ast.body);

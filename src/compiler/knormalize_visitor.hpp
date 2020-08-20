@@ -72,10 +72,8 @@ using lvarid = std::pair<std::string, types::Value>;
 class MirGenerator {
  public:
   explicit MirGenerator(TypeEnv& typeenv)
-      : statementvisitor(*this),
-        exprvisitor(*this),
-        typeenv(typeenv),
-        mir(nullptr) {}
+      : statementvisitor(*this), exprvisitor(*this), typeenv(typeenv),ctx(nullptr){
+  }
   struct ExprKnormVisitor : public VisitorBase<lvarid&> {
     explicit ExprKnormVisitor(MirGenerator& parent) : mirgen(parent) {}
     lvarid operator()(newast::Op& ast);
@@ -109,7 +107,8 @@ class MirGenerator {
     MirGenerator& mirgen;
   };
   std::shared_ptr<MIRblock> generate(newast::Statements& topast);
-  std::pair<lvarid,std::shared_ptr<MIRblock>>  generateBlock(newast::Statements stmts, std::string label);
+  std::pair<lvarid, std::shared_ptr<MIRblock>> generateBlock(
+      newast::Statements stmts, std::string label);
   bool isOverWrite(std::string const& name) {
     return std::find(lvarlist.begin(), lvarlist.end(), name) != lvarlist.end();
   }
@@ -121,7 +120,7 @@ class MirGenerator {
     return std::pair(newname, type);
   }
   template <typename FROM, typename TO, class LAMBDA>
-  auto transformArgs(FROM&& from, TO&& to, LAMBDA&& op)->decltype(to) {
+  auto transformArgs(FROM&& from, TO&& to, LAMBDA&& op) -> decltype(to) {
     std::transform(from.begin(), from.end(), std::back_inserter(to), op);
     return std::forward<decltype(to)>(to);
   }
@@ -132,7 +131,6 @@ class MirGenerator {
  private:
   StatementKnormVisitor statementvisitor;
   ExprKnormVisitor exprvisitor;
-  MIRblock mir;
   TypeEnv& typeenv;
   std::vector<std::string> lvarlist;
   std::optional<std::string> lvar_holder;

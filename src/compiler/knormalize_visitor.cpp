@@ -336,9 +336,11 @@ std::string MirGenerator::makeNewName() {
 
 std::pair<lvarid, std::shared_ptr<MIRblock>> MirGenerator::generateBlock(
     newast::Statements stmts, std::string label) {
+  int indent = (ctx==nullptr)?0:(ctx->indent_level+1);
   auto tmpctx = ctx;
   auto functx = std::make_shared<MIRblock>(label);
   ctx = functx;
+  ctx->indent_level=indent;
   lvarid laststmt;
   for (auto&& s : stmts) {
     laststmt = std::visit(statementvisitor, *s);

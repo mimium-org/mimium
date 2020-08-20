@@ -354,20 +354,15 @@ class TypeEnv {
  public:
   TypeEnv() : env() {}
   std::unordered_map<std::string, types::Value> env;
-  std::deque<std::shared_ptr<types::TypeVar>> tv_container;
+  using TvContainerElem = std::variant<std::shared_ptr<types::TypeVar>,types::Value>;
+  std::deque<types::Value> tv_container;
   std::shared_ptr<types::TypeVar> createNewTypeVar() {
-    auto& ref = tv_container.emplace_back(
-        std::make_shared<types::TypeVar>(typeid_count++));
-    return ref;
+    auto res = std::make_shared<types::TypeVar>(typeid_count++);
+    tv_container.emplace_back(*res);
+    return res;
   }
-  std::shared_ptr<types::TypeVar> findTypeVar(int tindex) {
-    auto iter =
-        std::find_if(tv_container.begin(), tv_container.end(),
-                     [&](auto tvptr) { return tindex == tvptr->index; });
-    if (iter == tv_container.end()) {
-      throw std::runtime_error("failed to find typevar for specified index");
-    }
-    return *iter;
+  types::Value& findTypeVar(int tindex) {
+    return tv_container[tindex];
   }
   bool exist(std::string key) { return (env.count(key) > 0); }
   auto begin() { return env.begin(); }
