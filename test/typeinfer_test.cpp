@@ -72,7 +72,7 @@ TEST(typeinfer, highorderfunction) {
 
   EXPECT_TRUE(rv::get<types::Function>(hof) ==
               types::Function(hofrettype, {types::Float(), add2type}));
-  EXPECT_TRUE(std::holds_alternative<types::Float>(env.at("result8")));
+  EXPECT_TRUE(std::holds_alternative<types::Float>(env.at("result7")));
 }
 
 TEST(typeinfer, recursivecall) {

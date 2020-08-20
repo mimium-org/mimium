@@ -39,10 +39,10 @@ struct ArrayAccess;
 
 struct Time;
 
-using Expr =
-    std::variant<Op, Number, String, Rvar, Self, Rec_Wrap<Lambda>,
-                 Rec_Wrap<Fcall>, Rec_Wrap<Time>,Rec_Wrap<Struct>, Rec_Wrap<StructAccess>,
-                 Rec_Wrap<ArrayInit>, Rec_Wrap<ArrayAccess>, Rec_Wrap<Tuple>>;
+using Expr = std::variant<Op, Number, String, Rvar, Self, Rec_Wrap<Lambda>,
+                          Rec_Wrap<Fcall>, Rec_Wrap<Time>, Rec_Wrap<Struct>,
+                          Rec_Wrap<StructAccess>, Rec_Wrap<ArrayInit>,
+                          Rec_Wrap<ArrayAccess>, Rec_Wrap<Tuple>>;
 using ExprPtr = std::shared_ptr<Expr>;
 
 struct Assign;
@@ -51,10 +51,9 @@ struct Declaration;
 struct For;
 struct If;
 
-using Statement = std::variant<Assign, Return, /* Declaration, */ 
+using Statement = std::variant<Assign, Return, /* Declaration, */
                                Rec_Wrap<For>, Rec_Wrap<If>, Rec_Wrap<ExprPtr>>;
 using Statements = std::deque<std::shared_ptr<Statement>>;
-
 
 enum class OpId {
   Add,
@@ -79,28 +78,27 @@ enum class OpId {
   RShift
 };
 
-inline const std::map<OpId,std::string_view> op_str = {
-  {OpId::Add,"Add"},
-  {OpId::Sub,"Sub"},
-  {OpId::Mul,"Mul"},
-  {OpId::Div,"Div"},
-  {OpId::Mod,"Mod"},
-  {OpId::Exponent,"Exponent"},
-  {OpId::Equal,"Equal"},
-  {OpId::NotEq,"NotEq"},
-  {OpId::LessEq,"LessEq"},
-  {OpId::GreaterEq,"GreaterEq"},
-  {OpId::LessThan,"LessThan"},
-  {OpId::GreaterThan,"GreaterThan"},
-  {OpId::And,"And"},
-  {OpId::BitAnd,"BitAnd"},
-  {OpId::Or,"Or"},
-  {OpId::BitOr,"BitOr"},
-  {OpId::Xor,"Xor"},
-  {OpId::Not,"Not"},
-  {OpId::LShift,"LShift"},
-  {OpId::RShift,"RShhift"}
-};
+inline const std::map<OpId, std::string_view> op_str = {
+    {OpId::Add, "Add"},
+    {OpId::Sub, "Sub"},
+    {OpId::Mul, "Mul"},
+    {OpId::Div, "Div"},
+    {OpId::Mod, "Mod"},
+    {OpId::Exponent, "Exponent"},
+    {OpId::Equal, "Equal"},
+    {OpId::NotEq, "NotEq"},
+    {OpId::LessEq, "LessEq"},
+    {OpId::GreaterEq, "GreaterEq"},
+    {OpId::LessThan, "LessThan"},
+    {OpId::GreaterThan, "GreaterThan"},
+    {OpId::And, "And"},
+    {OpId::BitAnd, "BitAnd"},
+    {OpId::Or, "Or"},
+    {OpId::BitOr, "BitOr"},
+    {OpId::Xor, "Xor"},
+    {OpId::Not, "Not"},
+    {OpId::LShift, "LShift"},
+    {OpId::RShift, "RShift"}};
 
 struct Pos {
   int line;
@@ -111,8 +109,9 @@ struct SourceLoc {
   Pos end;
 };
 
-inline std::ostream& operator<<(std::ostream& os,const SourceLoc& loc){
-  os << loc.begin.line << ":" << loc.begin.col << " ~ " << loc.end.line << ":" << loc.end.col;
+inline std::ostream& operator<<(std::ostream& os, const SourceLoc& loc) {
+  os << loc.begin.line << ":" << loc.begin.col << " ~ " << loc.end.line << ":"
+     << loc.end.col;
   return os;
 }
 
@@ -155,7 +154,10 @@ struct Lvar : public Symbol {
 };
 
 struct Rvar : public Symbol {};
-struct Self : public Base {};
+struct Self : public Base {
+  std::optional<types::Value> type;  // will be captured at typeinference stage-
+                                     // and used at mirgen stage.
+};
 
 struct LambdaArgs : public Base {
   std::deque<Lvar> args;

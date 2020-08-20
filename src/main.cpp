@@ -118,7 +118,7 @@ auto main(int argc, char** argv) -> int {
           std::cout << typeinfos.toString() << std::endl;
           break;
         }
-        auto mir = compiler->generateMir(ast_u);
+        std::shared_ptr<MIRblock> mir = compiler->generateMir(ast_u);
         if (stage == CompileStage::MIR) {
           std::cout << mir->toString() << std::endl;
           break;

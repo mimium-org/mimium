@@ -112,7 +112,7 @@ class MirGenerator {
   bool isOverWrite(std::string const& name) {
     return std::find(lvarlist.begin(), lvarlist.end(), name) != lvarlist.end();
   }
-  lvarid emplace(Instructions&& inst, types::Value&& type = types::Float()) {
+  lvarid emplace(Instructions&& inst, types::Value type = types::Float()) {
     auto& newname =
         std::visit([](auto&& i) -> std::string& { return i.lv_name; },
                    ctx->addInstRef(std::move(inst)));

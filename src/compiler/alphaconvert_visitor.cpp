@@ -6,9 +6,12 @@
 namespace mimium {
 
 // new alphaconverter
-SymbolRenamer::SymbolRenamer() : env(std::make_shared<RenameEnvironment>()) {}
+SymbolRenamer::SymbolRenamer()
+    : SymbolRenamer(std::make_shared<RenameEnvironment>()) {}
 SymbolRenamer::SymbolRenamer(std::shared_ptr<RenameEnvironment> env)
-    : env(std::move(env)) {}
+    : env(std::move(env)) {
+  this->env->rename_map.emplace("dsp", "dsp");
+}
 
 AstPtr SymbolRenamer::rename(newast::Statements& ast) {
   auto newast = std::make_shared<newast::Statements>();
@@ -19,7 +22,11 @@ AstPtr SymbolRenamer::rename(newast::Statements& ast) {
 }
 
 std::string SymbolRenamer::getNewName(std::string const& name) {
-  return name + std::to_string(namecount++);
+  auto res = env->search(std::optional(name));
+  if(res == std::nullopt){
+    return name + std::to_string(namecount++);
+  }
+  return res.value();
 }
 std::string SymbolRenamer::searchFromEnv(std::string const& name) {
   auto res = env->search(std::optional(name));
@@ -43,7 +50,7 @@ newast::ExprPtr ExprRenameVisitor::operator()(newast::Number& ast) {
 }
 newast::ExprPtr ExprRenameVisitor::operator()(newast::String& ast) {
   return newast::makeExpr(
-      newast::String{ast.debuginfo, renamer.searchFromEnv(ast.value)});
+      newast::String{ast.debuginfo,ast.value});
 }
 newast::ExprPtr ExprRenameVisitor::operator()(newast::Rvar& ast) {
   return newast::makeExpr(
@@ -58,7 +65,7 @@ newast::ExprPtr ExprRenameVisitor::operator()(newast::Lambda& ast) {
   for (auto&& a : ast.args.args) {
     auto newname = renamer.getNewName(a.value);
     renamer.env->addToMap(a.value, newname);
-    newargs.emplace_back(newast::Lvar{a.debuginfo, newname,a.type});
+    newargs.emplace_back(newast::Lvar{a.debuginfo, newname, a.type});
   }
   auto newargsast = newast::LambdaArgs{ast.args.debuginfo, std::move(newargs)};
   auto newbody = *renamer.rename(ast.body);

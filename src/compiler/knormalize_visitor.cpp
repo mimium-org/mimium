@@ -324,7 +324,7 @@ std::shared_ptr<MIRblock> KNormalizeVisitor::getResult() { return rootblock; }
 // new knormalizer(mir generator)
 
 std::shared_ptr<MIRblock> MirGenerator::generate(newast::Statements& topast) {
-  auto lvarid = generateBlock(topast, "root");
+  auto [lvarid, ctx] = generateBlock(topast, "root");
   return ctx;
 }
 
@@ -336,11 +336,11 @@ std::string MirGenerator::makeNewName() {
 
 std::pair<lvarid, std::shared_ptr<MIRblock>> MirGenerator::generateBlock(
     newast::Statements stmts, std::string label) {
-  int indent = (ctx==nullptr)?0:(ctx->indent_level+1);
+  int indent = (ctx == nullptr) ? 0 : (ctx->indent_level + 1);
   auto tmpctx = ctx;
   auto functx = std::make_shared<MIRblock>(label);
   ctx = functx;
-  ctx->indent_level=indent;
+  ctx->indent_level = indent;
   lvarid laststmt;
   for (auto&& s : stmts) {
     laststmt = std::visit(statementvisitor, *s);
@@ -375,9 +375,8 @@ lvarid ExprKnormVisitor::operator()(newast::Rvar& ast) {
   }
   return std::pair(ast.value, mirgen.typeenv.find(ast.value));
 }
-lvarid ExprKnormVisitor::operator()(newast::Self& /*ast*/) {
-  lvarid res = {"self", mirgen.selftype_stack.top()};
-  mirgen.selftype_stack.pop();
+lvarid ExprKnormVisitor::operator()(newast::Self& ast) {
+  lvarid res = {"self" , ast.type.value_or(types::Float()) };
   return res;
 }
 lvarid ExprKnormVisitor::operator()(newast::Lambda& ast) {
@@ -409,11 +408,12 @@ lvarid ExprKnormVisitor::operator()(newast::Fcall& ast,
   types::Value rettype =
       (rettype_ptr == nullptr) ? types::Value(types::None()) : *rettype_ptr;
   auto fnkind = MirGenerator::isExternalFun(fname) ? EXTERNAL : CLOSURE;
-  return mirgen.emplace(FcallInst(
-      mirgen.makeNewName(), fname,
-      mirgen.transformArgs(ast.args.args, std::deque<std::string>{},
-                           [&](auto expr) { return std::visit(*this, *expr).first; }),
-      fnkind, rettype, when));
+  return mirgen.emplace(
+      FcallInst(mirgen.makeNewName(), fname,
+                mirgen.transformArgs(
+                    ast.args.args, std::deque<std::string>{},
+                    [&](auto expr) { return std::visit(*this, *expr).first; }),
+                fnkind, rettype, when));
 }
 lvarid ExprKnormVisitor::operator()(newast::Time& ast) {
   return (*this)(ast.fcall, std::visit(*this, *ast.when).first);
@@ -452,20 +452,27 @@ lvarid ExprKnormVisitor::operator()(newast::Tuple& ast) {
 lvarid StatementKnormVisitor::operator()(newast::Assign& ast) {
   mirgen.lvar_holder = ast.lvar.value;
   bool is_overwrite = mirgen.isOverWrite(ast.lvar.value);
-  auto [rinstname, type] = std::visit(mirgen.exprvisitor, *ast.expr);
-  Instructions res = NumberInst("", 0);
-  if (!is_overwrite) {
-    auto [allocaname, allcatype] = mirgen.emplace(
-        AllocaInst(ast.lvar.value + "_ptr"), types::Pointer(type));
+  lvarid res =std::visit(mirgen.exprvisitor, *ast.expr);
+  if (!rv::holds_alternative<types::Function>(res.second)) {
+    if (!is_overwrite) {
+      std::string ptrname = ast.lvar.value + "_ptr";
+      types::Value ptrtype = types::Pointer(res.second);
+      auto iter = mirgen.ctx->instructions.insert(--mirgen.ctx->instructions.end(),AllocaInst(ptrname,ptrtype));
+      mirgen.typeenv.emplace(ptrname,ptrtype);
+      mirgen.lvarlist.emplace_back(ast.lvar.value);
+    }
+
+    if (is_overwrite) {
+      res = mirgen.emplace(AssignInst(ast.lvar.value, res.first, res.second),
+                           types::Value(res.second));
+    }
   }
-  mirgen.lvarlist.emplace_back(ast.lvar.value);
-  return mirgen.emplace(AssignInst(ast.lvar.value, rinstname),
-                        types::Value(type));
+  return res;
 }
 lvarid StatementKnormVisitor::operator()(newast::Return& ast) {
   auto [ret, type] = std::visit(mirgen.exprvisitor, *ast.value);
-  return mirgen.emplace(
-      ReturnInst(mirgen.makeNewName(), ret, type),types::Value(type));
+  return mirgen.emplace(ReturnInst(mirgen.makeNewName(), ret, type),
+                        types::Value(type));
 }
 // Instructions StatementKnormVisitor::operator()(newast::Declaration& ast){}
 lvarid StatementKnormVisitor::operator()(newast::For& ast) {

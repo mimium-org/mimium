@@ -359,6 +359,7 @@ types::Value ExprTypeVisitor::operator()(newast::Self& ast) {
   if (inferer.selftype_stack.empty()) {
     throw std::runtime_error("keyword \"self\" cannot be used out of function");
   }
+  ast.type = inferer.selftype_stack.top();
   return inferer.selftype_stack.top();
 }
 types::Value ExprTypeVisitor::operator()(newast::Lambda& ast) {
@@ -366,6 +367,7 @@ types::Value ExprTypeVisitor::operator()(newast::Lambda& ast) {
   for (auto&& a : ast.args.args) {
     argtypes.emplace_back(inferer.addLvar(a));
   }
+  
   auto rettype_tv = ast.ret_type.value_or(*inferer.typeenv.createNewTypeVar());
   inferer.selftype_stack.push(rettype_tv);
   auto rettype = inferer.inferStatements(ast.body);
