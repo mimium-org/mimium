@@ -22,15 +22,15 @@ TEST(mirgen, basic) {
       "root:\n"
       "  hoge0 = fun x1 , y2\n"
       "    hoge0:\n"
-      "      alloca: localvar3_ptr (float*)\n"
+      "      alloca: localvar3 (float)\n"
       "      localvar3 = 2.000000\n"
-      "      k2 = Mul x1 y2\n"
-      "      k3 = Add k2 localvar3\n"
-      "      return k3\n"
+      "      k3 = Mul x1 y2\n"
+      "      k2 = Add k3 localvar3\n"
+      "      return k2\n"
       "\n"
       "  k6 = 5.000000\n"
       "  k7 = 7.000000\n"
-      "  alloca: main4_ptr (float*)\n"
+      "  alloca: main4 (float)\n"
       "  main4 = appcls hoge0 k6 , k7\n";
   EXPECT_EQ(mir->toString(), target);
 }

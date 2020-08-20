@@ -407,7 +407,7 @@ lvarid ExprKnormVisitor::operator()(newast::Fcall& ast,
   auto* rettype_ptr =
       std::get_if<types::rFunction>(&mirgen.typeenv.find(fname));
   types::Value rettype =
-      (rettype_ptr == nullptr) ? types::Value(types::None()) : *rettype_ptr;
+      (rettype_ptr == nullptr) ? types::Value(types::None()) : rettype_ptr->getraw().ret_type;
   auto fnkind = MirGenerator::isExternalFun(fname) ? EXTERNAL : CLOSURE;
   auto newname = mirgen.makeNewName();
   return mirgen.emplace(
@@ -415,7 +415,7 @@ lvarid ExprKnormVisitor::operator()(newast::Fcall& ast,
                 mirgen.transformArgs(
                     ast.args.args, std::deque<std::string>{},
                     [&](auto expr) { return std::visit(*this, *expr).first; }),
-                fnkind, rettype, when));
+                fnkind, rettype, when),rettype);
 }
 lvarid ExprKnormVisitor::operator()(newast::Time& ast) {
   return (*this)(ast.fcall, std::visit(*this, *ast.when).first);
@@ -464,7 +464,7 @@ lvarid StatementKnormVisitor::operator()(newast::Assign& ast) {
       types::Value ptrtype = res.second;
       auto iter = mirgen.ctx->instructions.insert(
           --mirgen.ctx->instructions.end(), AllocaInst(ptrname, ptrtype));
-      mirgen.typeenv.emplace(ptrname, ptrtype);
+      // mirgen.typeenv.emplace(ptrname, ptrtype);
       mirgen.lvarlist.emplace_back(ast.lvar.value);
     }
 

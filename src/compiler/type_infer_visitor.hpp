@@ -265,7 +265,7 @@ struct TypeInferer {
           if (i1 > i2) {
             t1_point = t2_point;
             res = t2_point;
-          } else {
+          } else if(i1<i2){
             t2_point = t1_point;
             res = t1_point;
           }

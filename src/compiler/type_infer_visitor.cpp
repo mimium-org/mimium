@@ -367,7 +367,7 @@ types::Value ExprTypeVisitor::operator()(newast::Lambda& ast) {
   for (auto&& a : ast.args.args) {
     argtypes.emplace_back(inferer.addLvar(a));
   }
-  
+
   auto rettype_tv = ast.ret_type.value_or(*inferer.typeenv.createNewTypeVar());
   inferer.selftype_stack.push(rettype_tv);
   auto rettype = inferer.inferStatements(ast.body);
@@ -378,9 +378,9 @@ types::Value ExprTypeVisitor::operator()(newast::Lambda& ast) {
 types::Value ExprTypeVisitor::operator()(newast::Fcall& ast) {
   std::vector<types::Value> argtypes;
   auto args = ast.args.args;
-  std::transform(args.begin(),args.end(),std::back_inserter(argtypes),[&](newast::ExprPtr expr){
-    return std::visit(*this,*expr);
-  });
+  std::transform(
+      args.begin(), args.end(), std::back_inserter(argtypes),
+      [&](newast::ExprPtr expr) { return std::visit(*this, *expr); });
   // for (auto& a : ast.args.args) {
   //   argtypes.emplace_back(std::visit(*this, *a));
   // }
@@ -427,7 +427,9 @@ types::Value ExprTypeVisitor::operator()(newast::ArrayInit& ast) {
 types::Value ExprTypeVisitor::operator()(newast::ArrayAccess& ast) {
   auto indextype = inferer.unify(std::visit(*this, *ast.index),
                                  types::Value(types::Float()));
-  auto arraytype = std::visit(*this, *ast.array);
+  auto tv = inferer.typeenv.createNewTypeVar();
+  auto arraytype = inferer.unify(std::visit(*this, *ast.array),
+                                 types::Value(types::Array(*std::move(tv))));
   if (!rv::holds_alternative<types::Array>(arraytype)) {
     throw std::runtime_error(
         "you cannot access to variables other than Array type with [] "
@@ -516,7 +518,7 @@ std::vector<types::Value> TypeUnifyVisitor::unifyArgs(
   for (int i = 0; i < v1.size(); i++) {
     auto lhs = v1.at(i);
     auto rhs = v2.at(i);
-    res.emplace_back(inferer.unify(lhs,rhs));  // discard return values
+    res.emplace_back(inferer.unify(lhs, rhs));  // discard return values
   }
   return res;
 }
