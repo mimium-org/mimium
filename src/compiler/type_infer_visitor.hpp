@@ -285,12 +285,12 @@ struct TypeInferer {
     }
 
     template <typename T, typename std::enable_if<
-                              std::is_same_v<std::decay_t<T>, types::TypeVar>>>
+                              std::is_same_v<std::decay_t<T>, types::TypeVar>>::type=nullptr>
     types::Value unify(types::rAlias a1, T a2) {
       return std::visit(*this, a1.getraw().target, types::Value(a2));
     }
     template <typename T, typename std::enable_if<
-                              std::is_same_v<std::decay_t<T>, types::TypeVar>>>
+                              std::is_same_v<std::decay_t<T>, types::TypeVar>>::type=nullptr>
     types::Value unify(T a1, types::rAlias a2) {
       return std::visit(*this, types::Value(a1), a2.getraw().target);
     }
