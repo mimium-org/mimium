@@ -10,6 +10,8 @@ KNormalizeVisitor::KNormalizeVisitor(TypeInferVisitor& typeinfer)
     : typeinfer(typeinfer), var_counter(0) {
   init();
 }
+KNormalizeVisitor::KNormalizeVisitor() : var_counter(0) { init(); }
+
 std::string KNormalizeVisitor::makeNewName() {
   return "k" + std::to_string(++var_counter);
 }
@@ -203,8 +205,8 @@ void KNormalizeVisitor::visit(FcallAST& ast) {
       (LLVMBuiltin::ftable.find(resfname) != LLVMBuiltin::ftable.end())
           ? EXTERNAL
           : CLOSURE;
-  if(newname=="mimium_getnow"){
-    fnkind=DIRECT;
+  if (newname == "mimium_getnow") {
+    fnkind = DIRECT;
   }
   // auto type = std::holds_alternative<types::Void>(lasttype) ? lasttype:
   // type_stack.top();
@@ -318,5 +320,32 @@ void KNormalizeVisitor::visit(StructAccessAST& ast) {
 }
 
 std::shared_ptr<MIRblock> KNormalizeVisitor::getResult() { return rootblock; }
+
+// new knormalizer(mir generator)
+
+MIRblock& MirGenerator::generate(newast::Statements& topast, TypeEnv& typeenv) {}
+using ExprKnormVisitor = MirGenerator::ExprKnormVisitor;
+using StatementKnormVisitor = MirGenerator::StatementKnormVisitor;
+
+Instructions ExprKnormVisitor::operator()(newast::Op& ast) {}
+Instructions ExprKnormVisitor::operator()(newast::Number& ast) {}
+Instructions ExprKnormVisitor::operator()(newast::String& ast) {}
+Instructions ExprKnormVisitor::operator()(newast::Rvar& ast) {}
+Instructions ExprKnormVisitor::operator()(newast::Self& ast) {}
+Instructions ExprKnormVisitor::operator()(newast::Lambda& ast) {}
+Instructions ExprKnormVisitor::operator()(newast::Fcall& ast) {}
+Instructions ExprKnormVisitor::operator()(newast::Time& ast) {}
+Instructions ExprKnormVisitor::operator()(newast::Struct& ast) {}
+Instructions ExprKnormVisitor::operator()(newast::StructAccess& ast) {}
+Instructions ExprKnormVisitor::operator()(newast::ArrayInit& ast) {}
+Instructions ExprKnormVisitor::operator()(newast::ArrayAccess& ast) {}
+Instructions ExprKnormVisitor::operator()(newast::Tuple& ast) {}
+
+Instructions StatementKnormVisitor::operator()(newast::Assign& ast){}
+Instructions StatementKnormVisitor::operator()(newast::Return& ast){}
+// Instructions StatementKnormVisitor::operator()(newast::Declaration& ast){}
+Instructions StatementKnormVisitor::operator()(newast::For& ast){}
+Instructions StatementKnormVisitor::operator()(newast::If& ast){}
+Instructions StatementKnormVisitor::operator()(newast::ExprPtr& ast){}
 
 }  // namespace mimium
