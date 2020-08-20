@@ -27,7 +27,7 @@ struct ToStringVisitor {
   bool is_prettry;
 };
 
-struct ExprStringVisitor : public ToStringVisitor {
+struct ExprStringVisitor : public ToStringVisitor,public VisitorBase<void> {
   explicit ExprStringVisitor(std::ostream& output, Mode mode = Mode::Lisp);
 
   void operator()(const newast::Number& ast);
@@ -35,29 +35,29 @@ struct ExprStringVisitor : public ToStringVisitor {
   void operator()(const newast::Op& ast);
   void operator()(const newast::Rvar& ast);
   void operator()(const newast::Self& ast);
-  void operator()(const Rec_Wrap<newast::Lambda>& ast);
-  void operator()(const Rec_Wrap<newast::Fcall>& ast);
-  void operator()(const Rec_Wrap<newast::Time>& ast);
-  void operator()(const Rec_Wrap<newast::Struct>& ast);
-  void operator()(const Rec_Wrap<newast::StructAccess>& ast);
-  void operator()(const Rec_Wrap<newast::ArrayInit>& ast);
-  void operator()(const Rec_Wrap<newast::ArrayAccess>& ast);
-  void operator()(const Rec_Wrap<newast::Tuple>& ast);
+  void operator()(const newast::Lambda& ast);
+  void operator()(const newast::Fcall& ast);
+  void operator()(const newast::Time& ast);
+  void operator()(const newast::Struct& ast);
+  void operator()(const newast::StructAccess& ast);
+  void operator()(const newast::ArrayInit& ast);
+  void operator()(const newast::ArrayAccess& ast);
+  void operator()(const newast::Tuple& ast);
 
  private:
   void fcallHelper(const newast::Fcall& fcall);
 };
 
-struct StatementStringVisitor : public ToStringVisitor {
+struct StatementStringVisitor : public ToStringVisitor,public VisitorBase<void> {
   explicit StatementStringVisitor(std::ostream& output, Mode mode = Mode::Lisp);
 
   ExprStringVisitor exprstringvisitor;
   void operator()(const newast::Assign& ast);
   void operator()(const newast::Return& ast);
   // void operator()(const newast::Declaration& ast);
-  void operator()(const Rec_Wrap<newast::For>& ast);
-  void operator()(const Rec_Wrap<newast::If>& ast);
-  void operator()(const Rec_Wrap<newast::ExprPtr>& ast);
+  void operator()(const newast::For& ast);
+  void operator()(const newast::If& ast);
+  void operator()(const newast::ExprPtr& ast);
 };
 
 class AstStringifier {

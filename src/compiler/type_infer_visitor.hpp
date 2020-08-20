@@ -196,7 +196,7 @@ struct OccurChecker {
 };
 
 struct TypeInferer {
-  struct ExprTypeVisitor {
+  struct ExprTypeVisitor : public VisitorBase<types::Value> {
     explicit ExprTypeVisitor(TypeInferer& parent) : inferer(parent) {}
     types::Value operator()(newast::Op& ast);
     types::Value operator()(newast::Number& ast);
@@ -211,23 +211,13 @@ struct TypeInferer {
     types::Value operator()(newast::ArrayInit& ast);
     types::Value operator()(newast::ArrayAccess& ast);
     types::Value operator()(newast::Tuple& ast);
-    template <typename T>
-    types::Value operator()(Rec_Wrap<T>& ast) {
-      // default action
-      return (*this)(ast.getraw());
-    }
-    // in case missing to list asts
-    template <typename T>
-    types::Value operator()(T& /*ast*/) {
-      static_assert(true, "missing some visitor functions for ExprTypeVisitor");
-    }
 
    private:
     TypeInferer& inferer;
   };
   // visitor for newast::Statements. its return value will be the return/expr of
   // last line in statements(used for inference of function return type).
-  struct StatementTypeVisitor {
+  struct StatementTypeVisitor : public VisitorBase<types::Value> {
     explicit StatementTypeVisitor(TypeInferer& parent) : inferer(parent) {}
     types::Value operator()(newast::Assign& ast);
     types::Value operator()(newast::Return& ast);
@@ -235,15 +225,6 @@ struct TypeInferer {
     types::Value operator()(newast::For& ast);
     types::Value operator()(newast::If& ast);
     types::Value operator()(newast::ExprPtr& ast);
-    template <typename T>
-    types::Value operator()(Rec_Wrap<T>& ast) {
-      return (*this)(ast.getraw());
-    }
-    template <typename T>
-    types::Value operator()(T& /*ast*/) {
-      static_assert(
-          true, "missing some visitor functions for StatementRenameVisitor");
-    }
 
    private:
     TypeInferer& inferer;

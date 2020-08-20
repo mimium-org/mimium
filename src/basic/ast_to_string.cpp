@@ -81,12 +81,11 @@ void ExprStringVisitor::operator()(const newast::Rvar& ast) {
 void ExprStringVisitor::operator()(const newast::Self& /*ast*/) {
   output << "self";
 }
-void ExprStringVisitor::operator()(const Rec_Wrap<newast::Lambda>& ast) {
-  const newast::Lambda& lambda = ast;
+void ExprStringVisitor::operator()(const newast::Lambda& ast) {
   output << format.lpar << "lambda" << format.delim;
-  auto& largs = lambda.args;
+  auto& largs = ast.args;
   output << format.lpar_a << joinVec(largs.args, format.delim) << format.rpar_a;
-  output << lambda.body << format.rpar;
+  output << ast.body << format.rpar;
   ;
 }
 void ExprStringVisitor::fcallHelper(const newast::Fcall& fcall) {
@@ -97,42 +96,35 @@ void ExprStringVisitor::fcallHelper(const newast::Fcall& fcall) {
          << format.rpar;
 }
 
-void ExprStringVisitor::operator()(const Rec_Wrap<newast::Fcall>& ast) {
-  const newast::Fcall& fcall = ast;
-  fcallHelper(fcall);
+void ExprStringVisitor::operator()(const newast::Fcall& ast) {
+  fcallHelper(ast);
 }
-void ExprStringVisitor::operator()(const Rec_Wrap<newast::Time>& ast) {
-  const newast::Time& time = ast;
+void ExprStringVisitor::operator()(const newast::Time& ast) {
   output << format.lpar << "time" << format.delim;
-  fcallHelper(time.fcall);
+  fcallHelper(ast.fcall);
   output << format.delim << format.rpar;
 }
-void ExprStringVisitor::operator()(const Rec_Wrap<newast::Struct>& ast) {
-  const newast::Struct& str = ast;
+void ExprStringVisitor::operator()(const newast::Struct& ast) {
   output << format.lpar << "struct" << format.delim;
-  output << joinVec(str.args, format.delim) << format.rpar;
+  output << joinVec(ast.args, format.delim) << format.rpar;
 }
-void ExprStringVisitor::operator()(const Rec_Wrap<newast::StructAccess>& ast) {
-  const newast::StructAccess& stracc = ast;
+void ExprStringVisitor::operator()(const newast::StructAccess& ast) {
   output << format.lpar << "structaccess" << format.delim << format.lpar_a
-         << *stracc.stru << format.delim << *stracc.field << format.rpar_a
+         << *ast.stru << format.delim << *ast.field << format.rpar_a
          << format.rpar;
 }
-void ExprStringVisitor::operator()(const Rec_Wrap<newast::ArrayInit>& ast) {
-  const newast::ArrayInit& arr = ast;
+void ExprStringVisitor::operator()(const newast::ArrayInit& ast) {
   output << format.lpar << "array" << format.delim << format.lpar_a;
-  output << joinVec(arr.args, format.delim);
+  output << joinVec(ast.args, format.delim);
   output << format.rpar_a << format.delim << format.rpar;
 }
-void ExprStringVisitor::operator()(const Rec_Wrap<newast::ArrayAccess>& ast) {
-  const newast::ArrayAccess& acc = ast;
-  output << format.lpar << "arrayaccess" << format.delim << *acc.array
-         << format.delim << acc.index << format.rpar;
+void ExprStringVisitor::operator()(const newast::ArrayAccess& ast) {
+  output << format.lpar << "arrayaccess" << format.delim << *ast.array
+         << format.delim << ast.index << format.rpar;
 }
-void ExprStringVisitor::operator()(const Rec_Wrap<newast::Tuple>& ast) {
-  const newast::Tuple& tup = ast;
+void ExprStringVisitor::operator()(const newast::Tuple& ast) {
   output << format.lpar << "tuple" << format.delim << format.lpar_a;
-  output << joinVec(tup.args, format.delim);
+  output << joinVec(ast.args, format.delim);
   output << format.rpar_a << format.delim << format.rpar;
 }
 void StatementStringVisitor::operator()(const newast::Assign& ast) {
@@ -144,19 +136,17 @@ void StatementStringVisitor::operator()(const newast::Return& ast) {
          << format.rpar;
 }
 // void StatementStringVisitor::operator()(const newast::Declaration& ast) {}
-void StatementStringVisitor::operator()(const Rec_Wrap<newast::For>& ast) {}
-void StatementStringVisitor::operator()(const Rec_Wrap<newast::If>& ast) {
-  const newast::If& ifast = ast;
-  output << format.lpar << "if" << format.delim << *ifast.cond << format.delim
-         << ifast.then_stmts;
-  if (ifast.else_stmts.has_value()) {
-    output << format.delim << ifast.else_stmts.value();
+void StatementStringVisitor::operator()(const newast::For& ast) {}
+void StatementStringVisitor::operator()(const newast::If& ast) {
+  output << format.lpar << "if" << format.delim << *ast.cond << format.delim
+         << ast.then_stmts;
+  if (ast.else_stmts.has_value()) {
+    output << format.delim << ast.else_stmts.value();
   }
   output << format.rpar;
 }
-void StatementStringVisitor::operator()(const Rec_Wrap<newast::ExprPtr>& ast) {
-  const newast::ExprPtr& expr = ast;
-  output << *expr;
+void StatementStringVisitor::operator()(const newast::ExprPtr& ast) {
+  output << *ast;
 }
 
 }  // namespace mimium

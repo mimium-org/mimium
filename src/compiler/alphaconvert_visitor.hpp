@@ -21,7 +21,7 @@ class SymbolRenamer {
   explicit SymbolRenamer(std::shared_ptr<RenameEnvironment> env);
   AstPtr rename(newast::Statements& ast);
 
-  struct ExprRenameVisitor {
+  struct ExprRenameVisitor :public VisitorBase<newast::ExprPtr>{
     explicit ExprRenameVisitor(SymbolRenamer& parent) : renamer(parent){};
     SymbolRenamer& renamer;
     newast::ExprPtr operator()(newast::Op& ast);
@@ -37,18 +37,8 @@ class SymbolRenamer {
     newast::ExprPtr operator()(newast::ArrayInit& ast);
     newast::ExprPtr operator()(newast::ArrayAccess& ast);
     newast::ExprPtr operator()(newast::Tuple& ast);
-    template <typename T>
-    newast::ExprPtr operator()(Rec_Wrap<T>& ast) {
-      // default action
-      return (*this)(ast.getraw());
-    }
-    //in case missing to list asts
-    template<typename T>
-    newast::ExprPtr operator()(T&  /*ast*/){
-      static_assert(true, "missing some visitor functions for ExprRenameVisitor");
-    }
   };
-  struct StatementRenameVisitor {
+  struct StatementRenameVisitor: public VisitorBase<StatementPtr>{
     explicit StatementRenameVisitor(SymbolRenamer& parent) : renamer(parent){};
     SymbolRenamer& renamer;
     StatementPtr operator()(newast::Assign& ast);
@@ -57,14 +47,6 @@ class SymbolRenamer {
     StatementPtr operator()(newast::For& ast);
     StatementPtr operator()(newast::If& ast);
     StatementPtr operator()(newast::ExprPtr& ast);
-    template <typename T>
-    StatementPtr operator()(Rec_Wrap<T>& ast) {
-      return (*this)(ast.getraw());
-    }
-    template <typename T>
-    StatementPtr operator()(T&  /*ast*/) {
-      static_assert(true, "missing some visitor functions for StatementRenameVisitor");
-    }
   };
 
  private:

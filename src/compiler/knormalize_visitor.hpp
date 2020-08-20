@@ -68,4 +68,36 @@ class KNormalizeVisitor : public ASTVisitor {
   }
 };
 
+class MirGenerator {
+ public:
+  MIRblock& generate(newast::Statements& topast, TypeEnv& typeenv);
+  struct ExprKnormVisitor : public VisitorBase<Instructions> {
+    Instructions operator()(newast::Op& ast);
+    Instructions operator()(newast::Number& ast);
+    Instructions operator()(newast::String& ast);
+    Instructions operator()(newast::Rvar& ast);
+    Instructions operator()(newast::Self& ast);
+    Instructions operator()(newast::Lambda& ast);
+    Instructions operator()(newast::Fcall& ast);
+    Instructions operator()(newast::Time& ast);
+    Instructions operator()(newast::Struct& ast);
+    Instructions operator()(newast::StructAccess& ast);
+    Instructions operator()(newast::ArrayInit& ast);
+    Instructions operator()(newast::ArrayAccess& ast);
+    Instructions operator()(newast::Tuple& ast);
+  };
+  struct StatementKnormVisitor: public VisitorBase<Instructions>  {
+    Instructions operator()(newast::Assign& ast);
+    Instructions operator()(newast::Return& ast);
+    // Instructions operator()(newast::Declaration& ast);
+    Instructions operator()(newast::For& ast);
+    Instructions operator()(newast::If& ast);
+    Instructions operator()(newast::ExprPtr& ast);
+
+  };
+
+ private:
+  MIRblock mir;
+};
+
 }  // namespace mimium
