@@ -27,7 +27,7 @@ struct ToStringVisitor {
   bool is_prettry;
 };
 
-struct ExprStringVisitor : public ToStringVisitor,public VisitorBase<void> {
+struct ExprStringVisitor : public ToStringVisitor, public VisitorBase<void> {
   explicit ExprStringVisitor(std::ostream& output, Mode mode = Mode::Lisp);
 
   void operator()(const newast::Number& ast);
@@ -48,7 +48,8 @@ struct ExprStringVisitor : public ToStringVisitor,public VisitorBase<void> {
   void fcallHelper(const newast::Fcall& fcall);
 };
 
-struct StatementStringVisitor : public ToStringVisitor,public VisitorBase<void> {
+struct StatementStringVisitor : public ToStringVisitor,
+                                public VisitorBase<void> {
   explicit StatementStringVisitor(std::ostream& output, Mode mode = Mode::Lisp);
 
   ExprStringVisitor exprstringvisitor;
@@ -69,43 +70,52 @@ class AstStringifier {
 template <typename CONTAINER>
 inline std::string joinVec(const CONTAINER& vec, const std::string& delim) {
   std::ostringstream stream;
-  if(vec.size()>0){
-  for (auto& elem : vec) {
-    if (&elem != &vec[0]) {
-      stream << delim;
+  if (vec.size() > 0) {
+    for (auto& elem : vec) {
+      if (&elem != &vec[0]) {
+        stream << delim;
+      }
+      if constexpr (std::is_pointer<decltype(elem)>::value ||
+                    is_smart_pointer<decltype(elem)>::value) {
+        stream << *elem;
+      } else {
+        stream << elem;
+      }
     }
-    if constexpr(std::is_pointer<decltype(elem)>::value || is_smart_pointer<decltype(elem)>::value){
-    stream << *elem;
-    }else{
-    stream << elem;
-    }
-  }
   }
   return stream.str();
 }
 
 namespace newast {
 
-inline std::ostream& operator<<(std::ostream& os, const newast::Lvar& lvar) ;
+inline std::ostream& operator<<(std::ostream& os, const newast::Lvar& lvar);
 inline std::ostream& operator<<(std::ostream& os, const newast::Expr& expr);
 
-template<typename T>
-inline std::ostream& operator<<(std::ostream& os, const std::shared_ptr<T> expr){
+template <typename T>
+inline std::ostream& operator<<(std::ostream& os,
+                                const std::shared_ptr<T> expr) {
   os << *expr;
   return os;
 }
 
 // inline std::ostream& operator<<(std::ostream& os,
 //                                 const newast::Statement& statement);
-std::ostream& toString(std::ostream& os,
-                                 const newast::Statement& statement);
+inline std::ostream& toString(std::ostream& os,
+                              const newast::Statement& statement);
 
-std::ostream& toString(std::ostream& os,
-                                  newast::Statements const& statements);
-
+inline std::ostream& toString(std::ostream& os,
+                              newast::Statements const& statements) {
+  StatementStringVisitor svisitor(os, Mode::Lisp);
+  for (const auto& statement : statements) {
+    std::visit(svisitor, *statement);
+    os << svisitor.format.br;
+  }
+  os << std::flush;
+  return os;
+}
 inline std::ostream& operator<<(std::ostream& os,
-                                const newast::Statements& statements){
-  return toString(os,statements);
+                                const newast::Statements& statements) {
+  return toString(os, statements);
 }
 }  // namespace newast
 }  // namespace mimium

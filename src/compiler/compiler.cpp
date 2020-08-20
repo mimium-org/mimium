@@ -10,7 +10,7 @@ Compiler::Compiler(llvm::LLVMContext& ctx)
       symbolrenamer(std::make_shared<RenameEnvironment>()),
       typeinferer(),
       recursivechecker(),
-      knormvisitor(),
+      mirgenerator(typeinferer.getTypeEnv()),
       closureconverter(
           std::make_shared<ClosureConverter>(typeinferer.getTypeEnv())),
       memobjcollector(typeinferer.getTypeEnv()),
@@ -46,7 +46,7 @@ TypeEnv& Compiler::typeInfer(AstPtr ast) {
 
 std::shared_ptr<MIRblock> Compiler::generateMir(AstPtr ast) {
   // ast->accept(knormvisitor);
-  return knormvisitor.getResult();
+  return mirgenerator.generate(*ast);
 }
 std::shared_ptr<MIRblock> Compiler::closureConvert(
     std::shared_ptr<MIRblock> mir) {

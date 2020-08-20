@@ -45,7 +45,7 @@ public:
   SymbolRenamer symbolrenamer;
   TypeInferer typeinferer;
   RecursiveChecker recursivechecker;
-  KNormalizeVisitor knormvisitor;
+  MirGenerator mirgenerator;
   std::shared_ptr<ClosureConverter> closureconverter;
   MemoryObjsCollector memobjcollector;
   LLVMGenerator llvmgenerator;

@@ -15,6 +15,7 @@
 #include "llvm/Support/CommandLine.h"
 namespace cl = llvm::cl;
 using Logger = mimium::Logger;
+#include "basic/ast_to_string.hpp"
 #include "compiler/compiler.hpp"
 #include "runtime/JIT/runtime_jit.hpp"
 #include "runtime/backend/rtaudio/driver_rtaudio.hpp"
@@ -104,12 +105,12 @@ auto main(int argc, char** argv) -> int {
       do {
         auto ast = compiler->loadSourceFile(filename);
         if (stage == CompileStage::AST) {
-          std::cout << ast->toString() << std::endl;
+          std::cout << *ast << std::endl;
           break;
         }
-        auto ast_u = compiler->alphaConvert(ast);
+        auto ast_u = compiler->renameSymbols(ast);
         if (stage == CompileStage::AST_UNIQUENAME) {
-          std::cout << ast_u->toString() << std::endl;
+          std::cout << *ast_u << std::endl;
           break;
         }
         auto& typeinfos = compiler->typeInfer(ast_u);

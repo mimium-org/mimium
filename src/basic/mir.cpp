@@ -43,7 +43,9 @@ std::string AssignInst::toString() { return lv_name + " =(overwrite) " + val; }
 
 // std::string TimeInst::toString() { return lv_name + " = " + val + +"@" + time; }
 
-std::string OpInst::toString() { return lv_name + " = " + lhs + op + rhs; }
+std::string OpInst::toString() { 
+  auto opstr = std::string(newast::op_str.find(op)->second);
+  return lv_name + " = " + lhs + opstr + rhs; }
 FunInst::FunInst(const std::string& name, std::deque<std::string> newargs,
                  types::Value type, bool isrecursive)
     : MIRinstruction(name, std::move(type)),

@@ -37,15 +37,16 @@ std::ostream& toString(std::ostream& os, const newast::Statement& statement) {
   return os;
 }
 
-std::ostream& toString(std::ostream& os, const newast::Statements& statements) {
-  StatementStringVisitor svisitor(os, Mode::Lisp);
-  for (const auto& statement : statements) {
-    std::visit(svisitor, *statement);
-    os << svisitor.format.br;
-  }
-  os << std::flush;
-  return os;
-}
+// std::ostream& toString(std::ostream& os,
+//                                   newast::Statements const& statements) {
+//   StatementStringVisitor svisitor(os, Mode::Lisp);
+//   for (const auto& statement : statements) {
+//     std::visit(svisitor, *statement);
+//     os << svisitor.format.br;
+//   }
+//   os << std::flush;
+//   return os;
+// }
 
 std::ostream& operator<<(std::ostream& os, const newast::Lvar& lvar) {
   ExprStringVisitor evisitor(os);
