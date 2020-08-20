@@ -408,8 +408,9 @@ lvarid ExprKnormVisitor::operator()(newast::Fcall& ast,
   types::Value rettype =
       (rettype_ptr == nullptr) ? types::Value(types::None()) : *rettype_ptr;
   auto fnkind = MirGenerator::isExternalFun(fname) ? EXTERNAL : CLOSURE;
+  auto newname  = mirgen.makeNewName();
   return mirgen.emplace(
-      FcallInst(mirgen.makeNewName(), fname,
+      FcallInst(newname, fname,
                 mirgen.transformArgs(
                     ast.args.args, std::deque<std::string>{},
                     [&](auto expr) { return std::visit(*this, *expr).first; }),
