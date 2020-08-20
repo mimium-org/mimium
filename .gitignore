@@ -5,6 +5,7 @@ CMakeCache.txt
 cmake_install.cmake
 Debug/
 build/*
+embuild/*
 *.xcodeproj
 
 docs/_*
