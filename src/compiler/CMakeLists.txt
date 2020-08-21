@@ -23,7 +23,7 @@ ${FLEX_INCLUDE_CACHE}
 ${PARSER_HEADER_DIR} 
 )
 
-add_library(mimium_compiler alphaconvert_visitor.cpp knormalize_visitor.cpp type_infer_visitor.cpp closure_convert.cpp collect_memoryobjs.cpp compiler.cpp)
+add_library(mimium_compiler symbolrenamer.cpp mirgenerator.cpp type_infer_visitor.cpp closure_convert.cpp collect_memoryobjs.cpp compiler.cpp)
 add_dependencies(mimium_compiler  mimium_parser mimium_builtinfn)
 target_include_directories(mimium_compiler
 PUBLIC

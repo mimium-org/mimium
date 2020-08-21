@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 #include "gtest/internal/gtest-port.h"
-#include "basic/ast_new.hpp"
+#include "basic/ast.hpp"
 namespace mimium{
 
 TEST(newast, basic) {

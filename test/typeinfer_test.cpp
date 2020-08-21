@@ -1,5 +1,5 @@
 #include "basic/ast_to_string.hpp"
-#include "compiler/alphaconvert_visitor.hpp"
+#include "compiler/symbolrenamer.hpp"
 #include "compiler/ast_loader.hpp"
 #include "compiler/type_infer_visitor.hpp"
 #include "gtest/gtest.h"

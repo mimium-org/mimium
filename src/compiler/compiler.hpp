@@ -4,14 +4,14 @@
 
 #pragma once
 #include "basic/helper_functions.hpp"
-#include "basic/ast_new.hpp"
+#include "basic/ast.hpp"
 #include "basic/mir.hpp"
 #include "basic/type.hpp"
 
 #include "compiler/ast_loader.hpp"
-#include "compiler/alphaconvert_visitor.hpp"
+#include "compiler/symbolrenamer.hpp"
 #include "compiler/type_infer_visitor.hpp"
-#include "compiler/knormalize_visitor.hpp"
+#include "compiler/mirgenerator.hpp"
 #include "compiler/closure_convert.hpp"
 #include "compiler/collect_memoryobjs.hpp"
 #include "compiler/codegen/llvmgenerator.hpp"

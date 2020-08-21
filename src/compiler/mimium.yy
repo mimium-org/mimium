@@ -38,7 +38,7 @@
   #include <memory>
   #include <sstream>
 
-#include "basic/ast_new.hpp"
+#include "basic/ast.hpp"
 #include "basic/helper_functions.hpp"
 using namespace mimium;
 

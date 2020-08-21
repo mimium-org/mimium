@@ -6,7 +6,7 @@
 #include <list>
 #include <utility>
 
-#include "basic/ast_new.hpp"
+#include "basic/ast.hpp"
 #include "basic/type.hpp"
 
 namespace mimium {

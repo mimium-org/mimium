@@ -1,6 +1,6 @@
 #include "basic/ast_to_string.hpp"
 
-#include "basic/ast_new.hpp"
+#include "basic/ast.hpp"
 #include "compiler/ast_loader.hpp"
 #include "gtest/gtest.h"
 #include "gtest/internal/gtest-port.h"

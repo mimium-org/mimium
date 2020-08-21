@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
-#include "basic/ast_new.hpp"
+#include "basic/ast.hpp"
 #include "basic/helper_functions.hpp"
 #include "basic/type.hpp"
 #include "compiler/ffi.hpp"

@@ -14,7 +14,7 @@
 #include <iostream>
 #include <filesystem>
 
-#include "basic/ast_new.hpp"
+#include "basic/ast.hpp"
 #include "compiler/scanner.hpp"
 #include "mimium_parser.hpp"
 

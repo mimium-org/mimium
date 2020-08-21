@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 #include "gtest/internal/gtest-port.h"
-#include "basic/ast_new.hpp"
+#include "basic/ast.hpp"
 #include "basic/ast_to_string.hpp"
 #include "compiler/ast_loader.hpp"
 namespace mimium{
