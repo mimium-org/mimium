@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.4)
 option(BUILD_DOCS "build a documentation")
-
+option(BUILD_TEST "build a test" OFF)
 
 #set(CMAKE_CXX_COMPILER /usr/local/opt/llvm/bin/clang++)
 #set(CMAKE_C_COMPILER /usr/local/opt/llvm/bin/clang) 
@@ -60,7 +60,7 @@ if(BUILD_DOCS)
 add_subdirectory( docs )
 endif()
 
-if(NOT(${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten"))
+if(NOT(${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten") AND ${BUILD_TEST})
 enable_testing()
 add_subdirectory( test )
 endif()
