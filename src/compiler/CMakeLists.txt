@@ -11,7 +11,7 @@ target_link_libraries(mimium_builtinfn PUBLIC mimium_utils  ${SNDFILE_LIBRARIES}
 
 
 add_subdirectory(codegen)
-add_library(mimium_parser ${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} ast_loader_new.cpp  )
+add_library(mimium_parser ${FLEX_MyScanner_OUTPUTS} ${BISON_MyParser_OUTPUTS} ast_loader.cpp  )
 target_compile_options(mimium_parser PUBLIC -std=c++17)
 
 

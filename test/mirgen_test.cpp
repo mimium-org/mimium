@@ -1,6 +1,6 @@
 #include "basic/ast_to_string.hpp"
 #include "compiler/alphaconvert_visitor.hpp"
-#include "compiler/ast_loader_new.hpp"
+#include "compiler/ast_loader.hpp"
 #include "compiler/knormalize_visitor.hpp"
 #include "compiler/type_infer_visitor.hpp"
 #include "gtest/gtest.h"

@@ -8,7 +8,7 @@
 #include "basic/mir.hpp"
 #include "basic/type.hpp"
 
-#include "compiler/ast_loader_new.hpp"
+#include "compiler/ast_loader.hpp"
 #include "compiler/alphaconvert_visitor.hpp"
 #include "compiler/recursive_checker.hpp"
 #include "compiler/type_infer_visitor.hpp"

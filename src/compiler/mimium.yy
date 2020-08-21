@@ -50,7 +50,7 @@ using namespace mimium;
 
 %code {
   using namespace mimium;
-  #include "compiler/ast_loader_new.hpp"
+  #include "compiler/ast_loader.hpp"
   #undef yylex
   #define yylex scanner.yylex
 }

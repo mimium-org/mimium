@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-#include "compiler/ast_loader_new.hpp"
+#include "compiler/ast_loader.hpp"
 #include "basic/ast_to_string.hpp"
 
 namespace fs = std::filesystem;

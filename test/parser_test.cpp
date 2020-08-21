@@ -2,7 +2,7 @@
 #include "gtest/internal/gtest-port.h"
 #include "basic/ast_new.hpp"
 #include "basic/ast_to_string.hpp"
-#include "compiler/ast_loader_new.hpp"
+#include "compiler/ast_loader.hpp"
 namespace mimium{
 
 #define PARSER_TEST(FILENAME) TEST(parser, FILENAME) {\
