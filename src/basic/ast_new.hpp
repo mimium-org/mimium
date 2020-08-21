@@ -9,7 +9,7 @@
 using mmmfloat = double;
 
 namespace mimium {
-namespace newast {
+namespace ast {
 
 // forward declaration
 struct Base;
@@ -234,20 +234,20 @@ struct If : public Base {
 
 template <typename FROM, typename TO>
 std::shared_ptr<TO> makeAst(FROM&& ast) {
-  newast::Expr expr = ast;
+  ast::Expr expr = ast;
   return std::make_shared<TO>(expr);
 }
 
 template <typename FROM>
 auto makeExpr(FROM&& ast) {
-  newast::Expr expr = ast;
-  return std::make_shared<newast::Expr>(std::move(expr));
+  ast::Expr expr = ast;
+  return std::make_shared<ast::Expr>(std::move(expr));
 }
 template <typename FROM>
 auto makeStatement(FROM&& ast) {
-  newast::Statement stmt = ast;
-  return std::make_shared<newast::Statement>(std::move(stmt));
+  ast::Statement stmt = ast;
+  return std::make_shared<ast::Statement>(std::move(stmt));
 }
 
-}  // namespace newast
+}  // namespace ast
 }  // namespace mimium

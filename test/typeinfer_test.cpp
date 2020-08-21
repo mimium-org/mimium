@@ -7,7 +7,7 @@
 
 #define PREP(FILENAME)                                      \
   Driver driver{};                                          \
-  newast::Statements& ast =                                 \
+  ast::Statements& ast =                                 \
       *driver.parseFile("typeinference/" #FILENAME ".mmm"); \
   SymbolRenamer renamer;                                    \
   auto newast = renamer.rename(ast);                        \

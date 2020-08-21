@@ -5,7 +5,7 @@
 #include "compiler/codegen/codegen_visitor.hpp"
 
 namespace mimium {
-using OpId = newast::OpId;
+using OpId = ast::OpId;
 const std::unordered_map<OpId, std::string> CodeGenVisitor::opid_to_ffi = {
     // names are declared in ffi.cpp
 
@@ -130,11 +130,11 @@ void CodeGenVisitor::createUniOp(OpInst& i) {
   llvm::Value* retvalue;
   auto* rhs = G.findValue(i.rhs);
   switch (i.op) {
-    case newast::OpId::Sub:
+    case ast::OpId::Sub:
       retvalue = G.builder->CreateUnOp(llvm::Instruction::UnaryOps::FNeg, rhs,
                                        i.lv_name);
       break;
-    case newast::OpId::Not:
+    case ast::OpId::Not:
       retvalue =
           G.builder->CreateCall(G.getForeignFunction("not"), {rhs}, i.lv_name);
       break;
@@ -150,16 +150,16 @@ void CodeGenVisitor::createBinOp(OpInst& i) {
   auto* lhs = G.findValue(i.lhs);
   auto* rhs = G.findValue(i.rhs);
   switch (i.op) {
-    case newast::OpId::Add:
+    case ast::OpId::Add:
       retvalue = G.builder->CreateFAdd(lhs, rhs, i.lv_name);
       break;
-    case newast::OpId::Sub:
+    case ast::OpId::Sub:
       retvalue = G.builder->CreateFSub(lhs, rhs, i.lv_name);
       break;
-    case newast::OpId::Mul:
+    case ast::OpId::Mul:
       retvalue = G.builder->CreateFMul(lhs, rhs, i.lv_name);
       break;
-    case newast::OpId::Div:
+    case ast::OpId::Div:
       retvalue = G.builder->CreateFDiv(lhs, rhs, i.lv_name);
       break;
     default: {

@@ -30,22 +30,22 @@ struct ToStringVisitor {
 struct ExprStringVisitor : public ToStringVisitor, public VisitorBase<void> {
   explicit ExprStringVisitor(std::ostream& output, Mode mode = Mode::Lisp);
 
-  void operator()(const newast::Number& ast);
-  void operator()(const newast::String& ast);
-  void operator()(const newast::Op& ast);
-  void operator()(const newast::Rvar& ast);
-  void operator()(const newast::Self& ast);
-  void operator()(const newast::Lambda& ast);
-  void operator()(const newast::Fcall& ast);
-  void operator()(const newast::Time& ast);
-  void operator()(const newast::Struct& ast);
-  void operator()(const newast::StructAccess& ast);
-  void operator()(const newast::ArrayInit& ast);
-  void operator()(const newast::ArrayAccess& ast);
-  void operator()(const newast::Tuple& ast);
+  void operator()(const ast::Number& ast);
+  void operator()(const ast::String& ast);
+  void operator()(const ast::Op& ast);
+  void operator()(const ast::Rvar& ast);
+  void operator()(const ast::Self& ast);
+  void operator()(const ast::Lambda& ast);
+  void operator()(const ast::Fcall& ast);
+  void operator()(const ast::Time& ast);
+  void operator()(const ast::Struct& ast);
+  void operator()(const ast::StructAccess& ast);
+  void operator()(const ast::ArrayInit& ast);
+  void operator()(const ast::ArrayAccess& ast);
+  void operator()(const ast::Tuple& ast);
 
  private:
-  void fcallHelper(const newast::Fcall& fcall);
+  void fcallHelper(const ast::Fcall& fcall);
 };
 
 struct StatementStringVisitor : public ToStringVisitor,
@@ -53,12 +53,12 @@ struct StatementStringVisitor : public ToStringVisitor,
   explicit StatementStringVisitor(std::ostream& output, Mode mode = Mode::Lisp);
 
   ExprStringVisitor exprstringvisitor;
-  void operator()(const newast::Assign& ast);
-  void operator()(const newast::Return& ast);
-  // void operator()(const newast::Declaration& ast);
-  void operator()(const newast::For& ast);
-  void operator()(const newast::If& ast);
-  void operator()(const newast::ExprPtr& ast);
+  void operator()(const ast::Assign& ast);
+  void operator()(const ast::Return& ast);
+  // void operator()(const ast::Declaration& ast);
+  void operator()(const ast::For& ast);
+  void operator()(const ast::If& ast);
+  void operator()(const ast::ExprPtr& ast);
 };
 
 class AstStringifier {
@@ -86,10 +86,10 @@ inline std::string joinVec(const CONTAINER& vec, const std::string& delim) {
   return stream.str();
 }
 
-namespace newast {
+namespace ast {
 
-inline std::ostream& operator<<(std::ostream& os, const newast::Lvar& lvar);
-inline std::ostream& operator<<(std::ostream& os, const newast::Expr& expr);
+inline std::ostream& operator<<(std::ostream& os, const ast::Lvar& lvar);
+inline std::ostream& operator<<(std::ostream& os, const ast::Expr& expr);
 
 template <typename T>
 inline std::ostream& operator<<(std::ostream& os,
@@ -99,12 +99,12 @@ inline std::ostream& operator<<(std::ostream& os,
 }
 
 // inline std::ostream& operator<<(std::ostream& os,
-//                                 const newast::Statement& statement);
+//                                 const ast::Statement& statement);
 inline std::ostream& toString(std::ostream& os,
-                              const newast::Statement& statement);
+                              const ast::Statement& statement);
 
 inline std::ostream& toString(std::ostream& os,
-                              newast::Statements const& statements) {
+                              ast::Statements const& statements) {
   StatementStringVisitor svisitor(os, Mode::Lisp);
   for (const auto& statement : statements) {
     std::visit(svisitor, *statement);
@@ -114,8 +114,8 @@ inline std::ostream& toString(std::ostream& os,
   return os;
 }
 inline std::ostream& operator<<(std::ostream& os,
-                                const newast::Statements& statements) {
+                                const ast::Statements& statements) {
   return toString(os, statements);
 }
-}  // namespace newast
+}  // namespace ast
 }  // namespace mimium

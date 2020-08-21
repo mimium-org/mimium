@@ -7,7 +7,7 @@ namespace mimium{
 
 #define PARSER_TEST(FILENAME) TEST(parser, FILENAME) {\
 Driver driver{};\
-newast::Statements& ast = *driver.parseFile("parser/"#FILENAME".mmm");\
+ast::Statements& ast = *driver.parseFile("parser/"#FILENAME".mmm");\
 }
 
 PARSER_TEST(number)

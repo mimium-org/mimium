@@ -43,7 +43,7 @@ std::string AssignInst::toString() { return lv_name + " =(overwrite) " + val; }
 // time; }
 
 std::string OpInst::toString() {
-  auto opstr = std::string(newast::op_str.find(op)->second);
+  auto opstr = std::string(ast::op_str.find(op)->second);
   return lv_name + " = " + opstr + " " + lhs + " " + rhs;
 }
 FunInst::FunInst(const std::string& name, std::deque<std::string> newargs,

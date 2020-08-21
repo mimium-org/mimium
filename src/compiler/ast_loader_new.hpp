@@ -23,7 +23,7 @@
 namespace mimium {
 
 // Ast loader class to bridge between parser and ast.
-using AstPtr = std::shared_ptr<newast::Statements>;
+using AstPtr = std::shared_ptr<ast::Statements>;
 
 class Driver {
  public:

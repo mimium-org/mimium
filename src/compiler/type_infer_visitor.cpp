@@ -339,30 +339,30 @@ using ExprTypeVisitor = TypeInferer::ExprTypeVisitor;
 using StatementTypeVisitor = TypeInferer::StatementTypeVisitor;
 using TypeUnifyVisitor = TypeInferer::TypeUnifyVisitor;
 
-types::Value ExprTypeVisitor::operator()(newast::Op& ast) {
+types::Value ExprTypeVisitor::operator()(ast::Op& ast) {
   if (!ast.lhs.has_value()) {
     return std::visit(*this, *ast.rhs);
   }
   return inferer.unify(std::visit(*this, *ast.lhs.value()),
                        std::visit(*this, *ast.rhs));
 }
-types::Value ExprTypeVisitor::operator()(newast::Number& ast) {
+types::Value ExprTypeVisitor::operator()(ast::Number& ast) {
   return types::Float();
 }
-types::Value ExprTypeVisitor::operator()(newast::String& ast) {
+types::Value ExprTypeVisitor::operator()(ast::String& ast) {
   return types::String();
 }
-types::Value ExprTypeVisitor::operator()(newast::Rvar& ast) {
+types::Value ExprTypeVisitor::operator()(ast::Rvar& ast) {
   return inferer.typeenv.find(ast.value);
 }
-types::Value ExprTypeVisitor::operator()(newast::Self& ast) {
+types::Value ExprTypeVisitor::operator()(ast::Self& ast) {
   if (inferer.selftype_stack.empty()) {
     throw std::runtime_error("keyword \"self\" cannot be used out of function");
   }
   ast.type = inferer.selftype_stack.top();
   return inferer.selftype_stack.top();
 }
-types::Value ExprTypeVisitor::operator()(newast::Lambda& ast) {
+types::Value ExprTypeVisitor::operator()(ast::Lambda& ast) {
   std::vector<types::Value> argtypes;
   for (auto&& a : ast.args.args) {
     argtypes.emplace_back(inferer.addLvar(a));
@@ -375,12 +375,12 @@ types::Value ExprTypeVisitor::operator()(newast::Lambda& ast) {
   inferer.selftype_stack.pop();
   return types::Function(std::move(uni_rettype), std::move(argtypes));
 }
-types::Value ExprTypeVisitor::operator()(newast::Fcall& ast) {
+types::Value ExprTypeVisitor::operator()(ast::Fcall& ast) {
   std::vector<types::Value> argtypes;
   auto args = ast.args.args;
   std::transform(
       args.begin(), args.end(), std::back_inserter(argtypes),
-      [&](newast::ExprPtr expr) { return std::visit(*this, *expr); });
+      [&](ast::ExprPtr expr) { return std::visit(*this, *expr); });
   // for (auto& a : ast.args.args) {
   //   argtypes.emplace_back(std::visit(*this, *a));
   // }
@@ -391,12 +391,12 @@ types::Value ExprTypeVisitor::operator()(newast::Fcall& ast) {
   auto res = inferer.unify(targetfntype, ftype);
   return rv::get<types::Function>(res).ret_type;
 }
-types::Value ExprTypeVisitor::operator()(newast::Time& ast) {
+types::Value ExprTypeVisitor::operator()(ast::Time& ast) {
   inferer.unify(std::visit(*this, *ast.when), types::Value(types::Float()));
   // anyway, this rvalue will not be used(time specification is used as void
   return (*this)(ast.fcall);
 }
-types::Value ExprTypeVisitor::operator()(newast::Struct& ast) {
+types::Value ExprTypeVisitor::operator()(ast::Struct& ast) {
   std::vector<types::Struct::Keytype> argtypes;
   types::Value tmptype;
   for (auto&& a : ast.args) {
@@ -405,7 +405,7 @@ types::Value ExprTypeVisitor::operator()(newast::Struct& ast) {
   }
   return types::Struct(std::move(argtypes));
 }
-types::Value ExprTypeVisitor::operator()(newast::StructAccess& ast) {
+types::Value ExprTypeVisitor::operator()(ast::StructAccess& ast) {
   auto stru_type = std::visit(*this, *ast.stru);
   if (!rv::holds_alternative<types::Struct>(stru_type)) {
     throw std::runtime_error(
@@ -416,7 +416,7 @@ types::Value ExprTypeVisitor::operator()(newast::StructAccess& ast) {
   // todo(tomoya): need to restrict field ast to rvar, not an term
   return stru.arg_types.at(0).val;
 }
-types::Value ExprTypeVisitor::operator()(newast::ArrayInit& ast) {
+types::Value ExprTypeVisitor::operator()(ast::ArrayInit& ast) {
   std::vector<types::Value> argtypes;
   types::Value tmptype;
   for (auto a = ast.args.begin(); a != (--ast.args.end()); ++a) {
@@ -424,7 +424,7 @@ types::Value ExprTypeVisitor::operator()(newast::ArrayInit& ast) {
   }
   return types::Array(tmptype);
 }
-types::Value ExprTypeVisitor::operator()(newast::ArrayAccess& ast) {
+types::Value ExprTypeVisitor::operator()(ast::ArrayAccess& ast) {
   auto indextype = inferer.unify(std::visit(*this, *ast.index),
                                  types::Value(types::Float()));
   auto tv = inferer.typeenv.createNewTypeVar();
@@ -437,27 +437,27 @@ types::Value ExprTypeVisitor::operator()(newast::ArrayAccess& ast) {
   }
   return rv::get<types::Array>(arraytype).elem_type;
 }
-types::Value ExprTypeVisitor::operator()(newast::Tuple& ast) {
+types::Value ExprTypeVisitor::operator()(ast::Tuple& ast) {
   // Todo(tomoya)
   return types::Tuple({types::Float()});
 }
 
-types::Value StatementTypeVisitor::operator()(newast::Assign& ast) {
+types::Value StatementTypeVisitor::operator()(ast::Assign& ast) {
   auto lvartype = inferer.addLvar(ast.lvar);
   auto rvartype = std::visit(inferer.exprvisitor, *ast.expr);
   inferer.unify(std::move(lvartype), std::move(rvartype));
   return types::Void();
 }
-types::Value StatementTypeVisitor::operator()(newast::Return& ast) {
+types::Value StatementTypeVisitor::operator()(ast::Return& ast) {
   return std::visit(inferer.exprvisitor, *ast.value);
 }
-// types::Value StatementTypeVisitor::operator()(newast::Declaration& ast){}
-types::Value StatementTypeVisitor::operator()(newast::For& ast) {
+// types::Value StatementTypeVisitor::operator()(ast::Declaration& ast){}
+types::Value StatementTypeVisitor::operator()(ast::For& ast) {
   // TODO(tomoya): types for iterator
   inferer.infer(ast.statements);
   return types::Void();  // for loop becomes void anyway
 }
-types::Value StatementTypeVisitor::operator()(newast::If& ast) {
+types::Value StatementTypeVisitor::operator()(ast::If& ast) {
   if (!ast.else_stmts.has_value()) {
     return inferer.inferStatements(ast.then_stmts);
   }
@@ -465,11 +465,11 @@ types::Value StatementTypeVisitor::operator()(newast::If& ast) {
   auto else_r_type = inferer.inferStatements(ast.else_stmts.value());
   return inferer.unify(std::move(then_r_type), std::move(else_r_type));
 }
-types::Value StatementTypeVisitor::operator()(newast::ExprPtr& ast) {
+types::Value StatementTypeVisitor::operator()(ast::ExprPtr& ast) {
   return std::visit(inferer.exprvisitor, *ast);
 }
 
-types::Value TypeInferer::addLvar(newast::Lvar& lvar) {
+types::Value TypeInferer::addLvar(ast::Lvar& lvar) {
   auto res = lvar.type.value_or(*typeenv.createNewTypeVar());
   auto [iter, was_newvar] = typeenv.emplace(lvar.value, res);
   return res;
@@ -523,14 +523,14 @@ std::vector<types::Value> TypeUnifyVisitor::unifyArgs(
   return res;
 }
 
-types::Value TypeInferer::inferStatements(newast::Statements& statements) {
+types::Value TypeInferer::inferStatements(ast::Statements& statements) {
   types::Value stmttype;
   for (auto&& statement : statements) {
     stmttype = std::visit(statementvisitor, *statement);
   }
   return stmttype;
 }
-TypeEnv& TypeInferer::infer(newast::Statements& topast) {
+TypeEnv& TypeInferer::infer(ast::Statements& topast) {
   inferStatements(topast);
   // typeenv.dumpTvLinks();
   substituteTypeVars();

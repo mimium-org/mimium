@@ -88,11 +88,11 @@ struct AssignInst : public MIRinstruction {
 // };
 struct OpInst : public MIRinstruction {
  public:
-  newast::OpId op;
+  ast::OpId op;
   std::string lhs;
   std::string rhs;
 
-  OpInst(const std::string& lv, newast::OpId op, std::string lhs,
+  OpInst(const std::string& lv, ast::OpId op, std::string lhs,
          std::string rhs)
       : MIRinstruction(lv, types::Float()),
         op(op),

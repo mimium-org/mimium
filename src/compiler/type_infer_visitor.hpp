@@ -198,33 +198,33 @@ struct OccurChecker {
 struct TypeInferer {
   struct ExprTypeVisitor : public VisitorBase<types::Value> {
     explicit ExprTypeVisitor(TypeInferer& parent) : inferer(parent) {}
-    types::Value operator()(newast::Op& ast);
-    types::Value operator()(newast::Number& ast);
-    types::Value operator()(newast::String& ast);
-    types::Value operator()(newast::Rvar& ast);
-    types::Value operator()(newast::Self& ast);
-    types::Value operator()(newast::Lambda& ast);
-    types::Value operator()(newast::Fcall& ast);
-    types::Value operator()(newast::Time& ast);
-    types::Value operator()(newast::Struct& ast);
-    types::Value operator()(newast::StructAccess& ast);
-    types::Value operator()(newast::ArrayInit& ast);
-    types::Value operator()(newast::ArrayAccess& ast);
-    types::Value operator()(newast::Tuple& ast);
+    types::Value operator()(ast::Op& ast);
+    types::Value operator()(ast::Number& ast);
+    types::Value operator()(ast::String& ast);
+    types::Value operator()(ast::Rvar& ast);
+    types::Value operator()(ast::Self& ast);
+    types::Value operator()(ast::Lambda& ast);
+    types::Value operator()(ast::Fcall& ast);
+    types::Value operator()(ast::Time& ast);
+    types::Value operator()(ast::Struct& ast);
+    types::Value operator()(ast::StructAccess& ast);
+    types::Value operator()(ast::ArrayInit& ast);
+    types::Value operator()(ast::ArrayAccess& ast);
+    types::Value operator()(ast::Tuple& ast);
 
    private:
     TypeInferer& inferer;
   };
-  // visitor for newast::Statements. its return value will be the return/expr of
+  // visitor for ast::Statements. its return value will be the return/expr of
   // last line in statements(used for inference of function return type).
   struct StatementTypeVisitor : public VisitorBase<types::Value> {
     explicit StatementTypeVisitor(TypeInferer& parent) : inferer(parent) {}
-    types::Value operator()(newast::Assign& ast);
-    types::Value operator()(newast::Return& ast);
-    // types::Value operator()(newast::Declaration& ast);
-    types::Value operator()(newast::For& ast);
-    types::Value operator()(newast::If& ast);
-    types::Value operator()(newast::ExprPtr& ast);
+    types::Value operator()(ast::Assign& ast);
+    types::Value operator()(ast::Return& ast);
+    // types::Value operator()(ast::Declaration& ast);
+    types::Value operator()(ast::For& ast);
+    types::Value operator()(ast::If& ast);
+    types::Value operator()(ast::ExprPtr& ast);
 
    private:
     TypeInferer& inferer;
@@ -405,8 +405,8 @@ struct TypeInferer {
     typeenv.emplace("mimium_getnow", types::Function(types::Float(), {}));
   }
   // entry point.
-  TypeEnv& infer(newast::Statements& topast);
-  types::Value inferStatements(newast::Statements& statements);
+  TypeEnv& infer(ast::Statements& topast);
+  types::Value inferStatements(ast::Statements& statements);
   TypeEnv& getTypeEnv() { return typeenv; }
 
  private:
@@ -417,7 +417,7 @@ struct TypeInferer {
   StatementTypeVisitor statementvisitor;
   TypeUnifyVisitor unifyvisitor;
   SubstituteVisitor substitutevisitor;
-  types::Value addLvar(newast::Lvar& lvar);
+  types::Value addLvar(ast::Lvar& lvar);
 
   types::Value unify(types::Value lhs, types::Value rhs) {
     return std::visit(unifyvisitor, lhs, rhs);

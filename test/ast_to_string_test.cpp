@@ -7,11 +7,11 @@
 namespace mimium {
 
 TEST(asttostring, basic) {
-  newast::DebugInfo dbg;
-  auto statement = newast::makeStatement(
-      newast::Assign{dbg,
+  ast::DebugInfo dbg;
+  auto statement = ast::makeStatement(
+      ast::Assign{dbg,
                      {dbg, {"hoge"}, {std::optional(types::Float())}},
-                     newast::makeExpr(newast::Number{dbg, 1})});
+                     ast::makeExpr(ast::Number{dbg, 1})});
   std::ostringstream ss;
   std::visit(StatementStringVisitor(ss), *statement);
   std::string target("(assign (lvar hoge float) 1)");

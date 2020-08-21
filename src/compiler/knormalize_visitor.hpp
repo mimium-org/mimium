@@ -76,39 +76,39 @@ class MirGenerator {
   }
   struct ExprKnormVisitor : public VisitorBase<lvarid&> {
     explicit ExprKnormVisitor(MirGenerator& parent) : mirgen(parent) {}
-    lvarid operator()(newast::Op& ast);
-    lvarid operator()(newast::Number& ast);
-    lvarid operator()(newast::String& ast);
-    lvarid operator()(newast::Rvar& ast);
-    lvarid operator()(newast::Self& ast);
-    lvarid operator()(newast::Lambda& ast);
-    lvarid operator()(newast::Fcall& ast,
+    lvarid operator()(ast::Op& ast);
+    lvarid operator()(ast::Number& ast);
+    lvarid operator()(ast::String& ast);
+    lvarid operator()(ast::Rvar& ast);
+    lvarid operator()(ast::Self& ast);
+    lvarid operator()(ast::Lambda& ast);
+    lvarid operator()(ast::Fcall& ast,
                       std::optional<std::string> when = std::nullopt);
-    lvarid operator()(newast::Time& ast);
-    lvarid operator()(newast::Struct& ast);
-    lvarid operator()(newast::StructAccess& ast);
-    lvarid operator()(newast::ArrayInit& ast);
-    lvarid operator()(newast::ArrayAccess& ast);
-    lvarid operator()(newast::Tuple& ast);
+    lvarid operator()(ast::Time& ast);
+    lvarid operator()(ast::Struct& ast);
+    lvarid operator()(ast::StructAccess& ast);
+    lvarid operator()(ast::ArrayInit& ast);
+    lvarid operator()(ast::ArrayAccess& ast);
+    lvarid operator()(ast::Tuple& ast);
 
    private:
     MirGenerator& mirgen;
   };
   struct StatementKnormVisitor : public VisitorBase<lvarid&> {
     explicit StatementKnormVisitor(MirGenerator& parent) : mirgen(parent) {}
-    lvarid operator()(newast::Assign& ast);
-    lvarid operator()(newast::Return& ast);
-    lvarid operator()(newast::For& ast);
-    lvarid operator()(newast::If& ast);
-    lvarid operator()(newast::ExprPtr& ast);
-    // Instructions operator()(newast::Declaration& ast);
+    lvarid operator()(ast::Assign& ast);
+    lvarid operator()(ast::Return& ast);
+    lvarid operator()(ast::For& ast);
+    lvarid operator()(ast::If& ast);
+    lvarid operator()(ast::ExprPtr& ast);
+    // Instructions operator()(ast::Declaration& ast);
 
    private:
     MirGenerator& mirgen;
   };
-  std::shared_ptr<MIRblock> generate(newast::Statements& topast);
+  std::shared_ptr<MIRblock> generate(ast::Statements& topast);
   std::pair<lvarid, std::shared_ptr<MIRblock>> generateBlock(
-      newast::Statements stmts, std::string label);
+      ast::Statements stmts, std::string label);
   bool isOverWrite(std::string const& name) {
     return std::find(lvarlist.begin(), lvarlist.end(), name) != lvarlist.end();
   }
