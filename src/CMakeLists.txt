@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-
+project(Main CXX)
 
 add_subdirectory(basic)
 add_subdirectory(compiler)
@@ -17,11 +17,16 @@ target_include_directories(mimium
 PRIVATE
 # ${CMAKE_SOURCE_DIR}/libs/rtmidi
 # ${SNDFILE_INCLUDE_DIRS}
+${FLEX_INCLUDE_CACHE}
+${PARSER_HEADER_DIR} 
+
 )
 target_include_directories(mimium_llloader
 PRIVATE
 # ${CMAKE_SOURCE_DIR}/libs/rtmidi
 # ${SNDFILE_INCLUDE_DIRS}
+${FLEX_INCLUDE_CACHE}
+${PARSER_HEADER_DIR} 
 )
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 target_link_options(mimium  PUBLIC -stdlib=libc++ -lc++abi)

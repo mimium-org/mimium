@@ -1,34 +1,96 @@
-#include "compiler/alphaconvert_visitor.hpp"
+#include "basic/ast_to_string.hpp"
+#include "compiler/symbolrenamer.hpp"
+#include "compiler/ast_loader.hpp"
+#include "compiler/type_infer_visitor.hpp"
 #include "gtest/gtest.h"
 #include "gtest/internal/gtest-port.h"
-#include "basic/helper_functions.hpp"
-#include "runtime/runtime.hpp"
-#include "compiler/type_infer_visitor.hpp"
 
-static mimium::Runtime runtime;
-static std::shared_ptr<mimium::AlphaConvertVisitor> alphaconv;
-static std::shared_ptr<mimium::TypeInferVisitor> typeinfer;
-
-TEST(typeinfertest, basic) {
-  alphaconv = std::make_shared<mimium::AlphaConvertVisitor>();
-  typeinfer = std::make_shared<mimium::TypeInferVisitor>();
-  runtime.setWorkingDirectory("/Users/tomoya/codes/mimium/build/test/");
-  mimium::Logger::current_report_level = mimium::Logger::INFO;
-  runtime.init(alphaconv);
-  runtime.loadSourceFile("test_typeident.mmm");
-  auto mainast = alphaconv->getResult();
-  mimium::Logger::debug_log(mainast->toString(), mimium::Logger::DEBUG);
-  mainast->accept(*typeinfer);
-  auto env = typeinfer->getEnv().env;
-  for (auto& it : env) {
-    std::cout << it.first << " : "
-              << std::visit([](auto t) { return t.toString(); }, it.second)
-              << std::endl;
-  }
-  auto typestr = std::visit([](auto t) { return t.toString(); }, env["hof"]);
-auto typestr2 = std::visit([](auto t) { return t.toString(); }, env["hof2"]);
-
-  EXPECT_EQ(typestr, "Fn[ (Float , Fn[ (Float) -> Float ]) -> Float ]");
-  EXPECT_EQ(typestr2, "Fn[ (Float , Fn[ (Float , Float) -> Float ]) -> Fn[ (Float) -> Float ] ]");
-
+#define PREP(FILENAME)                                      \
+  Driver driver{};                                          \
+  ast::Statements& ast =                                 \
+      *driver.parseFile("typeinference/" #FILENAME ".mmm"); \
+  SymbolRenamer renamer;                                    \
+  auto newast = renamer.rename(ast);                        \
+  TypeInferer inferer;
+namespace mimium {
+TEST(typeinfer, float_success) {
+  PREP(float_success)
+  EXPECT_TRUE(std::holds_alternative<types::Float>(
+      inferer.infer(*newast).env.at("hoge0")));
 }
+TEST(typeinfer, float_infer) {
+  PREP(float_infer)
+  EXPECT_TRUE(std::holds_alternative<types::Float>(
+      inferer.infer(*newast).env.at("hoge0")));
+}
+TEST(typeinfer, float_failure) {
+  PREP(float_failure)
+  EXPECT_THROW(auto a = inferer.infer(*newast);, std::runtime_error);
+}
+TEST(typeinfer, function) {
+  PREP(function)
+  auto& env = inferer.infer(*newast).env;
+  auto& add = env.at("add0");
+  auto& add_a = env.at("a1");
+  auto& add_b = env.at("b2");
+  auto& muladd = env.at("muladd3");
+  auto& muladd_a = env.at("a4");
+  auto& muladd_b = env.at("b5");
+  auto& muladd_c = env.at("c6");
+  auto& res = env.at("result7");
+
+  EXPECT_TRUE(std::holds_alternative<types::Float>(add_a));
+  EXPECT_TRUE(std::holds_alternative<types::Float>(add_b));
+  EXPECT_TRUE(std::holds_alternative<types::rFunction>(add));
+  EXPECT_TRUE(
+      rv::get<types::Function>(add) ==
+      types::Function(types::Float(), {types::Float(), types::Float()}));
+  EXPECT_TRUE(std::holds_alternative<types::Float>(muladd_a));
+  EXPECT_TRUE(std::holds_alternative<types::Float>(muladd_b));
+  EXPECT_TRUE(std::holds_alternative<types::Float>(muladd_c));
+  EXPECT_TRUE(std::holds_alternative<types::rFunction>(muladd));
+  EXPECT_TRUE(rv::get<types::Function>(muladd) ==
+              types::Function(types::Float(), {types::Float(), types::Float(),
+                                               types::Float()}));
+  EXPECT_TRUE(std::holds_alternative<types::Float>(res));
+}
+TEST(typeinfer, highorderfunction) {
+  PREP(highorderfunction)
+  auto& env = inferer.infer(*newast).env;
+  auto& add = env.at("add0");
+  EXPECT_TRUE(std::holds_alternative<types::Float>(env.at("x1")));
+  EXPECT_TRUE(std::holds_alternative<types::Float>(env.at("y2")));
+  auto add2type =
+      types::Function(types::Float(), {types::Float(), types::Float()});
+  EXPECT_TRUE(std::holds_alternative<types::rFunction>(add));
+  EXPECT_TRUE(rv::get<types::Function>(add) == add2type);
+  auto& hof = env.at("hof3");
+  EXPECT_TRUE(std::holds_alternative<types::Float>(env.at("x4")));
+  EXPECT_TRUE(std::holds_alternative<types::rFunction>(env.at("y5")));
+  EXPECT_TRUE(std::holds_alternative<types::rFunction>(hof));
+  auto hofrettype = types::Function(types::Float(), {types::Float()});
+
+  EXPECT_TRUE(rv::get<types::Function>(hof) ==
+              types::Function(hofrettype, {types::Float(), add2type}));
+  EXPECT_TRUE(std::holds_alternative<types::Float>(env.at("result7")));
+}
+
+TEST(typeinfer, recursivecall) {
+  PREP(recursivecall)
+  auto& env = inferer.infer(*newast).env;
+  EXPECT_TRUE(rv::get<types::Function>(env.at("fact0")) ==
+              types::Function(types::Float(), {types::Float()}));
+}
+TEST(typeinfer, self) {
+  PREP(self)
+  auto& env = inferer.infer(*newast).env;
+  EXPECT_TRUE(rv::get<types::Function>(env.at("lowpass0")) ==
+              types::Function(types::Float(), {types::Float(),types::Float()}));
+}
+
+TEST(typeinfer, occurfail) {
+  PREP(occur_failure)
+  EXPECT_THROW(auto a = inferer.infer(*newast);, std::runtime_error);
+}
+
+}  // namespace mimium

@@ -15,7 +15,6 @@ enum FCALLTYPE { DIRECT, CLOSURE, EXTERNAL };
 static std::map<FCALLTYPE, std::string> fcalltype_str = {
     {DIRECT, ""}, {CLOSURE, "cls"}, {EXTERNAL, "ext"}};
 
-
 // struct uniquestr{
 //   std::string str;
 //   unsigned int count;
@@ -33,7 +32,8 @@ struct MIRinstruction {  // base class for MIR instruction
   std::shared_ptr<MIRblock> parent = nullptr;
   MIRinstruction() = default;
   virtual ~MIRinstruction() = default;
-  explicit MIRinstruction(std::string  lv_name, types::Value type = types::None())
+  explicit MIRinstruction(std::string lv_name,
+                          types::Value type = types::None())
       : lv_name(std::move(lv_name)), type(std::move(type)) {}
   virtual void setParent(std::shared_ptr<MIRblock> block) { parent = block; }
   virtual std::string toString() = 0;
@@ -44,6 +44,7 @@ struct NumberInst : public MIRinstruction {
  public:
   NumberInst(const std::string& lv, double val)
       : MIRinstruction(lv, types::Float()), val(val) {}
+  NumberInst():NumberInst("",0.0){}
   double val;
   std::string toString() override;
 };
@@ -86,31 +87,32 @@ struct AssignInst : public MIRinstruction {
 // };
 struct OpInst : public MIRinstruction {
  public:
-  std::string op;
+  ast::OpId op;
   std::string lhs;
   std::string rhs;
-  OpInst(const std::string& lv, std::string op, std::string lhs, std::string rhs)
+
+  OpInst(const std::string& lv, ast::OpId op, std::string lhs,
+         std::string rhs)
       : MIRinstruction(lv, types::Float()),
-        op(std::move(op)),
+        op(op),
         lhs(std::move(lhs)),
         rhs(std::move(rhs)){};
   std::string toString() override;
-  OP_ID getOPid() { return optable[op]; }
 };
 
 struct FunInst : public MIRinstruction {
   std::deque<std::string> args;
   std::shared_ptr<MIRblock> body;
   std::vector<std::string> freevariables;  // introduced in closure conversion;
-  // introduced after closure conversion;contains self & delay, and fcall which has self&delay
-  std::vector<std::string> memory_objects;  
+  // introduced after closure conversion;contains self & delay, and fcall which
+  // has self&delay
+  std::vector<std::string> memory_objects;
 
-  bool ccflag = false;                     // utility for closure conversion
+  bool ccflag = false;  // utility for closure conversion
   bool hasself;
   bool isrecursive;
   explicit FunInst(const std::string& name, std::deque<std::string> newargs,
-                   types::Value type = types::Void(),
-                   bool isrecursive = false);
+                   types::Value type = types::Void(), bool isrecursive = false);
   std::string toString() override;
   bool isFunction() override { return true; }
 };
@@ -119,9 +121,10 @@ struct FcallInst : public MIRinstruction {
   std::deque<std::string> args;
   std::optional<std::string> time;
   FCALLTYPE ftype;
-  FcallInst(const std::string& lv, std::string fname, std::deque<std::string> args,
-            FCALLTYPE ftype = CLOSURE, types::Value type = types::Float(),
-            std::optional<std::string> time=std::nullopt)
+  FcallInst(const std::string& lv, std::string fname,
+            std::deque<std::string> args, FCALLTYPE ftype = CLOSURE,
+            types::Value type = types::Float(),
+            std::optional<std::string> time = std::nullopt)
       : MIRinstruction(lv, type),
         fname(std::move(fname)),
         args(std::move(args)),
@@ -147,14 +150,15 @@ struct ArrayInst : public MIRinstruction {
   std::deque<std::string> args;
   ArrayInst(const std::string& lv, std::deque<std::string> args)
       : MIRinstruction(lv, types::Array(types::Float(), args.size())),
-        args(std::move(args)),size(0) {}
+        args(std::move(args)),
+        size(0) {}
 
   std::string toString() override;
 };
 struct ArrayAccessInst : public MIRinstruction {
   std::string name;
   std::string index;
-  ArrayAccessInst(const std::string& lv,std::string  name, std::string index)
+  ArrayAccessInst(const std::string& lv, std::string name, std::string index)
       : MIRinstruction(lv, types::Float()),
         name(std::move(name)),
         index(std::move(index)) {}
@@ -179,9 +183,10 @@ struct ReturnInst : public MIRinstruction {
   std::string toString() override;
 };
 using Instructions =
-    std::variant<NumberInst, StringInst,AllocaInst, RefInst, AssignInst, OpInst,
-                 FunInst, FcallInst, MakeClosureInst, ArrayInst,
+    std::variant<NumberInst, StringInst, AllocaInst, RefInst, AssignInst,
+                 OpInst, FunInst, FcallInst, MakeClosureInst, ArrayInst,
                  ArrayAccessInst, IfInst, ReturnInst>;
+
 
 class MIRblock : public std::enable_shared_from_this<MIRblock> {
  public:
@@ -194,8 +199,13 @@ class MIRblock : public std::enable_shared_from_this<MIRblock> {
   auto end() { return instructions.end(); }
   void addInst(Instructions& inst) {
     std::visit([&](auto& i) { i.setParent(shared_from_this()); }, inst);
-    instructions.push_back(inst);
+    instructions.emplace_back(inst);
   }
+  Instructions& addInstRef(Instructions&& inst) {
+    std::visit([&](auto& i) { i.setParent(shared_from_this()); }, inst);
+    return instructions.emplace_back(std::move(inst));
+  }
+
   void changeIndent(int level) { indent_level += level; }
   std::string label;
   std::list<Instructions> instructions;  // sequence of instructions

@@ -12,12 +12,13 @@ struct CodeGenVisitor : public std::enable_shared_from_this<CodeGenVisitor> {
   CodeGenVisitor(LLVMGenerator& g);
   void operator()(NumberInst& i);
   void operator()(StringInst& i);
-
   void operator()(AllocaInst& i);
   void operator()(RefInst& i);
   void operator()(AssignInst& i);
   // void operator()(TimeInst& i);
   void operator()(OpInst& i);
+  void createBinOp(OpInst& i);
+  void createUniOp(OpInst& i);
   void operator()(FunInst& i);
   void operator()(FcallInst& i);
   void operator()(MakeClosureInst& i);
@@ -47,6 +48,6 @@ struct CodeGenVisitor : public std::enable_shared_from_this<CodeGenVisitor> {
   bool createStoreOw(std::string varname, llvm::Value* val_to_store);
   void createAddTaskFn(FcallInst& i, bool isclosure, bool isglobal);
 
-  const static std::unordered_map<OP_ID, std::string> opid_to_ffi;
+  const static std::unordered_map<ast::OpId, std::string> opid_to_ffi;
 };
 }  // namespace mimium

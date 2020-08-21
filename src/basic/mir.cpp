@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
- 
+
 #include "basic/mir.hpp"
 
 namespace mimium {
@@ -30,9 +30,7 @@ std::string MIRblock::toString() {
 std::string NumberInst::toString() {
   return lv_name + " = " + std::to_string(val);
 }
-std::string StringInst::toString() {
-  return lv_name + " = " + val;
-}
+std::string StringInst::toString() { return lv_name + " = " + val; }
 
 std::string AllocaInst::toString() {
   return "alloca: " + lv_name + " (" + types::toString(type) + ")";
@@ -41,9 +39,13 @@ std::string RefInst::toString() { return lv_name + " = ref " + val; }
 
 std::string AssignInst::toString() { return lv_name + " =(overwrite) " + val; }
 
-// std::string TimeInst::toString() { return lv_name + " = " + val + +"@" + time; }
+// std::string TimeInst::toString() { return lv_name + " = " + val + +"@" +
+// time; }
 
-std::string OpInst::toString() { return lv_name + " = " + lhs + op + rhs; }
+std::string OpInst::toString() {
+  auto opstr = std::string(ast::op_str.find(op)->second);
+  return lv_name + " = " + opstr + " " + lhs + " " + rhs;
+}
 FunInst::FunInst(const std::string& name, std::deque<std::string> newargs,
                  types::Value type, bool isrecursive)
     : MIRinstruction(name, std::move(type)),
@@ -84,7 +86,7 @@ std::string MakeClosureInst::toString() {
 }
 std::string FcallInst::toString() {
   std::string s;
-  auto timestr = (time)?"@"+time.value():"";
+  auto timestr = (time) ? "@" + time.value() : "";
   return lv_name + " = app" + fcalltype_str[ftype] + " " + fname + " " +
          join(args, " , ") + timestr;
 }

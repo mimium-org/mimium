@@ -5,13 +5,16 @@
 #include "compiler/codegen/codegen_visitor.hpp"
 
 namespace mimium {
-
-const std::unordered_map<OP_ID, std::string> CodeGenVisitor::opid_to_ffi = {
+using OpId = ast::OpId;
+const std::unordered_map<OpId, std::string> CodeGenVisitor::opid_to_ffi = {
     // names are declared in ffi.cpp
-    {OP_ID::EXP, "pow"},  {OP_ID::MOD, "fmod"},      {OP_ID::GE, "ge"},
-    {OP_ID::LE, "le"},    {OP_ID::GT, "gt"},         {OP_ID::LT, "lt"},
-    {OP_ID::AND, "and"},  {OP_ID::BITAND, "and"},    {OP_ID::OR, "or"},
-    {OP_ID::BITOR, "or"}, {OP_ID::LSHIFT, "lshift"}, {OP_ID::RSHIFT, "rshift"},
+
+    {OpId::Exponent, "pow"},   {OpId::Mod, "fmod"},
+    {OpId::GreaterEq, "ge"},   {OpId::LessEq, "le"},
+    {OpId::GreaterThan, "gt"}, {OpId::LessThan, "lt"},
+    {OpId::And, "and"},        {OpId::BitAnd, "and"},
+    {OpId::Or, "or"},          {OpId::BitOr, "or"},
+    {OpId::LShift, "lshift"},  {OpId::RShift, "rshift"},
 };
 
 // Creates Allocation instruction or call malloc function depends on context
@@ -65,13 +68,14 @@ void CodeGenVisitor::operator()(NumberInst& i) {
 void CodeGenVisitor::operator()(StringInst& i) {
   auto* cstr = llvm::ConstantDataArray::getString(G.ctx, i.val);
   auto i8ptrty = G.builder->getInt8PtrTy();
-  auto gvalue = llvm::cast<llvm::GlobalVariable>(G.module->getOrInsertGlobal(i.val, cstr->getType() )); 
+  auto gvalue = llvm::cast<llvm::GlobalVariable>(
+      G.module->getOrInsertGlobal(i.val, cstr->getType()));
   gvalue->setInitializer(cstr);
   gvalue->setLinkage(llvm::GlobalValue::InternalLinkage);
   gvalue->setName("str");
-  auto bitcast = G.builder->CreateBitCast(gvalue,i8ptrty);
+  auto bitcast = G.builder->CreateBitCast(gvalue, i8ptrty);
   // auto zero =
-      // llvm::ConstantInt::get(G.builder->getInt64Ty(), llvm::APInt(64, 0));
+  // llvm::ConstantInt::get(G.builder->getInt64Ty(), llvm::APInt(64, 0));
   // auto strptr = G.builder->CreateInBoundsGEP(gvalue, {zero, zero}, "gep");
   // auto strptr = G.builder->CreateLoad(gvalue,i.lv_name);
   G.setValuetoMap(i.lv_name, bitcast);
@@ -115,26 +119,52 @@ void CodeGenVisitor::operator()(AssignInst& i) {
 // }
 
 void CodeGenVisitor::operator()(OpInst& i) {
+  if (i.lhs.empty()) {
+    createUniOp(i);
+  } else {
+    createBinOp(i);
+  }
+}
+
+void CodeGenVisitor::createUniOp(OpInst& i) {
+  llvm::Value* retvalue;
+  auto* rhs = G.findValue(i.rhs);
+  switch (i.op) {
+    case ast::OpId::Sub:
+      retvalue = G.builder->CreateUnOp(llvm::Instruction::UnaryOps::FNeg, rhs,
+                                       i.lv_name);
+      break;
+    case ast::OpId::Not:
+      retvalue =
+          G.builder->CreateCall(G.getForeignFunction("not"), {rhs}, i.lv_name);
+      break;
+    default:
+      retvalue = G.builder->CreateUnreachable();
+      break;
+  }
+    G.setValuetoMap(i.lv_name, retvalue);
+}
+
+void CodeGenVisitor::createBinOp(OpInst& i) {
   llvm::Value* retvalue;
   auto* lhs = G.findValue(i.lhs);
   auto* rhs = G.findValue(i.rhs);
-  switch (i.getOPid()) {
-    case OP_ID::ADD:
+  switch (i.op) {
+    case ast::OpId::Add:
       retvalue = G.builder->CreateFAdd(lhs, rhs, i.lv_name);
       break;
-    case OP_ID::SUB:
+    case ast::OpId::Sub:
       retvalue = G.builder->CreateFSub(lhs, rhs, i.lv_name);
       break;
-    case OP_ID::MUL:
+    case ast::OpId::Mul:
       retvalue = G.builder->CreateFMul(lhs, rhs, i.lv_name);
       break;
-    case OP_ID::DIV:
+    case ast::OpId::Div:
       retvalue = G.builder->CreateFDiv(lhs, rhs, i.lv_name);
       break;
     default: {
-      auto id = i.getOPid();
-      if (opid_to_ffi.count(id)) {
-        auto fname = opid_to_ffi.find(id)->second;
+      if (opid_to_ffi.count(i.op) > 0) {
+        auto fname = opid_to_ffi.find(i.op)->second;
         retvalue = G.builder->CreateCall(G.getForeignFunction(fname),
                                          {lhs, rhs}, i.lv_name);
       } else {
@@ -303,12 +333,11 @@ void CodeGenVisitor::operator()(FcallInst& i) {
     } else {
       auto res = G.builder->CreateCall(fun, args, i.lv_name);
       G.setValuetoMap(i.lv_name, res);
-        auto resptr =G.tryfindValue("ptr_"+i.lv_name);
-      if(resptr !=nullptr){
-      G.builder->CreateStore(res,resptr);
+      auto resptr = G.tryfindValue("ptr_" + i.lv_name);
+      if (resptr != nullptr) {
+        G.builder->CreateStore(res, resptr);
       }
     }
-
   }
 }
 llvm::Value* CodeGenVisitor::getDirFun(FcallInst& i) {
@@ -391,7 +420,8 @@ void CodeGenVisitor::operator()(
   //     G.builder->CreateStructGEP(closure_ptr, 0, i.lv_name + "_fun_ptr");
   // G.builder->CreateStore(targetf, fun_ptr);
   // auto* capture_ptr =
-  //     G.builder->CreateStructGEP(closure_ptr, 1, i.lv_name + "_capture_ptr");
+  //     G.builder->CreateStructGEP(closure_ptr, 1, i.lv_name +
+  //     "_capture_ptr");
   unsigned int idx = 0;
   for (auto& cap : capturenames) {
     llvm::Value* fv = G.tryfindValue("ptr_" + cap);
@@ -410,16 +440,20 @@ void CodeGenVisitor::operator()(ArrayInst& i) {}
 void CodeGenVisitor::operator()(ArrayAccessInst& i) {
   auto v = G.tryfindValue(i.name);
   auto indexfloat = G.tryfindValue(i.index);
-  // auto indexint = G.builder->CreateBitCast(indexfloat,G.builder->getInt64Ty());
-  auto zero  = llvm::ConstantInt::get(G.builder->getInt64Ty(),llvm::APInt(64,0));
-  auto dptrtype = llvm::PointerType::get(G.builder->getDoubleTy(),0);
+  // auto indexint =
+  // G.builder->CreateBitCast(indexfloat,G.builder->getInt64Ty());
+  auto zero =
+      llvm::ConstantInt::get(G.builder->getInt64Ty(), llvm::APInt(64, 0));
+  auto dptrtype = llvm::PointerType::get(G.builder->getDoubleTy(), 0);
   auto arraccessfun = G.module->getFunction("access_array_lin_interp");
-  // auto gep = G.builder->CreateInBoundsGEP(dptrtype,v,{indexint,zero},"arrayaccess");
+  // auto gep =
+  // G.builder->CreateInBoundsGEP(dptrtype,v,{indexint,zero},"arrayaccess");
   // auto load = G.builder->CreateLoad(gep,"arraccessload");
   // G.setValuetoMap("ptr_"+i.lv_name, gep);
   // G.setValuetoMap(i.lv_name, load);
-  auto res = G.builder->CreateCall(arraccessfun,{v,indexfloat},"arrayaccess");
-    G.setValuetoMap(i.lv_name, res);
+  auto res =
+      G.builder->CreateCall(arraccessfun, {v, indexfloat}, "arrayaccess");
+  G.setValuetoMap(i.lv_name, res);
 }
 void CodeGenVisitor::operator()(IfInst& i) {}
 void CodeGenVisitor::operator()(ReturnInst& i) {

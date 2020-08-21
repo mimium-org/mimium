@@ -8,7 +8,11 @@ option(BUILD_DOCS "build a documentation")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 PROJECT(mimium CXX)
-
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
+    set(CMAKE_CXX_FLAGS_DEBUG "-g4")
+	# set(CMAKE_STATIC_LIBRARY_SUFFIX ".js")
+    # set(CMAKE_EXECUTABLE_SUFFIX ".html")
+endif()
 #if(${CMAKE_BUILD_TYPE}=="Debug")
 #    set(LLVM_CONFIG "/usr/local/Cellar/llvm/9.0.0debug/bin/llvm-config")
 #endif()
@@ -60,6 +64,8 @@ if(BUILD_DOCS)
 add_subdirectory( docs )
 endif()
 
-#add_subdirectory( test )
-
+if(NOT(${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten"))
+enable_testing()
+add_subdirectory( test )
+endif()
 

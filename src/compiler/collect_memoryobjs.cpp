@@ -137,7 +137,10 @@ void MemoryObjsCollector::CollectMemVisitor::operator()(FunInst& i) {
   if (!result.empty()) {
     std::vector<types::Value> objs;
     for (auto& alias_name : result) {
+      //fixmeee
+      // if(alias_name!=i.lv_name){
       objs.emplace_back(M.getAliasFromMap(alias_name).value());
+      // }
     }
     auto type = types::Alias(memname, types::Tuple(std::move(objs)));
 

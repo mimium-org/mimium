@@ -70,4 +70,14 @@ std::string TypeEnv::toString(bool verbose) {
 void TypeEnv::dump(bool verbose){
 std::cerr <<"-------------------\n"<< toString(verbose)<<"-------------------\n";
 }
+void TypeEnv::dumpTvLinks(){  
+  std::cerr << "------tvlinks-----\n";
+  int i=0;
+    for(auto& a : tv_container){
+      std::cerr << "typevar" << i <<" : " << types::toString(a)<<"\n";
+      ++i;
+    }
+    std::cerr << "------tvlinks-----" << std::endl;
+  }
+
 }  // namespace mimium

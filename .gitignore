@@ -5,6 +5,7 @@ CMakeCache.txt
 cmake_install.cmake
 Debug/
 build/*
+embuild/*
 *.xcodeproj
 
 docs/_*
@@ -13,3 +14,5 @@ docs/api
 externals
 
 .vscode/
+
+Testing/*

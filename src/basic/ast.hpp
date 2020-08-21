@@ -6,394 +6,248 @@
 
 #include "basic/helper_functions.hpp"
 #include "basic/type.hpp"
+using mmmfloat = double;
 
 namespace mimium {
+namespace ast {
 
-enum AST_ID {
-  BASE,
-  NUMBER,
-  STRING,
-  LVAR,
-  RVAR,
-  SELF,
-  ARG,
-  ARGS,
-  FCALLARGS,
-  ARRAY,
-  ARRAYACCESS,
-  FCALL,
-  DECLARATION,
-  ASSIGN,
-  FDEF,
-  RETURN,
-  ARRAYINIT,
-  LAMBDA,
-  OP,
-  IF,
-  FOR,
-  LIST,
-  TIME
+// forward declaration
+struct Base;
+struct Op;
+struct Number;
+struct String;
 
+struct Symbol;
+struct Lvar;
+struct TypeSpec;
+
+struct Rvar;
+struct Self;
+
+struct Lambda;
+struct Fcall;
+
+struct Struct;  // currently internally used for closure conversion;
+struct StructAccess;
+
+struct LambdaArgs;
+struct FcallArgs;
+struct ArrayInit;
+struct Tuple;
+
+struct ArrayAccess;
+
+struct Time;
+
+using Expr = std::variant<Op, Number, String, Rvar, Self, Rec_Wrap<Lambda>,
+                          Rec_Wrap<Fcall>, Rec_Wrap<Time>, Rec_Wrap<Struct>,
+                          Rec_Wrap<StructAccess>, Rec_Wrap<ArrayInit>,
+                          Rec_Wrap<ArrayAccess>, Rec_Wrap<Tuple>>;
+using ExprPtr = std::shared_ptr<Expr>;
+
+struct Assign;
+struct Return;
+struct Declaration;
+struct For;
+struct If;
+
+using Statement = std::variant<Assign, Return, /* Declaration, */
+                               Rec_Wrap<For>, Rec_Wrap<If>, Rec_Wrap<ExprPtr>>;
+using Statements = std::deque<std::shared_ptr<Statement>>;
+
+enum class OpId {
+  Add,
+  Sub,
+  Mul,
+  Div,
+  Mod,
+  Exponent,
+  Equal,
+  NotEq,
+  LessEq,
+  GreaterEq,
+  LessThan,
+  GreaterThan,
+  And,
+  BitAnd,
+  Or,
+  BitOr,
+  Xor,
+  Not,
+  LShift,
+  RShift
 };
 
-class AST;  // forward
-class OpAST;
-class NumberAST;
-class StringAST;
+inline const std::map<OpId, std::string_view> op_str = {
+    {OpId::Add, "Add"},
+    {OpId::Sub, "Sub"},
+    {OpId::Mul, "Mul"},
+    {OpId::Div, "Div"},
+    {OpId::Mod, "Mod"},
+    {OpId::Exponent, "Exponent"},
+    {OpId::Equal, "Equal"},
+    {OpId::NotEq, "NotEq"},
+    {OpId::LessEq, "LessEq"},
+    {OpId::GreaterEq, "GreaterEq"},
+    {OpId::LessThan, "LessThan"},
+    {OpId::GreaterThan, "GreaterThan"},
+    {OpId::And, "And"},
+    {OpId::BitAnd, "BitAnd"},
+    {OpId::Or, "Or"},
+    {OpId::BitOr, "BitOr"},
+    {OpId::Xor, "Xor"},
+    {OpId::Not, "Not"},
+    {OpId::LShift, "LShift"},
+    {OpId::RShift, "RShift"}};
 
-class SymbolAST;
-class LvarAST;
-class RvarAST;
-class SelfAST;
-
-class AssignAST;
-class LambdaAST;
-template <typename T, AST_ID IDTYPE>
-class AbstractListAST;
-using ArgumentsAST = AbstractListAST<std::shared_ptr<LvarAST>, ARGS>;
-using FcallArgsAST = AbstractListAST<std::shared_ptr<AST>, FCALLARGS>;
-using ListAST = AbstractListAST<std::shared_ptr<AST>, LIST>;
-
-using ArrayAST = AbstractListAST<std::shared_ptr<AST>, ARRAY>;
-
-class ArrayAccessAST;
-// class TimeAST;
-class ReturnAST;
-class DeclarationAST;
-class ForAST;
-class IfAST;
-class FcallAST;
-class StructAST;  // currently internally used for closure conversion;
-class StructAccessAST;
-
-using AST_Ptr = std::shared_ptr<AST>;
-
-class ASTVisitor {
- public:
-  virtual ~ASTVisitor() = default;
-  virtual void visit(ListAST& ast) = 0;
-  virtual void visit(OpAST& ast) = 0;
-  virtual void visit(NumberAST& ast) = 0;
-  virtual void visit(StringAST& ast) = 0;
-
-  virtual void visit(LvarAST& ast) = 0;
-  virtual void visit(RvarAST& ast) = 0;
-  virtual void visit(SelfAST& ast) = 0;
-
-  virtual void visit(AssignAST& ast) = 0;
-  virtual void visit(ArrayAST& ast) = 0;
-  virtual void visit(ArgumentsAST& ast) = 0;
-  virtual void visit(FcallArgsAST& ast) = 0;
-
-  virtual void visit(ArrayAccessAST& ast) = 0;
-  virtual void visit(FcallAST& ast) = 0;
-  virtual void visit(LambdaAST& ast) = 0;
-  virtual void visit(IfAST& ast) = 0;
-  virtual void visit(ReturnAST& ast) = 0;
-  virtual void visit(ForAST& ast) = 0;
-  virtual void visit(DeclarationAST& ast) = 0;
-  // virtual void visit(TimeAST& ast) = 0;
-  virtual void visit(StructAST& ast) = 0;
-  virtual void visit(StructAccessAST& ast) = 0;
-
- protected:
+struct Pos {
+  int line;
+  int col;
+};
+struct SourceLoc {
+  Pos begin;
+  Pos end;
 };
 
-class AST {
- public:
-  AST() : id(BASE){};
-  explicit AST(AST_ID id) : id(id) {}
-  virtual ~AST() = default;
-  virtual std::string toString() = 0;
-  virtual std::string toJson() = 0;
-  virtual void accept(ASTVisitor& visitor) = 0;
+inline std::ostream& operator<<(std::ostream& os, const SourceLoc& loc) {
+  os << loc.begin.line << ":" << loc.begin.col << " ~ " << loc.end.line << ":"
+     << loc.end.col;
+  return os;
+}
 
-  AST_ID getid() { return id; }
-
- protected:
-  AST_ID id;
+struct DebugInfo {
+  SourceLoc source_loc;
+  std::string symbol;
 };
 
-enum class OP_ID {
-  ADD,
-  SUB,
-  MUL,
-  DIV,
-  EXP,
-  MOD,
-  AND,
-  OR,
-  BITAND,
-  BITOR,
-  LE,
-  GE,
-  LT,
-  GT,
-  LSHIFT,
-  RSHIFT
-};
-static std::map<std::string, OP_ID> optable = {
-    {"+", OP_ID::ADD},    {"-", OP_ID::SUB}, {"*", OP_ID::MUL},
-    {"/", OP_ID::DIV},    {"^", OP_ID::EXP}, {"%", OP_ID::MOD},
-    {"&", OP_ID::AND},    {"|", OP_ID::OR},  {"&&", OP_ID::BITAND},
-    {"||", OP_ID::BITOR}, {"<", OP_ID::LT},  {">", OP_ID::GT},
-    {"<=", OP_ID::LE},    {">=", OP_ID::GE}, {"<<", OP_ID::LSHIFT},
-    {">>", OP_ID::RSHIFT}};
+// Base definition of ast. all ast must be derived from this class
 
-class OpAST : public AST {
- public:
-  std::string op;
-  OP_ID op_id;
-  AST_Ptr lhs, rhs;
-
-  OpAST(std::string Op, AST_Ptr LHS, AST_Ptr RHS);
-  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
-  std::string toString() override;
-  std::string toJson() override;
-  OP_ID getOpId() { return op_id; };
-  std::string getOpStr() { return op; };
+struct Base {
+  DebugInfo debuginfo;
 };
 
-class NumberAST : public AST {
- public:
-  double val;
-  explicit NumberAST(double input) : AST(NUMBER), val(input) {}
-  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
-  double getVal() { return val; };
-  std::string toString() override;
-  std::string toJson() override;
+// derived AST classes are designed to be initialized with nested aggregate
+// initialization (C++17 feature) like below: Op opast = {{dbginfo}, operator,
+// lhs_ptr, rhs_ptr };
+
+// Operator ast. lhs might be nullopt in case of Sub and Not operator.
+
+struct Op : public Base {
+  OpId op;
+  std::optional<ExprPtr> lhs;
+  ExprPtr rhs;
+};
+struct Number : public Base {
+  mmmfloat value{};
+};
+struct Symbol : public Base {
+  std::string value{};
+};
+struct String : public Symbol {};
+
+// Type Specifier Ast. Typename may be omitted or user-defined.
+
+struct TypeSpec : public Symbol {};
+
+struct Lvar : public Symbol {
+  std::optional<types::Value> type;
 };
 
-class StringAST : public AST {
- public:
-  std::string val;
-  explicit StringAST(std::string input) : AST(STRING), val(std::move(input)) {}
-  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
-  std::string toString() override;
-  std::string toJson() override;
+struct Rvar : public Symbol {};
+struct Self : public Base {
+  std::optional<types::Value> type;  // will be captured at typeinference stage-
+                                     // and used at mirgen stage.
 };
 
-class SymbolAST : public AST {
- public:
-  std::string val;
-  explicit SymbolAST(std::string input) : val(std::move(input)) {}
-
-  std::string& getVal() { return val; };
-  std::string toString() override;
-  std::string toJson() override;
+struct LambdaArgs : public Base {
+  std::deque<Lvar> args;
 };
-class LvarAST : public SymbolAST {
- public:
-  types::Value type;
-  explicit LvarAST(std::string input) : SymbolAST(input) {
-    type = types::None();  // default type is Float
-    id = LVAR;
-  };
-  explicit LvarAST(std::string input, types::Value _type)
-      : SymbolAST(input), type(std::move(_type)) {
-    id = LVAR;
-  }
-  void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
-  auto& getType() { return type; }
-};
-class RvarAST : public SymbolAST {
- public:
-  explicit RvarAST(std::string input) : SymbolAST(input) { id = RVAR; };
-  void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
+struct Lambda : public Base {
+  LambdaArgs args;
+  Statements body;
+  std::optional<types::Value> ret_type;
 };
 
-class SelfAST : public SymbolAST {
- public:
-  types::Value type = types::None();
-  explicit SelfAST() : SymbolAST("self") { id = SELF; };
-  void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
+struct FcallArgs : public Base {
+  std::deque<ExprPtr> args;
 };
 
-template <typename T, AST_ID IDTYPE>
-class AbstractListAST : public AST {
- protected:
-  AST_ID id = IDTYPE;
+// Fcall ast, callee may be not simply function name but lambda definition or
+// high order function
 
- public:
-  std::deque<T> elements;
-
-  AbstractListAST() = default;  // do nothing
-  explicit AbstractListAST(T arg) { elements.push_front(std::move(arg)); }
-  void addAST(T arg) { elements.push_front(std::move(arg)); };
-  void appendAST(T arg) { elements.push_back(std::move(arg)); };
-  auto& getElements() { return elements; }
-  std::string toString() override { return "(" + join(elements, " ") + ")"; };
-  std::string toJson() override { return "[" + join(elements, " , ") + "]"; };
-  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
+struct Fcall : public Base {
+  ExprPtr fn;
+  FcallArgs args;
 };
 
-class ArrayAccessAST : public AST {
- public:
-  std::shared_ptr<RvarAST> name;
-  AST_Ptr index;
-  ArrayAccessAST(std::shared_ptr<RvarAST> Array, AST_Ptr Index)
-      : name(std::move(Array)), index(std::move(Index)) {
-    id = ARRAYACCESS;
-  }
-  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
-  auto getName() { return name; };
-  auto getIndex() { return index; };
-  std::string toString() override;
-  std::string toJson() override;
-};
-class LambdaAST : public AST {
- public:
-  std::shared_ptr<ArgumentsAST> args;
-  AST_Ptr body;  // statements
-  types::Value type;
-  bool isrecursive = false;
-  bool hasself = false;
-  LambdaAST(std::shared_ptr<ArgumentsAST> Args, AST_Ptr Body,
-            types::Value type = types::None())
-      : args(std::move(Args)), body(std::move(Body)), type(std::move(type)) {
-    id = LAMBDA;
-  }
-
-  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
-  auto getArgs() { return args; };
-  AST_Ptr getBody() { return body; };
-  std::string toString() override;
-  std::string toJson() override;
+struct Tuple : public Base {
+  std::deque<ExprPtr> args;
 };
 
-class AssignAST : public AST {
- public:
-  std::shared_ptr<LvarAST> symbol;
-  AST_Ptr expr;
-  AssignAST(std::shared_ptr<LvarAST> Symbol, AST_Ptr Expr)
-      : symbol(std::move(Symbol)), expr(std::move(Expr)) {
-    id = ASSIGN;
-  }
-  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
-  auto getName() { return symbol; };
-  AST_Ptr getBody() { return expr; };
-  std::string toString() override;
-  std::string toJson() override;
+struct ArrayInit : public Base {
+  std::deque<ExprPtr> args;
 };
 
-class FcallAST : public AST {
- public:
-  std::shared_ptr<AST> fname;
-  std::shared_ptr<FcallArgsAST> args;
-  std::shared_ptr<AST> time;
-  FcallAST(std::shared_ptr<AST> Fname, std::shared_ptr<FcallArgsAST> Args,
-           std::shared_ptr<AST> time = nullptr)
-      : fname(std::move(Fname)), args(std::move(Args)), time(std::move(time)) {
-    id = FCALL;
-  }
-  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
-  auto getArgs() { return args; }
-  auto getFname() { return fname; }
-  std::string toString() override;
-  std::string toJson() override;
+struct ArrayAccess : public Base {
+  ExprPtr array;
+  ExprPtr index;
 };
-class DeclarationAST : public AST {
- public:
-  AST_Ptr fname;
-  AST_Ptr args;
-  DeclarationAST(AST_Ptr Fname, AST_Ptr Args)
-      : fname(std::move(Fname)), args(std::move(Args)) {
-    id = DECLARATION;
-  }
-  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
-  auto getArgs() { return std::static_pointer_cast<ArgumentsAST>(args); };
-  auto getFname() { return std::static_pointer_cast<SymbolAST>(fname); };
-  std::string toString() override;
-  std::string toJson() override;
+struct Struct : public Base {
+  std::deque<ExprPtr> args;
 };
 
-class ReturnAST : public AST {
- public:
-  AST_Ptr expr;
-  explicit ReturnAST(AST_Ptr Expr) : expr(std::move(Expr)) { id = RETURN; }
-  auto getExpr() { return expr; }
-  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
-  std::string toString() override;
-  std::string toJson() override;
-};
-class IfAST : public AST {
- public:
-  AST_Ptr condition, thenstatement, elsestatement;
-  bool isexpr;
-  IfAST(AST_Ptr Condition, AST_Ptr Thenstatement, AST_Ptr Elsestatement,
-        bool isexpr = false)
-      : condition(std::move(Condition)),
-        thenstatement(std::move(Thenstatement)),
-        elsestatement(std::move(Elsestatement)),
-        isexpr(isexpr) {
-    id = IF;
-  }
-  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
-  auto getCond() { return condition; }
-  auto getThen() { return thenstatement; }
-  auto getElse() { return elsestatement; }
-  std::string toString() override;
-  std::string toJson() override;
+struct StructAccess : public Base {
+  ExprPtr stru;
+  ExprPtr field;
 };
 
-class ForAST : public AST {
- public:
-  AST_Ptr var, iterator, expression;
-  ForAST(AST_Ptr Var, AST_Ptr Iterator, AST_Ptr Expression)
-      : var(std::move(Var)),
-        iterator(std::move(Iterator)),
-        expression(std::move(Expression)) {
-    id = FOR;
-  }
-  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
-  auto getVar() { return var; };
-  auto getIterator() { return iterator; };
-  auto getExpression() { return expression; };
-  std::string toString() override;
-  std::string toJson() override;
+// Time ast, only a function call can be tied with time.
+struct Time : public Base {
+  Fcall fcall;
+  ExprPtr when;
 };
 
-// class TimeAST : public AST {
-//  public:
-//   AST_Ptr expr;
-//   AST_Ptr time;
-//   explicit TimeAST(AST_Ptr Expr, AST_Ptr Time)
-//       : expr(std::move(Expr)), time(std::move(Time)) {
-//     id = TIME;
-//   }
-//   void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
-//   auto getTime() { return time; }
-//   auto getExpr() { return expr; }
-//   std::string toString() override;
-//   std::string toJson() override;
-// };
-
-class StructAST : public AST {
- public:
-  std::unordered_map<AST_Ptr, AST_Ptr> map;
-  StructAST() {}
-  explicit StructAST(AST_Ptr key, AST_Ptr val) {
-    map.emplace(std::move(key), std::move(val));
-  }
-  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
-  void addPair(AST_Ptr key, AST_Ptr val) {
-    map.emplace(std::move(key), std::move(val));
-  }
-  std::string toString() override;
-  std::string toJson() override;
-};
-class StructAccessAST : public AST {
- public:
-  AST_Ptr key;
-  AST_Ptr val;
-
-  explicit StructAccessAST(AST_Ptr _key, AST_Ptr _val)
-      : key(std::move(_key)), val(std::move(_val)) {}
-  void accept(ASTVisitor& visitor) override { visitor.visit(*this); };
-  auto getKey() { return key; };
-  auto getVal() { return val; };
-  std::string toString() override;
-  std::string toJson() override;
+struct Assign : public Base {
+  Lvar lvar;
+  ExprPtr expr;
 };
 
+struct Return : public Base {
+  ExprPtr value;
+};
+
+struct Declaration : public Base {
+  ExprPtr value;
+};
+
+struct For : public Base {
+  Lvar index;
+  ExprPtr iterator;
+  Statements statements;
+};
+
+struct If : public Base {
+  ExprPtr cond;
+  Statements then_stmts;
+  std::optional<Statements> else_stmts;
+};
+
+template <typename FROM, typename TO>
+std::shared_ptr<TO> makeAst(FROM&& ast) {
+  ast::Expr expr = ast;
+  return std::make_shared<TO>(expr);
+}
+
+template <typename FROM>
+auto makeExpr(FROM&& ast) {
+  ast::Expr expr = ast;
+  return std::make_shared<ast::Expr>(std::move(expr));
+}
+template <typename FROM>
+auto makeStatement(FROM&& ast) {
+  ast::Statement stmt = ast;
+  return std::make_shared<ast::Statement>(std::move(stmt));
+}
+
+}  // namespace ast
 }  // namespace mimium

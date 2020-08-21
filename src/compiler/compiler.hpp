@@ -8,11 +8,10 @@
 #include "basic/mir.hpp"
 #include "basic/type.hpp"
 
-#include "compiler/driver.hpp"
-#include "compiler/alphaconvert_visitor.hpp"
-#include "compiler/recursive_checker.hpp"
+#include "compiler/ast_loader.hpp"
+#include "compiler/symbolrenamer.hpp"
 #include "compiler/type_infer_visitor.hpp"
-#include "compiler/knormalize_visitor.hpp"
+#include "compiler/mirgenerator.hpp"
 #include "compiler/closure_convert.hpp"
 #include "compiler/collect_memoryobjs.hpp"
 #include "compiler/codegen/llvmgenerator.hpp"
@@ -24,27 +23,26 @@ public:
     Compiler();
     Compiler(llvm::LLVMContext& ctx);
     ~Compiler();
-    AST_Ptr loadSource(std::string source);
-    AST_Ptr loadSourceFile(std::string filename);
+    AstPtr loadSource(std::string source);
+    AstPtr loadSourceFile(std::string filename);
     void setFilePath(std::string path);
     void setDataLayout(const llvm::DataLayout& dl);
     void setDataLayout();
 
-    AST_Ptr alphaConvert(AST_Ptr ast);
-    TypeEnv& typeInfer(AST_Ptr ast);
-    std::shared_ptr<MIRblock> generateMir(AST_Ptr ast);
+    AstPtr renameSymbols(AstPtr ast);
+    TypeEnv& typeInfer(AstPtr ast);
+    std::shared_ptr<MIRblock> generateMir(AstPtr ast);
     std::shared_ptr<MIRblock> closureConvert(std::shared_ptr<MIRblock> mir);
     std::shared_ptr<MIRblock> collectMemoryObjs(std::shared_ptr<MIRblock> mir);
 
     llvm::Module& generateLLVMIr(std::shared_ptr<MIRblock> mir);
     auto moveLLVMModule(){return llvmgenerator.moveModule();}
  private:
-    void recursiveCheck(AST_Ptr ast);
-  mmmpsr::MimiumDriver driver;
-  AlphaConvertVisitor alphavisitor;
-  TypeInferVisitor typevisitor;
-  RecursiveChecker recursivechecker;
-  KNormalizeVisitor knormvisitor;
+  Driver driver;
+  // AlphaConvertVisitor alphavisitor;
+  SymbolRenamer symbolrenamer;
+  TypeInferer typeinferer;
+  MirGenerator mirgenerator;
   std::shared_ptr<ClosureConverter> closureconverter;
   MemoryObjsCollector memobjcollector;
   LLVMGenerator llvmgenerator;
