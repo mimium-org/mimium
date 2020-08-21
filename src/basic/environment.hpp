@@ -8,7 +8,6 @@
 #include <unordered_map>
 #include <utility>
 
-#include "basic/ast.hpp"
 #include "basic/helper_functions.hpp"
 #include "basic/variant_visitor_helper.hpp"
 // helper type for visiting

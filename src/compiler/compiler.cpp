@@ -9,7 +9,6 @@ Compiler::Compiler(llvm::LLVMContext& ctx)
     : driver(),
       symbolrenamer(std::make_shared<RenameEnvironment>()),
       typeinferer(),
-      recursivechecker(),
       mirgenerator(typeinferer.getTypeEnv()),
       closureconverter(
           std::make_shared<ClosureConverter>(typeinferer.getTypeEnv())),
@@ -23,18 +22,12 @@ void Compiler::setFilePath(std::string path) {
 void Compiler::setDataLayout(const llvm::DataLayout& dl) {
   llvmgenerator.setDataLayout(dl);
 }
-void Compiler::recursiveCheck(AstPtr ast) {
-  //  ast->accept(recursivechecker);
-    }
 AstPtr Compiler::loadSource(std::string source) {
   AstPtr ast = driver.parseString(source);
-  // auto ast = driver.getMainAst();
-  recursiveCheck(ast);
   return ast;
 }
 AstPtr Compiler::loadSourceFile(std::string filename) {
   AstPtr ast = driver.parseFile(filename);
-  recursiveCheck(ast);
   return ast;
 }
 AstPtr Compiler::renameSymbols(AstPtr ast) {
@@ -45,7 +38,6 @@ TypeEnv& Compiler::typeInfer(AstPtr ast) {
 }
 
 std::shared_ptr<MIRblock> Compiler::generateMir(AstPtr ast) {
-  // ast->accept(knormvisitor);
   return mirgenerator.generate(*ast);;
 }
 std::shared_ptr<MIRblock> Compiler::closureConvert(

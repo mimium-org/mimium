@@ -10,7 +10,6 @@
 
 #include "compiler/ast_loader.hpp"
 #include "compiler/alphaconvert_visitor.hpp"
-#include "compiler/recursive_checker.hpp"
 #include "compiler/type_infer_visitor.hpp"
 #include "compiler/knormalize_visitor.hpp"
 #include "compiler/closure_convert.hpp"
@@ -39,12 +38,10 @@ public:
     llvm::Module& generateLLVMIr(std::shared_ptr<MIRblock> mir);
     auto moveLLVMModule(){return llvmgenerator.moveModule();}
  private:
-    void recursiveCheck(AstPtr ast);
   Driver driver;
   // AlphaConvertVisitor alphavisitor;
   SymbolRenamer symbolrenamer;
   TypeInferer typeinferer;
-  RecursiveChecker recursivechecker;
   MirGenerator mirgenerator;
   std::shared_ptr<ClosureConverter> closureconverter;
   MemoryObjsCollector memobjcollector;

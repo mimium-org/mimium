@@ -6,7 +6,6 @@
 #include <list>
 #include <utility>
 
-#include "basic/ast.hpp"
 #include "basic/ast_new.hpp"
 #include "basic/type.hpp"
 

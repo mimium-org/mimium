@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
-#include "basic/ast.hpp"
 #include "basic/ast_new.hpp"
 #include "basic/helper_functions.hpp"
 #include "basic/type.hpp"
@@ -12,147 +11,6 @@
 // variable has unique name regardless its scope)
 
 namespace mimium {
-struct TypevarReplaceVisitor {
-  std::unordered_map<int, types::Value> tvmap;
-  void replace();
-  types::Value getTypeVarFromMap(types::TypeVar& i) {
-    types::Value res;
-    if (auto tvi = std::get_if<Rec_Wrap<types::TypeVar>>(&tvmap[i.index])) {
-      if (tvi->getraw().index == i.index) {
-        Logger::debug_log("typevar loop detected, deducted to Float",
-                          Logger::WARNING);
-        res = types::Float();
-      } else {
-        res = std::visit(*this, tvmap[i.index]);
-      }
-    } else {
-      res = std::visit(*this, tvmap[i.index]);
-    }
-    return res;
-  }
-  // default behaviour for primitive
-  types::Value operator()(types::Float& i) { return i; }
-  types::Value operator()(types::String& i) { return i; }
-  types::Value operator()(types::None& i) { return i; }
-  types::Value operator()(types::Void& i) { return i; }
-
-  types::Value operator()(types::Ref& i) {
-    return types::Ref(std::visit(*this, i.val));
-  }
-  types::Value operator()(types::Pointer& i) {
-    return types::Pointer(std::visit(*this, i.val));
-  }
-  types::Value operator()(types::TypeVar& i) {
-    types::Value res;
-    if (tvmap.count(i.index) > 0) {
-      res = getTypeVarFromMap(i);
-    } else {
-      // case of fail to infer
-      Logger::debug_log("failed to infer type", Logger::WARNING);
-      res = types::Float();
-    }
-    return res;
-  }
-  types::Value operator()(types::Function& i) {
-    std::vector<types::Value> newarg;
-    for (auto& a : i.arg_types) {
-      newarg.emplace_back(std::visit(*this, a));
-    }
-    auto newret = std::visit(*this, i.ret_type);
-    return types::Function(std::move(newret), std::move(newarg));
-  }
-  types::Value operator()(types::Closure& i) {
-    auto newcap = std::visit(*this, i.captures);
-    return types::Closure((*this)(i.fun), std::move(newcap));
-  };
-  types::Value operator()(types::Array& i) {
-    auto newelem = std::visit(*this, i.elem_type);
-    return types::Array(std::move(newelem), i.size);
-  }
-  types::Value operator()(types::Struct& i) {
-    std::vector<types::Struct::Keytype> newarg;
-    for (auto& a : i.arg_types) {
-      types::Struct::Keytype v = {a.field, std::visit(*this, a.val)};
-      newarg.emplace_back(std::move(v));
-    }
-    return types::Struct(std::move(newarg));
-  }
-  types::Value operator()(types::Tuple& i) {
-    std::vector<types::Value> newarg;
-    for (auto& a : i.arg_types) {
-      newarg.emplace_back(std::visit(*this, a));
-    }
-    return types::Tuple(std::move(newarg));
-  }
-  // types::Value operator()(types::Time& i) {
-  //   return types::Time(std::visit(*this, i.val));
-  // }
-  types::Value operator()(types::Alias& i) {
-    return types::Alias(i.name, std::visit(*this, i.target));
-  };
-};
-class TypeInferVisitor : public ASTVisitor {
-  friend TypevarReplaceVisitor;
-
- public:
-  TypeInferVisitor();
-  ~TypeInferVisitor() override = default;
-  void init();
-  void visit(OpAST& ast) override;
-  void visit(ListAST& ast) override;
-  void visit(NumberAST& ast) override;
-  void visit(StringAST& ast) override;
-  void visit(LvarAST& ast) override;
-  void visit(RvarAST& ast) override;
-  void visit(SelfAST& ast) override;
-  void visit(AssignAST& ast) override;
-  void visit(ArgumentsAST& ast) override;
-  void visit(FcallArgsAST& ast) override;
-  void visit(ArrayAST& ast) override;
-  void visit(ArrayAccessAST& ast) override;
-  void visit(FcallAST& ast) override;
-  void visit(LambdaAST& ast) override;
-  void visit(IfAST& ast) override;
-  void visit(ReturnAST& ast) override;
-  void visit(ForAST& ast) override;
-  void visit(DeclarationAST& ast) override;
-  // void visit(TimeAST& ast) override;
-  void visit(StructAST& ast) override;
-  void visit(StructAccessAST& ast) override;
-
-  bool typeCheck(types::Value& lt, types::Value& rt);
-  bool unify(types::Value& lt, types::Value& rt);
-
-  bool unify(std::string lname, std::string rname);
-  bool unify(std::string lname, types::Value& rt);
-  // bool unifyArg(types::Value& target, types::Value& realarg);
-
-  TypeEnv& getEnv() { return typeenv; };
-  types::Value getLastType() { return res_stack.top(); }
-  types::Value stackPop() {
-    auto res = res_stack.top();
-    res_stack.pop();
-    return res;
-  }
-  std::string tmpfname;
-
-  TypeEnv& infer(AST_Ptr toplevel);
-  void replaceTypeVars();
-
- private:
-  std::stack<types::Value> res_stack;
-  // static bool checkArg(types::Value& fnarg, types::Value& givenarg);
-  void unifyTypeVar(types::TypeVar& tv, types::Value& v);
-  // hold value for infer type of "self"
-  std::optional<types::Value> current_return_type;
-  TypeEnv typeenv;
-  TypevarReplaceVisitor tvreplacevisitor;
-  // std::unordered_map<int, types::Value> typevar_to_actual_map;
-  bool has_return;
-};
-
-// new typeinferer
-
 struct OccurChecker {
   types::TypeVar& tv;
   explicit OccurChecker(types::TypeVar& target) : tv(target) {}
@@ -252,30 +110,7 @@ struct TypeInferer {
     types::Value unify(types::rTypeVar t1, T t2) {
       return unify(t2, t1);  //
     }
-    types::Value unify(types::rTypeVar t1, types::rTypeVar t2) {
-      types::Value res = t1;
-      auto i1 = t1.getraw().index;
-      auto i2 = t2.getraw().index;
-      auto& t1_point = inferer.typeenv.tv_container[i1];
-      auto& t2_point = inferer.typeenv.tv_container[i2];
-      bool t1contain = !std::holds_alternative<types::rTypeVar>(t1_point);
-      bool t2contain = !std::holds_alternative<types::rTypeVar>(t2_point);
-      if (i1 != i2) {
-        if (!t1contain && !t2contain) {
-          if (i1 > i2) {
-            t1_point = t2_point;
-            res = t2_point;
-          } else if(i1<i2){
-            t2_point = t1_point;
-            res = t1_point;
-          }
-
-        } else {
-          res = inferer.unify(t1_point, t2_point);
-        }
-      }
-      return res;
-    }
+    types::Value unify(types::rTypeVar t1, types::rTypeVar t2);
     types::Value unify(types::rPointer p1, types::rPointer p2);
     types::Value unify(types::rRef p1, types::rRef p2);
     types::Value unify(types::rAlias a1, types::rAlias a2);
@@ -298,32 +133,6 @@ struct TypeInferer {
     types::Value unify(types::rArray a1, types::rArray a2);
     types::Value unify(types::rStruct s1, types::rStruct s2);
     types::Value unify(types::rTuple f1, types::rTuple f2);
-    // // template <typename T1, typename T2>
-    // // types::Value operator()(Rec_Wrap<T1>& t1, Rec_Wrap<T2>& t2) {
-    // //   return (*this)(static_cast<T1&>(t1),static_cast<T2&>(t2));
-    // // }
-
-    // // template <typename T1, typename T2>
-    // // types::Value operator()(Rec_Wrap<T1>& t1, T2& t2) {
-    // //   return (*this)(static_cast<T1&>(t1), t2);
-    // // }
-    // // template <typename T1, typename T2>
-    // // types::Value operator()(Rec_Wrap<T1> const& t1, T2& t2) {
-    // //   return (*this)(static_cast<const T1&>(t1), t2);
-    // // }
-    // // template <typename T1, typename T2>
-    // //  types::Value operator()(T1& t1, Rec_Wrap<T2>& t2) {
-    // //   return (*this)(t1, static_cast<T2&>(t2));
-    // // }
-    // // template <typename T1, typename T2>
-    // //  types::Value operator()(T1& t1, Rec_Wrap<T2> const& t2) {
-    // //   return (*this)(t1, static_cast<const T2&>(t2));
-    // // }
-    // template <typename T>
-    // types::Value operator()(T t1, T t2) {
-    //   return t1;  // for primitives
-    // }
-    // type mismatch.
 
     // note(tomoya): t2 in debugger may be desplayed as "error: no value"
     // despite they are active(because of expansion of parameter pack in
@@ -418,7 +227,6 @@ struct TypeInferer {
   TypeUnifyVisitor unifyvisitor;
   SubstituteVisitor substitutevisitor;
   types::Value addLvar(ast::Lvar& lvar);
-
   types::Value unify(types::Value lhs, types::Value rhs) {
     return std::visit(unifyvisitor, lhs, rhs);
   }
