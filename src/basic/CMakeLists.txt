@@ -1,4 +1,5 @@
 add_library(mimium_utils STATIC mir.cpp type.cpp ast_to_string.cpp)
+target_include_directories(mimium_utils PUBLIC ${MIMIUM_SOURCE_DIR})
 target_compile_options(mimium_utils PUBLIC -std=c++17)
 target_link_libraries(mimium_utils PUBLIC)
 install(TARGETS mimium_utils DESTINATION lib)
