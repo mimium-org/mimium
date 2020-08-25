@@ -106,7 +106,7 @@ inline const std::map<OpId, std::string_view> op_str = {
     {OpId::RShift, "RShift"}};
 
 struct Pos {
-  int line;
+  int line=1;
   int col;
 };
 struct SourceLoc {
