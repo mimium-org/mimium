@@ -19,6 +19,7 @@ set(PARSER_HEADER_DIR ${CMAKE_CURRENT_BINARY_DIR} CACHE PATH "for mimium_parser.
 set(FLEX_INCLUDE_CACHE ${FLEX_INCLUDE_DIRS} CACHE PATH "to build test")
 target_include_directories(mimium_parser
 PUBLIC
+${MIMIUM_SOURCE_DIR}
 ${FLEX_INCLUDE_CACHE}
 ${PARSER_HEADER_DIR} 
 )
@@ -27,6 +28,7 @@ add_library(mimium_compiler symbolrenamer.cpp mirgenerator.cpp type_infer_visito
 add_dependencies(mimium_compiler  mimium_parser mimium_builtinfn)
 target_include_directories(mimium_compiler
 PUBLIC
+${MIMIUM_SOURCE_DIR}
 )
 target_compile_options(mimium_compiler PUBLIC -std=c++17)
 

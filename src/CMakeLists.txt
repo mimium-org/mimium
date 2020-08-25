@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(Main CXX)
-
+set(MIMIUM_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 add_subdirectory(basic)
 add_subdirectory(compiler)
 add_subdirectory(runtime)

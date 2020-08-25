@@ -31,8 +31,10 @@ set(RTAUDIO_INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/rtaudio-src)
 
 add_library(mimium_backend_rtaudio SHARED driver_rtaudio.cpp)
 
-target_include_directories(mimium_backend_rtaudio PUBLIC
+target_include_directories(mimium_backend_rtaudio 
+PUBLIC
 ${RTAUDIO_INCLUDE_DIRECTORIES}
+${MIMIUM_SOURCE_DIR}
 )
 target_compile_options(mimium_backend_rtaudio PRIVATE 
 -std=c++17)

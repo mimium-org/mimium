@@ -1,13 +1,17 @@
 cmake_minimum_required(VERSION 3.4)
 option(BUILD_DOCS "build a documentation")
-
+option(BUILD_TEST "build a test" OFF)
 
 #set(CMAKE_CXX_COMPILER /usr/local/opt/llvm/bin/clang++)
 #set(CMAKE_C_COMPILER /usr/local/opt/llvm/bin/clang) 
 
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-PROJECT(mimium CXX)
+PROJECT(mimium 
+LANGUAGES CXX
+HOMEPAGE_URL "https://mimium.org"
+VERSION 0.1.0
+)
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
     set(CMAKE_CXX_FLAGS_DEBUG "-g4")
 	# set(CMAKE_STATIC_LIBRARY_SUFFIX ".js")
@@ -41,18 +45,10 @@ include(cmake/EnableCcache.cmake)
 
 add_compile_options("$<$<CONFIG:DEBUG>:-DMIMIUM_DEBUG_BUILD>")
 
-# set(RTMIDI_BUILD_TESTING FALSE)
-# set(RTMIDI_TARGETNAME_UNINSTALL "uninstall_rtmidi" CACHE STRING "Name of 'uninstall' build target")
-# add_subdirectory( libs/rtmidi )
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 
-
-#[FIXME] this is unsafe,,,
-include_directories(src)
-
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    message(STATUS "CLANG SETTING!!!!!!!")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++ -lc++abi")
 endif()
@@ -64,7 +60,7 @@ if(BUILD_DOCS)
 add_subdirectory( docs )
 endif()
 
-if(NOT(${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten"))
+if(NOT(${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten") AND ${BUILD_TEST})
 enable_testing()
 add_subdirectory( test )
 endif()

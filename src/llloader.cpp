@@ -1,6 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+#ifndef MIMIUM_VERSION
+#define MIMIUM_VERSION "unspecified"
+#endif
  
 #include <unistd.h>
 
@@ -47,7 +50,13 @@ auto main(int argc, char** argv) -> int {
 
   cl::HideUnrelatedOptions(general_category);
   cl::ParseCommandLineOptions(argc, argv, "Mimium\n");  // launch cli helper
-
+  cl::SetVersionPrinter([](llvm::raw_ostream& out) {
+    out << "mimium version:" << MIMIUM_VERSION;
+#ifdef MIMIUM_BUILD_DEBUG
+    out << "(debug build)";
+#endif
+    out << "\n";
+  });
   std::ifstream input(input_filename.c_str());
   signal(SIGINT, signalHandler);
   Logger::current_report_level = Logger::INFO;
