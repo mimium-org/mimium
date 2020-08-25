@@ -26,10 +26,9 @@ struct ToStringVisitor {
   Mode mode;
   bool is_prettry;
 };
-
+struct StatementStringVisitor;
 struct ExprStringVisitor : public ToStringVisitor, public VisitorBase<void> {
-  explicit ExprStringVisitor(std::ostream& output, Mode mode = Mode::Lisp);
-
+  explicit ExprStringVisitor(std::ostream& output, StatementStringVisitor& parent,Mode mode = Mode::Lisp);
   void operator()(const ast::Number& ast);
   void operator()(const ast::String& ast);
   void operator()(const ast::Op& ast);
@@ -37,28 +36,35 @@ struct ExprStringVisitor : public ToStringVisitor, public VisitorBase<void> {
   void operator()(const ast::Self& ast);
   void operator()(const ast::Lambda& ast);
   void operator()(const ast::Fcall& ast);
-  void operator()(const ast::Time& ast);
+  void operator()(const ast::If& ast);
   void operator()(const ast::Struct& ast);
   void operator()(const ast::StructAccess& ast);
   void operator()(const ast::ArrayInit& ast);
   void operator()(const ast::ArrayAccess& ast);
   void operator()(const ast::Tuple& ast);
+  void operator()(const ast::Block& ast);
+
+  void fcallHelper(const ast::Fcall& fcall);
 
  private:
-  void fcallHelper(const ast::Fcall& fcall);
+  StatementStringVisitor& statementstringvisitor;
 };
 
 struct StatementStringVisitor : public ToStringVisitor,
                                 public VisitorBase<void> {
   explicit StatementStringVisitor(std::ostream& output, Mode mode = Mode::Lisp);
-
   ExprStringVisitor exprstringvisitor;
+  void toString(const ast::ExprPtr expr){
+    std::visit(exprstringvisitor,*expr);
+  }
   void operator()(const ast::Assign& ast);
   void operator()(const ast::Return& ast);
+
+  void operator()(const ast::Fdef& ast);
   // void operator()(const ast::Declaration& ast);
+  void operator()(const ast::Time& ast);
+  void operator()(const ast::Fcall& ast);
   void operator()(const ast::For& ast);
-  void operator()(const ast::If& ast);
-  void operator()(const ast::ExprPtr& ast);
 };
 
 class AstStringifier {
@@ -104,15 +110,7 @@ inline std::ostream& toString(std::ostream& os,
                               const ast::Statement& statement);
 
 inline std::ostream& toString(std::ostream& os,
-                              ast::Statements const& statements) {
-  StatementStringVisitor svisitor(os, Mode::Lisp);
-  for (const auto& statement : statements) {
-    std::visit(svisitor, *statement);
-    os << svisitor.format.br;
-  }
-  os << std::flush;
-  return os;
-}
+                              ast::Statements const& statements);
 inline std::ostream& operator<<(std::ostream& os,
                                 const ast::Statements& statements) {
   return toString(os, statements);

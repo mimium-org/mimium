@@ -20,20 +20,32 @@ ToStringVisitor::ToStringVisitor(std::ostream& output, Mode mode)
   }
 }
 
-ExprStringVisitor::ExprStringVisitor(std::ostream& output, Mode mode)
-    : ToStringVisitor(output, mode) {}
+ExprStringVisitor::ExprStringVisitor(std::ostream& output,
+                                     StatementStringVisitor& parent, Mode mode)
+    : ToStringVisitor(output, mode), statementstringvisitor(parent) {}
 StatementStringVisitor::StatementStringVisitor(std::ostream& output, Mode mode)
-    : ToStringVisitor(output, mode), exprstringvisitor(output, mode) {}
+    : ToStringVisitor(output, mode), exprstringvisitor(output, *this, mode) {}
 
 namespace ast {
 
 std::ostream& operator<<(std::ostream& os, const ast::Expr& expr) {
-  std::visit(ExprStringVisitor(os, Mode::Lisp), expr);
+  StatementStringVisitor stmtvisitor(os, Mode::Lisp);
+  std::visit(ExprStringVisitor(os, stmtvisitor, Mode::Lisp), expr);
   return os;
 }
 std::ostream& toString(std::ostream& os, const ast::Statement& statement) {
   StatementStringVisitor svisitor(os, Mode::Lisp);
   std::visit(svisitor, statement);
+  return os;
+}
+
+std::ostream& toString(std::ostream& os, ast::Statements const& statements) {
+  StatementStringVisitor svisitor(os, Mode::Lisp);
+  for (const auto& statement : statements) {
+    std::visit(svisitor, *statement);
+    os << svisitor.format.br;
+  }
+  os << std::flush;
   return os;
 }
 
@@ -49,7 +61,7 @@ std::ostream& toString(std::ostream& os, const ast::Statement& statement) {
 // }
 
 std::ostream& operator<<(std::ostream& os, const ast::Lvar& lvar) {
-  ExprStringVisitor evisitor(os);
+  StatementStringVisitor evisitor(os);
   auto& format = evisitor.format;
   os << format.lpar << "lvar" << format.delim << lvar.value << format.delim;
   if (lvar.type.has_value()) {
@@ -97,12 +109,14 @@ void ExprStringVisitor::fcallHelper(const ast::Fcall& fcall) {
          << format.rpar;
 }
 
-void ExprStringVisitor::operator()(const ast::Fcall& ast) {
-  fcallHelper(ast);
+void ExprStringVisitor::operator()(const ast::Fcall& ast) { fcallHelper(ast); }
+void StatementStringVisitor::operator()(const ast::Fcall& ast) {
+  exprstringvisitor.fcallHelper(ast);
 }
-void ExprStringVisitor::operator()(const ast::Time& ast) {
+
+void StatementStringVisitor::operator()(const ast::Time& ast) {
   output << format.lpar << "time" << format.delim;
-  fcallHelper(ast.fcall);
+  exprstringvisitor.fcallHelper(ast.fcall);
   output << format.delim << format.rpar;
 }
 void ExprStringVisitor::operator()(const ast::Struct& ast) {
@@ -132,13 +146,18 @@ void StatementStringVisitor::operator()(const ast::Assign& ast) {
   output << format.lpar << "assign" << format.delim << ast.lvar << format.delim
          << *ast.expr << format.rpar;
 }
+void StatementStringVisitor::operator()(const ast::Fdef& ast) {
+  output << format.lpar << "Fdef" << format.delim << ast.lvar << format.delim
+         << *ast.expr << format.rpar;
+}
 void StatementStringVisitor::operator()(const ast::Return& ast) {
   output << format.lpar << "return" << format.delim << *ast.value
          << format.rpar;
 }
 // void StatementStringVisitor::operator()(const ast::Declaration& ast) {}
 void StatementStringVisitor::operator()(const ast::For& ast) {}
-void StatementStringVisitor::operator()(const ast::If& ast) {
+
+void ExprStringVisitor::operator()(const ast::If& ast) {
   output << format.lpar << "if" << format.delim << *ast.cond << format.delim
          << ast.then_stmts;
   if (ast.else_stmts.has_value()) {
@@ -146,8 +165,12 @@ void StatementStringVisitor::operator()(const ast::If& ast) {
   }
   output << format.rpar;
 }
-void StatementStringVisitor::operator()(const ast::ExprPtr& ast) {
-  output << *ast;
+
+void ExprStringVisitor::operator()(const ast::Block& ast) {
+  output << ast.stmts;
+  if (ast.expr.has_value()) {
+    std::visit(*this, *ast.expr.value());
+  }
 }
 
 }  // namespace mimium

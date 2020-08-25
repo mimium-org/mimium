@@ -39,20 +39,25 @@ struct ArrayAccess;
 
 struct Time;
 
-using Expr = std::variant<Op, Number, String, Rvar, Self, Rec_Wrap<Lambda>,
-                          Rec_Wrap<Fcall>, Rec_Wrap<Time>, Rec_Wrap<Struct>,
-                          Rec_Wrap<StructAccess>, Rec_Wrap<ArrayInit>,
-                          Rec_Wrap<ArrayAccess>, Rec_Wrap<Tuple>>;
+struct If;
+struct Block;
+using Expr =
+    std::variant<Op, Number, String, Rvar, Self, Rec_Wrap<Lambda>,
+                 Rec_Wrap<Fcall>, Rec_Wrap<If>, Rec_Wrap<Struct>,
+                 Rec_Wrap<StructAccess>, Rec_Wrap<ArrayInit>,
+                 Rec_Wrap<ArrayAccess>, Rec_Wrap<Tuple>, Rec_Wrap<Block>>;
 using ExprPtr = std::shared_ptr<Expr>;
 
 struct Assign;
+struct Fdef;
+
 struct Return;
 struct Declaration;
 struct For;
-struct If;
 
-using Statement = std::variant<Assign, Return, /* Declaration, */
-                               Rec_Wrap<For>, Rec_Wrap<If>, Rec_Wrap<ExprPtr>>;
+using Statement =
+    std::variant<Assign, Return, Fdef, Time, Fcall, /* Declaration, */
+                 Rec_Wrap<For>>;
 using Statements = std::deque<std::shared_ptr<Statement>>;
 
 enum class OpId {
@@ -212,6 +217,8 @@ struct Assign : public Base {
   ExprPtr expr;
 };
 
+struct Fdef : public Assign {};
+
 struct Return : public Base {
   ExprPtr value;
 };
@@ -226,12 +233,17 @@ struct For : public Base {
   Statements statements;
 };
 
+
+
+struct Block : public Base {
+  Statements stmts;
+  std::optional<ExprPtr> expr;
+};
 struct If : public Base {
   ExprPtr cond;
-  Statements then_stmts;
-  std::optional<Statements> else_stmts;
+  Block then_stmts;
+  std::optional<Block> else_stmts;
 };
-
 template <typename FROM, typename TO>
 std::shared_ptr<TO> makeAst(FROM&& ast) {
   ast::Expr expr = ast;
