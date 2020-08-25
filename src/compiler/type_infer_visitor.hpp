@@ -63,12 +63,15 @@ struct TypeInferer {
     types::Value operator()(ast::Self& ast);
     types::Value operator()(ast::Lambda& ast);
     types::Value operator()(ast::Fcall& ast);
-    types::Value operator()(ast::Time& ast);
     types::Value operator()(ast::Struct& ast);
     types::Value operator()(ast::StructAccess& ast);
     types::Value operator()(ast::ArrayInit& ast);
     types::Value operator()(ast::ArrayAccess& ast);
     types::Value operator()(ast::Tuple& ast);
+
+    types::Value operator()(ast::If& ast);
+    types::Value operator()(ast::Block& ast);
+    types::Value infer(ast::ExprPtr expr) { return std::visit(*this, *expr); }
 
    private:
     TypeInferer& inferer;
@@ -77,12 +80,15 @@ struct TypeInferer {
   // last line in statements(used for inference of function return type).
   struct StatementTypeVisitor : public VisitorBase<types::Value> {
     explicit StatementTypeVisitor(TypeInferer& parent) : inferer(parent) {}
+    types::Value operator()(ast::Fdef& ast);
     types::Value operator()(ast::Assign& ast);
     types::Value operator()(ast::Return& ast);
+    types::Value operator()(ast::Time& ast);
+
     // types::Value operator()(ast::Declaration& ast);
     types::Value operator()(ast::For& ast);
-    types::Value operator()(ast::If& ast);
-    types::Value operator()(ast::ExprPtr& ast);
+    types::Value operator()(ast::Fcall& ast);
+    types::Value infer(ast::Statement stmt) { return std::visit(*this, stmt); }
 
    private:
     TypeInferer& inferer;
@@ -102,7 +108,8 @@ struct TypeInferer {
         if (OccurChecker{rv::get<types::TypeVar>(t2_real)}(t1)) {
           throw std::runtime_error("type loop detected");
         }
-        inferer.typeenv.tv_container[rv::get<types::TypeVar>(t2_real).index] = t1;
+        inferer.typeenv.tv_container[rv::get<types::TypeVar>(t2_real).index] =
+            t1;
       }
       return res;
     }
@@ -119,13 +126,13 @@ struct TypeInferer {
       return a1;
     }
 
-    template <typename T, typename std::enable_if<
-                              std::is_same_v<std::decay_t<T>, types::TypeVar>>::type=nullptr>
+    template <typename T, typename std::enable_if<std::is_same_v<
+                              std::decay_t<T>, types::TypeVar>>::type = nullptr>
     types::Value unify(types::rAlias a1, T a2) {
       return std::visit(*this, a1.getraw().target, types::Value(a2));
     }
-    template <typename T, typename std::enable_if<
-                              std::is_same_v<std::decay_t<T>, types::TypeVar>>::type=nullptr>
+    template <typename T, typename std::enable_if<std::is_same_v<
+                              std::decay_t<T>, types::TypeVar>>::type = nullptr>
     types::Value unify(T a1, types::rAlias a2) {
       return std::visit(*this, types::Value(a1), a2.getraw().target);
     }
@@ -158,10 +165,11 @@ struct TypeInferer {
     types::Value operator()(types::TypeVar& t) {
       auto& target = inferer.typeenv.findTypeVar(t.index);
       if (std::visit(OccurChecker{t}, target)) {
-        Logger::debug_log( "type loop detected. decuced into float type.",Logger::WARNING);
+        Logger::debug_log("type loop detected. decuced into float type.",
+                          Logger::WARNING);
         return types::Float();
       }
-      auto contained = std::visit(*this,target);
+      auto contained = std::visit(*this, target);
       if (std::holds_alternative<types::None>(contained) ||
           std::holds_alternative<types::rTypeVar>(contained)) {
         throw std::runtime_error(
@@ -215,6 +223,10 @@ struct TypeInferer {
   }
   // entry point.
   TypeEnv& infer(ast::Statements& topast);
+  types::Value inferExpr(ast::ExprPtr expr) { return exprvisitor.infer(expr); }
+  types::Value inferStatement(ast::Statement expr) {
+    return statementvisitor.infer(expr);
+  }
   types::Value inferStatements(ast::Statements& statements);
   TypeEnv& getTypeEnv() { return typeenv; }
 
@@ -227,6 +239,7 @@ struct TypeInferer {
   TypeUnifyVisitor unifyvisitor;
   SubstituteVisitor substitutevisitor;
   types::Value addLvar(ast::Lvar& lvar);
+  types::Value inferFcall(ast::Fcall& fcall);
   types::Value unify(types::Value lhs, types::Value rhs) {
     return std::visit(unifyvisitor, lhs, rhs);
   }

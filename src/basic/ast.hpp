@@ -163,13 +163,17 @@ struct Self : public Base {
   std::optional<types::Value> type;  // will be captured at typeinference stage-
                                      // and used at mirgen stage.
 };
-
+struct Block : public Base {
+  Statements stmts;
+  std::optional<ExprPtr> expr;
+};
 struct LambdaArgs : public Base {
   std::deque<Lvar> args;
 };
+
 struct Lambda : public Base {
   LambdaArgs args;
-  Statements body;
+  Block body;
   std::optional<types::Value> ret_type;
 };
 
@@ -217,7 +221,10 @@ struct Assign : public Base {
   ExprPtr expr;
 };
 
-struct Fdef : public Assign {};
+struct Fdef : public Base {
+  Lvar lvar;
+  Lambda fun;
+};
 
 struct Return : public Base {
   ExprPtr value;
@@ -230,15 +237,12 @@ struct Declaration : public Base {
 struct For : public Base {
   Lvar index;
   ExprPtr iterator;
-  Statements statements;
+  Block statements;
 };
 
 
 
-struct Block : public Base {
-  Statements stmts;
-  std::optional<ExprPtr> expr;
-};
+
 struct If : public Base {
   ExprPtr cond;
   Block then_stmts;

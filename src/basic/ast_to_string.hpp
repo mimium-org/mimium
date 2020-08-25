@@ -94,9 +94,23 @@ inline std::string joinVec(const CONTAINER& vec, const std::string& delim) {
 
 namespace ast {
 
-inline std::ostream& operator<<(std::ostream& os, const ast::Lvar& lvar);
-inline std::ostream& operator<<(std::ostream& os, const ast::Expr& expr);
-
+inline std::ostream& operator<<(std::ostream& os, const ast::Lvar& lvar){
+  StatementStringVisitor evisitor(os);
+  auto& format = evisitor.format;
+  os << format.lpar << "lvar" << format.delim << lvar.value << format.delim;
+  if (lvar.type.has_value()) {
+    os << types::toString(lvar.type.value());
+  } else {
+    os << "unspecified";
+  }
+  os << format.rpar;
+  return os;
+}
+inline std::ostream& operator<<(std::ostream& os, const ast::Expr& expr){
+  StatementStringVisitor stmtvisitor(os, Mode::Lisp);
+  std::visit(ExprStringVisitor(os, stmtvisitor, Mode::Lisp), expr);
+  return os;
+}
 template <typename T>
 inline std::ostream& operator<<(std::ostream& os,
                                 const std::shared_ptr<T> expr) {
@@ -107,12 +121,24 @@ inline std::ostream& operator<<(std::ostream& os,
 // inline std::ostream& operator<<(std::ostream& os,
 //                                 const ast::Statement& statement);
 inline std::ostream& toString(std::ostream& os,
-                              const ast::Statement& statement);
+                              const ast::Statement& statement){
+  StatementStringVisitor svisitor(os, Mode::Lisp);
+  std::visit(svisitor, statement);
+  return os;
+}
 
 inline std::ostream& toString(std::ostream& os,
-                              ast::Statements const& statements);
+                              ast::Statements const& statements) {
+  StatementStringVisitor svisitor(os, Mode::Lisp);
+  for (const auto& statement : statements) {
+    std::visit(svisitor, *statement);
+    os << svisitor.format.br;
+  }
+  os << std::flush;
+  return os;
+}
 inline std::ostream& operator<<(std::ostream& os,
-                                const ast::Statements& statements) {
+                                const ast::Statements& statements){
   return toString(os, statements);
 }
 }  // namespace ast

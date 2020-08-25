@@ -148,9 +148,6 @@ using namespace mimium;
 // %type <AST_Ptr> term_time "term @ something"
 %type <ast::ExprPtr> term "primary"
 
-%type <std::optional<ast::ExprPtr>> opt_expr "optional expression"
-
-
 %type <ast::Lambda> lambda "lambda"
 %type <ast::LambdaArgs> arguments_top "arguments top"
 %type <std::deque<ast::Lvar>> arguments "arguments for fdef"
@@ -330,10 +327,10 @@ array: '[' arrayelems ']' {
       // @$ = {@1.first_line,@1.first_col,@3.last_line,@3.last_col};
       $$ = ast::ArrayInit{{@$,"array"} ,std::move($2)};}
 
-arrayelems: single ',' arrayelems   {
+arrayelems: expr ',' arrayelems   {
                                     $3.push_front(std::move($1));
                                     $$ = std::move($3); }
-         |  single {$$ = std::deque<ast::ExprPtr>{std::move($1)};}
+         |  expr {$$ = std::deque<ast::ExprPtr>{std::move($1)};}
 
 // array access
 array_access: term '[' term ']' {
@@ -373,11 +370,11 @@ expr_non_fcall:op      {$$ = ast::makeExpr($1);}
       | array_access {$$ = ast::makeExpr($1);}
       |    lambda    {$$ = ast::makeExpr($1);}
       |    ifblock   {$$ = ast::makeExpr($1);}
-      |    block     {$$ = ast::makeExpr($1);}
       |    single    {$$ = std::move($1);}
 
 expr: expr_non_fcall {$$ = std::move($1);}
       |fcall{$$ = ast::makeExpr($1);}
+      |    block     {$$ = ast::makeExpr($1);}
 
 term: '(' expr ')' {$$ = std::move($2);}
 
@@ -400,10 +397,10 @@ arguments: lvar ',' arguments {$3.push_front(std::move($1));
 
 fdef: FUNC lvar arguments_top block {
       auto lambda = ast::Lambda{{@$,"lambda"} ,std::move($3),std::move($4),std::nullopt};
-      $$ = ast::Fdef{{@$,"fdef"},std::move($2),ast::makeExpr(lambda)};}
+      $$ = ast::Fdef{{@$,"fdef"},std::move($2),lambda};}
       |FUNC lvar arguments_top ARROW types block {
       auto lambda = ast::Lambda{{@$,"lambda"} ,std::move($3),std::move($6),std::move($5)};
-      $$ = ast::Fdef{{@$,"fdef"},std::move($2),ast::makeExpr(lambda)};}
+      $$ = ast::Fdef{{@$,"fdef"},std::move($2),lambda};}
 
 
 top: opt_nl statements opt_nl ENDFILE {driver.setTopAst(std::make_shared<ast::Statements>(std::move($2)));}
@@ -421,10 +418,8 @@ statement: assign       {$$=ast::makeStatement(std::move($1));}
           |fcalltime     {$$=ast::makeStatement(std::move($1));}
           |fcall         {$$=ast::makeStatement(std::move($1));}
 
-block: LBRACE  opt_nl statements opt_expr opt_nl RBRACE {$$ = ast::Block{{@$,"block"},std::move($3),std::move($4)};}
-
-opt_expr: %empty{ $$ = std::nullopt; }
-       | NEWLINE expr_non_fcall { $$ = std::optional(std::move($2)); }
+block: LBRACE  opt_nl statements NEWLINE expr_non_fcall opt_nl RBRACE {$$ = ast::Block{{@$,"block"},std::move($3),std::optional(std::move($5))};}
+      | LBRACE  opt_nl statements opt_nl RBRACE{$$ = ast::Block{{@$,"block"},std::move($3),std::nullopt};}
 
 opt_nl:%empty
       | NEWLINE {}

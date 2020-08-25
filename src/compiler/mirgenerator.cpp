@@ -6,11 +6,11 @@
 
 namespace mimium {
 
-
 // new knormalizer(mir generator)
 
 std::shared_ptr<MIRblock> MirGenerator::generate(ast::Statements& topast) {
-  auto [lvarid, ctx] = generateBlock(topast, "root");
+  auto topblock = ast::Block{ast::DebugInfo{},topast,std::nullopt};
+  auto [lvarid, ctx] = generateBlock(topblock, "root");
   return ctx;
 }
 
@@ -21,15 +21,20 @@ std::string MirGenerator::makeNewName() {
 }
 
 std::pair<lvarid, std::shared_ptr<MIRblock>> MirGenerator::generateBlock(
-    ast::Statements stmts, std::string label) {
+    ast::Block& block, std::string label) {
   int indent = (ctx == nullptr) ? 0 : (ctx->indent_level + 1);
   auto tmpctx = ctx;
   auto functx = std::make_shared<MIRblock>(label);
   ctx = functx;
   ctx->indent_level = indent;
   lvarid laststmt;
-  for (auto&& s : stmts) {
-    laststmt = std::visit(statementvisitor, *s);
+  for (auto&& s : block.stmts) {
+      laststmt = genInst(*s);
+  }
+  if(block.expr.has_value()){
+    auto expr = block.expr.value();
+    auto newreturn =ast::Return{block.debuginfo,expr};
+    laststmt = genInst(newreturn);
   }
   ctx = tmpctx;
   return {laststmt, functx};
@@ -70,9 +75,8 @@ lvarid ExprKnormVisitor::operator()(ast::Lambda& ast) {
   auto label = mirgen.makeNewName();
 
   auto fun = FunInst(
-      label,
-      mirgen.transformArgs(ast.args.args, std::deque<std::string>{},
-                           [&](ast::Lvar& lvar) { return lvar.value; }));
+      label, mirgen.transformArgs(ast.args.args, std::deque<std::string>{},
+                                  [&](ast::Lvar& lvar) { return lvar.value; }));
   auto* typeptr = mirgen.typeenv.tryFind(label);
   auto [lvar, ctx] = mirgen.generateBlock(ast.body, label);
   fun.body = ctx;
@@ -87,27 +91,25 @@ lvarid ExprKnormVisitor::operator()(ast::Lambda& ast) {
                                      }));
   return mirgen.emplace(std::move(fun), std::move(type));
 }
+lvarid MirGenerator::genFcallInst(ast::Fcall& fcall,
+                                  std::optional<std::string> when) {
+  auto [fname, type] = genInst(fcall.fn);
+  auto* rettype_ptr = std::get_if<types::rFunction>(&typeenv.find(fname));
+  types::Value rettype =
+      (rettype_ptr == nullptr) ? types::None() : rettype_ptr->getraw().ret_type;
+  auto fnkind = MirGenerator::isExternalFun(fname) ? EXTERNAL : CLOSURE;
+  auto newname = makeNewName();
+  auto newargs = transformArgs(
+      fcall.args.args, std::deque<std::string>{},
+      [&](auto expr) { return genInst(expr).first; });
+      return emplace(FcallInst(newname, fname, newargs, fnkind, rettype, when),
+                     rettype);
+}
 lvarid ExprKnormVisitor::operator()(ast::Fcall& ast,
                                     std::optional<std::string> when) {
-  auto [fname, type] = std::visit(*this, *ast.fn);
-  auto* rettype_ptr =
-      std::get_if<types::rFunction>(&mirgen.typeenv.find(fname));
-  types::Value rettype = (rettype_ptr == nullptr)
-                             ? types::Value(types::None())
-                             : rettype_ptr->getraw().ret_type;
-  auto fnkind = MirGenerator::isExternalFun(fname) ? EXTERNAL : CLOSURE;
-  auto newname = mirgen.makeNewName();
-  return mirgen.emplace(
-      FcallInst(newname, fname,
-                mirgen.transformArgs(
-                    ast.args.args, std::deque<std::string>{},
-                    [&](auto expr) { return std::visit(*this, *expr).first; }),
-                fnkind, rettype, when),
-      rettype);
+  return mirgen.genFcallInst(ast,when);
 }
-lvarid ExprKnormVisitor::operator()(ast::Time& ast) {
-  return (*this)(ast.fcall, std::visit(*this, *ast.when).first);
-}
+
 lvarid ExprKnormVisitor::operator()(ast::Struct& ast) {
   // TODO
   return lvarid{};
@@ -139,6 +141,35 @@ lvarid ExprKnormVisitor::operator()(ast::Tuple& ast) {
   // TODO
   return lvarid{};
 }
+
+lvarid ExprKnormVisitor::operator()(ast::Block& ast) {
+  static_assert(true, "should be unreachable");
+  return lvarid{};
+}
+
+
+lvarid ExprKnormVisitor::operator()(ast::If& ast) {
+  auto lvname = mirgen.makeNewName();
+  auto ifinst = IfInst(lvname, genInst(ast.cond).first);
+  auto [thenvarid, thenblock] =
+      mirgen.generateBlock(ast.then_stmts, lvname + "$then");
+  ifinst.thenblock = thenblock;
+  ifinst.elseblock =
+      ast.else_stmts.has_value()
+          ? mirgen.generateBlock(ast.else_stmts.value(), lvname + "$else")
+                .second
+          : nullptr;
+  return mirgen.emplace(std::move(ifinst), types::Value(thenvarid.second));
+}
+
+lvarid StatementKnormVisitor::operator()(ast::Fdef& ast) {
+  bool is_overwrite = mirgen.isOverWrite(ast.lvar.value);
+  if (!is_overwrite) {
+    mirgen.lvar_holder = ast.lvar.value;
+  }
+  return mirgen.exprvisitor(ast.fun);
+}
+
 
 lvarid StatementKnormVisitor::operator()(ast::Assign& ast) {
   bool is_overwrite = mirgen.isOverWrite(ast.lvar.value);
@@ -173,21 +204,15 @@ lvarid StatementKnormVisitor::operator()(ast::For& ast) {
   // TODO
   return lvarid{};
 }
-lvarid StatementKnormVisitor::operator()(ast::If& ast) {
-  auto lvname = mirgen.makeNewName();
-  auto ifinst = IfInst(lvname, std::visit(mirgen.exprvisitor, *ast.cond).first);
-  auto [thenvarid, thenblock] =
-      mirgen.generateBlock(ast.then_stmts, lvname + "$then");
-  ifinst.thenblock = thenblock;
-  ifinst.elseblock =
-      ast.else_stmts.has_value()
-          ? mirgen.generateBlock(ast.else_stmts.value(), lvname + "$else")
-                .second
-          : nullptr;
-  return mirgen.emplace(std::move(ifinst), types::Value(thenvarid.second));
+
+
+lvarid StatementKnormVisitor::operator()(ast::Fcall& ast) {
+  return mirgen.genFcallInst(ast,std::nullopt);
 }
-lvarid StatementKnormVisitor::operator()(ast::ExprPtr& ast) {
-  return std::visit(mirgen.exprvisitor, *ast);
+lvarid StatementKnormVisitor::operator()(ast::Time& ast) {
+  return mirgen.genFcallInst(ast.fcall, mirgen.genInst(ast.when).first);
 }
+
+
 
 }  // namespace mimium
