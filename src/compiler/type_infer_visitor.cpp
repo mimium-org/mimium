@@ -11,11 +11,9 @@ using StatementTypeVisitor = TypeInferer::StatementTypeVisitor;
 using TypeUnifyVisitor = TypeInferer::TypeUnifyVisitor;
 
 types::Value ExprTypeVisitor::operator()(ast::Op& ast) {
-  if (!ast.lhs.has_value()) {
-    return std::visit(*this, *ast.rhs);
-  }
-  return inferer.unify(std::visit(*this, *ast.lhs.value()),
-                       std::visit(*this, *ast.rhs));
+  return ast.lhs.has_value()
+             ? inferer.unify(infer(ast.lhs.value()), infer(ast.rhs))
+             : infer(ast.rhs);
 }
 types::Value ExprTypeVisitor::operator()(ast::Number& ast) {
   return types::Float();
@@ -41,31 +39,28 @@ types::Value ExprTypeVisitor::operator()(ast::Lambda& ast) {
 
   auto rettype_tv = ast.ret_type.value_or(*inferer.typeenv.createNewTypeVar());
   inferer.selftype_stack.push(rettype_tv);
-  auto rettype = inferer.inferStatements(ast.body);
+  auto rettype = (*this)(ast.body);
   auto uni_rettype = inferer.unify(rettype_tv, rettype);
   inferer.selftype_stack.pop();
-  return types::Function(std::move(uni_rettype), std::move(argtypes));
+  return types::Function(uni_rettype, argtypes);
 }
-types::Value ExprTypeVisitor::operator()(ast::Fcall& ast) {
+
+types::Value TypeInferer::inferFcall(ast::Fcall& fcall) {
   std::vector<types::Value> argtypes;
-  auto args = ast.args.args;
+  auto args = fcall.args.args;
   std::transform(args.begin(), args.end(), std::back_inserter(argtypes),
-                 [&](ast::ExprPtr expr) { return std::visit(*this, *expr); });
-  // for (auto& a : ast.args.args) {
-  //   argtypes.emplace_back(std::visit(*this, *a));
-  // }
-  auto frettype = *inferer.typeenv.createNewTypeVar();
-  types::Value ftype =
-      types::Function(std::move(frettype), std::move(argtypes));
-  auto targetfntype = std::visit(*this, *ast.fn);
-  auto res = inferer.unify(targetfntype, ftype);
+                 [&](ast::ExprPtr expr) { return exprvisitor.infer(expr); });
+  auto frettype = *typeenv.createNewTypeVar();
+  types::Value ftype = types::Function(frettype, argtypes);
+  types::Value targettype = exprvisitor.infer(fcall.fn);
+  auto res = unify(targettype, ftype);
   return rv::get<types::Function>(res).ret_type;
 }
-types::Value ExprTypeVisitor::operator()(ast::Time& ast) {
-  inferer.unify(std::visit(*this, *ast.when), types::Value(types::Float()));
-  // anyway, this rvalue will not be used(time specification is used as void
-  return (*this)(ast.fcall);
+
+types::Value ExprTypeVisitor::operator()(ast::Fcall& ast) {
+  return inferer.inferFcall(ast);
 }
+
 types::Value ExprTypeVisitor::operator()(ast::Struct& ast) {
   std::vector<types::Struct::Keytype> argtypes;
   types::Value tmptype;
@@ -112,31 +107,59 @@ types::Value ExprTypeVisitor::operator()(ast::Tuple& ast) {
   return types::Tuple({types::Float()});
 }
 
+types::Value ExprTypeVisitor::operator()(ast::Block& ast) {
+  auto stmttype = inferer.inferStatements(ast.stmts);
+  return ast.expr.has_value() ? inferer.inferExpr(ast.expr.value()) : stmttype;
+}
+types::Value TypeInferer::inferIf(ast::If& ast) {
+  if (!ast.else_stmts.has_value()) {
+    return inferExpr(ast.then_stmts);
+  }
+  auto then_r_type = inferExpr(ast.then_stmts);
+  auto else_r_type = inferExpr(ast.else_stmts.value());
+  return unify(std::move(then_r_type), std::move(else_r_type));
+}
+
+types::Value ExprTypeVisitor::operator()(ast::If& ast) {
+  return inferer.inferIf(ast);
+}
+
+types::Value StatementTypeVisitor::operator()(ast::If& ast) {
+    return inferer.inferIf(ast);
+}
+
+
+types::Value StatementTypeVisitor::operator()(ast::Fdef& ast) {
+  auto lvartype = inferer.addLvar(ast.lvar);
+  auto rvartype = inferer.exprvisitor(ast.fun);
+  inferer.unify(lvartype, rvartype);
+  return types::Void();
+}
+
 types::Value StatementTypeVisitor::operator()(ast::Assign& ast) {
   auto lvartype = inferer.addLvar(ast.lvar);
-  auto rvartype = std::visit(inferer.exprvisitor, *ast.expr);
-  inferer.unify(std::move(lvartype), std::move(rvartype));
+  auto rvartype = inferer.inferExpr(ast.expr);
+  inferer.unify(lvartype, rvartype);
   return types::Void();
 }
 types::Value StatementTypeVisitor::operator()(ast::Return& ast) {
-  return std::visit(inferer.exprvisitor, *ast.value);
+  return inferer.inferExpr(ast.value);
 }
 // types::Value StatementTypeVisitor::operator()(ast::Declaration& ast){}
 types::Value StatementTypeVisitor::operator()(ast::For& ast) {
   // TODO(tomoya): types for iterator
-  inferer.infer(ast.statements);
+  inferer.exprvisitor(ast.statements);
   return types::Void();  // for loop becomes void anyway
 }
-types::Value StatementTypeVisitor::operator()(ast::If& ast) {
-  if (!ast.else_stmts.has_value()) {
-    return inferer.inferStatements(ast.then_stmts);
-  }
-  auto then_r_type = inferer.inferStatements(ast.then_stmts);
-  auto else_r_type = inferer.inferStatements(ast.else_stmts.value());
-  return inferer.unify(std::move(then_r_type), std::move(else_r_type));
+
+types::Value StatementTypeVisitor::operator()(ast::Fcall& ast) {
+  return inferer.inferFcall(ast);
 }
-types::Value StatementTypeVisitor::operator()(ast::ExprPtr& ast) {
-  return std::visit(inferer.exprvisitor, *ast);
+types::Value StatementTypeVisitor::operator()(ast::Time& ast) {
+  inferer.unify(inferer.inferExpr(ast.when), types::Float());
+  // anyway, this rvalue will not be used(time specification is used as void
+  auto fcalltype = inferer.inferFcall(ast.fcall);
+  return inferer.unify(fcalltype, types::Void());
 }
 
 types::Value TypeInferer::addLvar(ast::Lvar& lvar) {

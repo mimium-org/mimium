@@ -10,6 +10,8 @@ Driver driver{};\
 ast::Statements& ast = *driver.parseFile("parser/"#FILENAME".mmm");\
 }
 
+PARSER_TEST(operators)
+
 PARSER_TEST(number)
 PARSER_TEST(lvar_type)
 PARSER_TEST(ifstmt)
@@ -23,7 +25,7 @@ PARSER_TEST(array)
 TEST(parser,ast_complete){
 Driver driver{};
 auto ast = driver.parseFile("ast_complete.mmm");
-std::cerr << ast << "\n";
+// std::cerr << ast << "\n";
 }
 
 }

@@ -103,10 +103,14 @@
 			"-clang-tidy",
 			"-background-index",
 			"-compile-commands-dir=build",
-			"-header-insertion=never"
+			"-header-insertion=never",
+			"--query-driver=\"/usr/bin/clang++\""
 		],
 		"cmake.ctestArgs": [
 			"--verbose"
+		  ],
+		  "cmake.configureArgs": [
+			  "-DBUILD_TEST=ON"
 		  ]
 	}
 }

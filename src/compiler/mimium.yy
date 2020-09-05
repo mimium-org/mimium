@@ -55,7 +55,7 @@ using namespace mimium;
   #define yylex scanner.yylex
 }
 %define api.value.type variant
-%define parse.assert
+/*  %define parse.assert */ /* commented out assertion because of bison bug?*/
 %define parse.error verbose
 %token
    ADD "+"
@@ -143,8 +143,10 @@ using namespace mimium;
 %type <ast::Op> op "operator"
 
 %type <ast::ExprPtr> expr "expression"
+%type <ast::ExprPtr> expr_non_fcall "expression other than fcall"
+
 // %type <AST_Ptr> term_time "term @ something"
-%type <ast::ExprPtr> term "primary"
+// %type <ast::ExprPtr> term "primary"
 
 %type <ast::Lambda> lambda "lambda"
 %type <ast::LambdaArgs> arguments_top "arguments top"
@@ -156,8 +158,6 @@ using namespace mimium;
 
 %type <ast::FcallArgs> fcallargs "arguments for fcall"
 %type <ast::Fcall> fcall "fcall"
-//expression version of if(syntax sugar to calling special function)
-%type <ast::Fcall> ifexpr "if expr"
 
 %type <ast::Time> fcalltime "fcall with time"
 
@@ -171,18 +171,17 @@ using namespace mimium;
 
 %type <ast::Assign> assign "assign"
 // Syntax Sugar 
-%type <ast::Assign> fdef "fdef"
+%type <ast::Fdef> fdef "fdef"
 
-
-%type <ast::If> ifstatement "if statement"
+%type <ast::If> if "if"
 %type <ast::For> forloop "forloop"
 
 
 %type <std::shared_ptr<ast::Statement>> statement "single statement"
 
 %type <ast::Statements> statements "statements"
+%type <ast::Block> block "block"
 %type <ast::Statements> top "top"
-%type <ast::Statements> block "block"
 
 
 
@@ -190,11 +189,10 @@ using namespace mimium;
 
 %locations
 
-%nonassoc '(' ')'
 
-%nonassoc '[' ']'
 
-%left ELSE
+
+
 %left PIPE
 %left ARROW
 %left LSHIFT RSHIFT
@@ -205,16 +203,25 @@ using namespace mimium;
 %left  ADD SUB
 %left  MUL DIV MOD
 %left  EXPONENT
-
+%left UMINUS
 
 %left  AT
-
 %right NOT 
+
+%right '('
+%left  ')'
+%right '['
+%left  ']'
+%left FCALL
+
 
 %left ','
 %left '&'
 
+%nonassoc '{' '}'
+%left ELSE
 
+%right ASSIGN
 %left NEWLINE 
 
 %start top
@@ -291,9 +298,12 @@ fcallargs:
       |expr   {$$ = ast::FcallArgs{ {@1,""}, {std::move($1)} };}
       |%empty {$$ = ast::FcallArgs{ {}, {} };}
 
-fcall: term '(' fcallargs ')' {$$ = ast::Fcall{{@$,""},std::move($1),std::move($3)};}
+fcall: expr '(' fcallargs ')' {$$ = ast::Fcall{{@$,""},std::move($1),std::move($3)};}
+      |expr  PIPE expr        {
+                              auto arg = ast::FcallArgs{{@1,"pipe"},{std::move($1)}};
+                              $$ = ast::Fcall{{@$,"pipe"},std::move($3),std::move(arg)};}
 
-fcalltime: fcall AT term      {$$ = ast::Time{{@$,""},std::move($1),std::move($3)};;}
+fcalltime: fcall AT expr      {$$ = ast::Time{{@$,""},std::move($1),std::move($3)};;}
       
 // now: syntax sugar to fcall;
 now: NOW { 
@@ -311,9 +321,6 @@ lambda: OR arguments OR block {
       auto args = ast::LambdaArgs{{@2,"args"},std::move($2)};
       $$ = ast::Lambda{{@$,"lambda"},std::move(args),std::move($6),std::move($5)};}
 
-ifexpr: IF '(' expr ')' expr ELSE expr{$$ = ast::Fcall{{@1,"now"},
-                         ast::makeExpr(ast::Rvar{{{@$,"ifexpr"},"ifexpr"}}),
-                         ast::FcallArgs{{@$,"ifexpr"},{std::move($3),std::move($5),std::move($7)}}};}
 
 
 // array initialization
@@ -322,13 +329,13 @@ array: '[' arrayelems ']' {
       // @$ = {@1.first_line,@1.first_col,@3.last_line,@3.last_col};
       $$ = ast::ArrayInit{{@$,"array"} ,std::move($2)};}
 
-arrayelems: single ',' arrayelems   {
+arrayelems: expr ',' arrayelems   {
                                     $3.push_front(std::move($1));
                                     $$ = std::move($3); }
-         |  single {$$ = std::deque<ast::ExprPtr>{std::move($1)};}
+         |  expr {$$ = std::deque<ast::ExprPtr>{std::move($1)};}
 
 // array access
-array_access: term '[' term ']' {
+array_access: expr '[' expr ']' {
       // @$ = {@1.first_line,@1.first_col,@4.last_line,@4.last_col};
       $$ = ast::ArrayAccess{{@$,"arrayaccess"},std::move($1),std::move($3)};}
 
@@ -350,25 +357,33 @@ op:   expr ADD    expr   {$$ = ast::Op{{@$,"op"},ast::OpId::Add,        std::mov
      |expr LSHIFT expr   {$$ = ast::Op{{@$,"op"},ast::OpId::LShift,     std::move($1),std::move($3)};}
      |expr RSHIFT expr   {$$ = ast::Op{{@$,"op"},ast::OpId::RShift,     std::move($1),std::move($3)};}
      |expr NEQ expr      {$$ = ast::Op{{@$,"op"},ast::OpId::NotEq,      std::move($1),std::move($3)};}
-     |SUB expr           {$$ = ast::Op{{@$,"op"},ast::OpId::Sub,        std::nullopt, std::move($2)};}
-     |NOT expr           {$$ = ast::Op{{@$,"op"},ast::OpId::Not,        std::nullopt, std::move($2)};}
+     |SUB expr           {$$ = ast::Op{{@$,"op"},ast::OpId::Sub,        std::nullopt, std::move($2)};} %prec UMINUS
+     |NOT expr           {$$ = ast::Op{{@$,"op"},ast::OpId::Not,        std::nullopt, std::move($2)};} %prec UMINUS
 
 
-expr: op  {$$ = ast::makeExpr($1);}
-     |expr PIPE expr     {
-                        auto arg = ast::FcallArgs{{@1,"pipe"},{std::move($1)}};
-                        auto fcall = ast::Fcall{{@$,"pipe"},std::move($3),std::move(arg)};
-                         $$ = ast::makeExpr(std::move(fcall));}
-     |term {$$ = std::move($1);}
 
-term: fcalltime     {$$ = ast::makeExpr($1);}
-      |    fcall     {$$ = ast::makeExpr($1);}
+
+if: IF '(' expr ')' expr   {$$ = ast::If{{@$,"if"},std::move($3),std::move($5),std::nullopt};}
+   |IF '(' expr ')' expr ELSE expr {$$ = ast::If{{@$,"if"},std::move($3),std::move($5),std::move($7)};}
+
+
+
+
+
+expr_non_fcall:op      {$$ = ast::makeExpr($1);}
       |    array     {$$ = ast::makeExpr($1);}
       | array_access {$$ = ast::makeExpr($1);}
       |    lambda    {$$ = ast::makeExpr($1);}
-      |    ifexpr    {$$ = ast::makeExpr($1);}
       |    single    {$$ = std::move($1);}
-      | '(' expr ')' {$$ = std::move($2);}
+      |'(' expr ')' {$$ = std::move($2);}
+      // | term {$$ = std::move($1);}
+
+expr: expr_non_fcall {$$ = std::move($1);}
+      |fcall {$$ = ast::makeExpr($1);} %prec FCALL
+      |    if   {$$ = ast::makeExpr($1);}
+      |    block     {$$ = ast::makeExpr($1);}
+
+// term: '(' expr ')' {$$ = std::move($2);}
 
 
 // Statements 
@@ -389,10 +404,10 @@ arguments: lvar ',' arguments {$3.push_front(std::move($1));
 
 fdef: FUNC lvar arguments_top block {
       auto lambda = ast::Lambda{{@$,"lambda"} ,std::move($3),std::move($4),std::nullopt};
-      $$ = ast::Assign{{@$,"fdef"},std::move($2),ast::makeExpr(lambda)};}
+      $$ = ast::Fdef{{@$,"fdef"},std::move($2),lambda};}
       |FUNC lvar arguments_top ARROW types block {
       auto lambda = ast::Lambda{{@$,"lambda"} ,std::move($3),std::move($6),std::move($5)};
-      $$ = ast::Assign{{@$,"fdef"},std::move($2),ast::makeExpr(lambda)};}
+      $$ = ast::Fdef{{@$,"fdef"},std::move($2),lambda};}
 
 
 top: opt_nl statements opt_nl ENDFILE {driver.setTopAst(std::make_shared<ast::Statements>(std::move($2)));}
@@ -401,30 +416,24 @@ statements: statement{  $$ = std::deque<std::shared_ptr<ast::Statement>>{std::mo
             |statements NEWLINE statement {$1.push_back(std::move($3));
                                           $$= std::move($1);  }
             
-      
-block: LBRACE  NEWLINE statements opt_nl RBRACE {$$ = std::move($3);}
-// for one liner statement
-      |LBRACE expr RBRACE        {auto stmt =ast::makeStatement(std::move($2));
-                                  $$= ast::Statements{std::move(stmt)};}
-      |LBRACE RETURN expr RBRACE {auto ret = ast::Return{{@$,"ret"},std::move($3)};
-                                  auto stmt =ast::makeStatement(std::move(ret));
-                                  $$= ast::Statements{std::move(stmt)};}
-
-opt_nl:%empty
-      | NEWLINE {}
-
 statement: assign       {$$=ast::makeStatement(std::move($1));} 
           |fdef         {$$=ast::makeStatement(std::move($1));}
-          |ifstatement  {$$=ast::makeStatement(std::move($1));}
           |forloop      {$$=ast::makeStatement(std::move($1));}
       //     |declaration  {$$=ast::makeStatement(std::move($1));}
           |RETURN expr  {auto ret = ast::Return{{@$,"ret"},std::move($2)};
                          $$=ast::makeStatement(std::move(ret));}
-          |expr         {$$=ast::makeStatement(std::move($1));}
+          |fcalltime     {$$=ast::makeStatement(std::move($1));}
+          |fcall         {$$=ast::makeStatement(std::move($1));}
+          |if         {$$=ast::makeStatement(std::move($1));}
 
 
-ifstatement: IF '(' expr ')' block {$$ = ast::If{{@$,"if"},std::move($3),std::move($5),std::nullopt};}
-            |IF '(' expr ')' block ELSE block {$$ = ast::If{{@$,"if"},std::move($3),std::move($5),std::move($7)};}
+block: LBRACE  opt_nl statements NEWLINE expr_non_fcall opt_nl RBRACE {$$ = ast::Block{{@$,"block"},std::move($3),std::optional(std::move($5))};}
+      | LBRACE  opt_nl expr_non_fcall opt_nl RBRACE {$$ = ast::Block{{@$,"block"},{},std::move($3)};}
+      | LBRACE  opt_nl statements opt_nl RBRACE {$$ = ast::Block{{@$,"block"},std::move($3),std::nullopt};}
+
+opt_nl:%empty
+      | NEWLINE {}
+
 
 forloop: FOR '(' lvar IN expr ')' block {$$ = ast::For{{@$,"for"},std::move($3),std::move($5),std::move($7)};};
 
