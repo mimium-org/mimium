@@ -43,12 +43,10 @@ Currently only macOS is supported. Windows, Linux and web browser will be suppor
 
 # Build from Source
 
-(not recommended yet. also see travis.yml)
-
 ## dependency
 
 - cmake
-- llvm >= 9.0.0(RTTI need to be activated)
+- llvm >= 9.0.0
 - bison >= 3.3
 - flex
 - Libsndfile
@@ -70,11 +68,11 @@ cmake --build . --target install
 Currently tested building on Ubuntu 18.04(Bionic) and 20.04(Focal)
 For a compiler, GCC>9 is recommended.
 
-At Bionic, a version of bison from apt is 3.0.4, which will not work. Please install latest version manually.(See also github action page.)
+At Bionic, a version of bison from apt is 3.0.4, which will not work. Please install latest version manually.(See also GitHub Action page.)
 
 # Author
 
-Tomoya Matsuura 松浦知也
+Tomoya Matsuura/松浦知也
 
 <https://matsuuratomoya.com/en>
 
