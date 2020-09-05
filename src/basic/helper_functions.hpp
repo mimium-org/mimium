@@ -83,6 +83,15 @@ inline bool has(std::vector<std::string> t, char* s) {
   return std::find(t.begin(), t.end(), std::string(s)) != t.end();
 }
 
+namespace ast{
+    template <typename T,typename L>
+  T transformArgs(T& args,L lambda){
+    T res;
+    std::transform(args.begin(),args.end(),std::back_inserter(res),lambda);
+    return res;
+  }
+}
+
 [[maybe_unused]] static std::string join(std::deque<std::string>& vec,
                                          std::string delim) {
   std::string res;
