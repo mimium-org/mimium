@@ -9,7 +9,7 @@ namespace mimium {
 // new knormalizer(mir generator)
 
 std::shared_ptr<MIRblock> MirGenerator::generate(ast::Statements& topast) {
-  auto topblock = ast::Block{ast::DebugInfo{},topast,std::nullopt};
+  auto topblock = ast::Block{ast::DebugInfo{}, topast, std::nullopt};
   auto [lvarid, ctx] = generateBlock(topblock, "root");
   return ctx;
 }
@@ -29,11 +29,11 @@ std::pair<lvarid, std::shared_ptr<MIRblock>> MirGenerator::generateBlock(
   ctx->indent_level = indent;
   lvarid laststmt;
   for (auto&& s : block.stmts) {
-      laststmt = genInst(*s);
+    laststmt = genInst(*s);
   }
-  if(block.expr.has_value()){
+  if (block.expr.has_value()) {
     auto expr = block.expr.value();
-    auto newreturn =ast::Return{block.debuginfo,expr};
+    auto newreturn = ast::Return{block.debuginfo, expr};
     laststmt = genInst(newreturn);
   }
   ctx = tmpctx;
@@ -99,15 +99,14 @@ lvarid MirGenerator::genFcallInst(ast::Fcall& fcall,
       (rettype_ptr == nullptr) ? types::None() : rettype_ptr->getraw().ret_type;
   auto fnkind = MirGenerator::isExternalFun(fname) ? EXTERNAL : CLOSURE;
   auto newname = makeNewName();
-  auto newargs = transformArgs(
-      fcall.args.args, std::deque<std::string>{},
-      [&](auto expr) { return genInst(expr).first; });
-      return emplace(FcallInst(newname, fname, newargs, fnkind, rettype, when),
-                     rettype);
+  auto newargs = transformArgs(fcall.args.args, std::deque<std::string>{},
+                               [&](auto expr) { return genInst(expr).first; });
+  return emplace(FcallInst(newname, fname, newargs, fnkind, rettype, when),
+                 rettype);
 }
 lvarid ExprKnormVisitor::operator()(ast::Fcall& ast,
                                     std::optional<std::string> when) {
-  return mirgen.genFcallInst(ast,when);
+  return mirgen.genFcallInst(ast, when);
 }
 
 lvarid ExprKnormVisitor::operator()(ast::Struct& ast) {
@@ -147,21 +146,30 @@ lvarid ExprKnormVisitor::operator()(ast::Block& ast) {
   return lvarid{};
 }
 
+std::pair<lvarid,std::shared_ptr<MIRblock>> MirGenerator::genIfBlock(ast::ExprPtr& block,std::string const& label) {
+  auto realblock = (rv::holds_alternative<ast::Block>(*block))? rv::get<ast::Block>(*block): ast::Block{ast::DebugInfo{},{},block};
+  return generateBlock(realblock, label);
+}
 
-lvarid ExprKnormVisitor::operator()(ast::If& ast) {
-  auto lvname = mirgen.makeNewName();
+
+lvarid MirGenerator::genIfInst(ast::If& ast) {
+  auto lvname = makeNewName();
   auto ifinst = IfInst(lvname, genInst(ast.cond).first);
-  auto [thenvarid, thenblock] =
-      mirgen.generateBlock(ast.then_stmts, lvname + "$then");
+  auto [thenvarid, thenblock] = genIfBlock(ast.then_stmts, lvname + "$then");
   ifinst.thenblock = thenblock;
   ifinst.elseblock =
       ast.else_stmts.has_value()
-          ? mirgen.generateBlock(ast.else_stmts.value(), lvname + "$else")
-                .second
+          ? genIfBlock(ast.else_stmts.value(), lvname + "$else").second
           : nullptr;
-  return mirgen.emplace(std::move(ifinst), types::Value(thenvarid.second));
+  return emplace(std::move(ifinst), types::Value(thenvarid.second));
 }
 
+lvarid ExprKnormVisitor::operator()(ast::If& ast) {
+  return mirgen.genIfInst(ast);
+}
+lvarid StatementKnormVisitor::operator()(ast::If& ast) {
+  return mirgen.genIfInst(ast);
+}
 lvarid StatementKnormVisitor::operator()(ast::Fdef& ast) {
   bool is_overwrite = mirgen.isOverWrite(ast.lvar.value);
   if (!is_overwrite) {
@@ -169,7 +177,6 @@ lvarid StatementKnormVisitor::operator()(ast::Fdef& ast) {
   }
   return mirgen.exprvisitor(ast.fun);
 }
-
 
 lvarid StatementKnormVisitor::operator()(ast::Assign& ast) {
   bool is_overwrite = mirgen.isOverWrite(ast.lvar.value);
@@ -205,14 +212,11 @@ lvarid StatementKnormVisitor::operator()(ast::For& ast) {
   return lvarid{};
 }
 
-
 lvarid StatementKnormVisitor::operator()(ast::Fcall& ast) {
-  return mirgen.genFcallInst(ast,std::nullopt);
+  return mirgen.genFcallInst(ast, std::nullopt);
 }
 lvarid StatementKnormVisitor::operator()(ast::Time& ast) {
   return mirgen.genFcallInst(ast.fcall, mirgen.genInst(ast.when).first);
 }
-
-
 
 }  // namespace mimium

@@ -109,18 +109,25 @@ types::Value ExprTypeVisitor::operator()(ast::Tuple& ast) {
 
 types::Value ExprTypeVisitor::operator()(ast::Block& ast) {
   auto stmttype = inferer.inferStatements(ast.stmts);
-  auto stmtvoid = inferer.unify(stmttype, types::Void());
-  return ast.expr.has_value() ? inferer.inferExpr(ast.expr.value()) : stmtvoid;
+  return ast.expr.has_value() ? inferer.inferExpr(ast.expr.value()) : stmttype;
+}
+types::Value TypeInferer::inferIf(ast::If& ast) {
+  if (!ast.else_stmts.has_value()) {
+    return inferExpr(ast.then_stmts);
+  }
+  auto then_r_type = inferExpr(ast.then_stmts);
+  auto else_r_type = inferExpr(ast.else_stmts.value());
+  return unify(std::move(then_r_type), std::move(else_r_type));
 }
 
 types::Value ExprTypeVisitor::operator()(ast::If& ast) {
-  if (!ast.else_stmts.has_value()) {
-    return inferer.exprvisitor(ast.then_stmts);
-  }
-  auto then_r_type = inferer.exprvisitor(ast.then_stmts);
-  auto else_r_type = inferer.exprvisitor(ast.else_stmts.value());
-  return inferer.unify(std::move(then_r_type), std::move(else_r_type));
+  return inferer.inferIf(ast);
 }
+
+types::Value StatementTypeVisitor::operator()(ast::If& ast) {
+    return inferer.inferIf(ast);
+}
+
 
 types::Value StatementTypeVisitor::operator()(ast::Fdef& ast) {
   auto lvartype = inferer.addLvar(ast.lvar);

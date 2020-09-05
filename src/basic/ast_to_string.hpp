@@ -61,6 +61,8 @@ struct StatementStringVisitor : public ToStringVisitor,
   void operator()(const ast::Return& ast);
 
   void operator()(const ast::Fdef& ast);
+  void operator()(const ast::If& ast);
+ 
   // void operator()(const ast::Declaration& ast);
   void operator()(const ast::Time& ast);
   void operator()(const ast::Fcall& ast);

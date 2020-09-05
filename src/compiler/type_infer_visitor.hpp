@@ -87,6 +87,7 @@ struct TypeInferer {
 
     // types::Value operator()(ast::Declaration& ast);
     types::Value operator()(ast::For& ast);
+    types::Value operator()(ast::If& ast);
     types::Value operator()(ast::Fcall& ast);
     types::Value infer(ast::Statement stmt) { return std::visit(*this, stmt); }
 
@@ -240,6 +241,8 @@ struct TypeInferer {
   SubstituteVisitor substitutevisitor;
   types::Value addLvar(ast::Lvar& lvar);
   types::Value inferFcall(ast::Fcall& fcall);
+    types::Value inferIf(ast::If& ast);
+
   types::Value unify(types::Value lhs, types::Value rhs) {
     return std::visit(unifyvisitor, lhs, rhs);
   }

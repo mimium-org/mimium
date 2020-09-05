@@ -13,8 +13,10 @@ using lvarid = std::pair<std::string, types::Value>;
 class MirGenerator {
  public:
   explicit MirGenerator(TypeEnv& typeenv)
-      : statementvisitor(*this), exprvisitor(*this), typeenv(typeenv),ctx(nullptr){
-  }
+      : statementvisitor(*this),
+        exprvisitor(*this),
+        typeenv(typeenv),
+        ctx(nullptr) {}
   struct ExprKnormVisitor : public VisitorBase<lvarid&> {
     explicit ExprKnormVisitor(MirGenerator& parent) : mirgen(parent) {}
     lvarid operator()(ast::Op& ast);
@@ -33,9 +35,8 @@ class MirGenerator {
 
     lvarid operator()(ast::If& ast);
     lvarid operator()(ast::Block& ast);
-    lvarid genInst(ast::ExprPtr expr){
-      return std::visit(*this,*expr);
-    }
+    lvarid genInst(ast::ExprPtr expr) { return std::visit(*this, *expr); }
+
    private:
     MirGenerator& mirgen;
   };
@@ -49,16 +50,16 @@ class MirGenerator {
     lvarid operator()(ast::Fcall& ast);
 
     lvarid operator()(ast::For& ast);
+    lvarid operator()(ast::If& ast);
     // Instructions operator()(ast::Declaration& ast);
-    lvarid genInst(ast::Statement stmt){
-      return std::visit(*this,stmt);
-    }
+    lvarid genInst(ast::Statement stmt) { return std::visit(*this, stmt); }
+
    private:
     MirGenerator& mirgen;
   };
   std::shared_ptr<MIRblock> generate(ast::Statements& topast);
-  std::pair<lvarid, std::shared_ptr<MIRblock>> generateBlock(
-      ast::Block& block, std::string label);
+  std::pair<lvarid, std::shared_ptr<MIRblock>> generateBlock(ast::Block& block,
+                                                             std::string label);
   bool isOverWrite(std::string const& name) {
     return std::find(lvarlist.begin(), lvarlist.end(), name) != lvarlist.end();
   }
@@ -77,13 +78,14 @@ class MirGenerator {
   static bool isExternalFun(std::string const& str) {
     return LLVMBuiltin::ftable.find(str) != LLVMBuiltin::ftable.end();
   }
-  lvarid genFcallInst(ast::Fcall& fcall,std::optional<std::string> when=std::nullopt);
-  lvarid genInst(ast::ExprPtr expr){
-    return exprvisitor.genInst(expr);
-  }
-  lvarid genInst(ast::Statement stmt){
-    return statementvisitor.genInst(stmt);
-  }
+  lvarid genFcallInst(ast::Fcall& fcall,
+                      std::optional<std::string> when = std::nullopt);
+  std::pair<lvarid, std::shared_ptr<MIRblock>> genIfBlock(
+      ast::ExprPtr& block, std::string const& label);
+  lvarid genIfInst(ast::If& ast);
+  lvarid genInst(ast::ExprPtr expr) { return exprvisitor.genInst(expr); }
+  lvarid genInst(ast::Statement stmt) { return statementvisitor.genInst(stmt); }
+
  private:
   StatementKnormVisitor statementvisitor;
   ExprKnormVisitor exprvisitor;

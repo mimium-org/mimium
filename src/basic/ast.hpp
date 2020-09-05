@@ -56,7 +56,7 @@ struct Declaration;
 struct For;
 
 using Statement =
-    std::variant<Assign, Return, Fdef, Time, Fcall, /* Declaration, */
+    std::variant<Assign, Return, Fdef, Time, Fcall,Rec_Wrap<If>, /* Declaration, */
                  Rec_Wrap<For>>;
 using Statements = std::deque<std::shared_ptr<Statement>>;
 
@@ -245,8 +245,8 @@ struct For : public Base {
 
 struct If : public Base {
   ExprPtr cond;
-  Block then_stmts;
-  std::optional<Block> else_stmts;
+  ExprPtr then_stmts;
+  std::optional<ExprPtr> else_stmts;
 };
 template <typename FROM, typename TO>
 std::shared_ptr<TO> makeAst(FROM&& ast) {

@@ -42,7 +42,6 @@ class SymbolRenamer {
 
     ast::ExprPtr operator()(ast::If& ast);
 
-    ast::Block renameBlock(ast::Block& ast);
     ast::ExprPtr operator()(ast::Block& ast);
     ast::ExprPtr rename(ast::ExprPtr ast) {
       return std::visit(*this, *ast);
@@ -58,6 +57,7 @@ class SymbolRenamer {
     // StatementPtr operator()(ast::Declaration& ast);
     StatementPtr operator()(ast::Time& ast);
     StatementPtr operator()(ast::Fcall& ast);
+      StatementPtr operator()(ast::If& ast);
     StatementPtr operator()(ast::For& ast);
     
     StatementPtr rename(StatementPtr ast) {
@@ -73,6 +73,8 @@ class SymbolRenamer {
   ast::FcallArgs renameFcallArgs(ast::FcallArgs& ast);
 
   ast::Fcall renameFcall(ast::Fcall& ast);
+  ast::If renameIf(ast::If& ast);
+  ast::Block renameBlock(ast::Block& ast);
  private:
   ExprRenameVisitor expr_renamevisitor{*this};
   StatementRenameVisitor statement_renamevisitor{*this};

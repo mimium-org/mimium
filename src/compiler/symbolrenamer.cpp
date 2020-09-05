@@ -56,17 +56,17 @@ ast::ExprPtr ExprRenameVisitor::operator()(ast::Rvar& ast) {
 ast::ExprPtr ExprRenameVisitor::operator()(ast::Self& ast) {
   return ast::makeExpr(ast);
 }
-ast::Block ExprRenameVisitor::renameBlock(ast::Block& ast) {
-  renamer.env = renamer.env->expand();
-  auto newstmts = renamer.rename(ast.stmts);
-  auto newexpr = ast.expr.has_value() ? std::optional(rename(ast.expr.value()))
+ast::Block SymbolRenamer::renameBlock(ast::Block& ast) {
+  env = env->expand();
+  auto newstmts = rename(ast.stmts);
+  auto newexpr = ast.expr.has_value() ? std::optional(renameExpr(ast.expr.value()))
                                       : std::nullopt;
-  renamer.env = renamer.env->parent_env;
+  env = env->parent_env;
   return ast::Block{{ast.debuginfo}, *std::move(newstmts), std::move(newexpr)};
 }
 
 ast::ExprPtr ExprRenameVisitor::operator()(ast::Block& ast) {
-  return ast::makeExpr(renameBlock(ast));
+  return ast::makeExpr(renamer.renameBlock(ast));
 }
 ast::LambdaArgs ExprRenameVisitor::renameLambdaArgs(ast::LambdaArgs& ast) {
   auto newargs = ast::transformArgs(ast.args, [&](ast::Lvar a) {
@@ -79,7 +79,7 @@ ast::LambdaArgs ExprRenameVisitor::renameLambdaArgs(ast::LambdaArgs& ast) {
 ast::Lambda ExprRenameVisitor::renameLambda(ast::Lambda& ast) {
   renamer.env = renamer.env->expand();
   auto newargsast = renameLambdaArgs(ast.args);
-  auto newbody = renamer.expr_renamevisitor.renameBlock(ast.body);
+  auto newbody = renamer.renameBlock(ast.body);
   renamer.env = renamer.env->parent_env;
   return ast::Lambda{ast.debuginfo, std::move(newargsast), std::move(newbody),
                      ast.ret_type};
@@ -100,6 +100,15 @@ ast::Fcall SymbolRenamer::renameFcall(ast::Fcall& ast) {
   auto newfn = renameExpr(ast.fn);
   return ast::Fcall{ast.debuginfo, std::move(newfn), std::move(newargs)};
 }
+  ast::If SymbolRenamer::renameIf(ast::If& ast){
+  auto newcond = renameExpr(ast.cond);
+  auto newthen = renameExpr(ast.then_stmts);
+  auto newelse = ast.else_stmts.has_value()
+                     ? std::optional(renameExpr(ast.else_stmts.value()))
+                     : std::nullopt;
+  return ast::If{ast.debuginfo, newcond, newthen, newelse};
+  }
+
 
 ast::ExprPtr ExprRenameVisitor::operator()(ast::Fcall& ast) {
   return ast::makeExpr(renamer.renameFcall(ast));
@@ -130,12 +139,7 @@ ast::ExprPtr ExprRenameVisitor::operator()(ast::Tuple& ast) {
 }
 
 ast::ExprPtr ExprRenameVisitor::operator()(ast::If& ast) {
-  auto newcond = rename(ast.cond);
-  auto newthen = renameBlock(ast.then_stmts);
-  auto newelse = ast.else_stmts.has_value()
-                     ? std::optional(renameBlock(ast.else_stmts.value()))
-                     : std::nullopt;
-  return ast::makeExpr(ast::If{ast.debuginfo, newcond, newthen, newelse});
+  return ast::makeExpr(renamer.renameIf(ast));
 }
 
 using StatementRenameVisitor = SymbolRenamer::StatementRenameVisitor;
@@ -169,6 +173,9 @@ StatementPtr StatementRenameVisitor::operator()(ast::Time& ast) {
 StatementPtr StatementRenameVisitor::operator()(ast::Fcall& ast) {
   return ast::makeStatement(renamer.renameFcall(ast));
 }
+StatementPtr StatementRenameVisitor::operator()(ast::If& ast) {
+    return ast::makeStatement(renamer.renameIf(ast));
+}
 
 StatementPtr StatementRenameVisitor::operator()(ast::For& ast) {
   auto newiter = renamer.renameExpr(ast.iterator);
@@ -176,7 +183,7 @@ StatementPtr StatementRenameVisitor::operator()(ast::For& ast) {
   auto newname = renamer.getNewName(ast.index.value);
   renamer.env->addToMap(ast.index.value, newname);
   auto newindex = ast::Lvar{ast.index.debuginfo, newname, ast.index.type};
-  auto newstmts = renamer.expr_renamevisitor.renameBlock(ast.statements);
+  auto newstmts = renamer.renameBlock(ast.statements);
   renamer.env = renamer.env->parent_env;
   return ast::makeStatement(ast::For{ast.debuginfo, std::move(newindex),
                                      std::move(newiter), std::move(newstmts)});

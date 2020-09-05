@@ -101,6 +101,14 @@ void StatementStringVisitor::operator()(const ast::Fdef& ast) {
   output << format.lpar << "Fdef" << format.delim << ast.lvar << format.delim
          << ast.fun << format.rpar;
 }
+void StatementStringVisitor::operator()(const ast::If& ast) {
+  output << format.lpar << "if" << format.delim << *ast.cond << format.delim
+         << ast.then_stmts;
+  if (ast.else_stmts.has_value()) {
+    output << format.delim << ast.else_stmts.value();
+  }
+  output << format.rpar;
+}
 void StatementStringVisitor::operator()(const ast::Return& ast) {
   output << format.lpar << "return" << format.delim << *ast.value
          << format.rpar;
