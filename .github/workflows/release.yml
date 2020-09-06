@@ -19,7 +19,7 @@ jobs:
         uses: actions/create-release@v1.0.0
         with:
           tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          release_name: ${{ github.ref }}
           draft: false
           prerelease: false 
   build_and_upload:
