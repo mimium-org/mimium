@@ -453,9 +453,65 @@ void CodeGenVisitor::operator()(mir::ArrayAccessInst& i) {
       G.builder->CreateCall(arraccessfun, {v, indexfloat}, "arrayaccess");
   G.setValuetoMap(i.lv_name, res);
 }
-void CodeGenVisitor::operator()(IfInst& i) {}
-void CodeGenVisitor::operator()(ReturnInst& i) {
-  auto v = G.tryfindValue(i.val);
+
+void CodeGenVisitor::createIfBody(mir::blockptr& block, llvm::Value* ret_ptr) {
+  auto& insts = block->instructions;
+  if (ret_ptr == nullptr) {
+    for (auto& ti : insts) {
+      std::visit(*this, ti);
+    }
+  } else {
+    if (!std::holds_alternative<mir::ReturnInst>(insts.back())) {
+      std::runtime_error(
+          "non-void block should have mir::ReturnInst for last line");
+    }
+    for (auto&& iter = std::begin(insts); iter != std::prev(std::end(insts));
+         iter++) {
+      std::visit(*this, *iter);
+    }
+    auto& retinst = std::get<mir::ReturnInst>(insts.back());
+    G.builder->CreateStore(G.findValue(retinst.val), ret_ptr);
+  }
+}
+
+void CodeGenVisitor::operator()(mir::IfInst& i) {
+  auto* thisbb = G.currentblock;
+  auto* cond = G.findValue(i.cond);
+  auto* cmp = G.builder->CreateFCmpOGT(cond,llvm::ConstantFP::get(G.ctx, llvm::APFloat(0.0)) );
+  auto* endbb = llvm::BasicBlock::Create(G.ctx, i.lv_name + "_end", G.curfunc);
+
+  llvm::Value* retptr = nullptr;
+  auto& ifrettype = G.typeenv.find(i.lv_name);
+  bool isvoid = std::holds_alternative<types::Void>(ifrettype);
+  if (!isvoid) {
+    std::string ptrname = i.lv_name + "_ptr";
+    retptr = createAllocation(isglobal, G.getType(ifrettype), nullptr, ptrname);
+    G.setValuetoMap(ptrname, retptr);
+  }
+  auto* thenbb =
+      llvm::BasicBlock::Create(G.ctx, i.lv_name + "_then", G.curfunc);
+  G.builder->SetInsertPoint(thenbb);
+  createIfBody(i.thenblock, retptr);
+  G.builder->CreateBr(endbb);
+  auto* elsebb =
+      llvm::BasicBlock::Create(G.ctx, i.lv_name + "_else", G.curfunc);
+  G.builder->SetInsertPoint(elsebb);
+  if (i.elseblock.has_value()) {
+    createIfBody(i.elseblock.value(), retptr);
+  }
+  G.builder->CreateBr(endbb);
+
+  G.builder->SetInsertPoint(endbb);
+  if (!isvoid) {
+    auto* retval = G.builder->CreateLoad(retptr, i.lv_name);
+    G.setValuetoMap(i.lv_name, retval);
+  }
+
+  G.builder->SetInsertPoint(thisbb);
+
+  G.builder->CreateCondBr(cmp, thenbb, elsebb);
+  
+}
 void CodeGenVisitor::operator()(mir::ReturnInst& i) {
   auto* v = G.tryfindValue(i.val);
 

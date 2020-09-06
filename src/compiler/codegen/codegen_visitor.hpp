@@ -48,6 +48,7 @@ struct CodeGenVisitor : public std::enable_shared_from_this<CodeGenVisitor> {
                                 const llvm::Twine& name);
   bool createStoreOw(std::string varname, llvm::Value* val_to_store);
   void createAddTaskFn(mir::FcallInst& i, bool isclosure, bool isglobal);
+  void createIfBody(mir::blockptr& block, llvm::Value* ret_ptr);
   const static std::unordered_map<ast::OpId, std::string> opid_to_ffi;
 };
 }  // namespace mimium

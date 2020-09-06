@@ -7,10 +7,10 @@ namespace mimium {
 
 MemoryObjsCollector::MemoryObjsCollector(TypeEnv& typeenv)
     : typeenv(typeenv), cm_visitor(*this) {
-      std::string primitivemem = "mem";
+  std::string primitivemem = "mem";
   memobjs_map.emplace(primitivemem, std::vector<std::string>{"memory"});
   emplaceNewAlias(primitivemem, types::Float());
-    }
+}
 
 mir::blockptr MemoryObjsCollector::process(mir::blockptr toplevel) {
   auto it = std::begin(toplevel->instructions);
@@ -178,8 +178,15 @@ void MemoryObjsCollector::CollectMemVisitor::operator()(
   M.collectSelf(cur_fun, i.index);
 }
 void MemoryObjsCollector::CollectMemVisitor::operator()(mir::IfInst& i) {
-void MemoryObjsCollector::CollectMemVisitor::operator()(IfInst& i) {}
-void MemoryObjsCollector::CollectMemVisitor::operator()(ReturnInst& i) {
+  M.collectSelf(cur_fun, i.cond);
+  for (auto& inst : i.thenblock->instructions) {
+    std::visit(*this, inst);
+  }
+  if (i.elseblock.has_value()) {
+    for (auto& inst : i.elseblock.value()->instructions) {
+      std::visit(*this, inst);
+    }
+  }
 }
 void MemoryObjsCollector::CollectMemVisitor::operator()(mir::ReturnInst& i) {
   M.collectSelf(cur_fun, i.val);

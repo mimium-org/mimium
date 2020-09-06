@@ -225,9 +225,18 @@ void ClosureConverter::CCVisitor::operator()(mir::ArrayAccessInst& i) {
   localvlist.push_back(i.lv_name);
 }
 
+
 void ClosureConverter::CCVisitor::operator()(mir::IfInst& i) {
-void ClosureConverter::CCVisitor::operator()(IfInst& i) {
-  // todo
+  registerFv(i.cond);
+  for (auto& ti : i.thenblock->instructions) {
+    std::visit(*this, ti);
+  }
+  if (i.elseblock.has_value()) {
+    for (auto& ei : i.elseblock.value()->instructions) {
+      std::visit(*this, ei);
+    }
+  }
+  localvlist.push_back(i.lv_name);
 }
 
 void ClosureConverter::CCVisitor::operator()(mir::ReturnInst& i) {
