@@ -410,10 +410,10 @@ fdef: FUNC lvar arguments_top block {
       $$ = ast::Fdef{{@$,"fdef"},std::move($2),lambda};}
 
 
-top: opt_nl statements opt_nl ENDFILE {driver.setTopAst(std::make_shared<ast::Statements>(std::move($2)));}
+top:  statements opt_nl ENDFILE {driver.setTopAst(std::make_shared<ast::Statements>(std::move($1)));}
 
-statements: statement{  $$ = std::deque<std::shared_ptr<ast::Statement>>{std::move($1)};}
-            |statements NEWLINE statement {$1.push_back(std::move($3));
+statements: opt_nl statement{  $$ = std::deque<std::shared_ptr<ast::Statement>>{std::move($2)};}
+            |statements newlines statement {$1.push_back(std::move($3));
                                           $$= std::move($1);  }
             
 statement: assign       {$$=ast::makeStatement(std::move($1));} 
@@ -427,12 +427,16 @@ statement: assign       {$$=ast::makeStatement(std::move($1));}
           |if         {$$=ast::makeStatement(std::move($1));}
 
 
-block: LBRACE  opt_nl statements NEWLINE expr_non_fcall opt_nl RBRACE {$$ = ast::Block{{@$,"block"},std::move($3),std::optional(std::move($5))};}
+block: LBRACE   statements newlines expr_non_fcall opt_nl RBRACE {$$ = ast::Block{{@$,"block"},std::move($2),std::optional(std::move($4))};}
       | LBRACE  opt_nl expr_non_fcall opt_nl RBRACE {$$ = ast::Block{{@$,"block"},{},std::move($3)};}
-      | LBRACE  opt_nl statements opt_nl RBRACE {$$ = ast::Block{{@$,"block"},std::move($3),std::nullopt};}
+      | LBRACE   statements opt_nl RBRACE {$$ = ast::Block{{@$,"block"},std::move($2),std::nullopt};}
+
+newlines: newlines NEWLINE
+       | NEWLINE
 
 opt_nl:%empty
-      | NEWLINE {}
+      | newlines {}
+
 
 
 forloop: FOR '(' lvar IN expr ')' block {$$ = ast::For{{@$,"for"},std::move($3),std::move($5),std::move($7)};};

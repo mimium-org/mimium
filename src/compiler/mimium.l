@@ -41,19 +41,29 @@ NEWLINE {BREAK}* | ";"
    yylval = lval;
 %}
 
+%{
+  /* todo:need to make some token for bidirectional evaluation also for comment.*/
+%}
 
 "/*"		BEGIN(comment);
 <comment>{
+<<EOF>> { LexerError("unterminated comment detected.");}
 [^*\n\r]*			/* eat anything that's not a '*' 		*/
 "*"+[^*/\n\r]*		/* eat up '*'s not followed by '/'s 	*/
+"*"+"/"{BREAK}+	{	BEGIN(INITIAL);
+                  LOC_BREAK;
+                  return token::NEWLINE;}
+"*"+"/"				{BEGIN(INITIAL);}
 {BREAK}+			{LOC_BREAK}
-"*"+"/"{BREAK}*				{BEGIN(INITIAL);}
 }
 
 "//" BEGIN(inlinecomment);
 <inlinecomment>{
-{BREAK}+ {BEGIN(INITIAL);LOC_BREAK};
+<<EOF>> {return token::ENDFILE;}
 [^\n\r]*
+{BREAK}+ {LOC_BREAK;
+          BEGIN(INITIAL);
+          return token::NEWLINE;};
 }
 
 {NUMBER} {
