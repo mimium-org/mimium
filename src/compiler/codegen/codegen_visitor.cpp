@@ -31,7 +31,7 @@ llvm::Value* CodeGenVisitor::createAllocation(bool isglobal, llvm::Type* type,
     const int bitsize = 64;
     auto* sizeinst =
         llvm::ConstantInt::get(G.ctx, llvm::APInt(bitsize, size, false));
-    auto* rawres = G.builder->CreateCall(G.module->getFunction("ma*lloc"),
+    auto* rawres = G.builder->CreateCall(G.module->getFunction("malloc"),
                                          {sizeinst}, rawname);
     res = G.builder->CreatePointerCast(rawres, llvm::PointerType::get(t, 0),
                                        "ptr_" + name);
