@@ -1,12 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
- 
+
 #include "compiler/codegen/llvmgenerator.hpp"
 
 namespace mimium {
 
-LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv,ClosureConverter& cc,
+LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv,
+                             ClosureConverter& cc,
                              MemoryObjsCollector& memobjcoll)
     : ctx(ctx),
       module(std::make_unique<llvm::Module>("no_file_name.mmm", ctx)),
@@ -88,16 +89,19 @@ void LLVMGenerator::createMiscDeclarations() {
   setValuetoMap("malloc", res);
   // create llvm memset
   auto* memsettype = llvm::FunctionType::get(vo, {i8ptr, i8, i64, b}, false);
-  module->getOrInsertFunction("llvm.memset.p0i8.i64",memsettype).getCallee();
+  module->getOrInsertFunction("llvm.memset.p0i8.i64", memsettype).getCallee();
 
-  auto* getnowtype =  llvm::FunctionType::get(d, {}, false);
-  auto* gnr = module->getOrInsertFunction("mimium_getnow",getnowtype).getCallee();
-    setValuetoMap("mimium_getnow", gnr);
+  auto* getnowtype = llvm::FunctionType::get(d, {}, false);
+  auto* gnr =
+      module->getOrInsertFunction("mimium_getnow", getnowtype).getCallee();
+  setValuetoMap("mimium_getnow", gnr);
 
-  auto* arrayaccesstype = llvm::FunctionType::get(d,{llvm::PointerType::get(d,0),d},false);
-  auto* arraccess =module->getOrInsertFunction("access_array_lin_interp",arrayaccesstype).getCallee();
+  auto* arrayaccesstype =
+      llvm::FunctionType::get(d, {llvm::PointerType::get(d, 0), d}, false);
+  auto* arraccess =
+      module->getOrInsertFunction("access_array_lin_interp", arrayaccesstype)
+          .getCallee();
   setValuetoMap("access_array_lin_interp", arraccess);
-
 }
 
 // Create mimium_main() function it returns address of closure object for dsp()
@@ -132,7 +136,7 @@ void LLVMGenerator::createTaskRegister(bool isclosure = false) {
     argtypes.push_back(builder->getInt8PtrTy());
     name = "addTask_cls";
   }  // address to closure args(instead of void* type)
-  auto* fntype = llvm::FunctionType::get(builder->getVoidTy(), argtypes,false);
+  auto* fntype = llvm::FunctionType::get(builder->getVoidTy(), argtypes, false);
   auto addtask = module->getOrInsertFunction(name, fntype);
   auto* addtaskfun = llvm::cast<llvm::Function>(addtask.getCallee());
 
@@ -157,25 +161,26 @@ void LLVMGenerator::createRuntimeSetDspFn() {
   auto* voidptrtype = builder->getInt8PtrTy();
   auto* dspfnaddress =
       builder->CreateBitCast(module->getFunction("dsp"), voidptrtype);
-  llvm::Value* dspclsaddress=nullptr;
+  llvm::Value* dspclsaddress = nullptr;
   auto dspcls_cap = variable_map[curfunc]->find("ptr_dsp.cap");
   if (dspcls_cap != variable_map[curfunc]->end()) {
     dspclsaddress = builder->CreateBitCast(dspcls_cap->second, voidptrtype);
   } else {
     dspclsaddress = llvm::ConstantPointerNull::get(voidptrtype);
   }
-  llvm::Value* dspmemobjaddress=nullptr;
+  llvm::Value* dspmemobjaddress = nullptr;
   auto dspmemobj = variable_map[curfunc]->find("ptr_dsp.memobj");
   if (dspmemobj != variable_map[curfunc]->end()) {
     dspmemobjaddress = builder->CreateBitCast(dspmemobj->second, voidptrtype);
-//insert 0 initialization of memobjs
+    // insert 0 initialization of memobjs
     auto* memsetfn = module->getFunction("llvm.memset.p0i8.i64");
-    auto* t = llvm::cast<llvm::PointerType>(dspmemobj->second->getType())->getElementType();
+    auto* t = llvm::cast<llvm::PointerType>(dspmemobj->second->getType())
+                  ->getElementType();
     auto size = module->getDataLayout().getTypeAllocSize(t);
     auto* sizeinst = llvm::ConstantInt::get(ctx, llvm::APInt(64, size, false));
-    auto* zero = llvm::ConstantInt::get(ctx,llvm::APInt(8,0,false));
-    auto* falsev = llvm::ConstantInt::get(ctx,llvm::APInt(1,0,false));
-    builder->CreateCall(memsetfn,{dspmemobjaddress,zero,sizeinst,falsev});
+    auto* zero = llvm::ConstantInt::get(ctx, llvm::APInt(8, 0, false));
+    auto* falsev = llvm::ConstantInt::get(ctx, llvm::APInt(1, 0, false));
+    builder->CreateCall(memsetfn, {dspmemobjaddress, zero, sizeinst, falsev});
 
   } else {
     dspmemobjaddress = llvm::ConstantPointerNull::get(voidptrtype);
@@ -215,8 +220,8 @@ void LLVMGenerator::generateCode(mir::blockptr mir) {
   for (auto& inst : mir->instructions) {
     visitInstructions(inst, true);
   }
-  if(module->getFunction("dsp")!=nullptr){
-  createRuntimeSetDspFn();
+  if (module->getFunction("dsp") != nullptr) {
+    createRuntimeSetDspFn();
   }
   // main always return null for now;
   builder->CreateRet(llvm::ConstantPointerNull::get(builder->getInt8PtrTy()));
@@ -233,6 +238,7 @@ llvm::Value* LLVMGenerator::findValue(std::string name) {
     throw std::runtime_error("variable " + name +
                              " cannot be found in llvm conversion");
   }
+
   return res;
 }
 

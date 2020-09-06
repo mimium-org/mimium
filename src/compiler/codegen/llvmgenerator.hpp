@@ -6,18 +6,18 @@
 #include "basic/helper_functions.hpp"
 #include "basic/mir.hpp"
 #include "compiler/closure_convert.hpp"
+#include "compiler/codegen/llvm_header.hpp"
+#include "compiler/codegen/typeconverter.hpp"
 #include "compiler/collect_memoryobjs.hpp"
 #include "compiler/ffi.hpp"
-#include "compiler/codegen/llvm_header.hpp"
 
-#include "compiler/codegen/typeconverter.hpp"
 #include "compiler/codegen/codegen_visitor.hpp"
 
 namespace mimium {
 struct LLVMBuiltin;
 struct CodeGenVisitor;
-class LLVMGenerator{
-friend struct CodeGenVisitor;
+class LLVMGenerator {
+  friend struct CodeGenVisitor;
 
  private:
   llvm::LLVMContext& ctx;
@@ -43,7 +43,7 @@ friend struct CodeGenVisitor;
   using namemaptype = std::unordered_map<std::string, llvm::Value*>;
   std::unordered_map<llvm::Function*, std::shared_ptr<namemaptype>>
       variable_map;
-      
+
   llvm::Value* findValue(std::string name);
   llvm::Value* tryfindValue(std::string name);
   void switchToMainFun();
@@ -61,7 +61,8 @@ friend struct CodeGenVisitor;
   void dropAllReferences();
 
  public:
-  LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv,ClosureConverter& cc,MemoryObjsCollector& memobjcoll);
+  LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv, ClosureConverter& cc,
+                MemoryObjsCollector& memobjcoll);
 
   llvm::Module& getModule() { return *module; }
   auto moveModule() { return std::move(module); }
@@ -74,7 +75,6 @@ friend struct CodeGenVisitor;
 
   void outputToStream(llvm::raw_ostream& ostream);
   void dumpvars();
-  
 };
 
 }  // namespace mimium
