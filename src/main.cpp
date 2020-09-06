@@ -120,15 +120,15 @@ auto main(int argc, char** argv) -> int {
           std::cout << typeinfos.toString() << std::endl;
           break;
         }
-        std::shared_ptr<MIRblock> mir = compiler->generateMir(ast_u);
+        mir::blockptr mir = compiler->generateMir(ast_u);
         if (stage == CompileStage::MIR) {
-          std::cout << mir->toString() << std::endl;
+          std::cout << mir::toString(mir) << std::endl;
           break;
         }
         auto mir_cc = compiler->closureConvert(mir);
         mir_cc = compiler->collectMemoryObjs(mir_cc);
         if (stage == CompileStage::MIR_CC) {
-          std::cout << mir_cc->toString() << std::endl;
+          std::cout << mir::toString(mir_cc) << std::endl;
           break;
         }
         auto& llvm_module = compiler->generateLLVMIr(mir_cc);

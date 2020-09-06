@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
- 
+
 #include "compiler/compiler.hpp"
 namespace mimium {
 Compiler::Compiler() : Compiler(*std::make_shared<llvm::LLVMContext>()) {}
@@ -13,7 +13,8 @@ Compiler::Compiler(llvm::LLVMContext& ctx)
       closureconverter(
           std::make_shared<ClosureConverter>(typeinferer.getTypeEnv())),
       memobjcollector(typeinferer.getTypeEnv()),
-      llvmgenerator(ctx, typeinferer.getTypeEnv(),*closureconverter,memobjcollector) {}
+      llvmgenerator(ctx, typeinferer.getTypeEnv(), *closureconverter,
+                    memobjcollector) {}
 Compiler::~Compiler() = default;
 void Compiler::setFilePath(std::string path) {
   this->path = path;
@@ -33,24 +34,20 @@ AstPtr Compiler::loadSourceFile(std::string filename) {
 AstPtr Compiler::renameSymbols(AstPtr ast) {
   return symbolrenamer.rename(*ast);
 }
-TypeEnv& Compiler::typeInfer(AstPtr ast) { 
-  return typeinferer.infer(*ast);
-}
+TypeEnv& Compiler::typeInfer(AstPtr ast) { return typeinferer.infer(*ast); }
 
-std::shared_ptr<MIRblock> Compiler::generateMir(AstPtr ast) {
-  return mirgenerator.generate(*ast);;
+mir::blockptr Compiler::generateMir(AstPtr ast) {
+  return mirgenerator.generate(*ast);
 }
-std::shared_ptr<MIRblock> Compiler::closureConvert(
-    std::shared_ptr<MIRblock> mir) {
+mir::blockptr Compiler::closureConvert(mir::blockptr mir) {
   return closureconverter->convert(mir);
 }
 
-std::shared_ptr<MIRblock> Compiler::collectMemoryObjs(
-    std::shared_ptr<MIRblock> mir) {
+mir::blockptr Compiler::collectMemoryObjs(mir::blockptr mir) {
   return memobjcollector.process(mir);
 }
 
-llvm::Module& Compiler::generateLLVMIr(std::shared_ptr<MIRblock> mir) {
+llvm::Module& Compiler::generateLLVMIr(mir::blockptr mir) {
   llvmgenerator.generateCode(mir);
   return llvmgenerator.getModule();
 }

@@ -205,12 +205,12 @@ void LLVMGenerator::preprocess() {
   createTaskRegister(false);  // for closure
   setBB(mainentry);
 }
-void LLVMGenerator::visitInstructions(Instructions& inst, bool isglobal) {
+void LLVMGenerator::visitInstructions(mir::Instructions& inst, bool isglobal) {
   codegenvisitor->isglobal = isglobal;
   std::visit(*codegenvisitor, inst);
 }
 
-void LLVMGenerator::generateCode(std::shared_ptr<MIRblock> mir) {
+void LLVMGenerator::generateCode(mir::blockptr mir) {
   preprocess();
   for (auto& inst : mir->instructions) {
     visitInstructions(inst, true);

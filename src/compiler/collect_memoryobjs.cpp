@@ -8,20 +8,19 @@ namespace mimium {
 MemoryObjsCollector::MemoryObjsCollector(TypeEnv& typeenv)
     : typeenv(typeenv), cm_visitor(*this) {
       std::string primitivemem = "mem";
-      memobjs_map.emplace(primitivemem,std::vector<std::string>{"memory"});
-      emplaceNewAlias(primitivemem,types::Float());
+  memobjs_map.emplace(primitivemem, std::vector<std::string>{"memory"});
+  emplaceNewAlias(primitivemem, types::Float());
     }
 
-std::shared_ptr<MIRblock> MemoryObjsCollector::process(
-    std::shared_ptr<MIRblock> toplevel) {
-  auto it = std::begin(*toplevel);
-  for (Instructions& inst : *toplevel) {
+mir::blockptr MemoryObjsCollector::process(mir::blockptr toplevel) {
+  auto it = std::begin(toplevel->instructions);
+  for (mir::Instructions& inst : toplevel->instructions) {
     // skip global declaration
-    if (std::holds_alternative<FunInst>(inst)) {
+    if (std::holds_alternative<mir::FunInst>(inst)) {
       cm_visitor.position = it;
       std::visit(cm_visitor, inst);
     }
-    ++it;
+    std::advance(it, 1);
   }
   // // register to typeenv
   // for (auto&& [name, val] : type_alias_map) {
@@ -64,7 +63,8 @@ void MemoryObjsCollector::collectDelay(std::string& funname, int delay_size) {
   emplaceNewAlias(delayname, types::Array(types::Float(), delay_size));
   memobjs_map[funname].emplace_back(delayname);
 }
-void MemoryObjsCollector::collectMemPrim(std::string& funname,std::string& argname) {
+void MemoryObjsCollector::collectMemPrim(std::string& funname,
+                                         std::string& argname) {
   // auto newname = (funname + ".memprim");
   // bool ismemprim = (varname == "mem");
   // bool ischecked = type_alias_map.count(newname) > 0;
@@ -104,40 +104,29 @@ void MemoryObjsCollector::dump() {
 }
 
 // visitor
-void MemoryObjsCollector::CollectMemVisitor::operator()(NumberInst& i) {
-  // do nothing
-}
-void MemoryObjsCollector::CollectMemVisitor::operator()(StringInst& i) {
-  // do nothing
-}
-void MemoryObjsCollector::CollectMemVisitor::operator()(AllocaInst& i) {
-  // do nothing
-}
-void MemoryObjsCollector::CollectMemVisitor::operator()(RefInst& i) {
+
+void MemoryObjsCollector::CollectMemVisitor::operator()(mir::RefInst& i) {
   M.collectSelf(cur_fun, i.val);
 }
-void MemoryObjsCollector::CollectMemVisitor::operator()(AssignInst& i) {
+void MemoryObjsCollector::CollectMemVisitor::operator()(mir::AssignInst& i) {
   M.collectSelf(cur_fun, i.val);
 }
-// void MemoryObjsCollector::CollectMemVisitor::operator()(TimeInst& i) {
-//   M.collectSelf(cur_fun, i.time);
-//   M.collectSelf(cur_fun, i.val);
-// }
-void MemoryObjsCollector::CollectMemVisitor::operator()(OpInst& i) {
+
+void MemoryObjsCollector::CollectMemVisitor::operator()(mir::OpInst& i) {
   M.collectSelf(cur_fun, i.lhs);
   M.collectSelf(cur_fun, i.rhs);
 }
-void MemoryObjsCollector::CollectMemVisitor::operator()(FunInst& i) {
+void MemoryObjsCollector::CollectMemVisitor::operator()(mir::FunInst& i) {
   auto memname = i.lv_name + ".mem";
   this->cur_fun = i.lv_name;
-  for (auto& inst : *i.body) {
+  for (auto& inst : i.body->instructions) {
     std::visit(*this, inst);
   }
   auto result = M.memobjs_map[i.lv_name];
   if (!result.empty()) {
     std::vector<types::Value> objs;
     for (auto& alias_name : result) {
-      //fixmeee
+      // fixmeee
       // if(alias_name!=i.lv_name){
       objs.emplace_back(M.getAliasFromMap(alias_name).value());
       // }
@@ -155,35 +144,44 @@ void MemoryObjsCollector::CollectMemVisitor::operator()(FunInst& i) {
   }
 }
 void MemoryObjsCollector::CollectMemVisitor::insertAllocaInst(
-    FunInst& i, types::Alias& type) {
+    mir::FunInst& i, types::Alias& type) {
   i.parent->instructions.insert(std::next(position),
-                                AllocaInst(i.lv_name + ".memobj", type));
+                                mir::AllocaInst{{i.lv_name + ".memobj"}, type});
 }
 
-void MemoryObjsCollector::CollectMemVisitor::operator()(FcallInst& i) {
+void MemoryObjsCollector::CollectMemVisitor::operator()(mir::FcallInst& i) {
   if (i.fname == "delay") {
     // how to track delay size in ssa !!!
     // M.collectDelay(cur_fun, int delay_size)
-  }else {
+  } else {
     M.collectMemFun(cur_fun, i.fname);
   }
   for (auto& a : i.args) {
     M.collectSelf(cur_fun, a);
   }
-  if(i.time){
-    M.collectSelf(cur_fun,i.time.value());
+  if (i.time) {
+    M.collectSelf(cur_fun, i.time.value());
   }
 }
-void MemoryObjsCollector::CollectMemVisitor::operator()(MakeClosureInst& i) {
+void MemoryObjsCollector::CollectMemVisitor::operator()(
+    mir::MakeClosureInst& i) {
   //??
 }
-void MemoryObjsCollector::CollectMemVisitor::operator()(ArrayInst& i) {}
-void MemoryObjsCollector::CollectMemVisitor::operator()(ArrayAccessInst& i) {
+void MemoryObjsCollector::CollectMemVisitor::operator()(mir::ArrayInst& i) {
+  for (auto&& e : i.args) {
+    M.collectSelf(cur_fun, e);
+  }
+}
+void MemoryObjsCollector::CollectMemVisitor::operator()(
+    mir::ArrayAccessInst& i) {
   M.collectSelf(cur_fun, i.name);
   M.collectSelf(cur_fun, i.index);
 }
+void MemoryObjsCollector::CollectMemVisitor::operator()(mir::IfInst& i) {
 void MemoryObjsCollector::CollectMemVisitor::operator()(IfInst& i) {}
 void MemoryObjsCollector::CollectMemVisitor::operator()(ReturnInst& i) {
+}
+void MemoryObjsCollector::CollectMemVisitor::operator()(mir::ReturnInst& i) {
   M.collectSelf(cur_fun, i.val);
 }
 }  // namespace mimium

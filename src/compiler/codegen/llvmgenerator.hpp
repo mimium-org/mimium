@@ -56,7 +56,7 @@ friend struct CodeGenVisitor;
   void createTaskRegister(bool isclosure);
   void createNewBasicBlock(std::string name, llvm::Function* f);
   llvm::Value* getOrCreateFunctionPointer(llvm::Function* f);
-  void visitInstructions(Instructions& inst, bool isglobal);
+  void visitInstructions(mir::Instructions& inst, bool isglobal);
 
   void dropAllReferences();
 
@@ -70,7 +70,7 @@ friend struct CodeGenVisitor;
   void setDataLayout(const llvm::DataLayout& dl);
   void reset(std::string filename);
   void setBB(llvm::BasicBlock* newblock);
-  void generateCode(std::shared_ptr<MIRblock> mir);
+  void generateCode(mir::blockptr mir);
 
   void outputToStream(llvm::raw_ostream& ostream);
   void dumpvars();
