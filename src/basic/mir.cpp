@@ -4,108 +4,85 @@
 
 #include "basic/mir.hpp"
 
-namespace mimium {
+#include "basic/ast_to_string.hpp"
 
-std::string MIRblock::toString() {
-  std::string str;
-  for (int i = 0; i < indent_level; i++) {
-    str += "  ";  // indent
+namespace mimium::mir {
+
+std::string toString(const blockptr block) {
+  std::stringstream ss;
+  for (int i = 0; i < block->indent_level; i++) {
+    ss << "  ";
   }
-  str += label + ":\n";
-
-  indent_level++;
-  for (auto& inst : instructions) {
-    for (int i = 0; i < indent_level; i++) {
-      str += "  ";  // indent
+  ss << block->label << ":\n";
+  for (auto& inst : block->instructions) {
+    for (int i = 0; i < block->indent_level + 1; i++) {
+      ss << "  ";
     }
-
-    str += std::visit([](auto& val) -> std::string { return val.toString(); },
-                      inst) +
-           "\n";
+    ss << toString(inst) << "\n";
   }
-  indent_level--;
-  return str;
+  return ss.str();
 }
 
-std::string NumberInst::toString() {
-  return lv_name + " = " + std::to_string(val);
+std::string toString(NumberInst& i) {
+  return i.lv_name + " = " + std::to_string(i.val);
 }
-std::string StringInst::toString() { return lv_name + " = " + val; }
+std::string toString(StringInst& i) { return i.lv_name + " = " + i.val; }
 
-std::string AllocaInst::toString() {
-  return "alloca: " + lv_name + " (" + types::toString(type) + ")";
+std::string toString(AllocaInst& i) {
+  return "alloca: " + i.lv_name + " (" + types::toString(i.type) + ")";
 }
-std::string RefInst::toString() { return lv_name + " = ref " + val; }
+std::string toString(RefInst& i) { return i.lv_name + " = ref " + i.val; }
 
-std::string AssignInst::toString() { return lv_name + " =(overwrite) " + val; }
-
-// std::string TimeInst::toString() { return lv_name + " = " + val + +"@" +
-// time; }
-
-std::string OpInst::toString() {
-  auto opstr = std::string(ast::op_str.find(op)->second);
-  return lv_name + " = " + opstr + " " + lhs + " " + rhs;
+std::string toString(AssignInst& i) {
+  return i.lv_name + " =(overwrite) " + i.val;
 }
-FunInst::FunInst(const std::string& name, std::deque<std::string> newargs,
-                 types::Value type, bool isrecursive)
-    : MIRinstruction(name, std::move(type)),
-      args(std::move(newargs)),
-      isrecursive(isrecursive),
-      hasself(false),
-      body(std::make_shared<MIRblock>(name)) {}
-std::string FunInst::toString() {
+
+std::string toString(OpInst& i) {
+  auto opstr = std::string(ast::op_str.find(i.op)->second);
+  return i.lv_name + " = " + opstr + " " + i.lhs + " " + i.rhs;
+}
+
+std::string toString(FunInst& i) {
+  std::stringstream ss;
+  ss << i.lv_name << " = fun" << ((i.isrecursive) ? "[rec]" : "") << " "
+     << join(i.args, " , ");
+  if (!i.freevariables.empty()) {
+    ss << " fv{" << joinVec(i.freevariables, ",") << "}";
+  }
+  ss << "\n" << toString(i.body);
+  return ss.str();
+}
+
+std::string toString(MakeClosureInst& i) {
+  std::stringstream ss;
+  ss << i.lv_name << " = makeclosure " << i.fname << " "
+     << joinVec(i.captures, ",");
+  return ss.str();
+}
+std::string toString(FcallInst& i) {
   std::string s;
-  s += lv_name + " = fun";
-  if (isrecursive) {
-    s += "[rec]";
-  }
-  s += " " + join(args, " , ");
-  if (!freevariables.empty()) {
-    s += " fv{";
-    for (auto& cap : freevariables) {
-      s += cap + ",";
-    }
-    s = s.substr(0, s.size() - 1) + "}";
-  }
-  s += "\n";
-  body->indent_level += 1;
-  s += body->toString();
-  body->indent_level -= 1;
+  auto timestr = (i.time) ? "@" + i.time.value() : "";
+  return i.lv_name + " = app" + fcalltype_str[i.ftype] + " " + i.fname + " " +
+         join(i.args, " , ") + timestr;
+}
 
+std::string toString(ArrayInst& i) {
+  return i.lv_name + " = array " + i.name + " " + join(i.args, " , ");
+}
+
+std::string toString(ArrayAccessInst& i) {
+  return i.lv_name + " = arrayaccess " + i.name + " " + i.index;
+}
+
+std::string toString(IfInst& i) {
+  std::string s;
+  s += i.lv_name + " = if " + i.cond + "\n";
+  s += toString(i.thenblock);
+  if(i.elseblock.has_value()){
+  s += toString(i.elseblock.value());
+  }
   return s;
 }
+std::string toString(ReturnInst& i) { return "return " + i.val; }
 
-std::string MakeClosureInst::toString() {
-  std::string s;
-  s += lv_name + " = makeclosure " + fname + " ";
-  for (auto& cap : captures) {
-    s += cap + ",";
-  }
-  // s += body->toString();
-  return s.substr(0, s.size() - 1);
-}
-std::string FcallInst::toString() {
-  std::string s;
-  auto timestr = (time) ? "@" + time.value() : "";
-  return lv_name + " = app" + fcalltype_str[ftype] + " " + fname + " " +
-         join(args, " , ") + timestr;
-}
-
-std::string ArrayInst::toString() {
-  return lv_name + " = array " + name + " " + join(args, " , ");
-}
-
-std::string ArrayAccessInst::toString() {
-  return lv_name + " = arrayaccess " + name + " " + index;
-}
-
-std::string IfInst::toString() {
-  std::string s;
-  s += lv_name + " = if " + cond + "\n";
-  s += thenblock->toString();
-  s += elseblock->toString();
-  return s;
-}
-std::string ReturnInst::toString() { return "return " + val; }
-
-}  // namespace mimium
+}  // namespace mimium::mir
