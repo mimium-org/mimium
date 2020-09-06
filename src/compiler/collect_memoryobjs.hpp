@@ -3,15 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
-#include <queue>
-
 #include "basic/mir.hpp"
 namespace mimium {
 
 class MemoryObjsCollector {
  public:
   explicit MemoryObjsCollector(TypeEnv& typeenv);
-  std::shared_ptr<MIRblock> process(std::shared_ptr<MIRblock> toplevel);
+  mir::blockptr process(mir::blockptr toplevel);
   bool hasMemObj(const std::string& fname) {
     return getAliasFromMap(fname).has_value();
   };
@@ -39,25 +37,28 @@ class MemoryObjsCollector {
   struct CollectMemVisitor {
     explicit CollectMemVisitor(MemoryObjsCollector& m) : M(m){};
     MemoryObjsCollector& M;
-    std::list<Instructions>::iterator position;
-    void operator()(NumberInst& i);
-    void operator()(StringInst& i);
+    std::list<mir::Instructions>::iterator position;
 
-    void operator()(AllocaInst& i);
-    void operator()(RefInst& i);
-    void operator()(AssignInst& i);
-    // void operator()(TimeInst& i);
-    void operator()(OpInst& i);
-    void operator()(FunInst& i);
-    void operator()(FcallInst& i);
-    void operator()(MakeClosureInst& i);
-    void operator()(ArrayInst& i);
-    void operator()(ArrayAccessInst& i);
-    void operator()(IfInst& i);
-    void operator()(ReturnInst& i);
-
+    void operator()(mir::RefInst& i);
+    void operator()(mir::AssignInst& i);
+    void operator()(mir::OpInst& i);
+    void operator()(mir::FunInst& i);
+    void operator()(mir::FcallInst& i);
+    void operator()(mir::MakeClosureInst& i);
+    void operator()(mir::ArrayInst& i);
+    void operator()(mir::ArrayAccessInst& i);
+    void operator()(mir::IfInst& i);
+    void operator()(mir::ReturnInst& i);
+    template<typename T>
+    void operator()(T& /*i*/){
+      if constexpr(std::is_base_of_v<mir::instruction, std::decay_t<T>>){
+        // do nothing
+      }else{
+        static_assert(true, "mir instruction unreachable");
+      }
+    }
    private:
-    void insertAllocaInst(FunInst& i, types::Alias& type);
+    void insertAllocaInst(mir::FunInst& i, types::Alias& type);
     std::string cur_fun;
   } cm_visitor;
 };

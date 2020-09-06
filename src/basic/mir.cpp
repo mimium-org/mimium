@@ -67,7 +67,7 @@ std::string toString(FcallInst& i) {
 }
 
 std::string toString(ArrayInst& i) {
-  return i.lv_name + " = array " + i.name + " " + join(i.args, " , ");
+  return i.lv_name + " = array "  + join(i.args, " , ");
 }
 
 std::string toString(ArrayAccessInst& i) {
