@@ -32,7 +32,7 @@ class LLVMGenerator {
   std::shared_ptr<CodeGenVisitor> codegenvisitor;
   ClosureConverter& cc;
   MemoryObjsCollector& memobjcoll;
-
+  std::vector<std::string> overwritten_vars;
   llvm::FunctionCallee addtask;
   llvm::FunctionCallee addtask_cls;
   llvm::Type* getType(types::Value& type);
@@ -44,6 +44,15 @@ class LLVMGenerator {
   std::unordered_map<llvm::Function*, std::shared_ptr<namemaptype>>
       variable_map;
 
+  bool isVarOverWritten(std::string const& name) {
+    return std::find(overwritten_vars.begin(), overwritten_vars.end(), name) !=
+           overwritten_vars.end();
+  }
+  void addOverWrittenVar(std::string const& name) {
+    if (!isVarOverWritten(name)) {
+      overwritten_vars.emplace_back(name);
+    }
+  }
   llvm::Value* findValue(std::string name);
   llvm::Value* tryfindValue(std::string name);
   void switchToMainFun();

@@ -229,8 +229,16 @@ void LLVMGenerator::generateCode(mir::blockptr mir) {
 
 llvm::Value* LLVMGenerator::tryfindValue(std::string name) {
   auto map = variable_map[curfunc];
-  auto res = map->find(name);
-  return (res == map->end()) ? nullptr : res->second;
+  llvm::Value* res = nullptr;
+  auto iter = map->find(name);
+  if (iter != map->end()) {
+    res = iter->second;
+  }
+  if (isVarOverWritten(name)) {
+    auto* ptr = findValue("ptr_" + name);
+    res = builder->CreateLoad(ptr, name);
+  }
+  return res;
 }
 llvm::Value* LLVMGenerator::findValue(std::string name) {
   auto* res = tryfindValue(name);

@@ -217,7 +217,7 @@ lvarid StatementKnormVisitor::operator()(ast::Assign& ast) {
                            types::Value(type));
     }
   }
-  return res;
+  return std::pair(res.first,types::Void());
 }
 lvarid StatementKnormVisitor::operator()(ast::Return& ast) {
   auto [ret, type] = std::visit(mirgen.exprvisitor, *ast.value);

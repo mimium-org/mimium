@@ -471,20 +471,13 @@ void CodeGenVisitor::createIfBody(mir::blockptr& block, llvm::Value* ret_ptr) {
 }
 
 void CodeGenVisitor::operator()(mir::IfInst& i) {
-  auto* thisbb = G.currentblock;
+  auto* thisbb = G.builder->GetInsertBlock();
   auto* cond = G.findValue(i.cond);
   auto* cmp = G.builder->CreateFCmpOGT(
       cond, llvm::ConstantFP::get(G.ctx, llvm::APFloat(0.0)));
   auto* endbb = llvm::BasicBlock::Create(G.ctx, i.lv_name + "_end", G.curfunc);
+  llvm::Value* retptr = G.tryfindValue("ptr_"+i.lv_name);
 
-  llvm::Value* retptr = nullptr;
-  auto& ifrettype = G.typeenv.find(i.lv_name);
-  bool isvoid = std::holds_alternative<types::Void>(ifrettype);
-  if (!isvoid) {
-    std::string ptrname = i.lv_name + "_ptr";
-    retptr = createAllocation(isglobal, G.getType(ifrettype), nullptr, ptrname);
-    G.setValuetoMap(ptrname, retptr);
-  }
   auto* thenbb =
       llvm::BasicBlock::Create(G.ctx, i.lv_name + "_then", G.curfunc);
   G.builder->SetInsertPoint(thenbb);
@@ -497,30 +490,33 @@ void CodeGenVisitor::operator()(mir::IfInst& i) {
     createIfBody(i.elseblock.value(), retptr);
   }
   G.builder->CreateBr(endbb);
-
   G.builder->SetInsertPoint(endbb);
+  auto& ifrettype = G.typeenv.find(i.lv_name);
+  bool isvoid = std::holds_alternative<types::Void>(ifrettype);
   if (!isvoid) {
     auto* retval = G.builder->CreateLoad(retptr, i.lv_name);
     G.setValuetoMap(i.lv_name, retval);
   }
 
   G.builder->SetInsertPoint(thisbb);
-
   G.builder->CreateCondBr(cmp, thenbb, elsebb);
+    G.builder->SetInsertPoint(endbb);
+
 }
 void CodeGenVisitor::operator()(mir::ReturnInst& i) {
-  auto* v = G.tryfindValue(i.val);
-
-  if (v == nullptr) {
+  auto* res = G.tryfindValue(i.val);
+  if (res == nullptr) {
     // case of returning function;
-    v = G.tryfindValue(i.val + "_cls");
+    res = G.tryfindValue(i.val + "_cls");
   }
+
+  // store self value
   if (!context_hasself.empty()) {
     auto* selfv = G.tryfindValue(context_hasself);
     if (selfv != nullptr) {
-      G.builder->CreateStore(v, selfv);
+      G.builder->CreateStore(res, selfv);
     }
   }
-  G.builder->CreateRet(v);
+  G.builder->CreateRet(res);
 }
 }  // namespace mimium
