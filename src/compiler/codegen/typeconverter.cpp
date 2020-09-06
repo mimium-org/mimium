@@ -6,21 +6,21 @@
 
 namespace mimium {
 
-llvm::Type* TypeConverter::operator()(types::None& i) {
+llvm::Type* TypeConverter::operator()(types::None& /*i*/) {
   error();
   return nullptr;
 }
-llvm::Type* TypeConverter::operator()(types::TypeVar& i) {
+llvm::Type* TypeConverter::operator()(types::TypeVar& /*i*/) {
   throw std::logic_error("Type inference failed");
   return nullptr;
 }
-llvm::Type* TypeConverter::operator()(types::Void& i) {
+llvm::Type* TypeConverter::operator()(types::Void& /*i*/) {
   return builder.getVoidTy();
 }
-llvm::Type* TypeConverter::operator()(types::Float& i) {
+llvm::Type* TypeConverter::operator()(types::Float& /*i*/) {
   return builder.getDoubleTy();
 }
-llvm::Type* TypeConverter::operator()(types::String& i) {
+llvm::Type* TypeConverter::operator()(types::String& /*i*/) {
   return builder.getInt8PtrTy();
 }
 llvm::Type* TypeConverter::operator()(types::Ref& i) {
@@ -52,7 +52,7 @@ llvm::Type* TypeConverter::operator()(types::Array& i) {
 }
 llvm::Type* TypeConverter::operator()(types::Struct& i) {
   std::vector<llvm::Type*> ar;
-  llvm::Type* res;
+  llvm::Type* res = nullptr;
   auto t = static_cast<types::Tuple>(i);
   for (auto& a : t.arg_types) {
     ar.push_back(std::visit(*this, a));
@@ -70,7 +70,7 @@ llvm::Type* TypeConverter::operator()(types::Struct& i) {
 }
 llvm::Type* TypeConverter::operator()(types::Tuple& i) {
   std::vector<llvm::Type*> ar;
-  llvm::Type* res;
+  llvm::Type* res = nullptr;
   for (auto& a : i.arg_types) {
     ar.push_back(std::visit(*this, a));
   }
@@ -104,7 +104,7 @@ llvm::Type* TypeConverter::operator()(types::Tuple& i) {
 // }
 llvm::Type* TypeConverter::operator()(types::Alias& i) {
   auto it = aliasmap.find(i.name);
-  llvm::Type* res;
+  llvm::Type* res = nullptr;
   if (it == aliasmap.end()) {
     tmpname = i.name;
     res = std::visit(*this, i.target);
@@ -121,7 +121,7 @@ std::string TypeConverter::consumeAlias() {
   return t;
 }
 
-llvm::Type* TypeConverter::tryGetNamedType(std::string& name) {
+llvm::Type* TypeConverter::tryGetNamedType(std::string& name)const {
   return module.getTypeByName(name);
 }
 

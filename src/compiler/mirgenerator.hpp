@@ -32,7 +32,6 @@ class MirGenerator {
     lvarid operator()(ast::ArrayInit& ast);
     lvarid operator()(ast::ArrayAccess& ast);
     lvarid operator()(ast::Tuple& ast);
-
     lvarid operator()(ast::If& ast);
     lvarid operator()(ast::Block& ast);
     lvarid genInst(ast::ExprPtr expr) { return std::visit(*this, *expr); }
@@ -44,11 +43,9 @@ class MirGenerator {
     explicit StatementKnormVisitor(MirGenerator& parent) : mirgen(parent) {}
     lvarid operator()(ast::Assign& ast);
     lvarid operator()(ast::Fdef& ast);
-
     lvarid operator()(ast::Return& ast);
     lvarid operator()(ast::Time& ast);
     lvarid operator()(ast::Fcall& ast);
-
     lvarid operator()(ast::For& ast);
     lvarid operator()(ast::If& ast);
     // mir::Instructions operator()(ast::Declaration& ast);

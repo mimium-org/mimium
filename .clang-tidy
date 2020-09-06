@@ -10,6 +10,7 @@ portability-*,\
 -performance-unnecessary-value-param,\
 -modernize-use-trailing-return-type,\
 -misc-non-private-member-variables-in-classes,\
+-cppcoreguidelines-special-member-functions,\
 -google-runtime-references\
 "
 HeaderFilterRegex: 'src.*\.(hpp|h)'

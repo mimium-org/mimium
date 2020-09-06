@@ -65,7 +65,7 @@ void LLVMGenerator::switchToMainFun() {
 }
 llvm::Function* LLVMGenerator::getForeignFunction(const std::string& name) {
   auto& [type, targetname] = LLVMBuiltin::ftable.find(name)->second;
-  auto funtype = llvm::cast<llvm::FunctionType>(getType(type));
+  auto* funtype = llvm::cast<llvm::FunctionType>(getType(type));
   auto fnc = module->getOrInsertFunction(targetname, funtype);
   auto* fn = llvm::cast<llvm::Function>(fnc.getCallee());
   fn->setCallingConv(llvm::CallingConv::C);
@@ -77,25 +77,25 @@ void LLVMGenerator::setBB(llvm::BasicBlock* newblock) {
 }
 void LLVMGenerator::createMiscDeclarations() {
   // create malloc
-  auto vo = builder->getVoidTy();
-  auto i8 = builder->getInt8Ty();
-  auto i8ptr = builder->getInt8PtrTy();
-  auto i64 = builder->getInt64Ty();
-  auto b = builder->getInt1Ty();
-  auto d = builder->getDoubleTy();
+  auto* vo = builder->getVoidTy();
+  auto* i8 = builder->getInt8Ty();
+  auto* i8ptr = builder->getInt8PtrTy();
+  auto* i64 = builder->getInt64Ty();
+  auto* b = builder->getInt1Ty();
+  auto* d = builder->getDoubleTy();
   auto* malloctype = llvm::FunctionType::get(i8ptr, {i64}, false);
-  auto res = module->getOrInsertFunction("malloc", malloctype).getCallee();
+  auto* res = module->getOrInsertFunction("malloc", malloctype).getCallee();
   setValuetoMap("malloc", res);
   // create llvm memset
   auto* memsettype = llvm::FunctionType::get(vo, {i8ptr, i8, i64, b}, false);
   module->getOrInsertFunction("llvm.memset.p0i8.i64",memsettype).getCallee();
 
   auto* getnowtype =  llvm::FunctionType::get(d, {}, false);
-  auto gnr = module->getOrInsertFunction("mimium_getnow",getnowtype).getCallee();
+  auto* gnr = module->getOrInsertFunction("mimium_getnow",getnowtype).getCallee();
     setValuetoMap("mimium_getnow", gnr);
 
   auto* arrayaccesstype = llvm::FunctionType::get(d,{llvm::PointerType::get(d,0),d},false);
-  auto arraccess =module->getOrInsertFunction("access_array_lin_interp",arrayaccesstype).getCallee();
+  auto* arraccess =module->getOrInsertFunction("access_array_lin_interp",arrayaccesstype).getCallee();
   setValuetoMap("access_array_lin_interp", arraccess);
 
 }
@@ -134,7 +134,7 @@ void LLVMGenerator::createTaskRegister(bool isclosure = false) {
   }  // address to closure args(instead of void* type)
   auto* fntype = llvm::FunctionType::get(builder->getVoidTy(), argtypes,false);
   auto addtask = module->getOrInsertFunction(name, fntype);
-  auto addtaskfun = llvm::cast<llvm::Function>(addtask.getCallee());
+  auto* addtaskfun = llvm::cast<llvm::Function>(addtask.getCallee());
 
   addtaskfun->setCallingConv(llvm::CallingConv::C);
   using Akind = llvm::Attribute;
@@ -154,27 +154,27 @@ void LLVMGenerator::createNewBasicBlock(std::string name, llvm::Function* f) {
   currentblock = bb;
 }
 void LLVMGenerator::createRuntimeSetDspFn() {
-  auto voidptrtype = builder->getInt8PtrTy();
-  auto dspfnaddress =
+  auto* voidptrtype = builder->getInt8PtrTy();
+  auto* dspfnaddress =
       builder->CreateBitCast(module->getFunction("dsp"), voidptrtype);
-  llvm::Value* dspclsaddress;
+  llvm::Value* dspclsaddress=nullptr;
   auto dspcls_cap = variable_map[curfunc]->find("ptr_dsp.cap");
   if (dspcls_cap != variable_map[curfunc]->end()) {
     dspclsaddress = builder->CreateBitCast(dspcls_cap->second, voidptrtype);
   } else {
     dspclsaddress = llvm::ConstantPointerNull::get(voidptrtype);
   }
-  llvm::Value* dspmemobjaddress;
+  llvm::Value* dspmemobjaddress=nullptr;
   auto dspmemobj = variable_map[curfunc]->find("ptr_dsp.memobj");
   if (dspmemobj != variable_map[curfunc]->end()) {
     dspmemobjaddress = builder->CreateBitCast(dspmemobj->second, voidptrtype);
 //insert 0 initialization of memobjs
     auto* memsetfn = module->getFunction("llvm.memset.p0i8.i64");
-    auto t = llvm::cast<llvm::PointerType>(dspmemobj->second->getType())->getElementType();
+    auto* t = llvm::cast<llvm::PointerType>(dspmemobj->second->getType())->getElementType();
     auto size = module->getDataLayout().getTypeAllocSize(t);
-    auto sizeinst = llvm::ConstantInt::get(ctx, llvm::APInt(64, size, false));
-    auto zero = llvm::ConstantInt::get(ctx,llvm::APInt(8,0,false));
-    auto falsev = llvm::ConstantInt::get(ctx,llvm::APInt(1,0,false));
+    auto* sizeinst = llvm::ConstantInt::get(ctx, llvm::APInt(64, size, false));
+    auto* zero = llvm::ConstantInt::get(ctx,llvm::APInt(8,0,false));
+    auto* falsev = llvm::ConstantInt::get(ctx,llvm::APInt(1,0,false));
     builder->CreateCall(memsetfn,{dspmemobjaddress,zero,sizeinst,falsev});
 
   } else {

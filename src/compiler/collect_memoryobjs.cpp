@@ -125,6 +125,7 @@ void MemoryObjsCollector::CollectMemVisitor::operator()(mir::FunInst& i) {
   auto result = M.memobjs_map[i.lv_name];
   if (!result.empty()) {
     std::vector<types::Value> objs;
+    objs.reserve(result.size());
     for (auto& alias_name : result) {
       // fixmeee
       // if(alias_name!=i.lv_name){
@@ -144,7 +145,7 @@ void MemoryObjsCollector::CollectMemVisitor::operator()(mir::FunInst& i) {
   }
 }
 void MemoryObjsCollector::CollectMemVisitor::insertAllocaInst(
-    mir::FunInst& i, types::Alias& type) {
+    mir::FunInst& i, types::Alias& type) const {
   i.parent->instructions.insert(std::next(position),
                                 mir::AllocaInst{{i.lv_name + ".memobj"}, type});
 }

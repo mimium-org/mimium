@@ -21,7 +21,7 @@ namespace mimium {
 class Compiler {
 public: 
     Compiler();
-    Compiler(llvm::LLVMContext& ctx);
+    explicit Compiler(llvm::LLVMContext& ctx);
     ~Compiler();
     AstPtr loadSource(std::string source);
     AstPtr loadSourceFile(std::string filename);

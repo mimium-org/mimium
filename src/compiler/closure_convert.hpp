@@ -73,7 +73,7 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
     bool isFreeVar(const std::string& name);
 
    private:
-    void visitinsts(mir::FunInst& i, CCVisitor& ccvis,
+    static void visitinsts(mir::FunInst& i, CCVisitor& ccvis,
                     std::list<mir::Instructions>::iterator pos);
   };
   friend struct CCVisitor;

@@ -58,7 +58,7 @@ class MemoryObjsCollector {
       }
     }
    private:
-    void insertAllocaInst(mir::FunInst& i, types::Alias& type);
+    void insertAllocaInst(mir::FunInst& i, types::Alias& type)const;
     std::string cur_fun;
   } cm_visitor;
 };

@@ -28,9 +28,11 @@ llvm::Value* CodeGenVisitor::createAllocation(bool isglobal, llvm::Type* type,
   if (isglobal) {
     auto rawname = "ptr_" + name.str() + "_raw";
     auto size = G.module->getDataLayout().getTypeAllocSize(t);
-    auto sizeinst = llvm::ConstantInt::get(G.ctx, llvm::APInt(64, size, false));
-    auto rawres = G.builder->CreateCall(G.module->getFunction("malloc"),
-                                        {sizeinst}, rawname);
+    const int bitsize = 64;
+    auto* sizeinst =
+        llvm::ConstantInt::get(G.ctx, llvm::APInt(bitsize, size, false));
+    auto* rawres = G.builder->CreateCall(G.module->getFunction("ma*lloc"),
+                                         {sizeinst}, rawname);
     res = G.builder->CreatePointerCast(rawres, llvm::PointerType::get(t, 0),
                                        "ptr_" + name);
     G.setValuetoMap(rawname, rawres);
@@ -56,10 +58,10 @@ bool CodeGenVisitor::createStoreOw(std::string varname,
 
 void CodeGenVisitor::operator()(mir::NumberInst& i) {
   auto* finst = llvm::ConstantFP::get(G.ctx, llvm::APFloat(i.val));
-  auto ptr = G.tryfindValue("ptr_" + i.lv_name);
+  auto* ptr = G.tryfindValue("ptr_" + i.lv_name);
   if (ptr != nullptr) {  // case of temporary value
     G.builder->CreateStore(finst, ptr);
-    auto res = G.builder->CreateLoad(ptr, i.lv_name);
+    auto* res = G.builder->CreateLoad(ptr, i.lv_name);
     G.setValuetoMap(i.lv_name, res);
   } else {
     G.setValuetoMap(i.lv_name, finst);
@@ -67,13 +69,13 @@ void CodeGenVisitor::operator()(mir::NumberInst& i) {
 }
 void CodeGenVisitor::operator()(mir::StringInst& i) {
   auto* cstr = llvm::ConstantDataArray::getString(G.ctx, i.val);
-  auto i8ptrty = G.builder->getInt8PtrTy();
-  auto gvalue = llvm::cast<llvm::GlobalVariable>(
+  auto* i8ptrty = G.builder->getInt8PtrTy();
+  auto* gvalue = llvm::cast<llvm::GlobalVariable>(
       G.module->getOrInsertGlobal(i.val, cstr->getType()));
   gvalue->setInitializer(cstr);
   gvalue->setLinkage(llvm::GlobalValue::InternalLinkage);
   gvalue->setName("str");
-  auto bitcast = G.builder->CreateBitCast(gvalue, i8ptrty);
+  auto* bitcast = G.builder->CreateBitCast(gvalue, i8ptrty);
   // auto zero =
   // llvm::ConstantInt::get(G.builder->getInt64Ty(), llvm::APInt(64, 0));
   // auto strptr = G.builder->CreateInBoundsGEP(gvalue, {zero, zero}, "gep");
@@ -99,7 +101,7 @@ void CodeGenVisitor::operator()(mir::RefInst& i) {  // temporarily unused
 void CodeGenVisitor::operator()(mir::AssignInst& i) {
   if (types::isPrimitive(i.type)) {
     // copy assignment
-    auto ptr = G.findValue("ptr_" + i.lv_name);
+    auto* ptr = G.findValue("ptr_" + i.lv_name);
     G.builder->CreateStore(G.findValue(i.val), ptr);
     auto* newval = G.builder->CreateLoad(ptr, i.lv_name);
     G.setValuetoMap(i.lv_name, newval);
@@ -127,7 +129,7 @@ void CodeGenVisitor::operator()(mir::OpInst& i) {
 }
 
 void CodeGenVisitor::createUniOp(mir::OpInst& i) {
-  llvm::Value* retvalue;
+  llvm::Value* retvalue=nullptr;
   auto* rhs = G.findValue(i.rhs);
   switch (i.op) {
     case ast::OpId::Sub:
@@ -146,7 +148,7 @@ void CodeGenVisitor::createUniOp(mir::OpInst& i) {
 }
 
 void CodeGenVisitor::createBinOp(mir::OpInst& i) {
-  llvm::Value* retvalue;
+  llvm::Value* retvalue=nullptr;
   auto* lhs = G.findValue(i.lhs);
   auto* rhs = G.findValue(i.rhs);
   switch (i.op) {
@@ -233,7 +235,8 @@ void CodeGenVisitor::addArgstoMap(llvm::Function* f, mir::FunInst& i,
   auto* f_it = std::begin(f->args());
   for (auto& a : i.args) {
     f_it->setName(a);
-    G.setValuetoMap(a, f_it++);
+    G.setValuetoMap(a, f_it);
+    std::advance(f_it,1);
   }
   auto* lastelem = std::prev(f->args().end());
   if (hasmemobj) {
@@ -291,7 +294,7 @@ void CodeGenVisitor::operator()(mir::FcallInst& i) {
   std::vector<llvm::Value*> args;
   auto m = G.variable_map[G.curfunc];
   for (auto& a : i.args) {
-    auto v = G.tryfindValue(a);
+    auto* v = G.tryfindValue(a);
     if (v == nullptr) {
       v = G.findValue("ptr_" + a);
     }
@@ -309,7 +312,7 @@ void CodeGenVisitor::operator()(mir::FcallInst& i) {
     args.emplace_back(G.findValue("ptr_" + i.fname + ".mem"));
   }
 
-  llvm::Value* fun;
+  llvm::Value* fun=nullptr;
   switch (i.ftype) {
     case DIRECT:
       fun = getDirFun(i);
@@ -370,7 +373,7 @@ llvm::Value* CodeGenVisitor::getExtFun(mir::FcallInst& i) {
 }
 
 void CodeGenVisitor::createAddTaskFn(mir::FcallInst& i, const bool isclosure,
-                                     const bool isglobal) {
+                                     const bool  /*isglobal*/) {
   auto* i8ptrty = G.builder->getInt8PtrTy();
   auto* timeval = G.findValue(i.time.value());
   auto* targetfn = G.module->getFunction(i.fname);
@@ -440,8 +443,9 @@ void CodeGenVisitor::operator()(mir::ArrayAccessInst& i) {
   auto* indexfloat = G.tryfindValue(i.index);
   // auto indexint =
   // G.builder->CreateBitCast(indexfloat,G.builder->getInt64Ty());
+  const int bitsize =64;
   auto* zero =
-      llvm::ConstantInt::get(G.builder->getInt64Ty(), llvm::APInt(64, 0));
+      llvm::ConstantInt::get(G.builder->getInt64Ty(), llvm::APInt(bitsize, 0));
   auto* dptrtype = llvm::PointerType::get(G.builder->getDoubleTy(), 0);
   auto* arraccessfun = G.module->getFunction("access_array_lin_interp");
   // auto gep =
@@ -477,7 +481,8 @@ void CodeGenVisitor::createIfBody(mir::blockptr& block, llvm::Value* ret_ptr) {
 void CodeGenVisitor::operator()(mir::IfInst& i) {
   auto* thisbb = G.currentblock;
   auto* cond = G.findValue(i.cond);
-  auto* cmp = G.builder->CreateFCmpOGT(cond,llvm::ConstantFP::get(G.ctx, llvm::APFloat(0.0)) );
+  auto* cmp = G.builder->CreateFCmpOGT(
+      cond, llvm::ConstantFP::get(G.ctx, llvm::APFloat(0.0)));
   auto* endbb = llvm::BasicBlock::Create(G.ctx, i.lv_name + "_end", G.curfunc);
 
   llvm::Value* retptr = nullptr;
@@ -510,7 +515,6 @@ void CodeGenVisitor::operator()(mir::IfInst& i) {
   G.builder->SetInsertPoint(thisbb);
 
   G.builder->CreateCondBr(cmp, thenbb, elsebb);
-  
 }
 void CodeGenVisitor::operator()(mir::ReturnInst& i) {
   auto* v = G.tryfindValue(i.val);

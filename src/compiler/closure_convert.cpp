@@ -225,7 +225,6 @@ void ClosureConverter::CCVisitor::operator()(mir::ArrayAccessInst& i) {
   localvlist.push_back(i.lv_name);
 }
 
-
 void ClosureConverter::CCVisitor::operator()(mir::IfInst& i) {
   registerFv(i.cond);
   for (auto& ti : i.thenblock->instructions) {

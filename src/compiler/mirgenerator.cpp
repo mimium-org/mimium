@@ -113,12 +113,12 @@ lvarid ExprKnormVisitor::operator()(ast::Fcall& ast,
   return mirgen.genFcallInst(ast, when);
 }
 
-lvarid ExprKnormVisitor::operator()(ast::Struct& ast) {
-  // TODO
+lvarid ExprKnormVisitor::operator()(ast::Struct& /*ast*/) {
+  // TODO(tomoya)
   return lvarid{};
 }
-lvarid ExprKnormVisitor::operator()(ast::StructAccess& ast) {
-  // TODO
+lvarid ExprKnormVisitor::operator()(ast::StructAccess& /*ast*/) {
+  // TODO(tomoya)
   return lvarid{};
 }
 lvarid ExprKnormVisitor::operator()(ast::ArrayInit& ast) {
@@ -151,12 +151,12 @@ lvarid ExprKnormVisitor::operator()(ast::ArrayAccess& ast) {
           {newname}, arrname, std::visit(*this, *ast.index).first},
       std::move(rettype));
 }
-lvarid ExprKnormVisitor::operator()(ast::Tuple& ast) {
-  // TODO
+lvarid ExprKnormVisitor::operator()(ast::Tuple& /*ast*/) {
+  // TODO(tomoya)
   return lvarid{};
 }
 
-lvarid ExprKnormVisitor::operator()(ast::Block& ast) {
+lvarid ExprKnormVisitor::operator()(ast::Block& /*ast*/) {
   static_assert(true, "should be unreachable");
   return lvarid{};
 }
@@ -225,8 +225,8 @@ lvarid StatementKnormVisitor::operator()(ast::Return& ast) {
                         types::Value(type));
 }
 // Instructions StatementKnormVisitor::operator()(ast::Declaration& ast){}
-lvarid StatementKnormVisitor::operator()(ast::For& ast) {
-  // TODO
+lvarid StatementKnormVisitor::operator()(ast::For& /*ast*/) {
+  // TODO(tomyoa)
   return lvarid{};
 }
 
