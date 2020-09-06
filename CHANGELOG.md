@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## v0.1.2 (2020-09-07)
+
+### fixed bugs
+
+- Previous release did not contain llvm generation for if statement. Now if statement/expression works correctly.
+- fixed a bug that comment-out which ends with a line break could not be parsed correctly.
+
+### Refactoring
+
+MIR(Mid-Level Representation)-related classes' implementation has been made more simplified.
+As like ast classes refined in v0.1.0, data does not have member functions and is initiallized with aggregate initialization.
+
 ## v0.1.1 (2020-09-05)
 
 ### Fixed Bug
