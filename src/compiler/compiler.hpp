@@ -21,7 +21,7 @@ namespace mimium {
 class Compiler {
 public: 
     Compiler();
-    Compiler(llvm::LLVMContext& ctx);
+    explicit Compiler(llvm::LLVMContext& ctx);
     ~Compiler();
     AstPtr loadSource(std::string source);
     AstPtr loadSourceFile(std::string filename);
@@ -31,11 +31,11 @@ public:
 
     AstPtr renameSymbols(AstPtr ast);
     TypeEnv& typeInfer(AstPtr ast);
-    std::shared_ptr<MIRblock> generateMir(AstPtr ast);
-    std::shared_ptr<MIRblock> closureConvert(std::shared_ptr<MIRblock> mir);
-    std::shared_ptr<MIRblock> collectMemoryObjs(std::shared_ptr<MIRblock> mir);
+    mir::blockptr generateMir(AstPtr ast);
+    mir::blockptr closureConvert(mir::blockptr mir);
+    mir::blockptr collectMemoryObjs(mir::blockptr mir);
 
-    llvm::Module& generateLLVMIr(std::shared_ptr<MIRblock> mir);
+    llvm::Module& generateLLVMIr(mir::blockptr mir);
     auto moveLLVMModule(){return llvmgenerator.moveModule();}
  private:
   Driver driver;

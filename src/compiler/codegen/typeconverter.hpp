@@ -28,12 +28,11 @@ struct TypeConverter {
   llvm::Type* operator()(types::Array& i);
   llvm::Type* operator()(types::Struct& i);
   llvm::Type* operator()(types::Tuple& i);
-  // llvm::Type* operator()(types::Time& i);
   llvm::Type* operator()(types::Alias& i);
 
  private:
   [[nodiscard]]std::string consumeAlias();
-  [[nodiscard]]llvm::Type* tryGetNamedType(std::string& name);
+  [[nodiscard]]llvm::Type* tryGetNamedType(std::string& name)const;
 };
 
 }  // namespace mimium

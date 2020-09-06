@@ -1,0 +1,8 @@
+pos = 10
+neg = -10
+hoge = if(pos) 100 else 20
+
+fuga = if(neg) 100 else 20
+
+println(hoge)
+println(fuga)
