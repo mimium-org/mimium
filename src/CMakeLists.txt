@@ -11,6 +11,8 @@ add_dependencies(default_build mimium_llloader)
 
 target_compile_options(mimium PUBLIC -std=c++17)
 target_compile_options(mimium_llloader PUBLIC -std=c++17)
+target_compile_definitions(mimium PUBLIC MIMIUM_VERSION=\"v${CMAKE_PROJECT_VERSION}\")
+target_compile_definitions(mimium_llloader PUBLIC MIMIUM_VERSION=\"v${CMAKE_PROJECT_VERSION}\")
 
 target_include_directories(mimium
 PRIVATE
@@ -79,6 +81,5 @@ include(CPack)
 
 add_custom_target(uninstall)
 add_custom_command(TARGET uninstall
-COMMAND cat install_manifest.txt | sudo xargs rm -f
-COMMAND cat install_manifest.txt | xargs -L1 dirname | sudo xargs  rmdir -p 2&> /dev/null
+COMMAND cat ${CMAKE_BINARY_DIR}/install_manifest.txt | sudo xargs rm -f
 )

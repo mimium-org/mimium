@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#define MIMIUM_VERSION "0.0.0"
+#ifndef MIMIUM_VERSION
+#define MIMIUM_VERSION "unspecified"
+#endif
 
 #include <unistd.h>
 
@@ -118,15 +120,15 @@ auto main(int argc, char** argv) -> int {
           std::cout << typeinfos.toString() << std::endl;
           break;
         }
-        std::shared_ptr<MIRblock> mir = compiler->generateMir(ast_u);
+        mir::blockptr mir = compiler->generateMir(ast_u);
         if (stage == CompileStage::MIR) {
-          std::cout << mir->toString() << std::endl;
+          std::cout << mir::toString(mir) << std::endl;
           break;
         }
         auto mir_cc = compiler->closureConvert(mir);
         mir_cc = compiler->collectMemoryObjs(mir_cc);
         if (stage == CompileStage::MIR_CC) {
-          std::cout << mir_cc->toString() << std::endl;
+          std::cout << mir::toString(mir_cc) << std::endl;
           break;
         }
         auto& llvm_module = compiler->generateLLVMIr(mir_cc);

@@ -14,9 +14,6 @@ void printlnstr(char* str){ std::cerr << str << "\n"; }
 
 double mimiumrand(){return ((double)rand()/RAND_MAX)*2 -1  ;}
 
-double mimium_ifexpr(double cond,double thenval,double elseval){
-    return (cond>0)?thenval:elseval;
-}
 bool mimium_dtob(double d){
     return d>0;
 }
@@ -154,7 +151,6 @@ std::unordered_map<std::string, BuiltinFnInfo> LLVMBuiltin::ftable = {
 
     {"lshift", FI{Function(Float(), {Float(),Float()}), "mimium_lshift"}},
     {"rshift", FI{Function(Float(), {Float(),Float()}), "mimium_rshift"}},
-    {"ifexpr", FI{Function(Float(), {Float(),Float(),Float()}), "mimium_ifexpr"}},
 
     {"mem", FI{Function(Float(), {Float()}), "mimium_memprim"}},
     {"delay", FI{Function(Float(), {Float(),Float()}), "mimium_delayprim"}},
