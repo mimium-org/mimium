@@ -173,6 +173,8 @@ using namespace mimium;
 // Syntax Sugar 
 %type <ast::Fdef> fdef "fdef"
 
+
+%type <ast::ExprPtr> cond "if condition"
 %type <ast::If> if "if"
 %type <ast::For> forloop "forloop"
 
@@ -190,11 +192,12 @@ using namespace mimium;
 %locations
 
 
-
-
+%nonassoc COND
+%nonassoc ELSE_EXPR
+%nonassoc IF IF_EXPR
+%left ARROW
 
 %left PIPE
-%left ARROW
 %left LSHIFT RSHIFT
 %left LE GE GT LT
 %left  OR BITOR
@@ -219,7 +222,6 @@ using namespace mimium;
 %left '&'
 
 %nonassoc '{' '}'
-%left ELSE
 
 %right ASSIGN
 %left NEWLINE 
@@ -361,10 +363,11 @@ op:   expr ADD    expr   {$$ = ast::Op{{@$,"op"},ast::OpId::Add,        std::mov
      |NOT expr           {$$ = ast::Op{{@$,"op"},ast::OpId::Not,        std::nullopt, std::move($2)};} %prec UMINUS
 
 
+cond:  '(' expr ')'  {$$ = std::move($2);}%prec COND
+// if_then IF cond expr {$$ std::pair($2,$3)} %prec IF_EXPR
 
-
-if: IF '(' expr ')' expr   {$$ = ast::If{{@$,"if"},std::move($3),std::move($5),std::nullopt};}
-   |IF '(' expr ')' expr ELSE expr {$$ = ast::If{{@$,"if"},std::move($3),std::move($5),std::move($7)};}
+if: IF cond expr   {$$ = ast::If{{@$,"if"},std::move($2),std::move($3),std::nullopt};}%prec IF_EXPR
+   |IF cond expr ELSE expr {$$ = ast::If{{@$,"if"},std::move($2),std::move($3),std::move($5)};} %prec ELSE_EXPR
 
 
 
@@ -380,7 +383,7 @@ expr_non_fcall:op      {$$ = ast::makeExpr($1);}
 
 expr: expr_non_fcall {$$ = std::move($1);}
       |fcall {$$ = ast::makeExpr($1);} %prec FCALL
-      |    if   {$$ = ast::makeExpr($1);}
+      |    if   {$$ = ast::makeExpr($1);} %prec ELSE_EXPR
       |    block     {$$ = ast::makeExpr($1);}
 
 // term: '(' expr ')' {$$ = std::move($2);}
