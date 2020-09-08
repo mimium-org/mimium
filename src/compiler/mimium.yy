@@ -55,7 +55,7 @@ using namespace mimium;
   #define yylex scanner.yylex
 }
 %define api.value.type variant
-/*  %define parse.assert */ /* commented out assertion because of bison bug?*/
+ %define parse.assert /* commented out assertion because of bison bug?*/
 %define parse.error verbose
 %token
    ADD "+"
@@ -175,7 +175,7 @@ using namespace mimium;
 
 
 %type <ast::ExprPtr> cond "if condition"
-%type <ast::If> if "if"
+%type <ast::If> ifstmt "ifstmt"
 %type <ast::For> forloop "forloop"
 
 
@@ -364,9 +364,9 @@ op:   expr ADD    expr   {$$ = ast::Op{{@$,"op"},ast::OpId::Add,        std::mov
 
 
 cond:  '(' expr ')'  {$$ = std::move($2);}%prec COND
-// if_then IF cond expr {$$ std::pair($2,$3)} %prec IF_EXPR
 
-if: IF cond expr   {$$ = ast::If{{@$,"if"},std::move($2),std::move($3),std::nullopt};}%prec IF_EXPR
+//note that you should not name this terminal symbol "if"
+ifstmt: IF cond expr   {$$ = ast::If{{@$,"if"},std::move($2),std::move($3),std::nullopt};}%prec IF_EXPR
    |IF cond expr ELSE expr {$$ = ast::If{{@$,"if"},std::move($2),std::move($3),std::move($5)};} %prec ELSE_EXPR
 
 
@@ -383,7 +383,7 @@ expr_non_fcall:op      {$$ = ast::makeExpr($1);}
 
 expr: expr_non_fcall {$$ = std::move($1);}
       |fcall {$$ = ast::makeExpr($1);} %prec FCALL
-      |    if   {$$ = ast::makeExpr($1);} %prec ELSE_EXPR
+      |    ifstmt   {$$ = ast::makeExpr($1);} %prec ELSE_EXPR
       |    block     {$$ = ast::makeExpr($1);}
 
 // term: '(' expr ')' {$$ = std::move($2);}
@@ -427,7 +427,7 @@ statement: assign       {$$=ast::makeStatement(std::move($1));}
                          $$=ast::makeStatement(std::move(ret));}
           |fcalltime     {$$=ast::makeStatement(std::move($1));}
           |fcall         {$$=ast::makeStatement(std::move($1));}
-          |if         {$$=ast::makeStatement(std::move($1));}
+          |ifstmt         {$$=ast::makeStatement(std::move($1));}
 
 
 block: LBRACE   statements newlines expr_non_fcall opt_nl RBRACE {$$ = ast::Block{{@$,"block"},std::move($2),std::optional(std::move($4))};}
