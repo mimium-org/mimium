@@ -4,7 +4,7 @@
 
 #pragma once
 #include <variant>
-
+#include <memory>
 template <class... Ts>
 struct overloaded : Ts... {
   using Ts::operator()...;
@@ -16,23 +16,25 @@ overloaded(Ts...)->overloaded<Ts...>;
 template <typename T>
 struct Rec_Wrap {
   // construct from an existing object
-  Rec_Wrap(T t_) {
-    t.reserve(1);
-    t.emplace_back(std::move(t_));
-  }  // NOLINT
-  static constexpr bool is_recursive_wrapper = true;
-  // cast back to wrapped type
-  operator T&() { return t.front(); }              // NOLINT
-  operator const T&() const { return t.front(); }  // NOLINT
 
-  T& getraw() { return t.front(); }
+  Rec_Wrap(T& t_) {
+    t=std::make_shared<T>(std::move(t_));
+  } 
+  Rec_Wrap(T&& t_) { 
+    t=std::make_shared<T>(std::forward<T>(t_));
+  } 
+// cast back to wrapped type
+  operator T&() { return *t; }              // NOLINT
+  operator const T&() const { return *t; }  // NOLINT
+
+  T& getraw()const { return *t; }
   // store the value
-  std::vector<T> t;
+  std::shared_ptr<T> t;
 };
 
 template <typename T>
 inline bool operator==(const Rec_Wrap<T>& t1, const Rec_Wrap<T>& t2) {
-  return t1.t.front() == t2.t.front();
+  return t1.getraw() == t2.getraw();
 }
 template <typename T>
 inline bool operator!=(const Rec_Wrap<T>& t1, const Rec_Wrap<T>& t2) {
