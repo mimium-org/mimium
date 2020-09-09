@@ -49,7 +49,8 @@ void ExprStringVisitor::operator()(const ast::Lambda& ast) {
   output << format.lpar << "lambda" << format.delim;
   const auto& largs = ast.args;
   output << format.lpar_a << joinVec(largs.args, format.delim) << format.rpar_a;
-  output << ast.body << format.rpar;
+  (*this)(ast.body);
+  output << format.rpar;
   ;
 }
 void ExprStringVisitor::fcallHelper(const ast::Fcall& fcall) {
@@ -98,8 +99,9 @@ void StatementStringVisitor::operator()(const ast::Assign& ast) {
          << *ast.expr << format.rpar;
 }
 void StatementStringVisitor::operator()(const ast::Fdef& ast) {
-  output << format.lpar << "Fdef" << format.delim << ast.lvar << format.delim
-         << ast.fun << format.rpar;
+  output << format.lpar << "Fdef" << format.delim << ast.lvar << format.delim;
+  exprstringvisitor(ast.fun);
+  output  << format.rpar;
 }
 void StatementStringVisitor::operator()(const ast::If& ast) {
   output << format.lpar << "if" << format.delim << *ast.cond << format.delim
