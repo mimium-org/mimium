@@ -29,10 +29,6 @@ PRIVATE
 ${FLEX_INCLUDE_CACHE}
 ${PARSER_HEADER_DIR} 
 )
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-target_link_options(mimium  PUBLIC -stdlib=libc++ -lc++abi)
-target_link_options(mimium_llloader  PUBLIC -stdlib=libc++ -lc++abi)
-endif()
 
 target_link_libraries(mimium
     LLVMCore
