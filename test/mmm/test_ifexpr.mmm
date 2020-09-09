@@ -1,6 +1,7 @@
 pos = 10
 neg = -10
-hoge = if(pos) 100 else 20
+
+hoge = if (11) 100 +10 else 20*30
 
 fuga = if(neg) 100 else 20
 
