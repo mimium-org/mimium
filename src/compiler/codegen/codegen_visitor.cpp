@@ -199,15 +199,15 @@ llvm::FunctionType* CodeGenVisitor::createFunctionType(mir::FunInst& i,
                                                        bool hascapture,
                                                        bool hasmemobj) {
   auto mmmfntype = rv::get<types::Function>(G.typeenv.find(i.lv_name));
-  auto& argtypes = mmmfntype.getArgTypes();
+  auto& argtypes = mmmfntype.arg_types;
 
   if (hascapture) {
-    auto captype = types::Ref(G.cc.getCaptureType(i.lv_name));
+    auto captype = types::Ref{G.cc.getCaptureType(i.lv_name)};
     argtypes.emplace_back(std::move(captype));
     // auto clsty = llvm::cast<llvm::StructType>(G.getType(captype));
   }
   if (hasmemobj) {
-    auto memobjtype = types::Ref(G.memobjcoll.getMemObjType(i.lv_name));
+    auto memobjtype = types::Ref{G.memobjcoll.getMemObjType(i.lv_name)};
     argtypes.emplace_back(std::move(memobjtype));
   }
 
@@ -354,8 +354,8 @@ llvm::Value* CodeGenVisitor::getExtFun(mir::FcallInst& i) {
   BuiltinFnInfo& fninfo = it->second;
   auto* fntype = llvm::cast<llvm::FunctionType>(G.getType(fninfo.mmmtype));
   if (i.fname == "mem") {
-    types::Value memtype = types::Function(
-        types::Float(), {types::Float(), types::Ref(types::Float())});
+    types::Value memtype = types::Function{
+        types::Float{}, {types::Float{}, types::Ref{types::Float{}} }};
     fntype = llvm::cast<llvm::FunctionType>(G.getType(memtype));
   }
   auto fn = G.module->getOrInsertFunction(fninfo.target_fnname, fntype);

@@ -49,15 +49,15 @@ lvarid ExprKnormVisitor::operator()(ast::Op& ast) {
       ast.lhs.has_value() ? std::visit(*this, *ast.lhs.value()).first : "";
   auto rhsname = std::visit(*this, *ast.rhs).first;
   return mirgen.emplace(mir::OpInst{{newname}, ast.op, lhsname, rhsname},
-                        types::Float());
+                        types::Float{});
 }
 lvarid ExprKnormVisitor::operator()(ast::Number& ast) {
   return mirgen.emplace(mir::NumberInst{{mirgen.makeNewName()}, ast.value},
-                        types::Float());
+                        types::Float{});
 }
 lvarid ExprKnormVisitor::operator()(ast::String& ast) {
   return mirgen.emplace(mir::StringInst{{mirgen.makeNewName()}, ast.value},
-                        types::String());
+                        types::String{});
 }
 lvarid ExprKnormVisitor::operator()(ast::Rvar& ast) {
   if (ast.value == "now") {
@@ -66,12 +66,12 @@ lvarid ExprKnormVisitor::operator()(ast::Rvar& ast) {
                                          {},
                                          FCALLTYPE::DIRECT,
                                          std::nullopt},
-                          types::Float());
+                          types::Float{});
   }
   return std::pair(ast.value, mirgen.typeenv.find(ast.value));
 }
 lvarid ExprKnormVisitor::operator()(ast::Self& ast) {
-  lvarid res = {"self", ast.type.value_or(types::Float())};
+  lvarid res = {"self", ast.type.value_or(types::Float{})};
   return res;
 }
 lvarid ExprKnormVisitor::operator()(ast::Lambda& ast) {
@@ -87,12 +87,12 @@ lvarid ExprKnormVisitor::operator()(ast::Lambda& ast) {
   types::Value type =
       (typeptr != nullptr)
           ? *typeptr
-          : types::Function(
+          : types::Function{
                 lvar.second,
                 mirgen.transformArgs(ast.args.args, std::vector<types::Value>{},
                                      [&](ast::Lvar& lvar) {
                                        return mirgen.typeenv.find(lvar.value);
-                                     }));
+                                     })};
   return mirgen.emplace(std::move(fun), std::move(type));
 }
 lvarid MirGenerator::genFcallInst(ast::Fcall& fcall,
@@ -131,7 +131,7 @@ lvarid ExprKnormVisitor::operator()(ast::ArrayInit& ast) {
                    return ename;
                  });
   auto newname = mirgen.makeNewName();
-  auto type = types::Array(lasttype);
+  auto type = types::Array{lasttype};
   auto inst = mir::ArrayInst{{newname}, newelems};
   return mirgen.emplace(inst, type);
 }
@@ -201,27 +201,28 @@ lvarid StatementKnormVisitor::operator()(ast::Assign& ast) {
   if (!is_overwrite) {
     mirgen.lvar_holder = ast.lvar.value;
   }
-  lvarid res  = std::visit(mirgen.exprvisitor, *ast.expr);
-  auto[rvar,type]  = res;
+  lvarid res = std::visit(mirgen.exprvisitor, *ast.expr);
+  auto [rvar, type] = res;
   if (!rv::holds_alternative<types::Function>(type)) {
     if (!is_overwrite) {
       std::string ptrname = ast.lvar.value;
       types::Value ptrtype = type;
-      auto iter = mirgen.ctx->instructions.insert(std::prev(
-          mirgen.ctx->instructions.end()), mir::AllocaInst{{ptrname}, ptrtype});
+      auto iter = mirgen.ctx->instructions.insert(
+          std::prev(mirgen.ctx->instructions.end()),
+          mir::AllocaInst{{ptrname}, ptrtype});
       // mirgen.typeenv.emplace(ptrname, ptrtype);
       mirgen.lvarlist.emplace_back(ast.lvar.value);
     }
     if (is_overwrite) {
-      res = mirgen.emplace(mir::AssignInst{{ast.lvar.value}, rvar,type},
+      res = mirgen.emplace(mir::AssignInst{{ast.lvar.value}, rvar, type},
                            types::Value(type));
     }
   }
-  return std::pair(res.first,types::Void());
+  return std::pair(res.first, types::Void{});
 }
 lvarid StatementKnormVisitor::operator()(ast::Return& ast) {
   auto [ret, type] = std::visit(mirgen.exprvisitor, *ast.value);
-  return mirgen.emplace(mir::ReturnInst{{mirgen.makeNewName()},ret},
+  return mirgen.emplace(mir::ReturnInst{{mirgen.makeNewName()}, ret},
                         types::Value(type));
 }
 // Instructions StatementKnormVisitor::operator()(ast::Declaration& ast){}

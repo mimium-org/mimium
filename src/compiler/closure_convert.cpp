@@ -57,14 +57,15 @@ mir::blockptr ClosureConverter::convert(mir::blockptr toplevel) {
   }
   moveFunToTop(this->toplevel);
   if (!(clstypeenv.count("dsp") > 0)) {
-    auto dummycapture = types::Alias(makeCaptureName(), types::Tuple({}));
+    types::Value dummycapture =
+        types::Alias{makeCaptureName(), types::Tuple{{}}};
     auto ctypename = makeClosureTypeName();
-    auto dummytype = types::Alias(
+    auto dummytype = types::Alias{
         ctypename,
-        types::Closure(
-            types::Ref(types::Function(
-                types::Float(), {types::Float(), types::Ref(dummycapture)})),
-            dummycapture));
+        types::Closure{
+            types::Ref{types::Function{
+                types::Float{}, {types::Float{}, types::Ref{dummycapture}}}},
+            dummycapture}};
     clstypeenv.emplace("dsp", dummycapture);
     // typeenv.emplace("dsp_cls", std::move(dummytype));
   }
@@ -140,7 +141,7 @@ checkpoint:
         if (rv::holds_alternative<types::Function>(ft)) {
           ft = cc.typeenv.find(fv + "_cls");
         }
-        fvtype_inside.emplace_back(types::Ref(ft));
+        fvtype_inside.emplace_back(types::Ref{ft});
       } else {
         fvlist.erase(it);
       }
@@ -152,11 +153,11 @@ checkpoint:
 
     auto clsname = i.lv_name + "_cls";
     auto fvtype =
-        types::Alias(cc.makeCaptureName(), types::Tuple(fvtype_inside));
+        types::Alias{cc.makeCaptureName(), types::Tuple{fvtype_inside}};
     auto ftype = rv::get<types::Function>(cc.typeenv.find(i.lv_name));
-    ftype.arg_types.emplace_back(types::Ref(fvtype));
-    auto clstype = types::Alias(cc.makeClosureTypeName(),
-                                types::Closure(types::Ref(ftype), fvtype));
+    ftype.arg_types.emplace_back(types::Ref{fvtype});
+    auto clstype = types::Alias{cc.makeClosureTypeName(),
+                                types::Closure{types::Ref{ftype}, fvtype}};
 
     mir::MakeClosureInst makecls{{clsname}, i.lv_name, fvlist, fvtype};
 
@@ -165,7 +166,7 @@ checkpoint:
     cc.clstypeenv.emplace(i.lv_name, fvtype);
     // replace original function type
     // cc.typeenv.emplace(i.lv_name, clstype);
-    // auto& ft = std::get<Rec_Wrap<types::Function>>(i.type).getraw();
+    // auto& ft = std::get<Box<types::Function>>(i.type).getraw();
     // ft.arg_types.emplace_back(fvtype);
   }
 }

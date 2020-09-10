@@ -16,10 +16,10 @@ types::Value ExprTypeVisitor::operator()(ast::Op& ast) {
              : infer(ast.rhs);
 }
 types::Value ExprTypeVisitor::operator()(ast::Number& ast) {
-  return types::Float();
+  return types::Float{};
 }
 types::Value ExprTypeVisitor::operator()(ast::String& ast) {
-  return types::String();
+  return types::String{};
 }
 types::Value ExprTypeVisitor::operator()(ast::Rvar& ast) {
   return inferer.typeenv.find(ast.value);
@@ -42,7 +42,7 @@ types::Value ExprTypeVisitor::operator()(ast::Lambda& ast) {
   auto rettype = (*this)(ast.body);
   auto uni_rettype = inferer.unify(rettype_tv, rettype);
   inferer.selftype_stack.pop();
-  return types::Function(uni_rettype, argtypes);
+  return types::Function{uni_rettype, argtypes};
 }
 
 types::Value TypeInferer::inferFcall(ast::Fcall& fcall) {
@@ -51,7 +51,7 @@ types::Value TypeInferer::inferFcall(ast::Fcall& fcall) {
   std::transform(args.begin(), args.end(), std::back_inserter(argtypes),
                  [&](ast::ExprPtr expr) { return exprvisitor.infer(expr); });
   auto frettype = *typeenv.createNewTypeVar();
-  types::Value ftype = types::Function(frettype, argtypes);
+  types::Value ftype = types::Function{frettype, argtypes};
   types::Value targettype = exprvisitor.infer(fcall.fn);
   auto res = unify(targettype, ftype);
   return rv::get<types::Function>(res).ret_type;
@@ -68,7 +68,7 @@ types::Value ExprTypeVisitor::operator()(ast::Struct& ast) {
     // todo(tomoya): need to fix parser(add key)
     argtypes.push_back({"struct_key", std::visit(*this, *a)});
   }
-  return types::Struct(std::move(argtypes));
+  return types::Struct{std::move(argtypes)};
 }
 types::Value ExprTypeVisitor::operator()(ast::StructAccess& ast) {
   auto stru_type = std::visit(*this, *ast.stru);
@@ -87,14 +87,14 @@ types::Value ExprTypeVisitor::operator()(ast::ArrayInit& ast) {
   for (auto a = ast.args.begin(); a != (--ast.args.end()); ++a) {
     tmptype = inferer.unify(std::visit(*this, **a), std::visit(*this, **(++a)));
   }
-  return types::Array(tmptype);
+  return types::Array{tmptype};
 }
 types::Value ExprTypeVisitor::operator()(ast::ArrayAccess& ast) {
   auto indextype = inferer.unify(std::visit(*this, *ast.index),
-                                 types::Value(types::Float()));
+                                 types::Value(types::Float{}));
   auto tv = inferer.typeenv.createNewTypeVar();
   auto arraytype = inferer.unify(std::visit(*this, *ast.array),
-                                 types::Value(types::Array(*std::move(tv))));
+                                 types::Value(types::Array{*std::move(tv)}));
   if (!rv::holds_alternative<types::Array>(arraytype)) {
     throw std::runtime_error(
         "you cannot access to variables other than Array type with [] "
@@ -104,7 +104,7 @@ types::Value ExprTypeVisitor::operator()(ast::ArrayAccess& ast) {
 }
 types::Value ExprTypeVisitor::operator()(ast::Tuple& ast) {
   // Todo(tomoya)
-  return types::Tuple({types::Float()});
+  return types::Tuple{{types::Float{}}};
 }
 
 types::Value ExprTypeVisitor::operator()(ast::Block& ast) {
@@ -133,14 +133,14 @@ types::Value StatementTypeVisitor::operator()(ast::Fdef& ast) {
   auto lvartype = inferer.addLvar(ast.lvar);
   auto rvartype = inferer.exprvisitor(ast.fun);
   inferer.unify(lvartype, rvartype);
-  return types::Void();
+  return types::Void{};
 }
 
 types::Value StatementTypeVisitor::operator()(ast::Assign& ast) {
   auto lvartype = inferer.addLvar(ast.lvar);
   auto rvartype = inferer.inferExpr(ast.expr);
-  inferer.unify(lvartype, rvartype);
-  return types::Void();
+  inferer.typeenv.emplace(ast.lvar.value, inferer.unify(lvartype, rvartype));
+  return types::Void{};
 }
 types::Value StatementTypeVisitor::operator()(ast::Return& ast) {
   return inferer.inferExpr(ast.value);
@@ -149,17 +149,17 @@ types::Value StatementTypeVisitor::operator()(ast::Return& ast) {
 types::Value StatementTypeVisitor::operator()(ast::For& ast) {
   // TODO(tomoya): types for iterator
   inferer.exprvisitor(ast.statements);
-  return types::Void();  // for loop becomes void anyway
+  return types::Void{};  // for loop becomes void anyway
 }
 
 types::Value StatementTypeVisitor::operator()(ast::Fcall& ast) {
   return inferer.inferFcall(ast);
 }
 types::Value StatementTypeVisitor::operator()(ast::Time& ast) {
-  inferer.unify(inferer.inferExpr(ast.when), types::Float());
+  inferer.unify(inferer.inferExpr(ast.when), types::Float{});
   // anyway, this rvalue will not be used(time specification is used as void
   auto fcalltype = inferer.inferFcall(ast.fcall);
-  return inferer.unify(fcalltype, types::Void());
+  return inferer.unify(fcalltype, types::Void{});
 }
 
 types::Value TypeInferer::addLvar(ast::Lvar& lvar) {
@@ -196,11 +196,11 @@ types::Value TypeUnifyVisitor::unify(types::rPointer p1, types::rPointer p2) {
   auto lhs = p1.getraw().val;
   auto rhs = p2.getraw().val;
   auto target = inferer.unify(std::move(lhs), std::move(rhs));
-  return types::Pointer(target);
+  return types::Pointer{target};
 }
 types::Value TypeUnifyVisitor::unify(types::rRef p1, types::rRef p2) {
   auto target = inferer.unify(p1.getraw().val, p2.getraw().val);
-  return types::Pointer(target);
+  return types::Ref{target};
 }
 types::Value TypeUnifyVisitor::unify(types::rAlias a1, types::rAlias a2) {
   return inferer.unify(a1.getraw().target, a2.getraw().target);
@@ -209,7 +209,7 @@ types::Value TypeUnifyVisitor::unify(types::rAlias a1, types::rAlias a2) {
 types::Value TypeUnifyVisitor::unify(types::rFunction f1, types::rFunction f2) {
   auto argtype = unifyArgs(f1.getraw().arg_types, f2.getraw().arg_types);
   auto rettype = inferer.unify(f1.getraw().ret_type, f2.getraw().ret_type);
-  return types::Function(std::move(rettype), std::move(argtype));
+  return types::Function{std::move(rettype), std::move(argtype)};
 }
 
 types::Value TypeUnifyVisitor::unify(types::rArray a1, types::rArray a2) {
@@ -217,7 +217,7 @@ types::Value TypeUnifyVisitor::unify(types::rArray a1, types::rArray a2) {
   auto rhs = a2.getraw().elem_type;
   auto elemtype = inferer.unify(std::move(lhs), std::move(rhs));
   // size check?
-  return types::Array(elemtype, a1.getraw().size);
+  return types::Array{elemtype, a1.getraw().size};
 }
 types::Value TypeUnifyVisitor::unify(types::rStruct s1, types::rStruct s2) {
   // TODO(tomoya)
