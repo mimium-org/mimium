@@ -12,7 +12,7 @@ struct overloaded : Ts... {
 };
 template <class... Ts>
 overloaded(Ts...)->overloaded<Ts...>;
-
+namespace mimium{
 // recursive variant
 template <typename T>
 struct Box {
@@ -108,3 +108,4 @@ constexpr const T&& get(const std::variant<Types...>&& v) {
   return static_cast<const T&&>(std::get<Box<T>>(v));
 }
 }  // namespace rv
+}

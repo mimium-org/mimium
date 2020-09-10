@@ -33,10 +33,6 @@ inline bool operator==(const PrimitiveType& /*t1*/,
                        const PrimitiveType& /*t2*/) {
   return true;
 };
-inline bool operator!=(const PrimitiveType& /*t1*/,
-                       const PrimitiveType& /*t2*/) {
-  return false;
-};
 
 struct None : PrimitiveType {};
 struct Void : PrimitiveType {};
@@ -139,8 +135,8 @@ struct Function {
 inline bool operator==(const Function& t1, const Function& t2) {
   bool ret_same = t1.ret_type == t2.ret_type;
   bool arg_same = t1.arg_types == t2.arg_types;
-  return ret_same&&arg_same;
-  }
+  return ret_same && arg_same;
+}
 
 struct Closure {
   Ref fun;
@@ -190,16 +186,21 @@ inline bool operator==(const Alias& t1, const Alias& t2) {
 };
 bool isTypeVar(types::Value t);
 
-template<class T>
-inline constexpr bool is_pointer_t = std::is_same_v<T, Pointer> ||  std::is_same_v<T, Ref>;
+template <class T>
+inline constexpr bool is_pointer_t =
+    std::is_same_v<T, Pointer> || std::is_same_v<T, Ref>;
 
 inline bool isPointer(types::Value t) {
   return std::holds_alternative<Box<Pointer>>(t) ||
          std::holds_alternative<Box<Ref>>(t);
 }
 
-template <typename T>
-bool operator!=(const T& t1, const T& t2) {
+// Note(tomoya):this weird sfinae need to prevent from a compile error on Xcode
+// clang that confuses candidates with iterator's comparison operator
+template <typename T, typename U,
+          typename std::enable_if_t<!std::is_same_v<
+              std::decay_t<std::move_iterator<U>>, std::decay_t<T>>>>
+bool operator!=(T t1, T t2) {
   return !(t1 == t2);
 }
 
@@ -285,11 +286,13 @@ class TypeEnv {
   std::deque<types::Value> tv_container;
   std::shared_ptr<types::TypeVar> createNewTypeVar() {
     auto res = std::make_shared<types::TypeVar>(typeid_count++);
-    tv_container.emplace_back(*res);
+    tv_container.push_back(*res);
     return res;
   }
   types::Value& findTypeVar(int tindex) { return tv_container[tindex]; }
-  [[nodiscard]] bool exist(std::string key) const { return (env.count(key) > 0); }
+  [[nodiscard]] bool exist(std::string key) const {
+    return (env.count(key) > 0);
+  }
   auto begin() { return env.begin(); }
   auto end() { return env.end(); }
   types::Value* tryFind(std::string key) {
