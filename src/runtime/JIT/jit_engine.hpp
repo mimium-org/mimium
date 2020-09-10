@@ -42,11 +42,11 @@ namespace orc {
 
 class MimiumJIT {
  private:
-  #if LAZY_ENABLE
+#if LAZY_ENABLE
   std::unique_ptr<LLJITCLASS> lllazyjit;
-  #else
+#else
   std::unique_ptr<LLJIT> lllazyjit;
-  #endif
+#endif
   ExecutionSession& ES;
   const DataLayout& DL;
   JITDylib& MainJD;
@@ -62,40 +62,36 @@ class MimiumJIT {
         MainJD(lllazyjit->getMainJITDylib()),
         Mangle(ES, this->DL),
         Ctx(std::make_unique<LLVMContext>()) {
-    #if LAZY_ENABLE
+#if LAZY_ENABLE
     lllazyjit->setLazyCompileTransform(optimizeModule);
-    #endif
+#endif
 // MainJD.getExecutionSession()
 #if LLVM_VERSION_MAJOR >= 10
     MainJD.addGenerator(
-        cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(
-            DL.getGlobalPrefix())));
+        cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(DL.getGlobalPrefix())));
 #else
     MainJD.setGenerator(
-        cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(
-            DL.getGlobalPrefix())));
+        cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(DL.getGlobalPrefix())));
 #endif
   }
   static std::unique_ptr<LLJITCLASS> createEngine() {
-    #if LAZY_ENABLE
+#if LAZY_ENABLE
     auto builder = LLLazyJITBuilder();
-    #else
+#else
     auto builder = LLJITBuilder();
-    #endif
+#endif
     auto jit = builder.create();
     llvm::logAllUnhandledErrors(jit.takeError(), llvm::errs());
     return std::move(jit.get());
   }
   Error addModule(std::unique_ptr<Module> M) {
-    #if LAZY_ENABLE
+#if LAZY_ENABLE
     return lllazyjit->addLazyIRModule(ThreadSafeModule(std::move(M), Ctx));
-    #else
-    return  lllazyjit->addIRModule(ThreadSafeModule(std::move(M), Ctx));
-    #endif
+#else
+    return lllazyjit->addIRModule(ThreadSafeModule(std::move(M), Ctx));
+#endif
   }
-  Expected<JITEvaluatedSymbol> lookup(StringRef name) {
-    return lllazyjit->lookup(name);
-  }
+  Expected<JITEvaluatedSymbol> lookup(StringRef name) { return lllazyjit->lookup(name); }
 
   Error addSymbol(StringRef name, void* ptr) {
     // auto symbol = JITEvaluatedSymbol(pointerToJITTargetAddress(&puts),
@@ -112,12 +108,11 @@ class MimiumJIT {
     return res.takeError();
   }
 
-  static Expected<ThreadSafeModule> optimizeModule(
-      ThreadSafeModule M, const MaterializationResponsibility& R) {
+  static Expected<ThreadSafeModule> optimizeModule(ThreadSafeModule M,
+                                                   const MaterializationResponsibility& R) {
 // Create a function pass manager.
 #if LLVM_VERSION_MAJOR >= 10
-    auto FPM =
-        std::make_unique<legacy::FunctionPassManager>(M.getModuleUnlocked());
+    auto FPM = std::make_unique<legacy::FunctionPassManager>(M.getModuleUnlocked());
 #else
     auto FPM = std::make_unique<legacy::FunctionPassManager>(M.getModule());
 #endif
@@ -134,13 +129,10 @@ class MimiumJIT {
 // Run the optimizations over all functions in the module being added to
 // the JIT.
 #if LLVM_VERSION_MAJOR >= 10
-    M.withModuleDo([&](Module& m) {
-      std::for_each(m.begin(), m.end(), [&](auto& f) { FPM->run(f); });
-    });
+    M.withModuleDo(
+        [&](Module& m) { std::for_each(m.begin(), m.end(), [&](auto& f) { FPM->run(f); }); });
 #else
-    for (auto& f : M.getModule()->functions()) {
-      FPM->run(f);
-    }
+    for (auto& f : M.getModule()->functions()) { FPM->run(f); }
 #endif
     return M;
   }

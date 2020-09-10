@@ -11,19 +11,12 @@ using StatementTypeVisitor = TypeInferer::StatementTypeVisitor;
 using TypeUnifyVisitor = TypeInferer::TypeUnifyVisitor;
 
 types::Value ExprTypeVisitor::operator()(ast::Op& ast) {
-  return ast.lhs.has_value()
-             ? inferer.unify(infer(ast.lhs.value()), infer(ast.rhs))
-             : infer(ast.rhs);
+  return ast.lhs.has_value() ? inferer.unify(infer(ast.lhs.value()), infer(ast.rhs))
+                             : infer(ast.rhs);
 }
-types::Value ExprTypeVisitor::operator()(ast::Number& ast) {
-  return types::Float{};
-}
-types::Value ExprTypeVisitor::operator()(ast::String& ast) {
-  return types::String{};
-}
-types::Value ExprTypeVisitor::operator()(ast::Rvar& ast) {
-  return inferer.typeenv.find(ast.value);
-}
+types::Value ExprTypeVisitor::operator()(ast::Number& ast) { return types::Float{}; }
+types::Value ExprTypeVisitor::operator()(ast::String& ast) { return types::String{}; }
+types::Value ExprTypeVisitor::operator()(ast::Rvar& ast) { return inferer.typeenv.find(ast.value); }
 types::Value ExprTypeVisitor::operator()(ast::Self& ast) {
   if (inferer.selftype_stack.empty()) {
     throw std::runtime_error("keyword \"self\" cannot be used out of function");
@@ -33,9 +26,7 @@ types::Value ExprTypeVisitor::operator()(ast::Self& ast) {
 }
 types::Value ExprTypeVisitor::operator()(ast::Lambda& ast) {
   std::vector<types::Value> argtypes;
-  for (auto&& a : ast.args.args) {
-    argtypes.emplace_back(inferer.addLvar(a));
-  }
+  for (auto&& a : ast.args.args) { argtypes.emplace_back(inferer.addLvar(a)); }
 
   auto rettype_tv = ast.ret_type.value_or(*inferer.typeenv.createNewTypeVar());
   inferer.selftype_stack.push(rettype_tv);
@@ -57,9 +48,7 @@ types::Value TypeInferer::inferFcall(ast::Fcall& fcall) {
   return rv::get<types::Function>(res).ret_type;
 }
 
-types::Value ExprTypeVisitor::operator()(ast::Fcall& ast) {
-  return inferer.inferFcall(ast);
-}
+types::Value ExprTypeVisitor::operator()(ast::Fcall& ast) { return inferer.inferFcall(ast); }
 
 types::Value ExprTypeVisitor::operator()(ast::Struct& ast) {
   std::vector<types::Struct::Keytype> argtypes;
@@ -90,11 +79,10 @@ types::Value ExprTypeVisitor::operator()(ast::ArrayInit& ast) {
   return types::Array{tmptype};
 }
 types::Value ExprTypeVisitor::operator()(ast::ArrayAccess& ast) {
-  auto indextype = inferer.unify(std::visit(*this, *ast.index),
-                                 types::Value(types::Float{}));
+  auto indextype = inferer.unify(std::visit(*this, *ast.index), types::Value(types::Float{}));
   auto tv = inferer.typeenv.createNewTypeVar();
-  auto arraytype = inferer.unify(std::visit(*this, *ast.array),
-                                 types::Value(types::Array{*std::move(tv)}));
+  auto arraytype =
+      inferer.unify(std::visit(*this, *ast.array), types::Value(types::Array{*std::move(tv)}));
   if (!rv::holds_alternative<types::Array>(arraytype)) {
     throw std::runtime_error(
         "you cannot access to variables other than Array type with [] "
@@ -112,22 +100,15 @@ types::Value ExprTypeVisitor::operator()(ast::Block& ast) {
   return ast.expr.has_value() ? inferer.inferExpr(ast.expr.value()) : stmttype;
 }
 types::Value TypeInferer::inferIf(ast::If& ast) {
-  if (!ast.else_stmts.has_value()) {
-    return inferExpr(ast.then_stmts);
-  }
+  if (!ast.else_stmts.has_value()) { return inferExpr(ast.then_stmts); }
   auto then_r_type = inferExpr(ast.then_stmts);
   auto else_r_type = inferExpr(ast.else_stmts.value());
   return unify(std::move(then_r_type), std::move(else_r_type));
 }
 
-types::Value ExprTypeVisitor::operator()(ast::If& ast) {
-  return inferer.inferIf(ast);
-}
+types::Value ExprTypeVisitor::operator()(ast::If& ast) { return inferer.inferIf(ast); }
 
-types::Value StatementTypeVisitor::operator()(ast::If& ast) {
-    return inferer.inferIf(ast);
-}
-
+types::Value StatementTypeVisitor::operator()(ast::If& ast) { return inferer.inferIf(ast); }
 
 types::Value StatementTypeVisitor::operator()(ast::Fdef& ast) {
   auto lvartype = inferer.addLvar(ast.lvar);
@@ -152,9 +133,7 @@ types::Value StatementTypeVisitor::operator()(ast::For& ast) {
   return types::Void{};  // for loop becomes void anyway
 }
 
-types::Value StatementTypeVisitor::operator()(ast::Fcall& ast) {
-  return inferer.inferFcall(ast);
-}
+types::Value StatementTypeVisitor::operator()(ast::Fcall& ast) { return inferer.inferFcall(ast); }
 types::Value StatementTypeVisitor::operator()(ast::Time& ast) {
   inferer.unify(inferer.inferExpr(ast.when), types::Float{});
   // anyway, this rvalue will not be used(time specification is used as void
@@ -227,8 +206,8 @@ types::Value TypeUnifyVisitor::unify(types::rTuple f1, types::rTuple f2) {
   // TODO(tomoya)
   return f1;
 }
-std::vector<types::Value> TypeUnifyVisitor::unifyArgs(
-    std::vector<types::Value>& v1, std::vector<types::Value>& v2) {
+std::vector<types::Value> TypeUnifyVisitor::unifyArgs(std::vector<types::Value>& v1,
+                                                      std::vector<types::Value>& v2) {
   std::vector<types::Value> res;
   if (v1.size() != v2.size()) {
     throw std::runtime_error("type mismatch: argument size are different");
@@ -243,9 +222,7 @@ std::vector<types::Value> TypeUnifyVisitor::unifyArgs(
 
 types::Value TypeInferer::inferStatements(ast::Statements& statements) {
   types::Value stmttype;
-  for (auto&& statement : statements) {
-    stmttype = std::visit(statementvisitor, *statement);
-  }
+  for (auto&& statement : statements) { stmttype = std::visit(statementvisitor, *statement); }
   return stmttype;
 }
 TypeEnv& TypeInferer::infer(ast::Statements& topast) {
@@ -256,8 +233,7 @@ TypeEnv& TypeInferer::infer(ast::Statements& topast) {
 }
 void TypeInferer::substituteTypeVars() {
   for (auto&& [key, t] : typeenv.env) {
-    auto [iter, replaced] =
-        typeenv.env.insert_or_assign(key, std::visit(substitutevisitor, t));
+    auto [iter, replaced] = typeenv.env.insert_or_assign(key, std::visit(substitutevisitor, t));
   }
 }
 

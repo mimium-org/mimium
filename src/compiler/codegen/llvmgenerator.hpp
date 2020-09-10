@@ -41,17 +41,14 @@ class LLVMGenerator {
   llvm::Type* getClosureToFunType(types::Value& type);
 
   using namemaptype = std::unordered_map<std::string, llvm::Value*>;
-  std::unordered_map<llvm::Function*, std::shared_ptr<namemaptype>>
-      variable_map;
+  std::unordered_map<llvm::Function*, std::shared_ptr<namemaptype>> variable_map;
 
   bool isVarOverWritten(std::string const& name) {
     return std::find(overwritten_vars.begin(), overwritten_vars.end(), name) !=
            overwritten_vars.end();
   }
   void addOverWrittenVar(std::string const& name) {
-    if (!isVarOverWritten(name)) {
-      overwritten_vars.emplace_back(name);
-    }
+    if (!isVarOverWritten(name)) { overwritten_vars.emplace_back(name); }
   }
   llvm::Value* findValue(std::string name);
   llvm::Value* tryfindValue(std::string name);

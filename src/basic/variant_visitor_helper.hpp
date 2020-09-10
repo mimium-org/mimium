@@ -4,31 +4,31 @@
 
 #pragma once
 #include <cassert>
-#include <variant>
 #include <memory>
+#include <variant>
 template <class... Ts>
 struct overloaded : Ts... {
   using Ts::operator()...;
 };
 template <class... Ts>
-overloaded(Ts...)->overloaded<Ts...>;
-namespace mimium{
+overloaded(Ts...) -> overloaded<Ts...>;
+namespace mimium {
 // recursive variant
 template <typename T>
 struct Box {
   // construct from an existing object
-  Box()=delete;
-  Box(T& rt) {//NOLINT: do not mark as explicit! need to construct variant directly through box
-    t=std::make_shared<T>(std::move(rt));
-  } 
-  Box(T&& rt) { //NOLINT
-    t=std::make_shared<T>(std::forward<T>(rt));
-  } 
-// cast back to wrapped type
+  Box() = delete;
+  Box(T& rt) {  // NOLINT: do not mark as explicit! need to construct variant directly through box
+    t = std::make_shared<T>(std::move(rt));
+  }
+  Box(T&& rt) {  // NOLINT
+    t = std::make_shared<T>(std::forward<T>(rt));
+  }
+  // cast back to wrapped type
   operator T&() { return *t; }              // NOLINT
   operator const T&() const { return *t; }  // NOLINT
 
-  T& getraw()const { return *t; }
+  T& getraw() const { return *t; }
   // store the value
   std::shared_ptr<T> t;
 };
@@ -44,7 +44,7 @@ inline bool operator!=(const Box<T>& t1, const Box<T>& t2) {
 
 template <typename RETTYPE>
 class VisitorBase {
-  public:
+ public:
   template <typename T>
   RETTYPE operator()(Box<T>& ast) {
     // default action
@@ -57,7 +57,6 @@ class VisitorBase {
     return RETTYPE{};
   }
 };
-
 
 namespace rv {
 
@@ -108,4 +107,4 @@ constexpr const T&& get(const std::variant<Types...>&& v) {
   return static_cast<const T&&>(std::get<Box<T>>(v));
 }
 }  // namespace rv
-}
+}  // namespace mimium

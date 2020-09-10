@@ -13,10 +13,7 @@ using lvarid = std::pair<std::string, types::Value>;
 class MirGenerator {
  public:
   explicit MirGenerator(TypeEnv& typeenv)
-      : statementvisitor(*this),
-        exprvisitor(*this),
-        typeenv(typeenv),
-        ctx(nullptr) {}
+      : statementvisitor(*this), exprvisitor(*this), typeenv(typeenv), ctx(nullptr) {}
   struct ExprKnormVisitor : public VisitorBase<lvarid&> {
     explicit ExprKnormVisitor(MirGenerator& parent) : mirgen(parent) {}
     lvarid operator()(ast::Op& ast);
@@ -25,8 +22,7 @@ class MirGenerator {
     lvarid operator()(ast::Rvar& ast);
     lvarid operator()(ast::Self& ast);
     lvarid operator()(ast::Lambda& ast);
-    lvarid operator()(ast::Fcall& ast,
-                      std::optional<std::string> when = std::nullopt);
+    lvarid operator()(ast::Fcall& ast, std::optional<std::string> when = std::nullopt);
     lvarid operator()(ast::Struct& ast);
     lvarid operator()(ast::StructAccess& ast);
     lvarid operator()(ast::ArrayInit& ast);
@@ -55,15 +51,13 @@ class MirGenerator {
     MirGenerator& mirgen;
   };
   mir::blockptr generate(ast::Statements& topast);
-  std::pair<lvarid, mir::blockptr> generateBlock(ast::Block& block,
-                                                             std::string label);
+  std::pair<lvarid, mir::blockptr> generateBlock(ast::Block& block, std::string label);
   bool isOverWrite(std::string const& name) {
     return std::find(lvarlist.begin(), lvarlist.end(), name) != lvarlist.end();
   }
   lvarid emplace(mir::Instructions&& inst, types::Value type = types::Float{}) {
-    auto& newname =
-        std::visit([](auto&& i) -> std::string& { return i.lv_name; },
-                   mir::addInstToBlock(std::move(inst),ctx));
+    auto& newname = std::visit([](auto&& i) -> std::string& { return i.lv_name; },
+                               mir::addInstToBlock(std::move(inst), ctx));
     typeenv.emplace(newname, type);
     return std::pair(newname, type);
   }
@@ -75,10 +69,8 @@ class MirGenerator {
   static bool isExternalFun(std::string const& str) {
     return LLVMBuiltin::ftable.find(str) != LLVMBuiltin::ftable.end();
   }
-  lvarid genFcallInst(ast::Fcall& fcall,
-                      std::optional<std::string> when = std::nullopt);
-  std::pair<lvarid, mir::blockptr> genIfBlock(
-      ast::ExprPtr& block, std::string const& label);
+  lvarid genFcallInst(ast::Fcall& fcall, std::optional<std::string> when = std::nullopt);
+  std::pair<lvarid, mir::blockptr> genIfBlock(ast::ExprPtr& block, std::string const& label);
   lvarid genIfInst(ast::If& ast);
   lvarid genInst(ast::ExprPtr expr) { return exprvisitor.genInst(expr); }
   lvarid genInst(ast::Statement stmt) { return statementvisitor.genInst(stmt); }

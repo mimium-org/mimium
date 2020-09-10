@@ -45,8 +45,7 @@ double access_array_lin_interp(double* array, double index_d) {
   int64_t index = floor(index_d);
   return array[index] * fract + array[index + 1] * (1 - fract);
 }
-double mimium_delayprim(double d, double time, double size, double* buffer,
-                        double* index) {
+double mimium_delayprim(double d, double time, double size, double* buffer, double* index) {
   auto readindex = fmod((*index + time), size);
   auto res = access_array_lin_interp(buffer, readindex);
   buffer[int(*index)] = d;
@@ -57,9 +56,7 @@ double mimium_delayprim(double d, double time, double size, double* buffer,
 double libsndfile_loadwavsize(char* filename) {
   SF_INFO sfinfo;
   auto sfile = sf_open(filename, SFM_READ, &sfinfo);
-  if (sfile == nullptr) {
-    std::cerr << sf_strerror(sfile) << "\n";
-  }
+  if (sfile == nullptr) { std::cerr << sf_strerror(sfile) << "\n"; }
   auto res = sfinfo.frames;
   sf_close(sfile);
   return res;
@@ -68,9 +65,7 @@ double libsndfile_loadwavsize(char* filename) {
 double* libsndfile_loadwav(char* filename) {
   SF_INFO sfinfo;
   auto sfile = sf_open(filename, SFM_READ, &sfinfo);
-  if (sfile == nullptr) {
-    std::cerr << sf_strerror(sfile) << "\n";
-  }
+  if (sfile == nullptr) { std::cerr << sf_strerror(sfile) << "\n"; }
 
   const int bufsize = sfinfo.frames * sfinfo.channels;
   double* buffer = new double[bufsize];
@@ -85,62 +80,62 @@ namespace mimium {
 using namespace types;
 using FI = BuiltinFnInfo;
 std::unordered_map<std::string, BuiltinFnInfo> LLVMBuiltin::ftable = {
-    {"print",      initBI(Function{Void{},  {Float{}}},          "printdouble")},
-    {"println",    initBI(Function{Void{},  {Float{}}},          "printlndouble")},
-    {"printlnstr", initBI(Function{Void{},  {String{}}},         "printlnstr")},
+    {"print", initBI(Function{Void{}, {Float{}}}, "printdouble")},
+    {"println", initBI(Function{Void{}, {Float{}}}, "printlndouble")},
+    {"printlnstr", initBI(Function{Void{}, {String{}}}, "printlnstr")},
 
-    {"sin",        initBI(Function{Float{}, {Float{}}},          "sin")},
-    {"cos",        initBI(Function{Float{}, {Float{}}},          "cos")},
-    {"tan",        initBI(Function{Float{}, {Float{}}},          "tan")},
- 
-    {"asin",       initBI(Function{Float{}, {Float{}}},          "asin")},
-    {"acos",       initBI(Function{Float{}, {Float{}}},          "acos")},
-    {"atan",       initBI(Function{Float{}, {Float{}}},          "atan")},
-    {"atan2",      initBI(Function{Float{}, {Float{}, Float{}}}, "atan2")},
+    {"sin", initBI(Function{Float{}, {Float{}}}, "sin")},
+    {"cos", initBI(Function{Float{}, {Float{}}}, "cos")},
+    {"tan", initBI(Function{Float{}, {Float{}}}, "tan")},
 
-    {"sinh",       initBI(Function{Float{}, {Float{}}},          "sinh")},
-    {"cosh",       initBI(Function{Float{}, {Float{}}},          "cosh")},
-    {"tanh",       initBI(Function{Float{}, {Float{}}},          "tanh")},
-    {"exp",        initBI(Function{Float{}, {Float{}}},           "exp")},
-    {"pow",        initBI(Function{Float{}, {Float{},Float{}}},   "pow")},
+    {"asin", initBI(Function{Float{}, {Float{}}}, "asin")},
+    {"acos", initBI(Function{Float{}, {Float{}}}, "acos")},
+    {"atan", initBI(Function{Float{}, {Float{}}}, "atan")},
+    {"atan2", initBI(Function{Float{}, {Float{}, Float{}}}, "atan2")},
 
-    {"log",        initBI(Function{Float{}, {Float{}}},           "log")},
-    {"log10",      initBI(Function{Float{}, {Float{}}},           "log10")},
-    {"random",     initBI(Function{Float{}, {}},                  "mimiumrand")},
+    {"sinh", initBI(Function{Float{}, {Float{}}}, "sinh")},
+    {"cosh", initBI(Function{Float{}, {Float{}}}, "cosh")},
+    {"tanh", initBI(Function{Float{}, {Float{}}}, "tanh")},
+    {"exp", initBI(Function{Float{}, {Float{}}}, "exp")},
+    {"pow", initBI(Function{Float{}, {Float{}, Float{}}}, "pow")},
 
-    {"sqrt",       initBI(Function{Float{}, {Float{}}},           "sqrt")},
-    {"abs",        initBI(Function{Float{}, {Float{}}},           "fabs")},
+    {"log", initBI(Function{Float{}, {Float{}}}, "log")},
+    {"log10", initBI(Function{Float{}, {Float{}}}, "log10")},
+    {"random", initBI(Function{Float{}, {}}, "mimiumrand")},
 
-    {"ceil",       initBI(Function{Float{}, {Float{}}},           "ceil")},
-    {"floor",      initBI(Function{Float{}, {Float{}}},           "floor")},
-    {"trunc",      initBI(Function{Float{}, {Float{}}},           "trunc")},
-    {"round",      initBI(Function{Float{}, {Float{}}},           "round")},
+    {"sqrt", initBI(Function{Float{}, {Float{}}}, "sqrt")},
+    {"abs", initBI(Function{Float{}, {Float{}}}, "fabs")},
 
-    {"fmod",       initBI(Function{Float{}, {Float{},Float{}}},   "fmod")},
-    {"remainder",  initBI(Function{Float{}, {Float{},Float{}}},   "remainder")},
+    {"ceil", initBI(Function{Float{}, {Float{}}}, "ceil")},
+    {"floor", initBI(Function{Float{}, {Float{}}}, "floor")},
+    {"trunc", initBI(Function{Float{}, {Float{}}}, "trunc")},
+    {"round", initBI(Function{Float{}, {Float{}}}, "round")},
 
-    {"min",        initBI(Function{Float{}, {Float{},Float{}}},   "fmin")},
-    {"max",        initBI(Function{Float{}, {Float{},Float{}}},   "fmax")},
+    {"fmod", initBI(Function{Float{}, {Float{}, Float{}}}, "fmod")},
+    {"remainder", initBI(Function{Float{}, {Float{}, Float{}}}, "remainder")},
 
-    {"ge",         initBI(Function{Float{}, {Float{},Float{}}},   "mimium_ge")},
-    {"le",         initBI(Function{Float{}, {Float{},Float{}}},   "mimium_le")},
-    {"gt",         initBI(Function{Float{}, {Float{},Float{}}},   "mimium_gt")},
-    {"lt",         initBI(Function{Float{}, {Float{},Float{}}},   "mimium_lt")},
-    {"and",        initBI(Function{Float{}, {Float{},Float{}}},   "mimium_and")},
-    {"or",         initBI(Function{Float{}, {Float{},Float{}}},   "mimium_or")},
-    {"not",        initBI(Function{Float{}, {Float{}}},           "mimium_not")},
+    {"min", initBI(Function{Float{}, {Float{}, Float{}}}, "fmin")},
+    {"max", initBI(Function{Float{}, {Float{}, Float{}}}, "fmax")},
 
-    {"lshift",     initBI(Function{Float{}, {Float{},Float{}}},   "mimium_lshift")},
-    {"rshift",     initBI(Function{Float{}, {Float{},Float{}}},   "mimium_rshift")},
+    {"ge", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_ge")},
+    {"le", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_le")},
+    {"gt", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_gt")},
+    {"lt", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_lt")},
+    {"and", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_and")},
+    {"or", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_or")},
+    {"not", initBI(Function{Float{}, {Float{}}}, "mimium_not")},
 
-    {"mem",        initBI(Function{Float{}, {Float{}}},           "mimium_memprim")},
-    {"delay",      initBI(Function{Float{}, {Float{},Float{}}},   "mimium_delayprim")},
+    {"lshift", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_lshift")},
+    {"rshift", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_rshift")},
 
+    {"mem", initBI(Function{Float{}, {Float{}}}, "mimium_memprim")},
+    {"delay", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_delayprim")},
 
-    {"loadwavsize",initBI(Function{Float{},{String{}}},           "libsndfile_loadwavsize")},
-    {"loadwav",    initBI(Function{Array{Float{}},{String{}}},    "libsndfile_loadwav")},
+    {"loadwavsize", initBI(Function{Float{}, {String{}}}, "libsndfile_loadwavsize")},
+    {"loadwav", initBI(Function{Array{Float{}}, {String{}}}, "libsndfile_loadwav")},
 
-    {"access_array_lin_interp", initBI(Function{Float{}, {Float{},Float{}}}, "access_array_lin_interp")}
+    {"access_array_lin_interp",
+     initBI(Function{Float{}, {Float{}, Float{}}}, "access_array_lin_interp")}
 
 };
 

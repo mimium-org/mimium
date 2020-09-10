@@ -29,10 +29,7 @@ struct PrimitiveType {
   PrimitiveType() = default;
 };
 
-inline bool operator==(const PrimitiveType& /*t1*/,
-                       const PrimitiveType& /*t2*/) {
-  return true;
-};
+inline bool operator==(const PrimitiveType& /*t1*/, const PrimitiveType& /*t2*/) { return true; };
 
 struct None : PrimitiveType {};
 struct Void : PrimitiveType {};
@@ -65,9 +62,8 @@ using rTuple = Box<Tuple>;
 using rArray = Box<Array>;
 using rAlias = Box<Alias>;
 
-using Value =
-    std::variant<None, Void, Float, String, rRef, rTypeVar, rPointer, rFunction,
-                 rClosure, rArray, rStruct, rTuple, rAlias>;
+using Value = std::variant<None, Void, Float, String, rRef, rTypeVar, rPointer, rFunction, rClosure,
+                           rArray, rStruct, rTuple, rAlias>;
 
 struct ToStringVisitor;
 
@@ -91,13 +87,9 @@ struct TypeVar : std::enable_shared_from_this<TypeVar> {
   std::shared_ptr<TypeVar> getLink() {
     std::optional<std::shared_ptr<TypeVar>> tmp = shared_from_this();
     if constexpr (IS_PREV) {
-      while (tmp.value()->prev.has_value()) {
-        tmp = tmp.value()->prev;
-      }
+      while (tmp.value()->prev.has_value()) { tmp = tmp.value()->prev; }
     } else {
-      while (tmp.value()->next.has_value()) {
-        tmp = tmp.value()->next;
-      }
+      while (tmp.value()->next.has_value()) { tmp = tmp.value()->next; }
     }
     return tmp.value();
   }
@@ -108,24 +100,18 @@ struct TypeVar : std::enable_shared_from_this<TypeVar> {
   void setIndex(int newindex) { index = newindex; }
 };
 
-inline bool operator==(const TypeVar& t1, const TypeVar& t2) {
-  return t1.index == t2.index;
-}
+inline bool operator==(const TypeVar& t1, const TypeVar& t2) { return t1.index == t2.index; }
 
 struct Ref {
   Value val;
 };
 
-inline bool operator==(const Ref& t1, const Ref& t2) {
-  return t1.val == t2.val;
-}
+inline bool operator==(const Ref& t1, const Ref& t2) { return t1.val == t2.val; }
 
 struct Pointer {
   Value val;
 };
-inline bool operator==(const Pointer& t1, const Pointer& t2) {
-  return t1.val == t2.val;
-}
+inline bool operator==(const Pointer& t1, const Pointer& t2) { return t1.val == t2.val; }
 
 struct Function {
   Value ret_type;
@@ -157,9 +143,7 @@ struct Tuple {
   std::vector<Value> arg_types;
 };
 
-inline bool operator==(const Tuple& t1, const Tuple& t2) {
-  return (t1.arg_types == t2.arg_types);
-};
+inline bool operator==(const Tuple& t1, const Tuple& t2) { return (t1.arg_types == t2.arg_types); };
 
 struct Struct {
   struct Keytype {
@@ -181,78 +165,59 @@ struct Alias {
   std::string name;
   Value target;
 };
-inline bool operator==(const Alias& t1, const Alias& t2) {
-  return (t1.name == t2.name);
-};
+inline bool operator==(const Alias& t1, const Alias& t2) { return (t1.name == t2.name); };
 bool isTypeVar(types::Value t);
 
 template <class T>
-inline constexpr bool is_pointer_t =
-    std::is_same_v<T, Pointer> || std::is_same_v<T, Ref>;
+inline constexpr bool is_pointer_t = std::is_same_v<T, Pointer> || std::is_same_v<T, Ref>;
 
 inline bool isPointer(types::Value t) {
-  return std::holds_alternative<Box<Pointer>>(t) ||
-         std::holds_alternative<Box<Ref>>(t);
+  return std::holds_alternative<Box<Pointer>>(t) || std::holds_alternative<Box<Ref>>(t);
 }
 
 // Note(tomoya):this weird sfinae need to prevent from a compile error on Xcode
 // clang that confuses candidates with iterator's comparison operator
 template <typename T, typename U,
-          typename std::enable_if_t<!std::is_same_v<
-              std::decay_t<std::move_iterator<U>>, std::decay_t<T>>>>
+          typename std::enable_if_t<
+              !std::is_same_v<std::decay_t<std::move_iterator<U>>, std::decay_t<T>>>>
 bool operator!=(T t1, T t2) {
   return !(t1 == t2);
 }
 
 struct ToStringVisitor {
   bool verbose = false;
-  [[nodiscard]] std::string join(const std::vector<types::Value>& vec,
-                                 std::string delim) const {
+  [[nodiscard]] std::string join(const std::vector<types::Value>& vec, std::string delim) const {
     std::string res;
     if (!vec.empty()) {
-      res = std::accumulate(
-          std::next(vec.begin()), vec.end(), std::visit(*this, *vec.begin()),
-          [&](std::string a, const Value& b) {
-            return std::move(a) + delim + std::visit(*this, b);
-          });
+      res = std::accumulate(std::next(vec.begin()), vec.end(), std::visit(*this, *vec.begin()),
+                            [&](std::string a, const Value& b) {
+                              return std::move(a) + delim + std::visit(*this, b);
+                            });
     }
     return res;
   }
   std::string operator()(None) const { return "none"; }
-  std::string operator()(const TypeVar& v) const {
-    return "TypeVar" + std::to_string(v.index);
-  }
+  std::string operator()(const TypeVar& v) const { return "TypeVar" + std::to_string(v.index); }
   std::string operator()(Void) const { return "void"; }
   std::string operator()(Float) const { return "float"; }
   std::string operator()(String) const { return "string"; }
-  std::string operator()(const Ref& r) const {
-    return std::visit(*this, r.val) + "&";
-  }
-  std::string operator()(const Pointer& r) const {
-    return std::visit(*this, r.val) + "*";
-  }
+  std::string operator()(const Ref& r) const { return std::visit(*this, r.val) + "&"; }
+  std::string operator()(const Pointer& r) const { return std::visit(*this, r.val) + "*"; }
   std::string operator()(const Function& f) const {
-    return "(" + join(f.arg_types, ",") + ") -> " +
-           std::visit(*this, f.ret_type);
+    return "(" + join(f.arg_types, ",") + ") -> " + std::visit(*this, f.ret_type);
   }
   std::string operator()(const Closure& c) const {
-    return "cls{ " + (*this)(c.fun) + " , " + std::visit(*this, c.captures) +
-           " }";
+    return "cls{ " + (*this)(c.fun) + " , " + std::visit(*this, c.captures) + " }";
   }
   std::string operator()(const Array& a) const {
-    return "[" + std::visit(*this, a.elem_type) + "x" + std::to_string(a.size) +
-           "]";
+    return "[" + std::visit(*this, a.elem_type) + "x" + std::to_string(a.size) + "]";
   }
   std::string operator()(const Struct& s) const {
     std::string str = "{";
-    for (auto& arg : s.arg_types) {
-      str += arg.field + ":" + std::visit(*this, arg.val) + ",";
-    }
+    for (auto& arg : s.arg_types) { str += arg.field + ":" + std::visit(*this, arg.val) + ","; }
     return str.substr(0, str.size() - 1) + "}";
   }
-  std::string operator()(const Tuple& t) const {
-    return "(" + join(t.arg_types, ",") + ")";
-  }
+  std::string operator()(const Tuple& t) const { return "(" + join(t.arg_types, ",") + ")"; }
   // std::string operator()(const Time& t) const {
   //   return std::visit(*this, t.val) + "@";
   // }
@@ -267,10 +232,7 @@ void dump(const Value& v, bool verbose = false);
 
 inline bool isPrimitive(const Value& v) {
   return std::visit(
-      [](auto& a) {
-        return std::is_base_of_v<PrimitiveType, std::decay_t<decltype(a)>>;
-      },
-      v);
+      [](auto& a) { return std::is_base_of_v<PrimitiveType, std::decay_t<decltype(a)>>; }, v);
 }
 
 }  // namespace types
@@ -290,9 +252,7 @@ class TypeEnv {
     return res;
   }
   types::Value& findTypeVar(int tindex) { return tv_container[tindex]; }
-  [[nodiscard]] bool exist(std::string key) const {
-    return (env.count(key) > 0);
-  }
+  [[nodiscard]] bool exist(std::string key) const { return (env.count(key) > 0); }
   auto begin() { return env.begin(); }
   auto end() { return env.end(); }
   types::Value* tryFind(std::string key) {
@@ -303,15 +263,12 @@ class TypeEnv {
   types::Value& find(std::string key) {
     auto* res = tryFind(key);
     if (res == nullptr) {
-      throw std::logic_error("Could not find type for variable \"" + key +
-                             "\"");
+      throw std::logic_error("Could not find type for variable \"" + key + "\"");
     }
     return *res;
   }
 
-  auto emplace(std::string key, types::Value typevar) {
-    return env.insert_or_assign(key, typevar);
-  }
+  auto emplace(std::string key, types::Value typevar) { return env.insert_or_assign(key, typevar); }
   void replaceTypeVars();
 
   std::string toString(bool verbose = false);

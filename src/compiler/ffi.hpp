@@ -18,15 +18,13 @@ struct BuiltinFnInfo {
   std::string target_fnname;
 };
 
-inline BuiltinFnInfo initBI(types::Function&& f,std::string&&s){
-  return BuiltinFnInfo{std::move(f),std::move(s)};
+inline BuiltinFnInfo initBI(types::Function&& f, std::string&& s) {
+  return BuiltinFnInfo{std::move(f), std::move(s)};
 }
 
 struct LLVMBuiltin {
   static std::unordered_map<std::string, BuiltinFnInfo> ftable;
-  static bool isBuiltin(std::string fname) {
-    return LLVMBuiltin::ftable.count(fname) > 0;
-  }
+  static bool isBuiltin(std::string fname) { return LLVMBuiltin::ftable.count(fname) > 0; }
 };
 
 }  // namespace mimium

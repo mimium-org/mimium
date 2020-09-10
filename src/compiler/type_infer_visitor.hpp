@@ -14,23 +14,15 @@ namespace mimium {
 struct OccurChecker {
   types::TypeVar& tv;
   explicit OccurChecker(types::TypeVar& target) : tv(target) {}
-  bool operator()(const types::Function& t)const {
+  bool operator()(const types::Function& t) const {
     return std::visit(*this, t.ret_type) || checkArgs(t.arg_types);
   }
-  bool operator()(const types::Array& t) const {
-    return std::visit(*this, t.elem_type);
-  }
-  bool operator()(const types::Struct& t) const {
-    return checkArgs(t.arg_types);
-  }
-  bool operator()(const types::Tuple& t) const {
-    return checkArgs(t.arg_types);
-  };
-  bool operator()(const types::TypeVar& t) const {
-    return (t.index == tv.index);
-  }
+  bool operator()(const types::Array& t) const { return std::visit(*this, t.elem_type); }
+  bool operator()(const types::Struct& t) const { return checkArgs(t.arg_types); }
+  bool operator()(const types::Tuple& t) const { return checkArgs(t.arg_types); };
+  bool operator()(const types::TypeVar& t) const { return (t.index == tv.index); }
   template <typename T>
-  bool operator()(const Box<T>& t)const {
+  bool operator()(const Box<T>& t) const {
     return (*this)(static_cast<T const&>(t));
   }
   template <typename T>
@@ -43,17 +35,15 @@ struct OccurChecker {
     return false;
   }
   [[nodiscard]] bool checkArgs(std::vector<types::Value> const& args) const {
-    return std::accumulate(args.begin(), args.end(), false,
-                       [&](bool b, types::Value const& val)->bool {
-                         return b || std::visit(*this, val);
-                       });
+    return std::accumulate(
+        args.begin(), args.end(), false,
+        [&](bool b, types::Value const& val) -> bool { return b || std::visit(*this, val); });
   }
-  [[nodiscard]] bool checkArgs(
-      std::vector<types::Struct::Keytype> const& args) const {
+  [[nodiscard]] bool checkArgs(std::vector<types::Struct::Keytype> const& args) const {
     return std::accumulate(args.begin(), args.end(), false,
-                       [&](bool b, types::Struct::Keytype const& a)->bool {
-                         return b || std::visit(*this, a.val);
-                       });
+                           [&](bool b, types::Struct::Keytype const& a) -> bool {
+                             return b || std::visit(*this, a.val);
+                           });
   }
 };
 
@@ -113,8 +103,7 @@ struct TypeInferer {
         if (OccurChecker{rv::get<types::TypeVar>(t2_real)}(t1)) {
           throw std::runtime_error("type loop detected");
         }
-        inferer.typeenv.tv_container[rv::get<types::TypeVar>(t2_real).index] =
-            t1;
+        inferer.typeenv.tv_container[rv::get<types::TypeVar>(t2_real).index] = t1;
       }
       return res;
     }
@@ -131,13 +120,13 @@ struct TypeInferer {
       return a1;
     }
 
-    template <typename T, typename std::enable_if<std::is_same_v<
-                              std::decay_t<T>, types::TypeVar>>::type = nullptr>
+    template <typename T, typename std::enable_if<
+                              std::is_same_v<std::decay_t<T>, types::TypeVar>>::type = nullptr>
     types::Value unify(types::rAlias a1, T a2) {
       return std::visit(*this, a1.getraw().target, types::Value(a2));
     }
-    template <typename T, typename std::enable_if<std::is_same_v<
-                              std::decay_t<T>, types::TypeVar>>::type = nullptr>
+    template <typename T, typename std::enable_if<
+                              std::is_same_v<std::decay_t<T>, types::TypeVar>>::type = nullptr>
     types::Value unify(T a1, types::rAlias a2) {
       return std::visit(*this, types::Value(a1), a2.getraw().target);
     }
@@ -151,8 +140,7 @@ struct TypeInferer {
     // std::visit)
     template <typename T1, typename T2>
     types::Value operator()(T1&& t1, T2&& t2) {
-      constexpr bool issame =
-          std::is_same_v<std::decay_t<T1>, std::decay_t<T2>>;
+      constexpr bool issame = std::is_same_v<std::decay_t<T1>, std::decay_t<T2>>;
       constexpr bool istv_l = std::is_same_v<std::decay_t<T1>, types::rTypeVar>;
       constexpr bool istv_r = std::is_same_v<std::decay_t<T2>, types::rTypeVar>;
       if constexpr (issame || istv_l || istv_r) {
@@ -170,15 +158,13 @@ struct TypeInferer {
     types::Value operator()(types::TypeVar& t) {
       auto& target = inferer.typeenv.findTypeVar(t.index);
       if (std::visit(OccurChecker{t}, target)) {
-        Logger::debug_log("type loop detected. decuced into float type.",
-                          Logger::WARNING);
+        Logger::debug_log("type loop detected. decuced into float type.", Logger::WARNING);
         return types::Float{};
       }
       types::Value contained = std::visit(*this, target);
       if (std::holds_alternative<types::None>(contained) ||
           std::holds_alternative<types::rTypeVar>(contained)) {
-        throw std::runtime_error(
-            "failed to replace typevar. decuced into float type.");
+        throw std::runtime_error("failed to replace typevar. decuced into float type.");
         return types::Float{};
       }
       return std::visit(*this, target);
@@ -191,33 +177,26 @@ struct TypeInferer {
       return t;
     }  // closure will not be shown at this stage
 
-    types::Value operator()(types::Pointer& t) {
-      return types::Pointer{std::visit(*this, t.val)};
-    }
-    types::Value operator()(types::Ref& t) {
-      return types::Pointer{std::visit(*this, t.val)};
-    }
+    types::Value operator()(types::Pointer& t) { return types::Pointer{std::visit(*this, t.val)}; }
+    types::Value operator()(types::Ref& t) { return types::Pointer{std::visit(*this, t.val)}; }
     types::Value operator()(types::Function& f) {
-      return types::Function{std::visit(*this, f.ret_type),
-                             replaceArgs(f.arg_types)};
+      return types::Function{std::visit(*this, f.ret_type), replaceArgs(f.arg_types)};
     }
     types::Value operator()(types::Array& a) {
       return types::Array{std::visit(*this, a.elem_type), a.size};
     }
     types::Value operator()(types::Tuple& a) {
       std::vector<types::Value> res;
-      std::transform(a.arg_types.begin(), a.arg_types.end(),
-                     std::back_inserter(res),
+      std::transform(a.arg_types.begin(), a.arg_types.end(), std::back_inserter(res),
                      [&](types::Value& v) { return std::visit(*this, v); });
       return types::Tuple{std::move(res)};
     }
     types::Value operator()(types::Struct& a) {
       std::vector<types::Struct::Keytype> res;
-      std::transform(
-          a.arg_types.begin(), a.arg_types.end(), std::back_inserter(res),
-          [&](types::Struct::Keytype& v) {
-            return types::Struct::Keytype{v.field, std::visit(*this, v.val)};
-          });
+      std::transform(a.arg_types.begin(), a.arg_types.end(), std::back_inserter(res),
+                     [&](types::Struct::Keytype& v) {
+                       return types::Struct::Keytype{v.field, std::visit(*this, v.val)};
+                     });
       return types::Struct{std::move(res)};
     }
 
@@ -227,9 +206,7 @@ struct TypeInferer {
 
     std::vector<types::Value> replaceArgs(std::vector<types::Value>& arg) {
       std::vector<types::Value> res;
-      for (auto&& a : arg) {
-        res.emplace_back(std::visit(*this, a));
-      }
+      for (auto&& a : arg) { res.emplace_back(std::visit(*this, a)); }
       return res;
     }
     template <typename T>
@@ -248,17 +225,13 @@ struct TypeInferer {
         unifyvisitor(*this),
         substitutevisitor(*this),
         typeenv() {
-    for (const auto& [key, val] : LLVMBuiltin::ftable) {
-      typeenv.emplace(key, val.mmmtype);
-    }
+    for (const auto& [key, val] : LLVMBuiltin::ftable) { typeenv.emplace(key, val.mmmtype); }
     typeenv.emplace("mimium_getnow", types::Function{types::Float{}, {}});
   }
   // entry point.
   TypeEnv& infer(ast::Statements& topast);
   types::Value inferExpr(ast::ExprPtr expr) { return exprvisitor.infer(expr); }
-  types::Value inferStatement(ast::Statement expr) {
-    return statementvisitor.infer(expr);
-  }
+  types::Value inferStatement(ast::Statement expr) { return statementvisitor.infer(expr); }
   types::Value inferStatements(ast::Statements& statements);
   TypeEnv& getTypeEnv() { return typeenv; }
 

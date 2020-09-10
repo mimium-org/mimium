@@ -3,40 +3,41 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
-#include "basic/helper_functions.hpp"
 #include "basic/ast.hpp"
+#include "basic/helper_functions.hpp"
 #include "basic/mir.hpp"
 #include "basic/type.hpp"
 
 #include "compiler/ast_loader.hpp"
+#include "compiler/closure_convert.hpp"
+#include "compiler/codegen/llvmgenerator.hpp"
+#include "compiler/collect_memoryobjs.hpp"
+#include "compiler/mirgenerator.hpp"
 #include "compiler/symbolrenamer.hpp"
 #include "compiler/type_infer_visitor.hpp"
-#include "compiler/mirgenerator.hpp"
-#include "compiler/closure_convert.hpp"
-#include "compiler/collect_memoryobjs.hpp"
-#include "compiler/codegen/llvmgenerator.hpp"
 
 namespace mimium {
 // compiler class  that load source code,analyze, and emit llvm IR.
 class Compiler {
-public: 
-    Compiler();
-    explicit Compiler(llvm::LLVMContext& ctx);
-    ~Compiler();
-    AstPtr loadSource(std::string source);
-    AstPtr loadSourceFile(std::string filename);
-    void setFilePath(std::string path);
-    void setDataLayout(const llvm::DataLayout& dl);
-    void setDataLayout();
+ public:
+  Compiler();
+  explicit Compiler(llvm::LLVMContext& ctx);
+  ~Compiler();
+  AstPtr loadSource(std::string source);
+  AstPtr loadSourceFile(std::string filename);
+  void setFilePath(std::string path);
+  void setDataLayout(const llvm::DataLayout& dl);
+  void setDataLayout();
 
-    AstPtr renameSymbols(AstPtr ast);
-    TypeEnv& typeInfer(AstPtr ast);
-    mir::blockptr generateMir(AstPtr ast);
-    mir::blockptr closureConvert(mir::blockptr mir);
-    mir::blockptr collectMemoryObjs(mir::blockptr mir);
+  AstPtr renameSymbols(AstPtr ast);
+  TypeEnv& typeInfer(AstPtr ast);
+  mir::blockptr generateMir(AstPtr ast);
+  mir::blockptr closureConvert(mir::blockptr mir);
+  mir::blockptr collectMemoryObjs(mir::blockptr mir);
 
-    llvm::Module& generateLLVMIr(mir::blockptr mir);
-    auto moveLLVMModule(){return llvmgenerator.moveModule();}
+  llvm::Module& generateLLVMIr(mir::blockptr mir);
+  auto moveLLVMModule() { return llvmgenerator.moveModule(); }
+
  private:
   Driver driver;
   // AlphaConvertVisitor alphavisitor;

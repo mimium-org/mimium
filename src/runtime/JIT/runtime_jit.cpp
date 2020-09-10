@@ -1,11 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
- 
+
 #include "runtime/JIT/runtime_jit.hpp"
-namespace mimium{
-Runtime_LLVM::Runtime_LLVM(std::string filename_i, bool isjit)
-    : Runtime<TaskType>(filename_i) {
+namespace mimium {
+Runtime_LLVM::Runtime_LLVM(std::string filename_i, bool isjit) : Runtime<TaskType>(filename_i) {
   LLVMInitializeNativeTarget();
   LLVMInitializeNativeAsmPrinter();
   LLVMInitializeNativeAsmParser();
@@ -18,10 +17,9 @@ void Runtime_LLVM::executeModule(std::unique_ptr<llvm::Module> module) {
   auto mainfun = jitengine->lookup("mimium_main");
 
   Logger::debug_log(mainfun, Logger::ERROR);
-  auto mimium_main_function =
-      llvm::jitTargetAddressToPointer<void* (*)()>(mainfun->getAddress());
+  auto mimium_main_function = llvm::jitTargetAddressToPointer<void* (*)()>(mainfun->getAddress());
   //
- mimium_main_function();
+  mimium_main_function();
   //
   if (auto symbolorerror = jitengine->lookup("dsp")) {
     auto address = (DspFnType)symbolorerror->getAddress();
@@ -36,14 +34,13 @@ void Runtime_LLVM::executeModule(std::unique_ptr<llvm::Module> module) {
   }
 }
 // run audio driver and scheduler if theres some task, dsp function, or both.
-  void Runtime_LLVM::addScheduler(){
-      sch = std::make_shared<Scheduler>(this->shared_from_this(),waitc);
+void Runtime_LLVM::addScheduler() {
+  sch = std::make_shared<Scheduler>(this->shared_from_this(), waitc);
 }
 
- void Runtime_LLVM::addAudioDriver(std::shared_ptr<AudioDriver> a){
-    sch->addAudioDriver(std::move(a));
- }
-
+void Runtime_LLVM::addAudioDriver(std::shared_ptr<AudioDriver> a) {
+  sch->addAudioDriver(std::move(a));
+}
 
 void Runtime_LLVM::start() {
   running_status = true;
@@ -58,8 +55,7 @@ void Runtime_LLVM::start() {
   }
 }
 
-
 DspFnType Runtime_LLVM::getDspFn() { return dspfn_address; }
 void* Runtime_LLVM::getDspFnCls() { return dspfn_cls_address; }
 
-}
+}  // namespace mimium

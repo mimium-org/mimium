@@ -34,17 +34,14 @@ struct CodeGenVisitor : public std::enable_shared_from_this<CodeGenVisitor> {
   llvm::Value* getClsFun(mir::FcallInst& i);
   llvm::Value* getExtFun(mir::FcallInst& i);
 
-  llvm::FunctionType* createFunctionType(mir::FunInst& i, bool hascapture,
-                                         bool hasmemobj);
+  llvm::FunctionType* createFunctionType(mir::FunInst& i, bool hascapture, bool hasmemobj);
   llvm::Function* createFunction(llvm::FunctionType* type, mir::FunInst& i);
-  void addArgstoMap(llvm::Function* f, mir::FunInst& i, bool hascapture,
-                    bool hasmemobj);
+  void addArgstoMap(llvm::Function* f, mir::FunInst& i, bool hascapture, bool hasmemobj);
 
   void setFvsToMap(mir::FunInst& i, llvm::Value* clsarg);
   void setMemObjsToMap(mir::FunInst& i, llvm::Value* memarg);
 
-  llvm::Value* createAllocation(bool isglobal, llvm::Type* type,
-                                llvm::Value* ArraySize,
+  llvm::Value* createAllocation(bool isglobal, llvm::Type* type, llvm::Value* ArraySize,
                                 const llvm::Twine& name);
   bool createStoreOw(std::string varname, llvm::Value* val_to_store);
   void createAddTaskFn(mir::FcallInst& i, bool isclosure, bool isglobal);

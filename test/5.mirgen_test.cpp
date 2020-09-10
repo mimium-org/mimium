@@ -1,18 +1,18 @@
 #include "basic/ast_to_string.hpp"
-#include "compiler/symbolrenamer.hpp"
 #include "compiler/ast_loader.hpp"
 #include "compiler/mirgenerator.hpp"
+#include "compiler/symbolrenamer.hpp"
 #include "compiler/type_infer_visitor.hpp"
 #include "gtest/gtest.h"
 #include "gtest/internal/gtest-port.h"
 
-#define PREP(FILENAME)                                           \
-  Driver driver{};                                               \
+#define PREP(FILENAME)                                        \
+  Driver driver{};                                            \
   ast::Statements& ast = *driver.parseFile(#FILENAME ".mmm"); \
-  SymbolRenamer renamer;                                         \
-  auto newast = renamer.rename(ast);                             \
-  TypeInferer inferer;                                           \
-  auto& env = inferer.infer(*newast);                            \
+  SymbolRenamer renamer;                                      \
+  auto newast = renamer.rename(ast);                          \
+  TypeInferer inferer;                                        \
+  auto& env = inferer.infer(*newast);                         \
   MirGenerator mirgenerator(env);
 
 TEST(mirgen, basic) {

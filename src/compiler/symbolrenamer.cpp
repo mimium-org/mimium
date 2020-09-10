@@ -6,10 +6,8 @@
 namespace mimium {
 
 // new alphaconverter
-SymbolRenamer::SymbolRenamer()
-    : SymbolRenamer(std::make_shared<RenameEnvironment>()) {}
-SymbolRenamer::SymbolRenamer(std::shared_ptr<RenameEnvironment> env)
-    : env(std::move(env)) {
+SymbolRenamer::SymbolRenamer() : SymbolRenamer(std::make_shared<RenameEnvironment>()) {}
+SymbolRenamer::SymbolRenamer(std::shared_ptr<RenameEnvironment> env) : env(std::move(env)) {
   this->env->rename_map.emplace("dsp", "dsp");
 }
 
@@ -23,9 +21,7 @@ AstPtr SymbolRenamer::rename(ast::Statements& ast) {
 
 std::string SymbolRenamer::getNewName(std::string const& name) {
   auto res = env->search(std::optional(name));
-  if (res == std::nullopt) {
-    return name + std::to_string(namecount++);
-  }
+  if (res == std::nullopt) { return name + std::to_string(namecount++); }
   return res.value();
 }
 std::string SymbolRenamer::searchFromEnv(std::string const& name) {
@@ -43,24 +39,18 @@ ast::ExprPtr ExprRenameVisitor::operator()(ast::Op& ast) {
   auto lhs = ast.lhs ? std::optional(rename(ast.lhs.value())) : std::nullopt;
   return ast::makeExpr(ast::Op{ast.debuginfo, ast.op, lhs, rename(ast.rhs)});
 }
-ast::ExprPtr ExprRenameVisitor::operator()(ast::Number& ast) {
-  return ast::makeExpr(ast);
-}
+ast::ExprPtr ExprRenameVisitor::operator()(ast::Number& ast) { return ast::makeExpr(ast); }
 ast::ExprPtr ExprRenameVisitor::operator()(ast::String& ast) {
   return ast::makeExpr(ast::String{ast.debuginfo, ast.value});
 }
 ast::ExprPtr ExprRenameVisitor::operator()(ast::Rvar& ast) {
-  return ast::makeExpr(
-      ast::Rvar{ast.debuginfo, renamer.searchFromEnv(ast.value)});
+  return ast::makeExpr(ast::Rvar{ast.debuginfo, renamer.searchFromEnv(ast.value)});
 }
-ast::ExprPtr ExprRenameVisitor::operator()(ast::Self& ast) {
-  return ast::makeExpr(ast);
-}
+ast::ExprPtr ExprRenameVisitor::operator()(ast::Self& ast) { return ast::makeExpr(ast); }
 ast::Block SymbolRenamer::renameBlock(ast::Block& ast) {
   env = env->expand();
   auto newstmts = rename(ast.stmts);
-  auto newexpr = ast.expr.has_value() ? std::optional(renameExpr(ast.expr.value()))
-                                      : std::nullopt;
+  auto newexpr = ast.expr.has_value() ? std::optional(renameExpr(ast.expr.value())) : std::nullopt;
   env = env->parent_env;
   return ast::Block{{ast.debuginfo}, *std::move(newstmts), std::move(newexpr)};
 }
@@ -81,8 +71,7 @@ ast::Lambda ExprRenameVisitor::renameLambda(ast::Lambda& ast) {
   auto newargsast = renameLambdaArgs(ast.args);
   auto newbody = renamer.renameBlock(ast.body);
   renamer.env = renamer.env->parent_env;
-  return ast::Lambda{ast.debuginfo, std::move(newargsast), std::move(newbody),
-                     ast.ret_type};
+  return ast::Lambda{ast.debuginfo, std::move(newargsast), std::move(newbody), ast.ret_type};
 }
 
 ast::ExprPtr ExprRenameVisitor::operator()(ast::Lambda& ast) {
@@ -90,8 +79,7 @@ ast::ExprPtr ExprRenameVisitor::operator()(ast::Lambda& ast) {
 }
 
 ast::FcallArgs SymbolRenamer::renameFcallArgs(ast::FcallArgs& ast) {
-  auto newargs = ast::transformArgs(
-      ast.args, [&](ast::ExprPtr e) { return renameExpr(e); });
+  auto newargs = ast::transformArgs(ast.args, [&](ast::ExprPtr e) { return renameExpr(e); });
   return ast::FcallArgs{ast.debuginfo, std::move(newargs)};
 }
 
@@ -100,41 +88,37 @@ ast::Fcall SymbolRenamer::renameFcall(ast::Fcall& ast) {
   auto newfn = renameExpr(ast.fn);
   return ast::Fcall{ast.debuginfo, std::move(newfn), std::move(newargs)};
 }
-  ast::If SymbolRenamer::renameIf(ast::If& ast){
+ast::If SymbolRenamer::renameIf(ast::If& ast) {
   auto newcond = renameExpr(ast.cond);
   auto newthen = renameExpr(ast.then_stmts);
-  auto newelse = ast.else_stmts.has_value()
-                     ? std::optional(renameExpr(ast.else_stmts.value()))
-                     : std::nullopt;
+  auto newelse =
+      ast.else_stmts.has_value() ? std::optional(renameExpr(ast.else_stmts.value())) : std::nullopt;
   return ast::If{ast.debuginfo, newcond, newthen, newelse};
-  }
-
+}
 
 ast::ExprPtr ExprRenameVisitor::operator()(ast::Fcall& ast) {
   return ast::makeExpr(renamer.renameFcall(ast));
 }
 
 ast::ExprPtr ExprRenameVisitor::operator()(ast::Struct& ast) {
-  auto newargs = ast::transformArgs(
-      ast.args, [&](ast::ExprPtr e) { return renamer.renameExpr(e); });
+  auto newargs =
+      ast::transformArgs(ast.args, [&](ast::ExprPtr e) { return renamer.renameExpr(e); });
   return ast::makeExpr(ast::Struct{ast.debuginfo, std::move(newargs)});
 }
 ast::ExprPtr ExprRenameVisitor::operator()(ast::StructAccess& ast) {
-  return ast::makeExpr(
-      ast::StructAccess{ast.debuginfo, rename(ast.stru), rename(ast.field)});
+  return ast::makeExpr(ast::StructAccess{ast.debuginfo, rename(ast.stru), rename(ast.field)});
 }
 ast::ExprPtr ExprRenameVisitor::operator()(ast::ArrayInit& ast) {
-  auto newargs = ast::transformArgs(
-      ast.args, [&](ast::ExprPtr e) { return renamer.renameExpr(e); });
+  auto newargs =
+      ast::transformArgs(ast.args, [&](ast::ExprPtr e) { return renamer.renameExpr(e); });
   return ast::makeExpr(ast::ArrayInit{ast.debuginfo, std::move(newargs)});
 }
 ast::ExprPtr ExprRenameVisitor::operator()(ast::ArrayAccess& ast) {
-  return ast::makeExpr(
-      ast::ArrayAccess{ast.debuginfo, rename(ast.array), rename(ast.index)});
+  return ast::makeExpr(ast::ArrayAccess{ast.debuginfo, rename(ast.array), rename(ast.index)});
 }
 ast::ExprPtr ExprRenameVisitor::operator()(ast::Tuple& ast) {
-  auto newargs = ast::transformArgs(
-      ast.args, [&](ast::ExprPtr e) { return renamer.renameExpr(e); });
+  auto newargs =
+      ast::transformArgs(ast.args, [&](ast::ExprPtr e) { return renamer.renameExpr(e); });
   return ast::makeExpr(ast::ArrayInit{ast.debuginfo, std::move(newargs)});
 }
 
@@ -149,7 +133,7 @@ StatementPtr StatementRenameVisitor::operator()(ast::Fdef& ast) {
   renamer.env->addToMap(ast.lvar.value, newname);
   auto newfun = renamer.expr_renamevisitor.renameLambda(ast.fun);
   auto newlvar = ast::Lvar{ast.lvar.debuginfo, newname, ast.lvar.type};
-  return ast::makeStatement(ast::Fdef { ast.debuginfo, newlvar, newfun });
+  return ast::makeStatement(ast::Fdef{ast.debuginfo, newlvar, newfun});
 }
 
 StatementPtr StatementRenameVisitor::operator()(ast::Assign& ast) {
@@ -157,24 +141,21 @@ StatementPtr StatementRenameVisitor::operator()(ast::Assign& ast) {
   renamer.env->addToMap(ast.lvar.value, newname);
   auto newrvar = renamer.renameExpr(ast.expr);
   auto newlvar = ast::Lvar{ast.lvar.debuginfo, newname, ast.lvar.type};
-  return ast::makeStatement(
-      ast::Assign{ast.debuginfo, std::move(newlvar), std::move(newrvar)});
+  return ast::makeStatement(ast::Assign{ast.debuginfo, std::move(newlvar), std::move(newrvar)});
 }
 StatementPtr StatementRenameVisitor::operator()(ast::Return& ast) {
-  return ast::makeStatement(
-      ast::Return{ast.debuginfo, renamer.renameExpr(ast.value)});
+  return ast::makeStatement(ast::Return{ast.debuginfo, renamer.renameExpr(ast.value)});
 }
 // StatementPtr StatementRenameVisitor::operator()(ast::Declaration& ast) {}
 StatementPtr StatementRenameVisitor::operator()(ast::Time& ast) {
-  return ast::makeStatement(ast::Time{ast.debuginfo,
-                                      renamer.renameFcall(ast.fcall),
-                                      renamer.renameExpr(ast.when)});
+  return ast::makeStatement(
+      ast::Time{ast.debuginfo, renamer.renameFcall(ast.fcall), renamer.renameExpr(ast.when)});
 }
 StatementPtr StatementRenameVisitor::operator()(ast::Fcall& ast) {
   return ast::makeStatement(renamer.renameFcall(ast));
 }
 StatementPtr StatementRenameVisitor::operator()(ast::If& ast) {
-    return ast::makeStatement(renamer.renameIf(ast));
+  return ast::makeStatement(renamer.renameIf(ast));
 }
 
 StatementPtr StatementRenameVisitor::operator()(ast::For& ast) {
@@ -185,8 +166,8 @@ StatementPtr StatementRenameVisitor::operator()(ast::For& ast) {
   auto newindex = ast::Lvar{ast.index.debuginfo, newname, ast.index.type};
   auto newstmts = renamer.renameBlock(ast.statements);
   renamer.env = renamer.env->parent_env;
-  return ast::makeStatement(ast::For{ast.debuginfo, std::move(newindex),
-                                     std::move(newiter), std::move(newstmts)});
+  return ast::makeStatement(
+      ast::For{ast.debuginfo, std::move(newindex), std::move(newiter), std::move(newstmts)});
 }
 
 }  // namespace mimium
