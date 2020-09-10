@@ -43,15 +43,15 @@ struct OccurChecker {
     return false;
   }
   [[nodiscard]] bool checkArgs(std::vector<types::Value> const& args) const {
-    return std::reduce(args.begin(), args.end(), false,
-                       [&](bool b, types::Value const& val) {
+    return std::accumulate(args.begin(), args.end(), false,
+                       [&](bool b, types::Value const& val)->bool {
                          return b || std::visit(*this, val);
                        });
   }
   [[nodiscard]] bool checkArgs(
       std::vector<types::Struct::Keytype> const& args) const {
-    return std::reduce(args.begin(), args.end(), false,
-                       [&](bool b, types::Struct::Keytype const& a) {
+    return std::accumulate(args.begin(), args.end(), false,
+                       [&](bool b, types::Struct::Keytype const& a)->bool {
                          return b || std::visit(*this, a.val);
                        });
   }

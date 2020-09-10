@@ -75,8 +75,14 @@ using Value =
 
 struct ToStringVisitor;
 
+inline bool operator==(const Ref& t1, const Ref& t2);
+inline bool operator==(const Pointer& t1, const Pointer& t2);
+inline bool operator==(const TypeVar& t1, const TypeVar& t2);
+inline bool operator==(const Alias& t1, const Alias& t2);
+inline bool operator==(const Closure& t1, const Closure& t2);
 inline bool operator==(const Function& t1, const Function& t2);
 inline bool operator==(const Struct& t1, const Struct& t2);
+inline bool operator==(const Array& t1, const Array& t2);
 inline bool operator==(const Tuple& t1, const Tuple& t2);
 
 struct TypeVar : std::enable_shared_from_this<TypeVar> {
