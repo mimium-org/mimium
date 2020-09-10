@@ -33,6 +33,12 @@ struct PrimitiveType {
   constexpr inline static Kind kind = Kind::PRIMITIVE;
 };
 
+inline bool operator==(const PrimitiveType& t1, const PrimitiveType& t2) {
+  return true;
+};
+inline bool operator!=(const PrimitiveType& t1, const PrimitiveType& t2) {
+  return false;
+};
 
 struct None : PrimitiveType {};
 struct Void : PrimitiveType {};
@@ -115,22 +121,48 @@ struct Ref : PointerBase {
   Value val;
 };
 
-
+inline bool operator==(const Ref& t1, const Ref& t2) {
+  return t1.val == t2.val;
+}
+inline bool operator!=(const Ref& t1, const Ref& t2) {
+  return t1.val != t2.val;
+}
 struct Pointer : PointerBase {
   Pointer() = default;
   explicit Pointer(Value v) : val(std::move(v)){};
   Value val;
 };
-
+inline bool operator==(const Pointer& t1, const Pointer& t2) {
+  return t1.val == t2.val;
+}
+inline bool operator!=(const Pointer& t1, const Pointer& t2) {
+  return t1.val != t2.val;
+}
 struct Aggregate {
   constexpr inline static Kind kind = Kind::AGGREGATE;
 };
-
+// struct Time : Aggregate {
+//   Time()=default;
+//   explicit Time(Value v):val(std::move(v)){};
+//   Value val;
+//   Float time;
+// };
+// inline bool operator==(const Time& t1, const Time& t2) {
+//   return t1.val == t2.val;
+// }
+// inline bool operator!=(const Time& t1, const Time& t2) {
+//   return t1.val != t2.val;
+// }
 struct Function : Aggregate {
   Function() = default;
   explicit Function(Value ret_type_p, std::vector<Value> arg_types_p)
       : arg_types(std::move(arg_types_p)), ret_type(std::move(ret_type_p)){};
-
+  // [[maybe_unused]]void init(std::vector<Value> arg_types_p, Value ret_type_p)
+  // {
+  //   arg_types = std::move(arg_types_p);
+  //   ret_type = std::move(ret_type_p);
+  //   ret_type.emplace()
+  // }
   Value ret_type;
   std::vector<Value> arg_types;
 
@@ -148,7 +180,12 @@ struct Function : Aggregate {
   }
 };
 
-
+inline bool operator==(const Function& t1, const Function& t2) {
+  return t1.ret_type == t2.ret_type && t1.arg_types == t2.arg_types;
+}
+inline bool operator!=(const Function& t1, const Function& t2) {
+  return !(t1 == t2);
+}
 
 struct Closure : Aggregate {
   Ref fun;
@@ -159,19 +196,31 @@ struct Closure : Aggregate {
       : fun(std::move(rv::get<Ref>(fun))), captures(std::move(captures)){};
   Closure() = default;
 };
-
+inline bool operator==(const Closure& t1, const Closure& t2) {
+  return t1.fun == t2.fun && t1.captures == t2.captures;
+}
+inline bool operator!=(const Closure& t1, const Closure& t2) {
+  return !(t1 == t2);
+}
 struct Array : Aggregate {
   Value elem_type;
   int size;
   explicit Array(Value elem, int size = 0)
       : elem_type(std::move(elem)), size(size) {}
 };
-
+inline bool operator==(const Array& t1, const Array& t2) {
+  return (t1.elem_type == t2.elem_type) && (t1.size == t2.size);
+}
+inline bool operator!=(const Array& t1, const Array& t2) { return !(t1 == t2); }
 struct Tuple : Aggregate {
   std::vector<Value> arg_types;
   explicit Tuple(std::vector<Value> types) : arg_types(std::move(types)) {}
 };
 
+inline bool operator==(const Tuple& t1, const Tuple& t2) {
+  return (t1.arg_types == t2.arg_types);
+};
+inline bool operator!=(const Tuple& t1, const Tuple& t2) { return !(t1 == t2); }
 struct Struct : Aggregate {
   struct Keytype {
     std::string field;
@@ -193,7 +242,18 @@ struct Struct : Aggregate {
   }
 };
 
-
+inline bool operator==(const Struct::Keytype& t1, const Struct::Keytype& t2) {
+  return (t1.field == t2.field) && (t1.val == t2.val);
+};
+inline bool operator!=(const Struct::Keytype& t1, const Struct::Keytype& t2) {
+  return !(t1 == t2);
+}
+inline bool operator==(const Struct& t1, const Struct& t2) {
+  return (t1.arg_types == t2.arg_types);
+};
+inline bool operator!=(const Struct& t1, const Struct& t2) {
+  return !(t1 == t2);
+}
 
 struct Alias : Aggregate {
   std::string name;
@@ -201,7 +261,10 @@ struct Alias : Aggregate {
   explicit Alias(std::string name, Value target)
       : name(std::move(name)), target(std::move(target)) {}
 };
-
+inline bool operator==(const Alias& t1, const Alias& t2) {
+  return (t1.name == t2.name);
+};
+inline bool operator!=(const Alias& t1, const Alias& t2) { return !(t1 == t2); }
 bool isTypeVar(types::Value t);
 
 struct ToStringVisitor {
@@ -295,8 +358,7 @@ class TypeEnv {
   std::deque<types::Value> tv_container;
   std::shared_ptr<types::TypeVar> createNewTypeVar() {
     auto res = std::make_shared<types::TypeVar>(typeid_count++);
-    auto boxed = Rec_Wrap<types::TypeVar>{*res};
-    tv_container.emplace_back(std::move(boxed));
+    tv_container.emplace_back(*res);
     return res;
   }
   types::Value& findTypeVar(int tindex) {
