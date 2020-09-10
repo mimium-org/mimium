@@ -1,5 +1,18 @@
 # CHANGELOG
 
+
+## v0.1.3 (2020-09-09)
+
+### fixed bugs
+
+- fixed unusual crash when if-statement used on linux 
+- fixed operator precedence of if statement when used as expression
+
+```rust
+// mathmatical operators have higher precedence than if or else!
+myvar = if(cond) 100+20 else 200*50
+```
+
 ## v0.1.2 (2020-09-07)
 
 ### fixed bugs

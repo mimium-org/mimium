@@ -42,10 +42,10 @@ struct Time;
 struct If;
 struct Block;
 using Expr =
-    std::variant<Op, Number, String, Rvar, Self, Rec_Wrap<Lambda>,
-                 Rec_Wrap<Fcall>, Rec_Wrap<If>, Rec_Wrap<Struct>,
-                 Rec_Wrap<StructAccess>, Rec_Wrap<ArrayInit>,
-                 Rec_Wrap<ArrayAccess>, Rec_Wrap<Tuple>, Rec_Wrap<Block>>;
+    std::variant<Op, Number, String, Rvar, Self, Box<Lambda>,
+                 Box<Fcall>, Box<If>, Box<Struct>,
+                 Box<StructAccess>, Box<ArrayInit>,
+                 Box<ArrayAccess>, Box<Tuple>, Box<Block>>;
 using ExprPtr = std::shared_ptr<Expr>;
 
 struct Assign;
@@ -56,8 +56,8 @@ struct Declaration;
 struct For;
 
 using Statement =
-    std::variant<Assign, Return, Fdef, Time, Fcall,Rec_Wrap<If>, /* Declaration, */
-                 Rec_Wrap<For>>;
+    std::variant<Assign, Return, Fdef, Time, Fcall,Box<If>, /* Declaration, */
+                 Box<For>>;
 using Statements = std::deque<std::shared_ptr<Statement>>;
 
 enum class OpId {
@@ -256,13 +256,12 @@ std::shared_ptr<TO> makeAst(FROM&& ast) {
 
 template <typename FROM>
 auto makeExpr(FROM&& ast) {
-  ast::Expr expr = ast;
+  ast::Expr expr = std::move(ast);
   return std::make_shared<ast::Expr>(std::move(expr));
 }
 template <typename FROM>
 auto makeStatement(FROM&& ast) {
-  ast::Statement stmt = ast;
-  return std::make_shared<ast::Statement>(std::move(stmt));
+    return std::make_shared<ast::Statement>(ast);
 }
 
 }  // namespace ast

@@ -55,9 +55,8 @@ llvm::Type* LLVMGenerator::getClosureToFunType(types::Value& type) {
   auto clsty = rv::get<types::Closure>(aliasty.target);
 
   auto fty = rv::get<types::Function>(clsty.fun.val);
-  fty.arg_types.emplace_back(types::Ref(clsty.captures));
-  types::Value v = fty;
-  return std::visit(typeconverter, v);
+  fty.arg_types.emplace_back(types::Ref{clsty.captures});
+  return typeconverter(fty);
 }
 void LLVMGenerator::switchToMainFun() {
   setBB(mainentry);

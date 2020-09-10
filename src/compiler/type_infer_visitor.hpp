@@ -14,42 +14,46 @@ namespace mimium {
 struct OccurChecker {
   types::TypeVar& tv;
   explicit OccurChecker(types::TypeVar& target) : tv(target) {}
-  bool operator()(types::Function& t) {
+  bool operator()(const types::Function& t)const {
     return std::visit(*this, t.ret_type) || checkArgs(t.arg_types);
   }
-  bool operator()(types::Array& t) { return std::visit(*this, t.elem_type); }
-  bool operator()(types::Struct& t) { return checkArgs(t.arg_types); }
-  bool operator()(types::Tuple& t) { return checkArgs(t.arg_types); };
-  bool operator()(types::TypeVar& t) { return (t.index == tv.index); }
+  bool operator()(const types::Array& t) const {
+    return std::visit(*this, t.elem_type);
+  }
+  bool operator()(const types::Struct& t) const {
+    return checkArgs(t.arg_types);
+  }
+  bool operator()(const types::Tuple& t) const {
+    return checkArgs(t.arg_types);
+  };
+  bool operator()(const types::TypeVar& t) const {
+    return (t.index == tv.index);
+  }
   template <typename T>
-  bool operator()(T& t) {
-    bool res;
-    if constexpr (T::kind == types::Kind::POINTER) {
-      res = std::visit(*this, t.val);
+  bool operator()(const Box<T>& t)const {
+    return (*this)(static_cast<T const&>(t));
+  }
+  template <typename T>
+  bool operator()(const T& t) const {
+    if constexpr (types::is_pointer_t<T>) {
+      return std::visit(*this, t.val);
     } else if constexpr (std::is_same_v<std::decay_t<T>, types::Alias>) {
-      res = std::visit(*this, t.target);
-    } else {
-      res = false;
+      return std::visit(*this, t.target);
     }
-    return res;
+    return false;
   }
-  template <typename T>
-  bool operator()(Rec_Wrap<T>& t) {
-    return (*this)(t.getraw());
+  [[nodiscard]] bool checkArgs(std::vector<types::Value> const& args) const {
+    return std::accumulate(args.begin(), args.end(), false,
+                       [&](bool b, types::Value const& val)->bool {
+                         return b || std::visit(*this, val);
+                       });
   }
-  bool checkArgs(std::vector<types::Value>& args) {
-    bool res = false;
-    for (auto&& a : args) {
-      res |= std::visit(*this, a);
-    }
-    return res;
-  }
-  bool checkArgs(std::vector<types::Struct::Keytype>& args) {
-    bool res = false;
-    for (auto&& a : args) {
-      res |= std::visit(*this, a.val);
-    }
-    return res;
+  [[nodiscard]] bool checkArgs(
+      std::vector<types::Struct::Keytype> const& args) const {
+    return std::accumulate(args.begin(), args.end(), false,
+                       [&](bool b, types::Struct::Keytype const& a)->bool {
+                         return b || std::visit(*this, a.val);
+                       });
   }
 };
 
@@ -168,42 +172,69 @@ struct TypeInferer {
       if (std::visit(OccurChecker{t}, target)) {
         Logger::debug_log("type loop detected. decuced into float type.",
                           Logger::WARNING);
-        return types::Float();
+        return types::Float{};
       }
-      auto contained = std::visit(*this, target);
+      types::Value contained = std::visit(*this, target);
       if (std::holds_alternative<types::None>(contained) ||
           std::holds_alternative<types::rTypeVar>(contained)) {
         throw std::runtime_error(
             "failed to replace typevar. decuced into float type.");
-        return types::Float();
+        return types::Float{};
       }
       return std::visit(*this, target);
     }
-    types::Value operator()(types::Function& f) {
-      return types::Function(std::visit(*this, f.ret_type),
-                             replaceArgs(f.arg_types));
-    }
-    types::Value operator()(types::Alias& a) {
-      return types::Alias(a.name, std::visit(*this, a.target));
-    }
-    // TODO(tomoya): other aggregate types...
-    template <typename T>
-    types::Value operator()(T& t) {
-      if constexpr (T::kind == types::Kind::POINTER) {
-        return T(std::visit(*this, t.val));
-      }
+    types::Value operator()(types::Float& t) { return t; }
+    types::Value operator()(types::String& t) { return t; }
+    types::Value operator()(types::Void& t) { return t; }
+    types::Value operator()(types::None& t) { return t; }
+    types::Value operator()(types::Closure& t) {
       return t;
+    }  // closure will not be shown at this stage
+
+    types::Value operator()(types::Pointer& t) {
+      return types::Pointer{std::visit(*this, t.val)};
     }
-    template <typename T>
-    types::Value operator()(Rec_Wrap<T>& t) {
-      return (*this)(t.getraw());
+    types::Value operator()(types::Ref& t) {
+      return types::Pointer{std::visit(*this, t.val)};
     }
+    types::Value operator()(types::Function& f) {
+      return types::Function{std::visit(*this, f.ret_type),
+                             replaceArgs(f.arg_types)};
+    }
+    types::Value operator()(types::Array& a) {
+      return types::Array{std::visit(*this, a.elem_type), a.size};
+    }
+    types::Value operator()(types::Tuple& a) {
+      std::vector<types::Value> res;
+      std::transform(a.arg_types.begin(), a.arg_types.end(),
+                     std::back_inserter(res),
+                     [&](types::Value& v) { return std::visit(*this, v); });
+      return types::Tuple{std::move(res)};
+    }
+    types::Value operator()(types::Struct& a) {
+      std::vector<types::Struct::Keytype> res;
+      std::transform(
+          a.arg_types.begin(), a.arg_types.end(), std::back_inserter(res),
+          [&](types::Struct::Keytype& v) {
+            return types::Struct::Keytype{v.field, std::visit(*this, v.val)};
+          });
+      return types::Struct{std::move(res)};
+    }
+
+    types::Value operator()(types::Alias& a) {
+      return types::Alias{a.name, std::visit(*this, a.target)};
+    }
+
     std::vector<types::Value> replaceArgs(std::vector<types::Value>& arg) {
       std::vector<types::Value> res;
       for (auto&& a : arg) {
         res.emplace_back(std::visit(*this, a));
       }
       return res;
+    }
+    template <typename T>
+    types::Value operator()(Box<T>& t) {
+      return (*this)(static_cast<T&>(t));
     }
     TypeInferer& inferer;
   };
@@ -220,7 +251,7 @@ struct TypeInferer {
     for (const auto& [key, val] : LLVMBuiltin::ftable) {
       typeenv.emplace(key, val.mmmtype);
     }
-    typeenv.emplace("mimium_getnow", types::Function(types::Float(), {}));
+    typeenv.emplace("mimium_getnow", types::Function{types::Float{}, {}});
   }
   // entry point.
   TypeEnv& infer(ast::Statements& topast);
@@ -241,7 +272,7 @@ struct TypeInferer {
   SubstituteVisitor substitutevisitor;
   types::Value addLvar(ast::Lvar& lvar);
   types::Value inferFcall(ast::Fcall& fcall);
-    types::Value inferIf(ast::If& ast);
+  types::Value inferIf(ast::If& ast);
 
   types::Value unify(types::Value lhs, types::Value rhs) {
     return std::visit(unifyvisitor, lhs, rhs);

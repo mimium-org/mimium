@@ -43,15 +43,15 @@ TEST(typeinfer, function) {
   EXPECT_TRUE(std::holds_alternative<types::Float>(add_b));
   EXPECT_TRUE(std::holds_alternative<types::rFunction>(add));
   EXPECT_TRUE(
-      rv::get<types::Function>(add) ==
-      types::Function(types::Float(), {types::Float(), types::Float()}));
+      (rv::get<types::Function>(add) ==
+      types::Function{types::Float{}, {types::Float{}, types::Float{}}}));
   EXPECT_TRUE(std::holds_alternative<types::Float>(muladd_a));
   EXPECT_TRUE(std::holds_alternative<types::Float>(muladd_b));
   EXPECT_TRUE(std::holds_alternative<types::Float>(muladd_c));
   EXPECT_TRUE(std::holds_alternative<types::rFunction>(muladd));
-  EXPECT_TRUE(rv::get<types::Function>(muladd) ==
-              types::Function(types::Float(), {types::Float(), types::Float(),
-                                               types::Float()}));
+  EXPECT_TRUE((rv::get<types::Function>(muladd) ==
+              types::Function{types::Float{}, {types::Float{}, types::Float{},
+                                               types::Float{}}}));
   EXPECT_TRUE(std::holds_alternative<types::Float>(res));
 }
 TEST(typeinfer, highorderfunction) {
@@ -61,31 +61,31 @@ TEST(typeinfer, highorderfunction) {
   EXPECT_TRUE(std::holds_alternative<types::Float>(env.at("x1")));
   EXPECT_TRUE(std::holds_alternative<types::Float>(env.at("y2")));
   auto add2type =
-      types::Function(types::Float(), {types::Float(), types::Float()});
+      types::Function{types::Float{}, {types::Float{}, types::Float{}}};
   EXPECT_TRUE(std::holds_alternative<types::rFunction>(add));
   EXPECT_TRUE(rv::get<types::Function>(add) == add2type);
   auto& hof = env.at("hof3");
   EXPECT_TRUE(std::holds_alternative<types::Float>(env.at("x4")));
   EXPECT_TRUE(std::holds_alternative<types::rFunction>(env.at("y5")));
   EXPECT_TRUE(std::holds_alternative<types::rFunction>(hof));
-  auto hofrettype = types::Function(types::Float(), {types::Float()});
+  auto hofrettype = types::Function{types::Float{}, {types::Float{}}};
 
-  EXPECT_TRUE(rv::get<types::Function>(hof) ==
-              types::Function(hofrettype, {types::Float(), add2type}));
+  EXPECT_TRUE((rv::get<types::Function>(hof) ==
+              types::Function{hofrettype, {types::Float{}, add2type}}) );
   EXPECT_TRUE(std::holds_alternative<types::Float>(env.at("result7")));
 }
 
 TEST(typeinfer, recursivecall) {
   PREP(recursivecall)
   auto& env = inferer.infer(*newast).env;
-  EXPECT_TRUE(rv::get<types::Function>(env.at("fact0")) ==
-              types::Function(types::Float(), {types::Float()}));
+  EXPECT_TRUE((rv::get<types::Function>(env.at("fact0")) ==
+              types::Function{types::Float{}, {types::Float{}}}));
 }
 TEST(typeinfer, self) {
   PREP(self)
   auto& env = inferer.infer(*newast).env;
-  EXPECT_TRUE(rv::get<types::Function>(env.at("lowpass0")) ==
-              types::Function(types::Float(), {types::Float(),types::Float()}));
+  EXPECT_TRUE((rv::get<types::Function>(env.at("lowpass0")) ==
+              types::Function{types::Float{}, {types::Float{},types::Float{}}}));
 }
 
 TEST(typeinfer, occurfail) {

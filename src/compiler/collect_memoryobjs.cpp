@@ -9,7 +9,7 @@ MemoryObjsCollector::MemoryObjsCollector(TypeEnv& typeenv)
     : typeenv(typeenv), cm_visitor(*this) {
   std::string primitivemem = "mem";
   memobjs_map.emplace(primitivemem, std::vector<std::string>{"memory"});
-  emplaceNewAlias(primitivemem, types::Float());
+  emplaceNewAlias(primitivemem, types::Float{});
 }
 
 mir::blockptr MemoryObjsCollector::process(mir::blockptr toplevel) {
@@ -30,7 +30,7 @@ mir::blockptr MemoryObjsCollector::process(mir::blockptr toplevel) {
 }
 void MemoryObjsCollector::emplaceNewAlias(std::string& name,
                                           types::Value type) {
-  type_alias_map.emplace(name, types::Alias(name, type));
+  type_alias_map.emplace(name, types::Alias{name, type});
 }
 
 std::optional<types::Alias> MemoryObjsCollector::getAliasFromMap(
@@ -60,7 +60,7 @@ void MemoryObjsCollector::collectSelf(std::string& funname,
 }
 void MemoryObjsCollector::collectDelay(std::string& funname, int delay_size) {
   auto delayname = "delay." + std::to_string(delay_size);
-  emplaceNewAlias(delayname, types::Array(types::Float(), delay_size));
+  emplaceNewAlias(delayname, types::Array{types::Float{}, delay_size});
   memobjs_map[funname].emplace_back(delayname);
 }
 void MemoryObjsCollector::collectMemPrim(std::string& funname,
@@ -132,7 +132,7 @@ void MemoryObjsCollector::CollectMemVisitor::operator()(mir::FunInst& i) {
       objs.emplace_back(M.getAliasFromMap(alias_name).value());
       // }
     }
-    auto type = types::Alias(memname, types::Tuple(std::move(objs)));
+    auto type = types::Alias{memname, types::Tuple{std::move(objs)}};
 
     if (i.lv_name == "dsp") {
       insertAllocaInst(i, type);

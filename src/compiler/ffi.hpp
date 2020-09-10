@@ -14,17 +14,14 @@
 namespace mimium {
 
 struct BuiltinFnInfo {
-  BuiltinFnInfo() = default;
-  BuiltinFnInfo(const BuiltinFnInfo& f) = default;
-  BuiltinFnInfo(BuiltinFnInfo&& f) = default;
-  ~BuiltinFnInfo() = default;
-  BuiltinFnInfo& operator=(const BuiltinFnInfo& b1) = default;
-  BuiltinFnInfo& operator=(BuiltinFnInfo&& b1) = default;
-  BuiltinFnInfo(types::Function f, std::string s)
-      : mmmtype(std::move(f)), target_fnname(std::move(s)) {}
   types::Value mmmtype;
   std::string target_fnname;
 };
+
+inline BuiltinFnInfo initBI(types::Function&& f,std::string&&s){
+  return BuiltinFnInfo{std::move(f),std::move(s)};
+}
+
 struct LLVMBuiltin {
   static std::unordered_map<std::string, BuiltinFnInfo> ftable;
   static bool isBuiltin(std::string fname) {

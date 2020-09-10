@@ -53,9 +53,8 @@ llvm::Type* TypeConverter::operator()(types::Array& i) {
 llvm::Type* TypeConverter::operator()(types::Struct& i) {
   std::vector<llvm::Type*> ar;
   llvm::Type* res = nullptr;
-  auto t = static_cast<types::Tuple>(i);
-  for (auto& a : t.arg_types) {
-    ar.push_back(std::visit(*this, a));
+  for (auto&& a : i.arg_types) {
+    ar.push_back(std::visit(*this, a.val));
   }
   if (tmpname.empty()) {
     res = llvm::StructType::get(builder.getContext(), ar);
