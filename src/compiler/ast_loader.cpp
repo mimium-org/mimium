@@ -6,14 +6,24 @@
 
 namespace fs = std::filesystem;
 
-
 namespace mimium {
 
 AstPtr Driver::parse(std::istream& is) {
   scanner = std::make_unique<mmmpsr::MimiumScanner>(is);
   parser = std::make_unique<MimiumParser>(*scanner, *this);
   parser->set_debug_level(DEBUG_LEVEL);  // debug
-  int res =parser->parse();
+  int res=0;
+  try{
+    res = parser->parse();
+  }catch(std::exception& e){
+    throw std::runtime_error(e.what());
+  }catch(...){
+    throw std::runtime_error("undefined parse error");;
+  }
+  if(res>0){
+    throw std::runtime_error("parse error.");
+    ast_top = std::make_shared<ast::Statements>();
+  }
   return ast_top;
 }
 
@@ -28,14 +38,14 @@ AstPtr Driver::parseFile(const std::string& filename) {
   auto ext = path.extension().string();
 
   if (ext != ".mmm") {
-    throw std::runtime_error(
-        "file type " + ext +
-        " does not match to mimium source code file(.mmm).");
+    throw std::runtime_error("file type " + ext +
+                             " does not match to mimium source code file(.mmm).");
   }
   std::error_code ec;
-  auto status = fs::status(abspath,ec);
-  //memo: fs::exists(path,ec) for .mmm file returns file type of "unknown", not "regular" or "none". to prevent error, need to check specifically not to be "not found"
-  if (status.type() ==fs::file_type::none ||status.type() ==fs::file_type::not_found) {
+  auto status = fs::status(abspath, ec);
+  // memo: fs::exists(path,ec) for .mmm file returns file type of "unknown", not "regular" or
+  // "none". to prevent error, need to check specifically not to be "not found"
+  if (status.type() == fs::file_type::none || status.type() == fs::file_type::not_found) {
     throw std::runtime_error("file " + abspath.string() + " does not exist.");
   }
   std::ifstream ifs;
@@ -44,9 +54,6 @@ AstPtr Driver::parseFile(const std::string& filename) {
   return std::move(parse(ifs));
 }
 
-void Driver::setTopAst(AstPtr top){
-  this->ast_top = top;
-}
-
+void Driver::setTopAst(AstPtr top) { this->ast_top = top; }
 
 }  // namespace mimium

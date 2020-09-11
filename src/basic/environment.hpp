@@ -32,7 +32,7 @@ class Environment : public std::enable_shared_from_this<Environment<T>> {
     } else if (parent != nullptr) {
       res = parent->findVariable(key);  // search recursively
     } else {
-      throw std::logic_error("Variable " + key + " not found");
+      throw std::runtime_error("Variable " + key + " not found");
       res = nullptr;
     }
     return res;
@@ -46,7 +46,7 @@ class Environment : public std::enable_shared_from_this<Environment<T>> {
       auto [isvarset, isisfv] = parent->isFreeVariable(key);
       res = std::pair(isvarset, true);  // search recursively
     } else {
-      throw std::logic_error("Variable " + key + " not found");
+      throw std::runtime_error("Variable " + key + " not found");
       res = std::pair(false, false);
     }
     return res;
@@ -86,43 +86,36 @@ class Environment : public std::enable_shared_from_this<Environment<T>> {
   bool isRoot() { return parent == nullptr; }
   std::string getName() { return name; };
   auto createNewChild(std::string newname) -> std::shared_ptr<Environment<T>> {
-    auto child =
-        std::make_shared<Environment<T>>(newname, this->shared_from_this());
+    auto child = std::make_shared<Environment<T>>(newname, this->shared_from_this());
     children.push_back(std::move(child));
     return children.back();
   }
   void deleteLastChild() { children.pop_back(); }
 };
 
-struct RenameEnvironment
-    : public std::enable_shared_from_this<RenameEnvironment> {
+struct RenameEnvironment : public std::enable_shared_from_this<RenameEnvironment> {
   std::unordered_map<std::string, std::string> rename_map{};
   std::shared_ptr<RenameEnvironment> parent_env = nullptr;
 
-  std::shared_ptr<RenameEnvironment> expand(){
+  std::shared_ptr<RenameEnvironment> expand() {
     auto newenv = std::make_shared<RenameEnvironment>();
     newenv->parent_env = shared_from_this();
     return newenv;
   }
-  void addToMap(std::string const& namel,std::string const& namer){
-      rename_map.emplace(namel,namer);
+  void addToMap(std::string const& namel, std::string const& namer) {
+    rename_map.emplace(namel, namer);
   }
   template <typename T>
-  std::optional<T> metaSearch(std::optional<std::string> const& name,
-                              std::future<T>&& ret_local,
+  std::optional<T> metaSearch(std::optional<std::string> const& name, std::future<T>&& ret_local,
                               std::future<std::optional<T>>&& ret_freevar) {
-    if (name && rename_map.count(name.value()) > 0) {
-      return ret_local.get();
-    }
-    if (name && parent_env != nullptr) {
-      return ret_freevar.get();
-    }
+    if (name && rename_map.count(name.value()) > 0) { return ret_local.get(); }
+    if (name && parent_env != nullptr) { return ret_freevar.get(); }
     return std::nullopt;
   }
-  #define THUNK(VAL) std::async(std::launch::deferred,[&](){ return VAL;} ) //NOLINT
+#define THUNK(VAL) std::async(std::launch::deferred, [&]() { return VAL; })  // NOLINT
 
   std::optional<std::string> search(std::optional<std::string> const& name) {
-    return metaSearch(name,  THUNK(rename_map.at(name.value())), THUNK( parent_env->search(name)));
+    return metaSearch(name, THUNK(rename_map.at(name.value())), THUNK(parent_env->search(name)));
   }
   std::optional<bool> isFreeVar(std::string const& name) {
     return metaSearch(name, THUNK(false), THUNK(std::optional(true)));

@@ -255,20 +255,17 @@ self: SELF {
 // type specifiers
 
 
-primtypes: TYPEFLOAT {$$ =types::Float();}
-               | TYPEVOID  {$$ = types::Void();}
-               | TYPESTRING  {$$ = types::String();}
+primtypes: TYPEFLOAT {$$ =types::Float{};}
+               | TYPEVOID  {$$ = types::Void{};}
+               | TYPESTRING  {$$ = types::String{};}
 
 reftype: 
       types AND {
-            types::Value v = types::Ref(std::move($1));
-            $$ = std::move(v);} 
+            $$ = types::Ref{std::move($1)};} 
 
 fntype: 
       '(' fntypeargs ')' ARROW types {
-      types::Function f(std::move($5),std::move($2));
-      types::Value v = std::move(f);
-      $$ = std::move(v);
+      $$ = types::Function{std::move($5),std::move($2)};
       }
 
 fntypeargs:  

@@ -23,13 +23,19 @@
 #include "variant_visitor_helper.hpp"
 
 #ifdef _WIN32
-SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE),
-               ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 #endif
+#if ( __has_feature(address_sanitizer)&&defined(__clang__)) || defined(__SANITIZE_ADDRESS__)
+// code that builds only under AddressSanitizer
+#define NO_SANITIZE __attribute__((no_sanitize("address")))
+#else
+#define NO_SANITIZE 
+#endif
+
 
 namespace mimium {
 
-//meta function to check if it is smart pointer or not(used in ast_to_string);
+// meta function to check if it is smart pointer or not(used in ast_to_string);
 template <typename T, typename Enable = void>
 struct is_smart_pointer {
   enum { value = false };
@@ -37,25 +43,25 @@ struct is_smart_pointer {
 
 template <typename T>
 struct is_smart_pointer<
-    T, typename std::enable_if<std::is_same<
-           typename std::remove_cv<T>::type,
-           std::shared_ptr<typename T::element_type>>::value>::type> {
+    T,
+    typename std::enable_if<std::is_same<typename std::remove_cv<T>::type,
+                                         std::shared_ptr<typename T::element_type>>::value>::type> {
   enum { value = true };
 };
 
 template <typename T>
 struct is_smart_pointer<
-    T, typename std::enable_if<std::is_same<
-           typename std::remove_cv<T>::type,
-           std::unique_ptr<typename T::element_type>>::value>::type> {
+    T,
+    typename std::enable_if<std::is_same<typename std::remove_cv<T>::type,
+                                         std::unique_ptr<typename T::element_type>>::value>::type> {
   enum { value = true };
 };
 
 template <typename T>
 struct is_smart_pointer<
-    T, typename std::enable_if<std::is_same<
-           typename std::remove_cv<T>::type,
-           std::weak_ptr<typename T::element_type>>::value>::type> {
+    T,
+    typename std::enable_if<std::is_same<typename std::remove_cv<T>::type,
+                                         std::weak_ptr<typename T::element_type>>::value>::type> {
   enum { value = true };
 };
 
@@ -68,8 +74,7 @@ struct WaitController {
 // for ast
 template <class ElementType>
 static std::string join(std::deque<ElementType>& vec, std::string delim) {
-  return std::accumulate(std::next(vec.begin()), vec.end(),
-                         vec.begin()->toString(),
+  return std::accumulate(std::next(vec.begin()), vec.end(), vec.begin()->toString(),
                          [&](std::string a, std::shared_ptr<ElementType>& b) {
                            return std::move(a) + delim + b.toString();
                          });
@@ -83,35 +88,30 @@ inline bool has(std::vector<std::string> t, char* s) {
   return std::find(t.begin(), t.end(), std::string(s)) != t.end();
 }
 
-namespace ast{
-    template <typename T,typename L>
-  T transformArgs(T& args,L lambda){
-    T res;
-    std::transform(args.begin(),args.end(),std::back_inserter(res),lambda);
-    return res;
-  }
+namespace ast {
+template <typename T, typename L>
+T transformArgs(T& args, L lambda) {
+  T res;
+  std::transform(args.begin(), args.end(), std::back_inserter(res), lambda);
+  return res;
 }
+}  // namespace ast
 
-[[maybe_unused]] static std::string join(std::deque<std::string>& vec,
-                                         std::string delim) {
+[[maybe_unused]] static std::string join(std::deque<std::string>& vec, std::string delim) {
   std::string res;
   if (!vec.empty()) {
-    res = std::accumulate(
-        std::next(vec.begin()), vec.end(), *(vec.begin()),
-        [&](std::string a, std::string b) { return std::move(a) + delim + b; });
+    res = std::accumulate(std::next(vec.begin()), vec.end(), *(vec.begin()),
+                          [&](std::string a, std::string b) { return std::move(a) + delim + b; });
   }
   return res;
 };
 template <class T>
-static std::string join(std::deque<std::shared_ptr<T>>& vec,
-                        std::string delim) {
+static std::string join(std::deque<std::shared_ptr<T>>& vec, std::string delim) {
   std::string res;
   if (!vec.empty()) {
-    res = std::accumulate(std::next(vec.begin()), vec.end(),
-                          (*(vec.begin()))->toString(),
-                          [&](std::string a, std::shared_ptr<T>& b) {
-                            return std::move(a) + delim + b->toString();
-                          });
+    res = std::accumulate(
+        std::next(vec.begin()), vec.end(), (*(vec.begin()))->toString(),
+        [&](std::string a, std::shared_ptr<T>& b) { return std::move(a) + delim + b->toString(); });
   }
   return res;
 };
@@ -149,28 +149,23 @@ class Logger {
   /// @callgraph
   static void debug_log(const std::string& str, REPORT_LEVEL report_level) {
     if (report_level <= Logger::current_report_level) {
-      std::string content =
-          report_str.at(report_level) + ": " + str + norm + "\n";
+      std::string content = report_str.at(report_level) + ": " + str + norm + "\n";
       *output << content;
     }
   }
   static void debug_log(llvm::Error& err, REPORT_LEVEL report_level) {
     if (bool(err) && report_level <= Logger::current_report_level) {
-      llvm::errs() << report_str.at(report_level) << ": " << err << norm
-                   << "\n";
+      llvm::errs() << report_str.at(report_level) << ": " << err << norm << "\n";
     }
   }
   template <typename T>
-  static void debug_log(llvm::Expected<T>& expected,
-                        REPORT_LEVEL report_level) {
-    if (auto err = expected.takeError() &&
-                   report_level <= Logger::current_report_level) {
-      llvm::errs() << report_str.at(report_level) << ": " << err << norm
-                   << "\n";
+  static void debug_log(llvm::Expected<T>& expected, REPORT_LEVEL report_level) {
+    if (auto err = expected.takeError() && report_level <= Logger::current_report_level) {
+      llvm::errs() << report_str.at(report_level) << ": " << err << norm << "\n";
     }
   }
 
-  inline void setoutput(std::ostream& out) { Logger::output = &out; }
+  inline static void setoutput(std::ostream& out) { Logger::output = &out; }
   static inline REPORT_LEVEL current_report_level = Logger::WARNING;
 
  private:
@@ -182,12 +177,8 @@ class Logger {
   static inline const std::string yellow = "\033[1;33m";
   static inline const std::string norm = "\033[0m";
   static inline const std::map<Logger::REPORT_LEVEL, std::string> report_str = {
-      {FATAL, red + "Fatal"},
-      {ERROR, red + "Error"},
-      {WARNING, yellow + "Warning"},
-      {INFO, green + "Info"},
-      {DEBUG, "Debug"},
-      {TRACE, "Trace"}};
+      {FATAL, red + "Fatal"}, {ERROR, red + "Error"}, {WARNING, yellow + "Warning"},
+      {INFO, green + "Info"}, {DEBUG, "Debug"},       {TRACE, "Trace"}};
 };
 
 }  // namespace mimium

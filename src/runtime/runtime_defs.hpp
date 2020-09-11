@@ -4,7 +4,6 @@
 
 #pragma once
 namespace mimium {
-using DspFnType= double(*)(double,void*,void*);
-
+using DspFnType = double (*)(double, void*, void*);
 
 }

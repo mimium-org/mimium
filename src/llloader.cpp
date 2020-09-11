@@ -4,16 +4,17 @@
 #ifndef MIMIUM_VERSION
 #define MIMIUM_VERSION "unspecified"
 #endif
- 
-#include <unistd.h>
 
+#include <unistd.h>
 #include <csignal>
 #include <fstream>
 #include <string>
+
+#include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IRReader/IRReader.h>
-#include <llvm/IR/LLVMContext.h>
 #include <llvm/Support/SourceMgr.h>
+
 
 #include "basic/helper_functions.hpp"
 // #include "cli_tools.cpp"
@@ -32,7 +33,7 @@ std::function<void(int)> shutdown_handler;
 void signalHandler(int signo) { shutdown_handler(signo); }
 
 auto main(int argc, char** argv) -> int {
-    int returncode = 0;
+  int returncode = 0;
   enum class CompileStage : int {
     AST = 0,
     AST_UNIQUENAME,
@@ -43,9 +44,9 @@ auto main(int argc, char** argv) -> int {
     EXECUTE
   };
   cl::OptionCategory general_category("General Options", "");
-  cl::opt<std::string> input_filename(cl::Positional, cl::desc("<input file>"),
-                                      cl::init("-"), cl::cat(general_category));
-     
+  cl::opt<std::string> input_filename(cl::Positional, cl::desc("<input file>"), cl::init("-"),
+                                      cl::cat(general_category));
+
   cl::ResetAllOptionOccurrences();
 
   cl::HideUnrelatedOptions(general_category);
@@ -60,41 +61,37 @@ auto main(int argc, char** argv) -> int {
   std::ifstream input(input_filename.c_str());
   signal(SIGINT, signalHandler);
   Logger::current_report_level = Logger::INFO;
-    auto runtime = std::make_shared<mimium::Runtime_LLVM>();
-//   auto compiler = std::make_unique<mimium::Compiler>(runtime->getLLVMContext());
+  auto runtime = std::make_shared<mimium::Runtime_LLVM>();
+  //   auto compiler = std::make_unique<mimium::Compiler>(runtime->getLLVMContext());
   shutdown_handler = [&runtime](int /*signal*/) {
-    if (runtime->isrunning()) {
-      runtime->stop();
-    }
+    if (runtime->isrunning()) { runtime->stop(); }
     std::cerr << "Interuppted by key" << std::endl;
     exit(0);
   };
   runtime->addScheduler();
   global_sch = runtime->getScheduler().get();
-  runtime->addAudioDriver(
-      std::make_shared<mimium::AudioDriverRtAudio>(runtime->getScheduler()));
+  runtime->addAudioDriver(std::make_shared<mimium::AudioDriverRtAudio>(runtime->getScheduler()));
 
-llvm::SMDiagnostic errorreporter;
-  if (!input.good()) {  
-    Logger::debug_log("Specify file name, repl mode is not implemented yet",Logger::ERROR);
-// filename is empty:enter repl mode
+  llvm::SMDiagnostic errorreporter;
+  if (!input.good()) {
+    Logger::debug_log("Specify file name, repl mode is not implemented yet", Logger::ERROR);
+    // filename is empty:enter repl mode
   } else {  // try to parse and exec input file
     try {
       std::string filename = input_filename.c_str();
-                    Logger::debug_log("Opening " + filename, Logger::INFO);
+      Logger::debug_log("Opening " + filename, Logger::INFO);
 
-    auto m = llvm::parseIRFile(filename, errorreporter, runtime->getLLVMContext()) ;
-        runtime->executeModule(std::move(m));
-        runtime->start();//start() blocks thread until scheduler stops
-        returncode = 0;
-
+      auto m = llvm::parseIRFile(filename, errorreporter, runtime->getLLVMContext());
+      runtime->executeModule(std::move(m));
+      runtime->start();  // start() blocks thread until scheduler stops
+      returncode = 0;
 
     } catch (std::exception& e) {
       mimium::Logger::debug_log(e.what(), mimium::Logger::ERROR);
       runtime->stop();
-      returncode=1;
+      returncode = 1;
     }
-  } 
+  }
   llvm::errs() << "return code: " << returncode << "\n";
   return returncode;
 }

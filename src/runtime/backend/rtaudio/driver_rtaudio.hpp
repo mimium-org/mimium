@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
+#include "RtAudio.h"
 #include "runtime/backend/audiodriver.hpp"
 #include "runtime/scheduler/scheduler.hpp"
-#include "RtAudio.h"
 
 namespace mimium {
 class Scheduler;
@@ -25,7 +25,7 @@ class AudioDriverRtAudio : public AudioDriver {
  public:
   explicit AudioDriverRtAudio(std::shared_ptr<Scheduler> sch, unsigned int sr = 48000,
                               unsigned int bs = 256, unsigned int chs = 2);
-  ~AudioDriverRtAudio()override = default;
+  ~AudioDriverRtAudio() override = default;
   bool start() override;
   bool stop() override;
   static RtAudioCallback callback;

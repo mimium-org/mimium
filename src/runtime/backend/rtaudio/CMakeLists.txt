@@ -1,12 +1,12 @@
 
 
 # ----start rtaudio config
-message(STATUS "Subproject: Rtaudio...")
+message(STATUS "Subproject: Rtaudio...${CMAKE_CXX_COMPILER}")
 
 configure_file(
 	${CMAKE_CURRENT_SOURCE_DIR}/rtaudio.CMakeLists.txt
   ${CMAKE_BINARY_DIR}/rtaudio-download/CMakeLists.txt)
-execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
+execute_process(COMMAND ${CMAKE_COMMAND} . "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
   RESULT_VARIABLE result
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/rtaudio-download)
 if(result)
@@ -40,12 +40,13 @@ target_compile_options(mimium_backend_rtaudio PRIVATE
 -std=c++17)
 
 target_compile_definitions(mimium_backend_rtaudio PRIVATE
-	)
-
+  )
+  
+  llvm_map_components_to_libnames(llvmrtaudio support)
 target_link_libraries(mimium_backend_rtaudio PUBLIC 
 RtAudio::rtaudio
 mimium_scheduler
-${RTAUDIO_INTERFACE_LIBS}
+${llvmrtaudio}
 )
 install( TARGETS mimium_backend_rtaudio DESTINATION lib)
 

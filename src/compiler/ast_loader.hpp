@@ -10,15 +10,13 @@
 #define DEBUG_LEVEL 0
 #endif
 
+#include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <filesystem>
 
 #include "basic/ast.hpp"
 #include "compiler/scanner.hpp"
 #include "mimium_parser.hpp"
-
-
 
 namespace mimium {
 
@@ -31,6 +29,7 @@ class Driver {
   AstPtr parseString(const std::string& source);
   AstPtr parseFile(const std::string& filename);
   void setTopAst(AstPtr top);
+
  private:
   AstPtr ast_top;
   std::unique_ptr<MimiumParser> parser = nullptr;

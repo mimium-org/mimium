@@ -28,7 +28,8 @@ struct ToStringVisitor {
 };
 struct StatementStringVisitor;
 struct ExprStringVisitor : public ToStringVisitor, public VisitorBase<void> {
-  explicit ExprStringVisitor(std::ostream& output, StatementStringVisitor& parent,Mode mode = Mode::Lisp);
+  explicit ExprStringVisitor(std::ostream& output, StatementStringVisitor& parent,
+                             Mode mode = Mode::Lisp);
   void operator()(const ast::Number& ast);
   void operator()(const ast::String& ast);
   void operator()(const ast::Op& ast);
@@ -50,19 +51,16 @@ struct ExprStringVisitor : public ToStringVisitor, public VisitorBase<void> {
   StatementStringVisitor& statementstringvisitor;
 };
 
-struct StatementStringVisitor : public ToStringVisitor,
-                                public VisitorBase<void> {
+struct StatementStringVisitor : public ToStringVisitor, public VisitorBase<void> {
   explicit StatementStringVisitor(std::ostream& output, Mode mode = Mode::Lisp);
   ExprStringVisitor exprstringvisitor;
-  void toString(const ast::ExprPtr expr){
-    std::visit(exprstringvisitor,*expr);
-  }
+  void toString(const ast::ExprPtr expr) { std::visit(exprstringvisitor, *expr); }
   void operator()(const ast::Assign& ast);
   void operator()(const ast::Return& ast);
 
   void operator()(const ast::Fdef& ast);
   void operator()(const ast::If& ast);
- 
+
   // void operator()(const ast::Declaration& ast);
   void operator()(const ast::Time& ast);
   void operator()(const ast::Fcall& ast);
@@ -80,9 +78,7 @@ inline std::string joinVec(const CONTAINER& vec, const std::string& delim) {
   std::ostringstream stream;
   if (vec.size() > 0) {
     for (auto& elem : vec) {
-      if (&elem != &vec[0]) {
-        stream << delim;
-      }
+      if (&elem != &vec[0]) { stream << delim; }
       if constexpr (std::is_pointer<decltype(elem)>::value ||
                     is_smart_pointer<decltype(elem)>::value) {
         stream << *elem;
@@ -96,7 +92,7 @@ inline std::string joinVec(const CONTAINER& vec, const std::string& delim) {
 
 namespace ast {
 
-inline std::ostream& operator<<(std::ostream& os, const ast::Lvar& lvar){
+inline std::ostream& operator<<(std::ostream& os, const ast::Lvar& lvar) {
   StatementStringVisitor evisitor(os);
   auto& format = evisitor.format;
   os << format.lpar << "lvar" << format.delim << lvar.value << format.delim;
@@ -108,29 +104,26 @@ inline std::ostream& operator<<(std::ostream& os, const ast::Lvar& lvar){
   os << format.rpar;
   return os;
 }
-inline std::ostream& operator<<(std::ostream& os, const ast::Expr& expr){
+inline std::ostream& operator<<(std::ostream& os, const ast::Expr& expr) {
   StatementStringVisitor stmtvisitor(os, Mode::Lisp);
   std::visit(ExprStringVisitor(os, stmtvisitor, Mode::Lisp), expr);
   return os;
 }
 template <typename T>
-inline std::ostream& operator<<(std::ostream& os,
-                                const std::shared_ptr<T> expr) {
+inline std::ostream& operator<<(std::ostream& os, const std::shared_ptr<T> expr) {
   os << *expr;
   return os;
 }
 
 // inline std::ostream& operator<<(std::ostream& os,
 //                                 const ast::Statement& statement);
-inline std::ostream& toString(std::ostream& os,
-                              const ast::Statement& statement){
+inline std::ostream& toString(std::ostream& os, const ast::Statement& statement) {
   StatementStringVisitor svisitor(os, Mode::Lisp);
   std::visit(svisitor, statement);
   return os;
 }
 
-inline std::ostream& toString(std::ostream& os,
-                              ast::Statements const& statements) {
+inline std::ostream& toString(std::ostream& os, ast::Statements const& statements) {
   StatementStringVisitor svisitor(os, Mode::Lisp);
   for (const auto& statement : statements) {
     std::visit(svisitor, *statement);
@@ -139,8 +132,7 @@ inline std::ostream& toString(std::ostream& os,
   os << std::flush;
   return os;
 }
-inline std::ostream& operator<<(std::ostream& os,
-                                const ast::Statements& statements){
+inline std::ostream& operator<<(std::ostream& os, const ast::Statements& statements) {
   return toString(os, statements);
 }
 }  // namespace ast

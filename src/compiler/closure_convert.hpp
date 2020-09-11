@@ -32,12 +32,8 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
 
   void moveFunToTop(mir::blockptr mir);
   bool isKnownFunction(const std::string& name);
-  std::string makeCaptureName() {
-    return "Capture." + std::to_string(capturecount++);
-  }
-  std::string makeClosureTypeName() {
-    return "Closure." + std::to_string(closurecount++);
-  }
+  std::string makeCaptureName() { return "Capture." + std::to_string(capturecount++); }
+  std::string makeClosureTypeName() { return "Closure." + std::to_string(closurecount++); }
 
   struct CCVisitor {
     explicit CCVisitor(ClosureConverter& cc, std::vector<std::string>& fvlist,
@@ -74,7 +70,8 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
 
    private:
     static void visitinsts(mir::FunInst& i, CCVisitor& ccvis,
-                    std::list<mir::Instructions>::iterator pos);
+                           std::list<mir::Instructions>::iterator pos);
+    mir::MakeClosureInst createClosureInst(types::Function ftype, types::Alias fvtype, std::string& lv_name);
   };
   friend struct CCVisitor;
 };

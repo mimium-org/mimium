@@ -32,6 +32,6 @@ ${MIMIUM_SOURCE_DIR}
 )
 target_compile_options(mimium_compiler PUBLIC -std=c++17)
 
-target_link_libraries(mimium_compiler PRIVATE mimium_parser mimium_llvm_codegen mimium_utils mimium_builtinfn)
+target_link_libraries(mimium_compiler PUBLIC mimium_parser mimium_llvm_codegen mimium_utils mimium_builtinfn)
 
 install(TARGETS mimium_compiler mimium_builtinfn DESTINATION lib)

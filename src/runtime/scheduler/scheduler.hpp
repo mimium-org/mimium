@@ -17,7 +17,7 @@
 namespace mimium {
 struct TaskType {
   void* addresstofn;
-  //int64_t tasktypeid;
+  // int64_t tasktypeid;
   double arg;
   void* addresstocls;
 };
@@ -27,11 +27,10 @@ using LLVMRuntime = Runtime<TaskType>;
 
 class Scheduler {  // scheduler interface
  public:
-  explicit Scheduler(std::shared_ptr<LLVMRuntime> runtime_i,
-                     WaitController& waitc)
+  explicit Scheduler(std::shared_ptr<LLVMRuntime> runtime_i, WaitController& waitc)
       : waitc(waitc), runtime(std::move(runtime_i)), time(0) {}
 
-  virtual ~Scheduler()=default;
+  virtual ~Scheduler() = default;
   virtual void start();
   virtual void stop();
   void haltRuntime();
@@ -48,7 +47,6 @@ class Scheduler {  // scheduler interface
   virtual void setDsp_ClsAddress(void* address);
   virtual void setDsp_MemobjAddress(void* address);
 
-
   bool isactive = true;
   LLVMRuntime& getRuntime() { return *runtime; };
   auto getTime() { return time; };
@@ -63,12 +61,9 @@ class Scheduler {  // scheduler interface
   using key_type = std::pair<int64_t, TaskType>;
   struct Greater {
     bool operator()(const key_type& l, const key_type& r) const;
-
-
   };
 
-  using queue_type =
-      std::priority_queue<key_type, std::vector<key_type>, Greater>;
+  using queue_type = std::priority_queue<key_type, std::vector<key_type>, Greater>;
   int64_t time;
   queue_type tasks;
   virtual void executeTask(const TaskType& task);

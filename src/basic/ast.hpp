@@ -42,10 +42,8 @@ struct Time;
 struct If;
 struct Block;
 using Expr =
-    std::variant<Op, Number, String, Rvar, Self, Rec_Wrap<Lambda>,
-                 Rec_Wrap<Fcall>, Rec_Wrap<If>, Rec_Wrap<Struct>,
-                 Rec_Wrap<StructAccess>, Rec_Wrap<ArrayInit>,
-                 Rec_Wrap<ArrayAccess>, Rec_Wrap<Tuple>, Rec_Wrap<Block>>;
+    std::variant<Op, Number, String, Rvar, Self, Box<Lambda>, Box<Fcall>, Box<If>, Box<Struct>,
+                 Box<StructAccess>, Box<ArrayInit>, Box<ArrayAccess>, Box<Tuple>, Box<Block>>;
 using ExprPtr = std::shared_ptr<Expr>;
 
 struct Assign;
@@ -55,9 +53,8 @@ struct Return;
 struct Declaration;
 struct For;
 
-using Statement =
-    std::variant<Assign, Return, Fdef, Time, Fcall,Rec_Wrap<If>, /* Declaration, */
-                 Rec_Wrap<For>>;
+using Statement = std::variant<Assign, Return, Fdef, Time, Fcall, Box<If>, /* Declaration, */
+                               Box<For>>;
 using Statements = std::deque<std::shared_ptr<Statement>>;
 
 enum class OpId {
@@ -83,30 +80,29 @@ enum class OpId {
   RShift
 };
 
-inline const std::map<OpId, std::string_view> op_str = {
-    {OpId::Add, "Add"},
-    {OpId::Sub, "Sub"},
-    {OpId::Mul, "Mul"},
-    {OpId::Div, "Div"},
-    {OpId::Mod, "Mod"},
-    {OpId::Exponent, "Exponent"},
-    {OpId::Equal, "Equal"},
-    {OpId::NotEq, "NotEq"},
-    {OpId::LessEq, "LessEq"},
-    {OpId::GreaterEq, "GreaterEq"},
-    {OpId::LessThan, "LessThan"},
-    {OpId::GreaterThan, "GreaterThan"},
-    {OpId::And, "And"},
-    {OpId::BitAnd, "BitAnd"},
-    {OpId::Or, "Or"},
-    {OpId::BitOr, "BitOr"},
-    {OpId::Xor, "Xor"},
-    {OpId::Not, "Not"},
-    {OpId::LShift, "LShift"},
-    {OpId::RShift, "RShift"}};
+inline const std::map<OpId, std::string_view> op_str = {{OpId::Add, "Add"},
+                                                        {OpId::Sub, "Sub"},
+                                                        {OpId::Mul, "Mul"},
+                                                        {OpId::Div, "Div"},
+                                                        {OpId::Mod, "Mod"},
+                                                        {OpId::Exponent, "Exponent"},
+                                                        {OpId::Equal, "Equal"},
+                                                        {OpId::NotEq, "NotEq"},
+                                                        {OpId::LessEq, "LessEq"},
+                                                        {OpId::GreaterEq, "GreaterEq"},
+                                                        {OpId::LessThan, "LessThan"},
+                                                        {OpId::GreaterThan, "GreaterThan"},
+                                                        {OpId::And, "And"},
+                                                        {OpId::BitAnd, "BitAnd"},
+                                                        {OpId::Or, "Or"},
+                                                        {OpId::BitOr, "BitOr"},
+                                                        {OpId::Xor, "Xor"},
+                                                        {OpId::Not, "Not"},
+                                                        {OpId::LShift, "LShift"},
+                                                        {OpId::RShift, "RShift"}};
 
 struct Pos {
-  int line=1;
+  int line = 1;
   int col;
 };
 struct SourceLoc {
@@ -115,8 +111,7 @@ struct SourceLoc {
 };
 
 inline std::ostream& operator<<(std::ostream& os, const SourceLoc& loc) {
-  os << loc.begin.line << ":" << loc.begin.col << " ~ " << loc.end.line << ":"
-     << loc.end.col;
+  os << loc.begin.line << ":" << loc.begin.col << " ~ " << loc.end.line << ":" << loc.end.col;
   return os;
 }
 
@@ -240,9 +235,6 @@ struct For : public Base {
   Block statements;
 };
 
-
-
-
 struct If : public Base {
   ExprPtr cond;
   ExprPtr then_stmts;
@@ -256,13 +248,12 @@ std::shared_ptr<TO> makeAst(FROM&& ast) {
 
 template <typename FROM>
 auto makeExpr(FROM&& ast) {
-  ast::Expr expr = ast;
+  ast::Expr expr = std::move(ast);
   return std::make_shared<ast::Expr>(std::move(expr));
 }
 template <typename FROM>
 auto makeStatement(FROM&& ast) {
-  ast::Statement stmt = ast;
-  return std::make_shared<ast::Statement>(std::move(stmt));
+  return std::make_shared<ast::Statement>(ast);
 }
 
 }  // namespace ast

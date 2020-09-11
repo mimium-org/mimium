@@ -14,7 +14,7 @@ struct TypeConverter {
   llvm::Module& module;
   std::string tmpname;
   std::unordered_map<std::string, llvm::Type*> aliasmap;
-  static void error() { throw std::logic_error("Invalid Type"); }
+  static void error() { throw std::runtime_error("Invalid Type"); }
 
   llvm::Type* operator()(types::None& i);
   llvm::Type* operator()(types::TypeVar& i);
@@ -31,8 +31,8 @@ struct TypeConverter {
   llvm::Type* operator()(types::Alias& i);
 
  private:
-  [[nodiscard]]std::string consumeAlias();
-  [[nodiscard]]llvm::Type* tryGetNamedType(std::string& name)const;
+  [[nodiscard]] std::string consumeAlias();
+  [[nodiscard]] llvm::Type* tryGetNamedType(std::string& name) const;
 };
 
 }  // namespace mimium

@@ -48,7 +48,8 @@ std::string toString(RefInst& i);
 struct AssignInst : public instruction {
   std::string val;
 
-types::Value type = types::None();};
+  types::Value type = types::None();
+};
 std::string toString(AssignInst& i);
 
 struct OpInst : public instruction {
@@ -111,9 +112,8 @@ struct ReturnInst : public instruction {
 };
 std::string toString(ReturnInst& i);
 using Instructions =
-    std::variant<NumberInst, StringInst, AllocaInst, RefInst, AssignInst,
-                 OpInst, FunInst, FcallInst, MakeClosureInst, ArrayInst,
-                 ArrayAccessInst, IfInst, ReturnInst>;
+    std::variant<NumberInst, StringInst, AllocaInst, RefInst, AssignInst, OpInst, FunInst,
+                 FcallInst, MakeClosureInst, ArrayInst, ArrayAccessInst, IfInst, ReturnInst>;
 
 inline std::string toString(Instructions& inst) {
   return std::visit([](auto& i) -> std::string { return toString(i); }, inst);
@@ -140,9 +140,7 @@ inline Instructions& addInstToBlock(Instructions&& inst, blockptr block) {
   return block->instructions.emplace_back(std::move(inst));
 }
 
-inline void addIndentToBlock(blockptr block, int level = 0) {
-  block->indent_level += level;
-}
+inline void addIndentToBlock(blockptr block, int level = 0) { block->indent_level += level; }
 
 }  // namespace mir
 }  // namespace mimium

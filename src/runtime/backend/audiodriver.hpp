@@ -24,15 +24,9 @@ class AudioDriver {
   explicit AudioDriver(std::shared_ptr<Scheduler> sch, unsigned int sr, unsigned int bs,
                        unsigned int chs)
       : sample_rate(sr), buffer_size(bs), channels(chs), sch(sch){};
-  void setDspFn(DspFnType fn) {
-    dspfn = fn;
-  }
-  void setDspClsAddress(void* address){
-      dspfn_cls_address = address;
-  }
-  void setDspMemObjAddress(void* address){
-      dspfn_memobj_address = address;
-  }
+  void setDspFn(DspFnType fn) { dspfn = fn; }
+  void setDspClsAddress(void* address) { dspfn_cls_address = address; }
+  void setDspMemObjAddress(void* address) { dspfn_memobj_address = address; }
   virtual ~AudioDriver() = default;
 
   virtual bool start() = 0;

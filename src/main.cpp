@@ -39,14 +39,13 @@ auto main(int argc, char** argv) -> int {
   };
   int returncode = 0;
   cl::OptionCategory general_category("General Options", "");
-  cl::opt<std::string> input_filename(cl::Positional, cl::desc("<input file>"),
-                                      cl::init("-"), cl::cat(general_category));
+  cl::opt<std::string> input_filename(cl::Positional, cl::desc("<input file>"), cl::init("-"),
+                                      cl::cat(general_category));
 
   cl::opt<CompileStage> compile_stage(
       cl::desc("Printing Debug Infomations"),
       cl::values(
-          clEnumValN(CompileStage::AST, "emit-ast",
-                     "Emit raw abstarct syntax tree to stdout"),
+          clEnumValN(CompileStage::AST, "emit-ast", "Emit raw abstarct syntax tree to stdout"),
           clEnumValN(CompileStage::AST_UNIQUENAME, "emit-ast-u",
                      "Emit AST with unique symbol names to stdout"),
           clEnumValN(CompileStage::TYPEINFOS, "emit-types",
@@ -55,8 +54,7 @@ auto main(int argc, char** argv) -> int {
           clEnumValN(CompileStage::MIR_CC, "emit-mir-cc",
                      "emit MIR after closure convertsion to stdout"),
 
-          clEnumValN(CompileStage::LLVMIR, "emit-llvm",
-                     "emit LLVM IR to stdout")),
+          clEnumValN(CompileStage::LLVMIR, "emit-llvm", "emit LLVM IR to stdout")),
       cl::cat(general_category));
   compile_stage.setInitialValue(CompileStage::EXECUTE);
 
@@ -69,10 +67,9 @@ auto main(int argc, char** argv) -> int {
     out << "\n";
   });
   cl::HideUnrelatedOptions(general_category);
-  cl::ParseCommandLineOptions(
-      argc, argv,
-      "mimium - MInimal Musical medIUM, a programming language as an "
-      "infrastructure for sound and music\n");  // launch cli helper
+  cl::ParseCommandLineOptions(argc, argv,
+                              "mimium - MInimal Musical medIUM, a programming language as an "
+                              "infrastructure for sound and music\n");  // launch cli helper
 
   std::ifstream input(input_filename.c_str());
   signal(SIGINT, signalHandler);
@@ -80,21 +77,17 @@ auto main(int argc, char** argv) -> int {
   auto runtime = std::make_shared<mimium::Runtime_LLVM>();
   auto compiler = std::make_unique<mimium::Compiler>(runtime->getLLVMContext());
   shutdown_handler = [&runtime](int /*signal*/) {
-    if (runtime->isrunning()) {
-      runtime->stop();
-    }
+    if (runtime->isrunning()) { runtime->stop(); }
     std::cerr << "Interuppted by key" << std::endl;
     exit(0);
   };
 
   runtime->addScheduler();
   global_sch = runtime->getScheduler().get();
-  runtime->addAudioDriver(
-      std::make_shared<mimium::AudioDriverRtAudio>(runtime->getScheduler()));
+  runtime->addAudioDriver(std::make_shared<mimium::AudioDriverRtAudio>(runtime->getScheduler()));
 
   if (!input.good()) {
-    Logger::debug_log("Specify file name, repl mode is not implemented yet",
-                      Logger::ERROR);
+    Logger::debug_log("Specify file name, repl mode is not implemented yet", Logger::ERROR);
     // filename is empty:enter repl mode
   } else {  // try to parse and exec input file
     try {
@@ -141,7 +134,7 @@ auto main(int argc, char** argv) -> int {
         returncode = 0;
         break;
       } while (false);
-
+      if (runtime->isrunning()) { runtime->stop(); }
     } catch (std::exception& e) {
       mimium::Logger::debug_log(e.what(), mimium::Logger::ERROR);
       runtime->stop();

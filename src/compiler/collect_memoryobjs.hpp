@@ -10,12 +10,8 @@ class MemoryObjsCollector {
  public:
   explicit MemoryObjsCollector(TypeEnv& typeenv);
   mir::blockptr process(mir::blockptr toplevel);
-  bool hasMemObj(const std::string& fname) {
-    return getAliasFromMap(fname).has_value();
-  };
-  auto getMemObjType(const std::string& fname) {
-    return getAliasFromMap(fname).value();
-  };
+  bool hasMemObj(const std::string& fname) { return getAliasFromMap(fname).has_value(); };
+  auto getMemObjType(const std::string& fname) { return getAliasFromMap(fname).value(); };
   auto& getMemObjNames(const std::string& fname) { return memobjs_map[fname]; };
 
   void dump();
@@ -49,16 +45,17 @@ class MemoryObjsCollector {
     void operator()(mir::ArrayAccessInst& i);
     void operator()(mir::IfInst& i);
     void operator()(mir::ReturnInst& i);
-    template<typename T>
-    void operator()(T& /*i*/){
-      if constexpr(std::is_base_of_v<mir::instruction, std::decay_t<T>>){
+    template <typename T>
+    void operator()(T& /*i*/) {
+      if constexpr (std::is_base_of_v<mir::instruction, std::decay_t<T>>) {
         // do nothing
-      }else{
+      } else {
         static_assert(true, "mir instruction unreachable");
       }
     }
+
    private:
-    void insertAllocaInst(mir::FunInst& i, types::Alias& type)const;
+    void insertAllocaInst(mir::FunInst& i, types::Alias& type) const;
     std::string cur_fun;
   } cm_visitor;
 };

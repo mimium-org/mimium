@@ -43,9 +43,7 @@ class SymbolRenamer {
     ast::ExprPtr operator()(ast::If& ast);
 
     ast::ExprPtr operator()(ast::Block& ast);
-    ast::ExprPtr rename(ast::ExprPtr ast) {
-      return std::visit(*this, *ast);
-    }
+    ast::ExprPtr rename(ast::ExprPtr ast) { return std::visit(*this, *ast); }
   };
   struct StatementRenameVisitor : public VisitorBase<StatementPtr> {
     explicit StatementRenameVisitor(SymbolRenamer& parent) : renamer(parent){};
@@ -57,24 +55,19 @@ class SymbolRenamer {
     // StatementPtr operator()(ast::Declaration& ast);
     StatementPtr operator()(ast::Time& ast);
     StatementPtr operator()(ast::Fcall& ast);
-      StatementPtr operator()(ast::If& ast);
+    StatementPtr operator()(ast::If& ast);
     StatementPtr operator()(ast::For& ast);
-    
-    StatementPtr rename(StatementPtr ast) {
-      return std::visit(*this, *ast);
-    }
+
+    StatementPtr rename(StatementPtr ast) { return std::visit(*this, *ast); }
   };
-  StatementPtr renameStatement(StatementPtr stmt){
-    return statement_renamevisitor.rename(stmt);
-  }
-  ast::ExprPtr renameExpr(ast::ExprPtr expr){
-    return expr_renamevisitor.rename(expr);
-  }
+  StatementPtr renameStatement(StatementPtr stmt) { return statement_renamevisitor.rename(stmt); }
+  ast::ExprPtr renameExpr(ast::ExprPtr expr) { return expr_renamevisitor.rename(expr); }
   ast::FcallArgs renameFcallArgs(ast::FcallArgs& ast);
 
   ast::Fcall renameFcall(ast::Fcall& ast);
   ast::If renameIf(ast::If& ast);
   ast::Block renameBlock(ast::Block& ast);
+
  private:
   ExprRenameVisitor expr_renamevisitor{*this};
   StatementRenameVisitor statement_renamevisitor{*this};

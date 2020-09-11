@@ -7,10 +7,13 @@
 extern "C" {
 mimium::Scheduler* global_sch;
 
-double mimium_getnow(){
-  return global_sch->getTime();
+double mimium_getnow() { return global_sch->getTime(); }
+void* mimium_malloc(size_t size){
+  void* address = malloc(size);
+  global_sch->getRuntime().push_malloc(address,size);
+  return address;
 }
-void setDspParams(void* dspfn,void* clsaddress, void* memobjaddress){
+void setDspParams(void* dspfn, void* clsaddress, void* memobjaddress) {
   global_sch->setDsp(reinterpret_cast<mimium::DspFnType>(dspfn));
   global_sch->setDsp_ClsAddress(clsaddress);
   global_sch->setDsp_MemobjAddress(memobjaddress);
@@ -19,16 +22,15 @@ void setDspParams(void* dspfn,void* clsaddress, void* memobjaddress){
 void addTask(double time, void* addresstofn, double arg) {
   global_sch->addTask(time, addresstofn, arg, nullptr);
 }
-void addTask_cls(double time, void* addresstofn, double arg,
-                 void* addresstocls) {
+void addTask_cls(double time, void* addresstofn, double arg, void* addresstocls) {
   global_sch->addTask(time, addresstofn, arg, addresstocls);
 }
 }
 
 namespace mimium {
 
-bool Scheduler::Greater::operator()(const key_type &l, const key_type &r)const{
-      return l.first > r.first;
+bool Scheduler::Greater::operator()(const key_type& l, const key_type& r) const {
+  return l.first > r.first;
 }
 
 bool Scheduler::incrementTime() {
@@ -38,16 +40,12 @@ bool Scheduler::incrementTime() {
     res = true;
   } else {
     time += 1;
-    if (hastask && time > tasks.top().first) {
-      executeTask(tasks.top().second);
-    }
+    if (hastask && time > tasks.top().first) { executeTask(tasks.top().second); }
   }
   return res;
 };
-void Scheduler::addTask(double time, void* addresstofn, double arg,
-                        void* addresstocls) {
-  tasks.emplace(static_cast<int64_t>(time),
-                TaskType{addresstofn, arg, addresstocls});
+void Scheduler::addTask(double time, void* addresstofn, double arg, void* addresstocls) {
+  tasks.emplace(static_cast<int64_t>(time), TaskType{addresstofn, arg, addresstocls});
 }
 
 void Scheduler::executeTask(const TaskType& task) {
@@ -65,12 +63,10 @@ void Scheduler::executeTask(const TaskType& task) {
   if (tasks.empty() && !runtime->hasDsp()) {
     stop();
   } else {
-    if (time > tasks.top().first) {
-      this->executeTask(tasks.top().second);
-    }
+    if (time > tasks.top().first) { this->executeTask(tasks.top().second); }
   }
 }
-void Scheduler::haltRuntime(){
+void Scheduler::haltRuntime() {
   isactive = false;
   {
     std::lock_guard<std::mutex> lock(waitc.mtx);
@@ -79,16 +75,13 @@ void Scheduler::haltRuntime(){
   waitc.cv.notify_all();  // notify to exit runtime;
 }
 
-void Scheduler::addAudioDriver(std::shared_ptr<AudioDriver> a){
-  this->audio = a;
-}
-
+void Scheduler::addAudioDriver(std::shared_ptr<AudioDriver> a) { this->audio = a; }
 
 void Scheduler::start() { audio->start(); }
 
 void Scheduler::stop() {
   audio->stop();
-  //cannnot call haltRuntime()???
+  // cannnot call haltRuntime()???
   isactive = false;
   {
     std::lock_guard<std::mutex> lock(waitc.mtx);
@@ -96,15 +89,9 @@ void Scheduler::stop() {
   }
   waitc.cv.notify_all();  // notify to exit runtime;
 }
-void Scheduler::setDsp(DspFnType fn){
-    audio->setDspFn(fn);
-  }
-void Scheduler::setDsp_ClsAddress(void* address){
-  audio->setDspClsAddress(address);
-}
-void Scheduler::setDsp_MemobjAddress(void* address){
-  audio->setDspMemObjAddress(address);
-}
+void Scheduler::setDsp(DspFnType fn) { audio->setDspFn(fn); }
+void Scheduler::setDsp_ClsAddress(void* address) { audio->setDspClsAddress(address); }
+void Scheduler::setDsp_MemobjAddress(void* address) { audio->setDspMemObjAddress(address); }
 // SchedulerSndFile::SchedulerSndFile(
 //     std::shared_ptr<LLVMRuntime> runtime_i, WaitController& waitc)
 //     : Scheduler(runtime_i, waitc) {
