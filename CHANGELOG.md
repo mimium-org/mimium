@@ -13,12 +13,6 @@
 - memory allocations on user-code are freed on a destructor call of runtime.
     - heap allocations by user-code was not freed in previous versions but it's not a serious problem because a program itself are exited when a destructor of runtime is called. This improvement makes sense mostly for a fuzzing test that iterates compilations many times in same process. 
 
-```rust
-// mathmatical operators have higher precedence than if or else!
-myvar = if(cond) 100+20 else 200*50
-```
-
-
 ## v0.1.3 (2020-09-09)
 
 ### fixed bugs
