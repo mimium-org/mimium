@@ -4,7 +4,15 @@
 
 #include "compiler/compiler.hpp"
 namespace mimium {
-Compiler::Compiler() : Compiler(*std::make_shared<llvm::LLVMContext>()) {}
+Compiler::Compiler()
+    : llvmctx(std::make_shared<llvm::LLVMContext>()),
+      driver(),
+      symbolrenamer(std::make_shared<RenameEnvironment>()),
+      typeinferer(),
+      mirgenerator(typeinferer.getTypeEnv()),
+      closureconverter(std::make_shared<ClosureConverter>(typeinferer.getTypeEnv())),
+      memobjcollector(typeinferer.getTypeEnv()),
+      llvmgenerator(*llvmctx, typeinferer.getTypeEnv(), *closureconverter, memobjcollector) {}
 Compiler::Compiler(llvm::LLVMContext& ctx)
     : driver(),
       symbolrenamer(std::make_shared<RenameEnvironment>()),

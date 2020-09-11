@@ -46,6 +46,7 @@ class Compiler {
   MirGenerator mirgenerator;
   std::shared_ptr<ClosureConverter> closureconverter;
   MemoryObjsCollector memobjcollector;
+  std::shared_ptr<llvm::LLVMContext> llvmctx;
   LLVMGenerator llvmgenerator;
   std::string path;
 };

@@ -12,7 +12,18 @@ AstPtr Driver::parse(std::istream& is) {
   scanner = std::make_unique<mmmpsr::MimiumScanner>(is);
   parser = std::make_unique<MimiumParser>(*scanner, *this);
   parser->set_debug_level(DEBUG_LEVEL);  // debug
-  int res = parser->parse();
+  int res=0;
+  try{
+    res = parser->parse();
+  }catch(std::exception& e){
+    throw std::runtime_error(e.what());
+  }catch(...){
+    throw std::runtime_error("undefined parse error");;
+  }
+  if(res>0){
+    throw std::runtime_error("parse error.");
+    ast_top = std::make_shared<ast::Statements>();
+  }
   return ast_top;
 }
 

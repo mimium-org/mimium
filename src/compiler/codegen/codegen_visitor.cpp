@@ -298,7 +298,7 @@ void CodeGenVisitor::operator()(mir::FcallInst& i) {
 llvm::Value* CodeGenVisitor::getDirFun(mir::FcallInst& i) {
   auto* fun = G.module->getFunction(i.fname);
   fun->setLinkage(llvm::GlobalValue::InternalLinkage);
-  if (fun == nullptr) { throw std::logic_error("function could not be referenced"); }
+  if (fun == nullptr) { throw std::runtime_error("function could not be referenced"); }
   return fun;
 }
 llvm::Value* CodeGenVisitor::getClsFun(mir::FcallInst& i) { return getDirFun(i); }

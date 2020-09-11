@@ -263,7 +263,7 @@ class TypeEnv {
   types::Value& find(std::string key) {
     auto* res = tryFind(key);
     if (res == nullptr) {
-      throw std::logic_error("Could not find type for variable \"" + key + "\"");
+      throw std::runtime_error("Could not find type for variable \"" + key + "\"");
     }
     return *res;
   }

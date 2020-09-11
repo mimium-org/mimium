@@ -28,6 +28,10 @@ class MimiumScanner : public yyFlexLexer {
   using FlexLexer::yylex;
 
   virtual int yylex(MimiumParser::semantic_type* lval, MimiumParser::location_type* location);
+  void LexerError(const char* msg)override{
+    throw std::runtime_error(msg);
+  }
+
   // YY_DECL defined in mc_lexer.l
   // Method body created by flex in mc_lexer.yy.cc
  private:

@@ -73,10 +73,10 @@ types::Value ExprTypeVisitor::operator()(ast::StructAccess& ast) {
 types::Value ExprTypeVisitor::operator()(ast::ArrayInit& ast) {
   std::vector<types::Value> argtypes;
   types::Value tmptype;
-  for (auto a = ast.args.begin(); a != (--ast.args.end()); ++a) {
-    tmptype = inferer.unify(std::visit(*this, **a), std::visit(*this, **(++a)));
-  }
-  return types::Array{tmptype};
+  types::Value atype=  std::accumulate(ast.args.begin(),ast.args.end(),types::Value(*inferer.typeenv.createNewTypeVar()),[&](types::Value v,ast::ExprPtr e){
+    return inferer.unify(v, std::visit(*this,*e));
+  });
+  return types::Array{std::move(atype),static_cast<int>(ast.args.size())};
 }
 types::Value ExprTypeVisitor::operator()(ast::ArrayAccess& ast) {
   auto indextype = inferer.unify(std::visit(*this, *ast.index), types::Value(types::Float{}));

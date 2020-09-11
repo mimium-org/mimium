@@ -11,7 +11,7 @@ llvm::Type* TypeConverter::operator()(types::None& /*i*/) {
   return nullptr;
 }
 llvm::Type* TypeConverter::operator()(types::TypeVar& /*i*/) {
-  throw std::logic_error("Type inference failed");
+  throw std::runtime_error("Type inference failed");
   return nullptr;
 }
 llvm::Type* TypeConverter::operator()(types::Void& /*i*/) { return builder.getVoidTy(); }

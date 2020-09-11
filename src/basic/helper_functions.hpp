@@ -158,7 +158,7 @@ class Logger {
     }
   }
 
-  inline void setoutput(std::ostream& out) { Logger::output = &out; }
+  inline static void setoutput(std::ostream& out) { Logger::output = &out; }
   static inline REPORT_LEVEL current_report_level = Logger::WARNING;
 
  private:
