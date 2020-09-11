@@ -134,7 +134,7 @@ auto main(int argc, char** argv) -> int {
         returncode = 0;
         break;
       } while (false);
-
+      if (runtime->isrunning()) { runtime->stop(); }
     } catch (std::exception& e) {
       mimium::Logger::debug_log(e.what(), mimium::Logger::ERROR);
       runtime->stop();
