@@ -152,14 +152,19 @@ std::pair<lvarid, mir::blockptr> MirGenerator::genIfBlock(ast::ExprPtr& block,
 }
 
 lvarid MirGenerator::genIfInst(ast::If& ast) {
+  bool need_alloca = !lvar_holder.has_value();
   auto lvname = makeNewName();
   auto cond = genInst(ast.cond).first;
   auto [thenvarid, thenblock] = genIfBlock(ast.then_stmts, lvname + "$then");
+  types::Value rettype = thenvarid.second;
   std::optional<mir::blockptr> elseblock =
       ast.else_stmts.has_value()
           ? std::optional(genIfBlock(ast.else_stmts.value(), lvname + "$else").second)
           : std::nullopt;
-  return emplace(mir::IfInst{{lvname}, cond, thenblock, elseblock}, types::Value(thenvarid.second));
+  if (need_alloca) {
+    emplace(mir::AllocaInst{{lvname}, rettype},rettype);
+  }
+  return emplace(mir::IfInst{{lvname}, cond, thenblock, elseblock}, thenvarid.second);
 }
 
 lvarid ExprKnormVisitor::operator()(ast::If& ast) { return mirgen.genIfInst(ast); }

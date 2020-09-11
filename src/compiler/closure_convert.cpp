@@ -139,22 +139,33 @@ checkpoint:
     i.freevariables = fvlist;  // copy;
 
     auto clsname = i.lv_name + "_cls";
-    auto fvtype = types::Alias{cc.makeCaptureName(), types::Tuple{fvtype_inside}};
-    auto ftype = rv::get<types::Function>(cc.typeenv.find(i.lv_name));
-    ftype.arg_types.emplace_back(types::Ref{fvtype});
-    auto clstype =
-        types::Alias{cc.makeClosureTypeName(), types::Closure{types::Ref{ftype}, fvtype}};
+    // do not use auto here, move happens...
+    types::Alias fvtype{cc.makeCaptureName(), types::Tuple{fvtype_inside}};
+    types::Function ftype = rv::get<types::Function>(cc.typeenv.find(i.lv_name));
+    // types::Alias clstype{cc.makeClosureTypeName(),
+    //                      types::Closure{types::Ref{types::Function{ftype}},
+    //                      types::Alias{fvtype}}};
 
-    mir::MakeClosureInst makecls{{clsname}, i.lv_name, fvlist, fvtype};
+    auto makecls = createClosureInst(ftype, fvtype, i.lv_name);
 
     i.parent->instructions.insert(std::next(position), makecls);
-    cc.typeenv.emplace(clsname, fvtype);
-    cc.clstypeenv.emplace(i.lv_name, fvtype);
+
     // replace original function type
     // cc.typeenv.emplace(i.lv_name, clstype);
     // auto& ft = std::get<Box<types::Function>>(i.type).getraw();
     // ft.arg_types.emplace_back(fvtype);
   }
+}
+mir::MakeClosureInst ClosureConverter::CCVisitor::createClosureInst(types::Function ftype,
+                                                                    types::Alias fvtype,
+                                                                    std::string& lv_name) {
+  auto clsname = lv_name + "_cls";
+  ftype.arg_types.emplace_back(types::Ref{fvtype});
+  types::Alias clstype{cc.makeClosureTypeName(), types::Closure{types::Ref{ftype}, fvtype}};
+  mir::MakeClosureInst makecls{{clsname}, lv_name, fvlist, fvtype};
+  cc.typeenv.emplace(clsname, fvtype);
+  cc.clstypeenv.emplace(lv_name, fvtype);
+  return makecls;
 }
 
 void ClosureConverter::CCVisitor::operator()(mir::RefInst& i) {

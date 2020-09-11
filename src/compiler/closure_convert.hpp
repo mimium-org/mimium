@@ -71,6 +71,7 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
    private:
     static void visitinsts(mir::FunInst& i, CCVisitor& ccvis,
                            std::list<mir::Instructions>::iterator pos);
+    mir::MakeClosureInst createClosureInst(types::Function ftype, types::Alias fvtype, std::string& lv_name);
   };
   friend struct CCVisitor;
 };
