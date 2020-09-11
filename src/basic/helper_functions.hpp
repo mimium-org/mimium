@@ -25,6 +25,13 @@
 #ifdef _WIN32
 SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 #endif
+#if ( __has_feature(address_sanitizer)&&defined(__clang__)) || defined(__SANITIZE_ADDRESS__)
+// code that builds only under AddressSanitizer
+#define NO_SANITIZE __attribute__((no_sanitize("address")))
+#else
+#define NO_SANITIZE 
+#endif
+
 
 namespace mimium {
 

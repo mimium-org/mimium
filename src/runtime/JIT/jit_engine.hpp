@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+
+
 #pragma once
 #include <iostream>
 #include <memory>
@@ -29,6 +31,8 @@
 #include "llvm/Transforms/Scalar/GVN.h"
 #include "llvm/Transforms/Utils.h"
 #include "llvm/Transforms/Vectorize.h"
+
+#include "basic/helper_functions.hpp" //load NO_SANITIZE
 
 #define LAZY_ENABLE 0
 #if LAZY_ENABLE
@@ -74,7 +78,10 @@ class MimiumJIT {
         cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(DL.getGlobalPrefix())));
 #endif
   }
-  static std::unique_ptr<LLJITCLASS> createEngine() {
+//Creates LLJIT engine. Note that builder.create causes container overflow inside llvm library.
+// maybe in llvm::LLVMTargetMachine::initAsmInfo()?
+
+NO_SANITIZE static std::unique_ptr<LLJITCLASS> createEngine() {
 #if LAZY_ENABLE
     auto builder = LLLazyJITBuilder();
 #else
