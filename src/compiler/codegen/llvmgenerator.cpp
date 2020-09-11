@@ -73,8 +73,8 @@ void LLVMGenerator::createMiscDeclarations() {
   auto* b = builder->getInt1Ty();
   auto* d = builder->getDoubleTy();
   auto* malloctype = llvm::FunctionType::get(i8ptr, {i64}, false);
-  auto* res = module->getOrInsertFunction("malloc", malloctype).getCallee();
-  setValuetoMap("malloc", res);
+  auto* res = module->getOrInsertFunction("mimium_malloc", malloctype).getCallee();
+  setValuetoMap("mimium_malloc", res);
   // create llvm memset
   auto* memsettype = llvm::FunctionType::get(vo, {i8ptr, i8, i64, b}, false);
   module->getOrInsertFunction("llvm.memset.p0i8.i64", memsettype).getCallee();

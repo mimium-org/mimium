@@ -8,6 +8,11 @@ extern "C" {
 mimium::Scheduler* global_sch;
 
 double mimium_getnow() { return global_sch->getTime(); }
+void* mimium_malloc(size_t size){
+  void* address = malloc(size);
+  global_sch->getRuntime().push_malloc(address,size);
+  return address;
+}
 void setDspParams(void* dspfn, void* clsaddress, void* memobjaddress) {
   global_sch->setDsp(reinterpret_cast<mimium::DspFnType>(dspfn));
   global_sch->setDsp_ClsAddress(clsaddress);

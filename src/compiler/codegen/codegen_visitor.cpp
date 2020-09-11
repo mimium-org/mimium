@@ -28,7 +28,7 @@ llvm::Value* CodeGenVisitor::createAllocation(bool isglobal, llvm::Type* type,
     auto size = G.module->getDataLayout().getTypeAllocSize(t);
     const int bitsize = 64;
     auto* sizeinst = llvm::ConstantInt::get(G.ctx, llvm::APInt(bitsize, size, false));
-    auto* rawres = G.builder->CreateCall(G.module->getFunction("malloc"), {sizeinst}, rawname);
+    auto* rawres = G.builder->CreateCall(G.module->getFunction("mimium_malloc"), {sizeinst}, rawname);
     res = G.builder->CreatePointerCast(rawres, llvm::PointerType::get(t, 0), "ptr_" + name);
     G.setValuetoMap(rawname, rawres);
   } else {

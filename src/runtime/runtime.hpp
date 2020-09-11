@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
+#include <list>
+
 #include "basic/helper_functions.hpp"
 #include "runtime/runtime_defs.hpp"
 namespace mimium {
@@ -15,7 +17,11 @@ class Runtime {
  public:
   Runtime(std::string filename_i = "untitled") : waitc() {}
 
-  virtual ~Runtime() = default;
+  ~Runtime(){
+    for(auto&& [address,size]:malloc_container){
+      free(address);
+    }
+  };
 
   virtual void addScheduler() = 0;
 
@@ -30,12 +36,15 @@ class Runtime {
   virtual void* getDspFnCls() = 0;
   bool hasDsp() { return hasdsp; }
   bool hasDspCls() { return hasdspcls; }
-
+  void push_malloc(void* address,size_t size){
+    malloc_container.emplace_back(address,size);
+  }
  protected:
   std::shared_ptr<Scheduler> sch;
   bool running_status = false;
   bool hasdsp = false;
   bool hasdspcls = false;
+  std::list<std::pair<void*,size_t>> malloc_container{};
   WaitController waitc;
 };
 
