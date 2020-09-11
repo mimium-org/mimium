@@ -19,7 +19,7 @@ struct Box {
   // construct from an existing object
   Box() = delete;
   Box(T& rt) {  // NOLINT: do not mark as explicit! need to construct variant directly through box
-    t = std::make_shared<T>(std::move(rt));
+    t = std::make_shared<T>(rt);
   }
   Box(T&& rt) {  // NOLINT
     t = std::make_shared<T>(std::forward<T>(rt));
