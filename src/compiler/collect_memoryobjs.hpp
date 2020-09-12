@@ -33,12 +33,12 @@ class MemoryObjsCollector {
   funobjmap result_map;
   FunObjTree& traverseFunTree(mir::FunInst const& f);
   struct CollectMemVisitor {
-    explicit CollectMemVisitor(MemoryObjsCollector& m) : M(m){};
+    explicit CollectMemVisitor(MemoryObjsCollector& m,mir::FunInst const& f) : M(m),fun(f){};
     MemoryObjsCollector& M;
+    const mir::FunInst& fun;
     std::deque<Box<FunObjTree>> obj = {};
     bool res_hasself = false;
     types::Tuple objtype;
-    std::list<mir::Instructions>::iterator position;
 
     void operator()(mir::RefInst& i);
     void operator()(mir::AssignInst& i);
@@ -53,7 +53,7 @@ class MemoryObjsCollector {
     void operator()(T& /*i*/) {
       constexpr bool isfun = std::is_same_v<mir::FunInst, std::decay_t<T>>;
       if constexpr (isfun) {
-        //Memobj collector reached to FunInst. maybe failed to Closure Conversion?
+        // Memobj collector reached to FunInst. maybe failed to Closure Conversion?
         assert(!isfun);
       } else {
         static_assert(std::is_base_of_v<mir::instruction, std::decay_t<T>>,
@@ -63,9 +63,11 @@ class MemoryObjsCollector {
 
    private:
     void insertAllocaInst(mir::FunInst& i, types::Alias& type) const;
-    void checkHasSelf(std::string const& name) { res_hasself |= name == "self"; }
+    void checkHasSelf(std::string const& name) {
+      res_hasself |= name == "self";
+    }
     std::string cur_fun;
-  } cm_visitor;
+  };
 };
 
 }  // namespace mimium

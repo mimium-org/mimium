@@ -29,7 +29,7 @@ struct CodeGenVisitor : public std::enable_shared_from_this<CodeGenVisitor> {
  private:
   LLVMGenerator& G;
   bool isglobal;
-  std::optional<std::string> context_hasself;
+  bool context_hasself;
   llvm::Value* getDirFun(mir::FcallInst& i);
   llvm::Value* getClsFun(mir::FcallInst& i);
   llvm::Value* getExtFun(mir::FcallInst& i);

@@ -78,6 +78,7 @@ void CodeGenVisitor::operator()(mir::StringInst& i) {
   G.setValuetoMap(i.lv_name, bitcast);
 }
 void CodeGenVisitor::operator()(mir::AllocaInst& i) {
+  //TODO(tomoya) Is a type value for AllocaInst no longer needed?
   auto ptrname = "ptr_" + i.lv_name;
   auto* type = G.getType(i.lv_name);
   auto* ptr = createAllocation(isglobal, type, nullptr, i.lv_name);
@@ -154,9 +155,8 @@ void CodeGenVisitor::createBinOp(mir::OpInst& i) {
 void CodeGenVisitor::operator()(mir::FunInst& i) {
   bool hascapture = G.cc.hasCapture(i.lv_name);
   bool hasmemobj = G.funobj_map.count(i.lv_name) > 0;
-  bool hasself=false;
   if(hasmemobj){
-    hasself = G.funobj_map.at(i.lv_name)->hasself;
+    context_hasself = G.funobj_map.at(i.lv_name)->hasself;
   }
   auto* ft = createFunctionType(i, hascapture, hasmemobj);
   auto* f = createFunction(ft, i);
@@ -166,8 +166,6 @@ void CodeGenVisitor::operator()(mir::FunInst& i) {
   G.createNewBasicBlock("entry", f);
 
   addArgstoMap(f, i, hascapture, hasmemobj);
-
-  context_hasself = (hasself) ? std::optional("ptr_" + i.lv_name + ".self.mem") : std::nullopt;
   if (i.isrecursive && hascapture) { G.setValuetoMap("ptr_" + i.lv_name + "_cls", f); }
   for (auto& cinsts : i.body->instructions) { G.visitInstructions(cinsts, false); }
 
@@ -181,12 +179,12 @@ llvm::FunctionType* CodeGenVisitor::createFunctionType(mir::FunInst& i, bool has
   auto mmmfntype = rv::get<types::Function>(G.typeenv.find(i.lv_name));
   auto& argtypes = mmmfntype.arg_types;
 
-  if (hascapture) {
+  if (hascapture||i.lv_name=="dsp") {
     auto captype = types::Ref{G.cc.getCaptureType(i.lv_name)};
     argtypes.emplace_back(std::move(captype));
     // auto clsty = llvm::cast<llvm::StructType>(G.getType(captype));
   }
-  if (hasmemobj) {
+  if (hasmemobj||i.lv_name=="dsp") {
     auto memobjtype = types::Ref{G.funobj_map.at(i.lv_name)->objtype};
     argtypes.emplace_back(std::move(memobjtype));
   }
@@ -209,14 +207,14 @@ void CodeGenVisitor::addArgstoMap(llvm::Function* f, mir::FunInst& i, bool hasca
     G.setValuetoMap(a, arg);
     std::advance(arg, 1);
   }
-  if (hascapture) {
+  if (hascapture||i.lv_name=="dsp") {
     auto name = "ptr_" + i.lv_name + ".cap";
     arg->setName(name);
     G.setValuetoMap(name, arg);
     setFvsToMap(i, arg);
     std::advance(arg, 1);
   }
-  if (hasmemobj) {
+  if (hasmemobj||i.lv_name=="dsp") {
     auto name = i.lv_name + ".mem";
     arg->setName(name);
     G.setValuetoMap(name, arg);
@@ -225,20 +223,19 @@ void CodeGenVisitor::addArgstoMap(llvm::Function* f, mir::FunInst& i, bool hasca
 }
 
 void CodeGenVisitor::setMemObj(llvm::Value* memarg, std::string const& name, int index) {
-  std::string newname = name + ".mem";
-  auto* gep = G.builder->CreateStructGEP(memarg, index, "memobj");
-  G.setValuetoMap("ptr_" + newname, gep);
-  llvm::Value* valload = G.builder->CreateLoad(gep, newname);
-  G.setValuetoMap(newname, valload);
+  auto* gep = G.builder->CreateStructGEP(memarg, index, "ptr_" + name);
+  G.setValuetoMap("ptr_" + name, gep);
+  llvm::Value* valload = G.builder->CreateLoad(gep, name);
+  G.setValuetoMap(name, valload);
 }
 void CodeGenVisitor::setMemObjsToMap(mir::FunInst& i, llvm::Value* memarg) {
   auto& fobjtree = G.funobj_map.at(i.lv_name);
   auto& memobjs = fobjtree->memobjs;
   int count = 0;
-  if (fobjtree->hasself) { setMemObj(memarg, i.lv_name+ ".self", count++); }
+  if (fobjtree->hasself) { setMemObj(memarg, "self", count++); }
   for (auto& o : memobjs) {
     FunObjTree& obj = o;
-    setMemObj(memarg, obj.fname, count++);
+    setMemObj(memarg, obj.fname+ ".mem", count++);
   }
 }
 
@@ -453,11 +450,10 @@ void CodeGenVisitor::operator()(mir::ReturnInst& i) {
     // case of returning function;
     res = G.tryfindValue(i.val + "_cls");
   }
-
   // store self value
-  if (context_hasself.has_value()) {
-    auto* selfv = G.tryfindValue(context_hasself.value());
-    if (selfv != nullptr) { G.builder->CreateStore(res, selfv); }
+  if (context_hasself) {
+    auto* selfv = G.tryfindValue("ptr_self");
+    G.builder->CreateStore(res, selfv); 
   }
   G.builder->CreateRet(res);
 }

@@ -145,7 +145,7 @@ void LLVMGenerator::createRuntimeSetDspFn() {
     dspclsaddress = llvm::ConstantPointerNull::get(voidptrtype);
   }
   llvm::Value* dspmemobjaddress = nullptr;
-  auto dspmemobj = variable_map[curfunc]->find("ptr_dsp.memobj");
+  auto dspmemobj = variable_map[curfunc]->find("ptr_dsp.mem");
   if (dspmemobj != variable_map[curfunc]->end()) {
     dspmemobjaddress = builder->CreateBitCast(dspmemobj->second, voidptrtype);
     // insert 0 initialization of memobjs
