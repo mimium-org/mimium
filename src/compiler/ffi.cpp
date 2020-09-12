@@ -6,10 +6,10 @@
 extern "C" {
 void dumpaddress(void* a) { std::cerr << a << "\n"; }
 
-void printdouble(double d) { std::cerr << d; }
-void printlndouble(double d) { std::cerr << d << "\n"; }
+void printdouble(double d) { std::cout << d; }
+void printlndouble(double d) { std::cout << d << "\n"; }
 
-void printlnstr(char* str) { std::cerr << str << "\n"; }
+void printlnstr(char* str) { std::cout << str << "\n"; }
 
 double mimiumrand() { return ((double)rand() / RAND_MAX) * 2 - 1; }
 

@@ -9,6 +9,4 @@ fn myfun2(test:float)->float{
     return globalvar2+gv3*test
 }
 
-print(closurefun(3))
-
-print(myfun2(200))
+print(closurefun(3)+myfun2(200))
