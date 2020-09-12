@@ -119,12 +119,12 @@ auto main(int argc, char** argv) -> int {
           break;
         }
         auto mir_cc = compiler->closureConvert(mir);
-        mir_cc = compiler->collectMemoryObjs(mir_cc);
+        auto funobjs = compiler->collectMemoryObjs(mir_cc);
         if (stage == CompileStage::MIR_CC) {
           std::cout << mir::toString(mir_cc) << std::endl;
           break;
         }
-        auto& llvm_module = compiler->generateLLVMIr(mir_cc);
+        auto& llvm_module = compiler->generateLLVMIr(mir_cc,funobjs);
         if (stage == CompileStage::LLVMIR) {
           llvm_module.print(llvm::outs(), nullptr, false, true);
           break;

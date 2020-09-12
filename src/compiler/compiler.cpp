@@ -12,7 +12,7 @@ Compiler::Compiler()
       mirgenerator(typeinferer.getTypeEnv()),
       closureconverter(std::make_shared<ClosureConverter>(typeinferer.getTypeEnv())),
       memobjcollector(typeinferer.getTypeEnv()),
-      llvmgenerator(*llvmctx, typeinferer.getTypeEnv(), *closureconverter, memobjcollector) {}
+      llvmgenerator(*llvmctx, typeinferer.getTypeEnv(), *closureconverter) {}
 Compiler::Compiler(llvm::LLVMContext& ctx)
     : driver(),
       symbolrenamer(std::make_shared<RenameEnvironment>()),
@@ -20,7 +20,7 @@ Compiler::Compiler(llvm::LLVMContext& ctx)
       mirgenerator(typeinferer.getTypeEnv()),
       closureconverter(std::make_shared<ClosureConverter>(typeinferer.getTypeEnv())),
       memobjcollector(typeinferer.getTypeEnv()),
-      llvmgenerator(ctx, typeinferer.getTypeEnv(), *closureconverter, memobjcollector) {}
+      llvmgenerator(ctx, typeinferer.getTypeEnv(), *closureconverter) {}
 Compiler::~Compiler() = default;
 void Compiler::setFilePath(std::string path) {
   this->path = path;
@@ -41,12 +41,12 @@ TypeEnv& Compiler::typeInfer(AstPtr ast) { return typeinferer.infer(*ast); }
 mir::blockptr Compiler::generateMir(AstPtr ast) { return mirgenerator.generate(*ast); }
 mir::blockptr Compiler::closureConvert(mir::blockptr mir) { return closureconverter->convert(mir); }
 
-mir::blockptr Compiler::collectMemoryObjs(mir::blockptr mir) {
+funobjmap& Compiler::collectMemoryObjs(mir::blockptr mir) {
   return memobjcollector.process(mir);
 }
 
-llvm::Module& Compiler::generateLLVMIr(mir::blockptr mir) {
-  llvmgenerator.generateCode(mir);
+llvm::Module& Compiler::generateLLVMIr(mir::blockptr mir,funobjmap const& funobjs) {
+  llvmgenerator.generateCode(mir,funobjs);
   return llvmgenerator.getModule();
 }
 }  // namespace mimium

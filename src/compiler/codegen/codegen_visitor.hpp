@@ -29,7 +29,7 @@ struct CodeGenVisitor : public std::enable_shared_from_this<CodeGenVisitor> {
  private:
   LLVMGenerator& G;
   bool isglobal;
-  std::string context_hasself;
+  std::optional<std::string> context_hasself;
   llvm::Value* getDirFun(mir::FcallInst& i);
   llvm::Value* getClsFun(mir::FcallInst& i);
   llvm::Value* getExtFun(mir::FcallInst& i);
@@ -40,7 +40,7 @@ struct CodeGenVisitor : public std::enable_shared_from_this<CodeGenVisitor> {
 
   void setFvsToMap(mir::FunInst& i, llvm::Value* clsarg);
   void setMemObjsToMap(mir::FunInst& i, llvm::Value* memarg);
-
+  void setMemObj(llvm::Value* memarg, std::string const& name, int index);
   llvm::Value* createAllocation(bool isglobal, llvm::Type* type, llvm::Value* ArraySize,
                                 const llvm::Twine& name);
   bool createStoreOw(std::string varname, llvm::Value* val_to_store);

@@ -26,12 +26,11 @@ class LLVMGenerator {
   std::unique_ptr<llvm::IRBuilder<>> builder;
   llvm::BasicBlock* mainentry;
   llvm::BasicBlock* currentblock;
-
+  funobjmap funobj_map;
   TypeEnv& typeenv;
   TypeConverter typeconverter;
   std::shared_ptr<CodeGenVisitor> codegenvisitor;
   ClosureConverter& cc;
-  MemoryObjsCollector& memobjcoll;
   std::vector<std::string> overwritten_vars;
   llvm::FunctionCallee addtask;
   llvm::FunctionCallee addtask_cls;
@@ -67,8 +66,7 @@ class LLVMGenerator {
   void dropAllReferences();
 
  public:
-  LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv, ClosureConverter& cc,
-                MemoryObjsCollector& memobjcoll);
+  LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv, ClosureConverter& cc);
 
   llvm::Module& getModule() { return *module; }
   auto moveModule() { return std::move(module); }
@@ -77,7 +75,7 @@ class LLVMGenerator {
   void setDataLayout(const llvm::DataLayout& dl);
   void reset(std::string filename);
   void setBB(llvm::BasicBlock* newblock);
-  void generateCode(mir::blockptr mir);
+  void generateCode(mir::blockptr mir,funobjmap const& funobjs);
 
   void outputToStream(llvm::raw_ostream& ostream);
   void dumpvars();
