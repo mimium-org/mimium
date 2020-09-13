@@ -232,11 +232,12 @@ void CodeGenVisitor::setMemObjsToMap(mir::FunInst& i, llvm::Value* memarg) {
   auto& fobjtree = G.funobj_map.at(i.lv_name);
   auto& memobjs = fobjtree->memobjs;
   int count = 0;
-  if (fobjtree->hasself) { setMemObj(memarg, "self", count++); }
+  //appending order matters! self should be put on last.
   for (auto& o : memobjs) {
     FunObjTree& obj = o;
     setMemObj(memarg, obj.fname+ ".mem", count++);
   }
+  if (fobjtree->hasself) { setMemObj(memarg, "self", count++); }
 }
 
 void CodeGenVisitor::setFvsToMap(mir::FunInst& i, llvm::Value* clsarg) {
@@ -312,17 +313,7 @@ llvm::Value* CodeGenVisitor::getExtFun(mir::FcallInst& i) {
   if (it == LLVMBuiltin::ftable.end()) {
     throw std::runtime_error("could not find external function \"" + i.fname + "\"");
   }
-  BuiltinFnInfo& fninfo = it->second;
-  auto* fntype = llvm::cast<llvm::FunctionType>(G.getType(fninfo.mmmtype));
-  if (i.fname == "mem") {
-    types::Value memtype =
-        types::Function{types::Float{}, {types::Float{}, types::Ref{types::Float{}}}};
-    fntype = llvm::cast<llvm::FunctionType>(G.getType(memtype));
-  }
-  auto fn = G.module->getOrInsertFunction(fninfo.target_fnname, fntype);
-  auto* f = llvm::cast<llvm::Function>(fn.getCallee());
-  f->setCallingConv(llvm::CallingConv::C);
-  return f;
+  return G.getForeignFunction(i.fname);
 }
 
 void CodeGenVisitor::createAddTaskFn(mir::FcallInst& i, const bool isclosure,

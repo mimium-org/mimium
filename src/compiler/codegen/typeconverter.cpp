@@ -37,7 +37,10 @@ llvm::Type* TypeConverter::operator()(types::Closure& i) {
   return llvm::StructType::create(builder.getContext(), {fty, capturetype}, name, false);
 }
 llvm::Type* TypeConverter::operator()(types::Array& i) {
-  return llvm::PointerType::get(std::visit(*this, i.elem_type), 0);
+  if(i.size==0){
+    return llvm::PointerType::get(std::visit(*this, i.elem_type),0);
+  }
+  return   llvm::ArrayType::get(std::visit(*this, i.elem_type),i.size);
 }
 llvm::Type* TypeConverter::operator()(types::Struct& i) {
   std::vector<llvm::Type*> ar;

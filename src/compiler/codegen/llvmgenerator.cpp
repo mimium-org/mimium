@@ -54,6 +54,9 @@ void LLVMGenerator::switchToMainFun() {
 }
 llvm::Function* LLVMGenerator::getForeignFunction(const std::string& name) {
   auto& [type, targetname] = LLVMBuiltin::ftable.find(name)->second;
+  if(name=="delay"){
+    rv::get<types::Function>(type).arg_types.emplace_back(types::Ref{types::delaystruct});
+  }
   auto* funtype = llvm::cast<llvm::FunctionType>(getType(type));
   auto fnc = module->getOrInsertFunction(targetname, funtype);
   auto* fn = llvm::cast<llvm::Function>(fnc.getCallee());

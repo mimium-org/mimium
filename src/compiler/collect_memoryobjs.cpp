@@ -31,6 +31,8 @@ FunObjTree& MemoryObjsCollector::traverseFunTree(mir::FunInst const& f) {
 }
 
 funobjmap& MemoryObjsCollector::process(mir::blockptr toplevel) {
+  result_map.emplace(
+      "delay", std::make_shared<FunObjTree>(FunObjTree{"delay", false, {}, types::delaystruct}));
   this->toplevel_funmap = collectToplevelFuns(toplevel);
   if (toplevel_funmap.count("dsp") > 0) {
     auto* dspfun = toplevel_funmap.at("dsp");
@@ -100,11 +102,10 @@ void MemoryObjsCollector::CollectMemVisitor::operator()(mir::FcallInst& i) {
   } else if (i.fname == "delay") {
     // TODO(tomoya):size should be compile-time constant like below↓
     // int delay_size = eval(i.args[1]);
-    int delay_size = 5000;
-    tree = FunObjTree{"delay", false, {}, types::Array{types::Float{}, delay_size}};
+    tree = FunObjTree{"delay", false, {}, types::delaystruct};
   }
 
-  if (tree.hasself || !tree.memobjs.empty()) {
+  if (tree.hasself || !tree.memobjs.empty() || i.fname == "delay") {
     obj.emplace_back(tree);
     objtype.arg_types.push_back(tree.objtype);
   }
