@@ -4,29 +4,32 @@
 
 #pragma once
 #include "runtime/JIT/jit_engine.hpp"
-#include "runtime/runtime.hpp"
-#include "runtime/scheduler/scheduler.hpp"
+#include "runtime/backend/audiodriver.hpp"
 
 namespace mimium {
 
-class Runtime_LLVM : public Runtime<TaskType>, public std::enable_shared_from_this<Runtime_LLVM> {
+class Runtime_LLVM : public Runtime, public std::enable_shared_from_this<Runtime_LLVM> {
  public:
-  explicit Runtime_LLVM(std::string filename = "untitled.mmm", bool isjit = true);
+  explicit Runtime_LLVM(std::string const& filename = "untitled.mmm",
+                        std::shared_ptr<AudioDriver> a = nullptr, bool isjit = true);
 
   ~Runtime_LLVM() = default;
-  void addScheduler() override;
   void start() override;
-  DspFnType getDspFn() override;
-  void* getDspFnCls() override;
 
   void executeModule(std::unique_ptr<llvm::Module> module);
   auto& getJitEngine() { return *jitengine; }
   llvm::LLVMContext& getLLVMContext() { return jitengine->getContext(); }
-  void addAudioDriver(std::shared_ptr<AudioDriver> a) override;
 
  private:
-  DspFnType dspfn_address = nullptr;
-  void* dspfn_cls_address = nullptr;
   std::unique_ptr<llvm::orc::MimiumJIT> jitengine;
 };
+
+extern "C" {
+void setDspParams(void* dspfn, void* clsaddress, void* memobjaddress);
+void addTask(double time, void* addresstofn, double arg);
+void addTask_cls(double time, void* addresstofn, double arg, void* addresstocls);
+double mimium_getnow();
+void* mimium_malloc(size_t size);
+}
+
 }  // namespace mimium

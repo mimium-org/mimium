@@ -5,7 +5,7 @@ target_compile_definitions(RegressionTest PRIVATE
 TEST_BIN_DIR=\"${CMAKE_CURRENT_BINARY_DIR}\"
 )
 if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-target_compile_options(RegressionTest PUBLIC -fsanitize=address,undefined -fno-omit-frame-pointer -O0)
+target_compile_options(RegressionTest PUBLIC -fsanitize=address -fno-omit-frame-pointer -O0)
 target_link_options(RegressionTest PUBLIC -fsanitize=address)
 endif()
 target_include_directories(RegressionTest

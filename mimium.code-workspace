@@ -104,7 +104,8 @@
 			"-background-index",
 			"-compile-commands-dir=build",
 			"-header-insertion=never",
-			"--query-driver=\"/usr/bin/clang++\""
+			"--query-driver=\"/usr/bin/clang++\"",
+			"-j=8"
 		],
 		"cmake.ctestArgs": [
 			"--verbose"

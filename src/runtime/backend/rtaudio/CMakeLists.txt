@@ -45,7 +45,7 @@ target_compile_definitions(mimium_backend_rtaudio PRIVATE
   llvm_map_components_to_libnames(llvmrtaudio support)
 target_link_libraries(mimium_backend_rtaudio PUBLIC 
 RtAudio::rtaudio
-mimium_scheduler
+mimium_audiodriver
 ${llvmrtaudio}
 )
 install( TARGETS mimium_backend_rtaudio DESTINATION lib)

@@ -27,7 +27,7 @@ SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), ENABLE_VIRTUAL_TERMINAL_PROCESSI
 #endif
 #if ( __has_feature(address_sanitizer)&&defined(__clang__)) || defined(__SANITIZE_ADDRESS__)
 // code that builds only under AddressSanitizer
-#define NO_SANITIZE __attribute__((no_sanitize("address")))
+#define NO_SANITIZE __attribute__((no_sanitize("address","undefined")))
 #else
 #define NO_SANITIZE 
 #endif

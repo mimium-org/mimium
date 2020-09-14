@@ -3,8 +3,41 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #include "runtime/JIT/runtime_jit.hpp"
+
+extern "C" {
+mimium::Runtime_LLVM* global_runtime;
+
+void setDspParams(void* dspfn, void* clsaddress, void* memobjaddress) {
+  auto audiodriver = global_runtime->getAudioDriver();
+  audiodriver->setDspFn(reinterpret_cast<mimium::DspFnType>(dspfn));
+  audiodriver->setDspClsAddress(clsaddress);
+  audiodriver->setDspMemObjAddress(memobjaddress);
+}
+
+NO_SANITIZE void addTask(double time, void* addresstofn, double arg) {
+  mimium::Scheduler& sch = global_runtime->getAudioDriver()->getScheduler();
+  sch.addTask(time, addresstofn, arg, nullptr);
+}
+NO_SANITIZE void addTask_cls(double time, void* addresstofn, double arg, void* addresstocls) {
+  mimium::Scheduler& sch = global_runtime->getAudioDriver()->getScheduler();
+  sch.addTask(time, addresstofn, arg, addresstocls);
+}
+double mimium_getnow() {
+  return (double)global_runtime->getAudioDriver()->getScheduler().getTime();
+}
+
+// TODO(tomoya) ideally we need to move this to base runtime library
+void* mimium_malloc(size_t size) {
+  void* address = malloc(size);
+  global_runtime->push_malloc(address, size);
+  return address;
+}
+}
+
 namespace mimium {
-Runtime_LLVM::Runtime_LLVM(std::string filename_i, bool isjit) : Runtime<TaskType>(filename_i) {
+Runtime_LLVM::Runtime_LLVM(std::string const& filename_i, std::shared_ptr<AudioDriver> a,
+                           bool isjit)
+    : Runtime(filename_i, std::move(a)) {
   LLVMInitializeNativeTarget();
   LLVMInitializeNativeAsmPrinter();
   LLVMInitializeNativeAsmParser();
@@ -23,39 +56,25 @@ void Runtime_LLVM::executeModule(std::unique_ptr<llvm::Module> module) {
   //
   if (auto symbolorerror = jitengine->lookup("dsp")) {
     auto address = (DspFnType)symbolorerror->getAddress();
-    dspfn_address = address;
     hasdsp = true;
   } else {
     auto err = symbolorerror.takeError();
+    hasdsp = false;
     Logger::debug_log("dsp function not found", Logger::INFO);
     llvm::consumeError(std::move(err));
-    dspfn_address = nullptr;
-    hasdsp = false;
   }
 }
-// run audio driver and scheduler if theres some task, dsp function, or both.
-void Runtime_LLVM::addScheduler() {
-  sch = std::make_shared<Scheduler>(this->shared_from_this(), waitc);
-}
-
-void Runtime_LLVM::addAudioDriver(std::shared_ptr<AudioDriver> a) {
-  sch->addAudioDriver(std::move(a));
-}
-
 void Runtime_LLVM::start() {
-  running_status = true;
-  if (hasdsp || sch->hasTask()) {
-    sch->setDsp(dspfn_address);
-    sch->start();
+  auto& sch = audiodriver->getScheduler();
+  if (hasdsp || sch.hasTask()) {
+    audiodriver->start();
     {
+      auto& waitc = sch.getWaitController();
       std::unique_lock<std::mutex> uniq_lk(waitc.mtx);
       // aynchronously wait until scheduler stops
       waitc.cv.wait(uniq_lk, [&]() { return waitc.isready; });
     }
   }
 }
-
-DspFnType Runtime_LLVM::getDspFn() { return dspfn_address; }
-void* Runtime_LLVM::getDspFnCls() { return dspfn_cls_address; }
 
 }  // namespace mimium

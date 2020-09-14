@@ -15,7 +15,6 @@
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Support/SourceMgr.h>
 
-
 #include "basic/helper_functions.hpp"
 // #include "cli_tools.cpp"
 #include "llvm/Support/CommandLine.h"
@@ -26,8 +25,7 @@ using Logger = mimium::Logger;
 #include "runtime/backend/rtaudio/driver_rtaudio.hpp"
 
 extern "C" {
-
-extern mimium::Scheduler* global_sch;
+extern mimium::Runtime_LLVM* global_runtime;
 }
 std::function<void(int)> shutdown_handler;
 void signalHandler(int signo) { shutdown_handler(signo); }
@@ -61,17 +59,16 @@ auto main(int argc, char** argv) -> int {
   std::ifstream input(input_filename.c_str());
   signal(SIGINT, signalHandler);
   Logger::current_report_level = Logger::INFO;
-  auto runtime = std::make_shared<mimium::Runtime_LLVM>();
-  //   auto compiler = std::make_unique<mimium::Compiler>(runtime->getLLVMContext());
+  auto tmpfilename = (input_filename.hasArgStr()) ? "" : input_filename.getValue();
+  auto runtime = std::make_shared<mimium::Runtime_LLVM>(
+      tmpfilename, std::make_shared<mimium::AudioDriverRtAudio>());
   shutdown_handler = [&runtime](int /*signal*/) {
-    if (runtime->isrunning()) { runtime->stop(); }
+    runtime->getAudioDriver()->stop();
+
     std::cerr << "Interuppted by key" << std::endl;
     exit(0);
   };
-  runtime->addScheduler();
-  global_sch = runtime->getScheduler().get();
-  runtime->addAudioDriver(std::make_shared<mimium::AudioDriverRtAudio>(runtime->getScheduler()));
-
+  global_runtime = runtime.get();
   llvm::SMDiagnostic errorreporter;
   if (!input.good()) {
     Logger::debug_log("Specify file name, repl mode is not implemented yet", Logger::ERROR);
@@ -88,7 +85,8 @@ auto main(int argc, char** argv) -> int {
 
     } catch (std::exception& e) {
       mimium::Logger::debug_log(e.what(), mimium::Logger::ERROR);
-      runtime->stop();
+      runtime->getAudioDriver()->stop();
+
       returncode = 1;
     }
   }
