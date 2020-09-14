@@ -18,7 +18,8 @@
 #include "basic/helper_functions.hpp"
 
 namespace mimium {
-// https://medium.com/@dennis.luxen/breaking-circular-dependencies-in-recursive-union-types-with-c-17-the-curious-case-of-4ab00cfda10d
+
+
 namespace types {
 enum class Kind { VOID, PRIMITIVE, POINTER, AGGREGATE, INTERMEDIATE };
 }
@@ -183,6 +184,10 @@ template <typename T, typename U,
 bool operator!=(T t1, T t2) {
   return !(t1 == t2);
 }
+
+constexpr size_t fixed_delaysize =44100;
+inline static auto delaystruct = types::Alias{"MmmRingBuf", types::Tuple{{types::Float{}, types::Float{},types::Array{types::Float{}, fixed_delaysize}}}};
+
 
 struct ToStringVisitor {
   bool verbose = false;

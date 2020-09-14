@@ -3,13 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #include "compiler/ffi.hpp"
+
+
 extern "C" {
 void dumpaddress(void* a) { std::cerr << a << "\n"; }
 
-void printdouble(double d) { std::cerr << d; }
-void printlndouble(double d) { std::cerr << d << "\n"; }
+void printdouble(double d) { std::cout << d; }
+void printlndouble(double d) { std::cout << d << "\n"; }
 
-void printlnstr(char* str) { std::cerr << str << "\n"; }
+void printlnstr(char* str) { std::cout << str << "\n"; }
 
 double mimiumrand() { return ((double)rand() / RAND_MAX) * 2 - 1; }
 
@@ -34,28 +36,33 @@ double mimium_rshift(double d1, double d2) {
   return static_cast<double>(mimium_dtoi(d1) >> mimium_dtoi(d2));
 }
 
-double mimium_memprim(double d, double* mem) {
-  auto tmp = *mem;
-  *mem = d;
-  return tmp;
-}
+
+
 
 double access_array_lin_interp(double* array, double index_d) {
   double fract = fmod(index_d, 1.000);
-  int64_t index = floor(index_d);
+  size_t index = floor(index_d);
   return array[index] * fract + array[index + 1] * (1 - fract);
 }
-double mimium_delayprim(double d, double time, double size, double* buffer, double* index) {
-  auto readindex = fmod((*index + time), size);
-  auto res = access_array_lin_interp(buffer, readindex);
-  buffer[int(*index)] = d;
-  ++(*index);
-  return res;
+struct MmmRingBuf{
+  // int64_t size=5000;
+  int64_t readi=0;
+  int64_t writei=0;
+  double buf[mimium::types::fixed_delaysize];
+};
+double mimium_delayprim(double in, double time,MmmRingBuf* rbuf) {
+  auto size = sizeof(rbuf->buf)/sizeof(double);
+  rbuf->writei = (rbuf->writei+1)%size;
+  double readi = fmod((size+rbuf->writei-time),size);
+  rbuf->readi = (int64_t)readi;
+  rbuf->buf[rbuf->writei]=in;
+  return access_array_lin_interp(rbuf->buf,readi);
 }
+
 
 double libsndfile_loadwavsize(char* filename) {
   SF_INFO sfinfo;
-  auto sfile = sf_open(filename, SFM_READ, &sfinfo);
+  auto* sfile = sf_open(filename, SFM_READ, &sfinfo);
   if (sfile == nullptr) { std::cerr << sf_strerror(sfile) << "\n"; }
   auto res = sfinfo.frames;
   sf_close(sfile);
@@ -68,7 +75,7 @@ double* libsndfile_loadwav(char* filename) {
   if (sfile == nullptr) { std::cerr << sf_strerror(sfile) << "\n"; }
 
   const int bufsize = sfinfo.frames * sfinfo.channels;
-  double* buffer = new double[bufsize];
+  double* buffer =  new double[bufsize];
   auto size = sf_readf_double(sfile, buffer, bufsize);
   // sf_close(sfile);
   // std::cerr<< filename << "(" << size << ") is succecfully loaded";
@@ -133,6 +140,8 @@ std::unordered_map<std::string, BuiltinFnInfo> LLVMBuiltin::ftable = {
 
     {"loadwavsize", initBI(Function{Float{}, {String{}}}, "libsndfile_loadwavsize")},
     {"loadwav", initBI(Function{Array{Float{}}, {String{}}}, "libsndfile_loadwav")},
+
+    {"delay", initBI(Function{Float{}, {Float{},Float{}}}, "mimium_delayprim")},
 
     {"access_array_lin_interp",
      initBI(Function{Float{}, {Float{}, Float{}}}, "access_array_lin_interp")}

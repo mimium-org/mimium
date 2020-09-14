@@ -33,9 +33,9 @@ class Compiler {
   TypeEnv& typeInfer(AstPtr ast);
   mir::blockptr generateMir(AstPtr ast);
   mir::blockptr closureConvert(mir::blockptr mir);
-  mir::blockptr collectMemoryObjs(mir::blockptr mir);
+  funobjmap& collectMemoryObjs(mir::blockptr mir);
 
-  llvm::Module& generateLLVMIr(mir::blockptr mir);
+  llvm::Module& generateLLVMIr(mir::blockptr mir, funobjmap const& funobjs);
   auto moveLLVMModule() { return llvmgenerator.moveModule(); }
 
  private:

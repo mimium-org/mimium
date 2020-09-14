@@ -6,8 +6,7 @@
 
 namespace mimium {
 
-LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv, ClosureConverter& cc,
-                             MemoryObjsCollector& memobjcoll)
+LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv, ClosureConverter& cc)
     : ctx(ctx),
       module(std::make_unique<llvm::Module>("no_file_name.mmm", ctx)),
       builder(std::make_unique<llvm::IRBuilder<>>(ctx)),
@@ -16,8 +15,7 @@ LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv, ClosureCo
       curfunc(nullptr),
       typeenv(typeenv),
       typeconverter(*builder, *module),
-      cc(cc),
-      memobjcoll(memobjcoll) {}
+      cc(cc) {}
 void LLVMGenerator::init(std::string filename) {
   codegenvisitor = std::make_shared<CodeGenVisitor>(*this);
   module->setSourceFileName(filename);
@@ -56,6 +54,9 @@ void LLVMGenerator::switchToMainFun() {
 }
 llvm::Function* LLVMGenerator::getForeignFunction(const std::string& name) {
   auto& [type, targetname] = LLVMBuiltin::ftable.find(name)->second;
+  if(name=="delay"){
+    rv::get<types::Function>(type).arg_types.emplace_back(types::Ref{types::delaystruct});
+  }
   auto* funtype = llvm::cast<llvm::FunctionType>(getType(type));
   auto fnc = module->getOrInsertFunction(targetname, funtype);
   auto* fn = llvm::cast<llvm::Function>(fnc.getCallee());
@@ -147,7 +148,7 @@ void LLVMGenerator::createRuntimeSetDspFn() {
     dspclsaddress = llvm::ConstantPointerNull::get(voidptrtype);
   }
   llvm::Value* dspmemobjaddress = nullptr;
-  auto dspmemobj = variable_map[curfunc]->find("ptr_dsp.memobj");
+  auto dspmemobj = variable_map[curfunc]->find("ptr_dsp.mem");
   if (dspmemobj != variable_map[curfunc]->end()) {
     dspmemobjaddress = builder->CreateBitCast(dspmemobj->second, voidptrtype);
     // insert 0 initialization of memobjs
@@ -190,8 +191,10 @@ void LLVMGenerator::visitInstructions(mir::Instructions& inst, bool isglobal) {
   std::visit(*codegenvisitor, inst);
 }
 
-void LLVMGenerator::generateCode(mir::blockptr mir) {
+void LLVMGenerator::generateCode(mir::blockptr mir, funobjmap const& funobjs) {
+  this->funobj_map = funobjs;//todo: this should be passed as argument to visitor
   preprocess();
+
   for (auto& inst : mir->instructions) { visitInstructions(inst, true); }
   if (module->getFunction("dsp") != nullptr) { createRuntimeSetDspFn(); }
   // main always return null for now;

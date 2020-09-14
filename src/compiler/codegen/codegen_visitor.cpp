@@ -28,7 +28,8 @@ llvm::Value* CodeGenVisitor::createAllocation(bool isglobal, llvm::Type* type,
     auto size = G.module->getDataLayout().getTypeAllocSize(t);
     const int bitsize = 64;
     auto* sizeinst = llvm::ConstantInt::get(G.ctx, llvm::APInt(bitsize, size, false));
-    auto* rawres = G.builder->CreateCall(G.module->getFunction("mimium_malloc"), {sizeinst}, rawname);
+    auto* rawres =
+        G.builder->CreateCall(G.module->getFunction("mimium_malloc"), {sizeinst}, rawname);
     res = G.builder->CreatePointerCast(rawres, llvm::PointerType::get(t, 0), "ptr_" + name);
     G.setValuetoMap(rawname, rawres);
   } else {
@@ -77,6 +78,7 @@ void CodeGenVisitor::operator()(mir::StringInst& i) {
   G.setValuetoMap(i.lv_name, bitcast);
 }
 void CodeGenVisitor::operator()(mir::AllocaInst& i) {
+  //TODO(tomoya) Is a type value for AllocaInst no longer needed?
   auto ptrname = "ptr_" + i.lv_name;
   auto* type = G.getType(i.lv_name);
   auto* ptr = createAllocation(isglobal, type, nullptr, i.lv_name);
@@ -152,7 +154,10 @@ void CodeGenVisitor::createBinOp(mir::OpInst& i) {
 }
 void CodeGenVisitor::operator()(mir::FunInst& i) {
   bool hascapture = G.cc.hasCapture(i.lv_name);
-  bool hasmemobj = G.memobjcoll.hasMemObj(i.lv_name);
+  bool hasmemobj = G.funobj_map.count(i.lv_name) > 0;
+  if(hasmemobj){
+    context_hasself = G.funobj_map.at(i.lv_name)->hasself;
+  }
   auto* ft = createFunctionType(i, hascapture, hasmemobj);
   auto* f = createFunction(ft, i);
 
@@ -161,8 +166,6 @@ void CodeGenVisitor::operator()(mir::FunInst& i) {
   G.createNewBasicBlock("entry", f);
 
   addArgstoMap(f, i, hascapture, hasmemobj);
-
-  context_hasself = (i.hasself) ? "ptr_" + i.lv_name + ".self.mem" : "";
   if (i.isrecursive && hascapture) { G.setValuetoMap("ptr_" + i.lv_name + "_cls", f); }
   for (auto& cinsts : i.body->instructions) { G.visitInstructions(cinsts, false); }
 
@@ -176,13 +179,13 @@ llvm::FunctionType* CodeGenVisitor::createFunctionType(mir::FunInst& i, bool has
   auto mmmfntype = rv::get<types::Function>(G.typeenv.find(i.lv_name));
   auto& argtypes = mmmfntype.arg_types;
 
-  if (hascapture) {
+  if (hascapture||i.lv_name=="dsp") {
     auto captype = types::Ref{G.cc.getCaptureType(i.lv_name)};
     argtypes.emplace_back(std::move(captype));
     // auto clsty = llvm::cast<llvm::StructType>(G.getType(captype));
   }
-  if (hasmemobj) {
-    auto memobjtype = types::Ref{G.memobjcoll.getMemObjType(i.lv_name)};
+  if (hasmemobj||i.lv_name=="dsp") {
+    auto memobjtype = types::Ref{G.funobj_map.at(i.lv_name)->objtype};
     argtypes.emplace_back(std::move(memobjtype));
   }
 
@@ -198,42 +201,45 @@ llvm::Function* CodeGenVisitor::createFunction(llvm::FunctionType* type, mir::Fu
 void CodeGenVisitor::addArgstoMap(llvm::Function* f, mir::FunInst& i, bool hascapture,
                                   bool hasmemobj) {
   // arguments are [actual arguments], capture , memobjs
-  auto* f_it = std::begin(f->args());
+  auto* arg = std::begin(f->args());
   for (auto& a : i.args) {
-    f_it->setName(a);
-    G.setValuetoMap(a, f_it);
-    std::advance(f_it, 1);
+    arg->setName(a);
+    G.setValuetoMap(a, arg);
+    std::advance(arg, 1);
   }
-  auto* lastelem = std::prev(f->args().end());
-  if (hasmemobj) {
-    auto name = i.lv_name + ".mem";
-    lastelem->setName(name);
-    G.setValuetoMap(name, lastelem);
-    setMemObjsToMap(i, lastelem);
-    lastelem = std::prev(lastelem);
-  }
-  if (hascapture) {
+  if (hascapture||i.lv_name=="dsp") {
     auto name = "ptr_" + i.lv_name + ".cap";
-    lastelem->setName(name);
-    G.setValuetoMap(name, lastelem);
-    setFvsToMap(i, lastelem);
-
-    // if (i.isrecursive) {
-    //   G.setValuetoMap(i.lv_name + "_cls", f);
-    // }
+    arg->setName(name);
+    G.setValuetoMap(name, arg);
+    setFvsToMap(i, arg);
+    std::advance(arg, 1);
   }
+  if (hasmemobj||i.lv_name=="dsp") {
+    auto name = i.lv_name + ".mem";
+    arg->setName(name);
+    G.setValuetoMap(name, arg);
+    setMemObjsToMap(i, arg);
+  }
+}
+
+void CodeGenVisitor::setMemObj(llvm::Value* memarg, std::string const& name, int index) {
+  auto* gep = G.builder->CreateStructGEP(memarg, index, "ptr_" + name);
+  G.setValuetoMap("ptr_" + name, gep);
+  llvm::Value* valload = G.builder->CreateLoad(gep, name);
+  G.setValuetoMap(name, valload);
 }
 void CodeGenVisitor::setMemObjsToMap(mir::FunInst& i, llvm::Value* memarg) {
-  auto& memobjs = G.memobjcoll.getMemObjNames(i.lv_name);
+  auto& fobjtree = G.funobj_map.at(i.lv_name);
+  auto& memobjs = fobjtree->memobjs;
   int count = 0;
-  for (auto& obj : memobjs) {
-    std::string newname = obj + ".mem";
-    auto* gep = G.builder->CreateStructGEP(memarg, count++, "memobj");
-    G.setValuetoMap("ptr_" + newname, gep);
-    llvm::Value* valload = G.builder->CreateLoad(gep, newname);
-    G.setValuetoMap(newname, valload);
+  //appending order matters! self should be put on last.
+  for (auto& o : memobjs) {
+    FunObjTree& obj = o;
+    setMemObj(memarg, obj.fname+ ".mem", count++);
   }
+  if (fobjtree->hasself) { setMemObj(memarg, "self", count++); }
 }
+
 void CodeGenVisitor::setFvsToMap(mir::FunInst& i, llvm::Value* clsarg) {
   auto& captures = G.cc.getCaptureNames(i.lv_name);
 
@@ -270,7 +276,7 @@ void CodeGenVisitor::operator()(mir::FcallInst& i) {
     }
     args.emplace_back(cap);
   }
-  if (G.memobjcoll.hasMemObj(i.fname)) {
+  if (G.funobj_map.count(i.fname)>0) {
     args.emplace_back(G.findValue("ptr_" + i.fname + ".mem"));
   }
 
@@ -307,17 +313,7 @@ llvm::Value* CodeGenVisitor::getExtFun(mir::FcallInst& i) {
   if (it == LLVMBuiltin::ftable.end()) {
     throw std::runtime_error("could not find external function \"" + i.fname + "\"");
   }
-  BuiltinFnInfo& fninfo = it->second;
-  auto* fntype = llvm::cast<llvm::FunctionType>(G.getType(fninfo.mmmtype));
-  if (i.fname == "mem") {
-    types::Value memtype =
-        types::Function{types::Float{}, {types::Float{}, types::Ref{types::Float{}}}};
-    fntype = llvm::cast<llvm::FunctionType>(G.getType(memtype));
-  }
-  auto fn = G.module->getOrInsertFunction(fninfo.target_fnname, fntype);
-  auto* f = llvm::cast<llvm::Function>(fn.getCallee());
-  f->setCallingConv(llvm::CallingConv::C);
-  return f;
+  return G.getForeignFunction(i.fname);
 }
 
 void CodeGenVisitor::createAddTaskFn(mir::FcallInst& i, const bool isclosure,
@@ -445,11 +441,10 @@ void CodeGenVisitor::operator()(mir::ReturnInst& i) {
     // case of returning function;
     res = G.tryfindValue(i.val + "_cls");
   }
-
   // store self value
-  if (!context_hasself.empty()) {
-    auto* selfv = G.tryfindValue(context_hasself);
-    if (selfv != nullptr) { G.builder->CreateStore(res, selfv); }
+  if (context_hasself) {
+    auto* selfv = G.tryfindValue("ptr_self");
+    G.builder->CreateStore(res, selfv); 
   }
   G.builder->CreateRet(res);
 }

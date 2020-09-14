@@ -6,39 +6,43 @@
 #include "basic/mir.hpp"
 namespace mimium {
 
+struct FunObjTree {
+  std::string fname;
+  bool hasself = false;
+  std::deque<Box<FunObjTree>> memobjs;
+  types::Value objtype;
+};
+using funmap = std::unordered_map<std::string, mir::FunInst*>;
+using funobjmap = std::unordered_map<std::string, std::shared_ptr<FunObjTree>>;
+
 class MemoryObjsCollector {
  public:
   explicit MemoryObjsCollector(TypeEnv& typeenv);
-  mir::blockptr process(mir::blockptr toplevel);
-  bool hasMemObj(const std::string& fname) { return getAliasFromMap(fname).has_value(); };
-  auto getMemObjType(const std::string& fname) { return getAliasFromMap(fname).value(); };
-  auto& getMemObjNames(const std::string& fname) { return memobjs_map[fname]; };
+  funobjmap& process(mir::blockptr toplevel);
 
   void dump();
 
  private:
   TypeEnv& typeenv;
-  using type_or_alias = std::variant<std::string, types::Value>;
+  FunObjTree res;  // for dump;
+  static std::string indentHelper(int indent);
+  static void dumpFunObjTree(FunObjTree const& tree, int indent = 0);
 
-  std::unordered_map<std::string, std::vector<std::string>> memobjs_map;
-  std::unordered_map<std::string, types::Alias> type_alias_map;
-  void emplaceNewAlias(std::string& name, types::Value type);
-  std::optional<types::Alias> getAliasFromMap(std::string name);
-
-  void collectSelf(std::string& funname, std::string& varname);
-  void collectDelay(std::string& funname, int delay_size);
-  void collectMemPrim(std::string& funname, std::string& argname);
-
-  void collectMemFun(std::string& funname, std::string& varname);
+  static funmap collectToplevelFuns(mir::blockptr toplevel);
+  funmap toplevel_funmap;
+  funobjmap result_map;
+  FunObjTree& traverseFunTree(mir::FunInst const& f);
   struct CollectMemVisitor {
-    explicit CollectMemVisitor(MemoryObjsCollector& m) : M(m){};
+    explicit CollectMemVisitor(MemoryObjsCollector& m,mir::FunInst const& f) : M(m),fun(f){};
     MemoryObjsCollector& M;
-    std::list<mir::Instructions>::iterator position;
+    const mir::FunInst& fun;
+    std::deque<Box<FunObjTree>> obj = {};
+    bool res_hasself = false;
+    types::Tuple objtype;
 
     void operator()(mir::RefInst& i);
     void operator()(mir::AssignInst& i);
     void operator()(mir::OpInst& i);
-    void operator()(mir::FunInst& i);
     void operator()(mir::FcallInst& i);
     void operator()(mir::MakeClosureInst& i);
     void operator()(mir::ArrayInst& i);
@@ -47,17 +51,23 @@ class MemoryObjsCollector {
     void operator()(mir::ReturnInst& i);
     template <typename T>
     void operator()(T& /*i*/) {
-      if constexpr (std::is_base_of_v<mir::instruction, std::decay_t<T>>) {
-        // do nothing
+      constexpr bool isfun = std::is_same_v<mir::FunInst, std::decay_t<T>>;
+      if constexpr (isfun) {
+        // Memobj collector reached to FunInst. maybe failed to Closure Conversion?
+        assert(!isfun);
       } else {
-        static_assert(true, "mir instruction unreachable");
+        static_assert(std::is_base_of_v<mir::instruction, std::decay_t<T>>,
+                      "mir instruction unreachable");
       }
     }
 
    private:
     void insertAllocaInst(mir::FunInst& i, types::Alias& type) const;
+    void checkHasSelf(std::string const& name) {
+      res_hasself |= name == "self";
+    }
     std::string cur_fun;
-  } cm_visitor;
+  };
 };
 
 }  // namespace mimium

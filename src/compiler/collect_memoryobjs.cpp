@@ -5,166 +5,129 @@
 #include "collect_memoryobjs.hpp"
 namespace mimium {
 
-MemoryObjsCollector::MemoryObjsCollector(TypeEnv& typeenv) : typeenv(typeenv), cm_visitor(*this) {
-  std::string primitivemem = "mem";
-  memobjs_map.emplace(primitivemem, std::vector<std::string>{"memory"});
-  emplaceNewAlias(primitivemem, types::Float{});
-}
+MemoryObjsCollector::MemoryObjsCollector(TypeEnv& typeenv) : typeenv(typeenv) {}
 
-mir::blockptr MemoryObjsCollector::process(mir::blockptr toplevel) {
-  auto it = std::begin(toplevel->instructions);
+funmap MemoryObjsCollector::collectToplevelFuns(mir::blockptr toplevel) {
+  funmap res;
   for (mir::Instructions& inst : toplevel->instructions) {
-    // skip global declaration
-    if (std::holds_alternative<mir::FunInst>(inst)) {
-      cm_visitor.position = it;
-      std::visit(cm_visitor, inst);
-    }
-    std::advance(it, 1);
+    if (auto* funptr = std::get_if<mir::FunInst>(&inst)) { res.emplace(funptr->lv_name, funptr); }
   }
-  // // register to typeenv
-  // for (auto&& [name, val] : type_alias_map) {
-  //   typeenv.emplace(val.name + "obj", val);
-  // }
-  return toplevel;
-}
-void MemoryObjsCollector::emplaceNewAlias(std::string& name, types::Value type) {
-  type_alias_map.emplace(name, types::Alias{name, type});
-}
-
-std::optional<types::Alias> MemoryObjsCollector::getAliasFromMap(std::string name) {
-  auto it = type_alias_map.find(name);
-  std::optional<types::Alias> res;
-  if (it != type_alias_map.end()) { res = it->second; }
   return res;
 }
-void MemoryObjsCollector::collectSelf(std::string& funname, std::string& varname) {
-  auto newname = (funname + ".self");
-  bool isself = (varname == "self");
-  // self is counted only once in 1 function.
-  bool ischecked = type_alias_map.count(newname) > 0;
-  if (isself && !ischecked) {
-    auto& ftype = rv::get<types::Function>(typeenv.find(funname));
-    emplaceNewAlias(newname, ftype.ret_type);
-    memobjs_map[funname].emplace_back(newname);
+
+FunObjTree& MemoryObjsCollector::traverseFunTree(mir::FunInst const& f) {
+  std::string name = f.lv_name;
+  CollectMemVisitor visitor(*this, f);
+  for (auto&& i : f.body->instructions) { std::visit(visitor, i); }
+  if (visitor.res_hasself) {
+    auto fntype = typeenv.find(f.lv_name);
+    auto rettype = rv::get<types::Function>(fntype).ret_type;
+    visitor.objtype.arg_types.emplace_back(rettype);
   }
-  if (isself) {
-    // destructive: rewrite name of "self"
-    varname = newname + ".mem";
-  }
-}
-void MemoryObjsCollector::collectDelay(std::string& funname, int delay_size) {
-  auto delayname = "delay." + std::to_string(delay_size);
-  emplaceNewAlias(delayname, types::Array{types::Float{}, delay_size});
-  memobjs_map[funname].emplace_back(delayname);
-}
-void MemoryObjsCollector::collectMemPrim(std::string& funname, std::string& argname) {
-  // auto newname = (funname + ".memprim");
-  // bool ismemprim = (varname == "mem");
-  // bool ischecked = type_alias_map.count(newname) > 0;
-  //  if (ismemprim && !ischecked) {
-  //   emplaceNewAlias(newname, typeenv.find(funname));
-  //   memobjs_map[funname].emplace_back(newname);
-  // }
-  // if (ismemprim) {
-  //   // destructive: rewrite name of "self"
-  //   varname = newname + ".mem";
-  // }
+  auto objptr = std::make_shared<FunObjTree>();
+  *objptr = FunObjTree{name, visitor.res_hasself, visitor.obj, visitor.objtype};
+  result_map.emplace(name, objptr);
+  return *objptr;
 }
 
-void MemoryObjsCollector::collectMemFun(std::string& funname, std::string& varname) {
-  auto it = memobjs_map.find(varname);
-  if (it != memobjs_map.end()) {
-    if (!it->second.empty()) { memobjs_map[funname].emplace_back(varname); }
+funobjmap& MemoryObjsCollector::process(mir::blockptr toplevel) {
+  result_map.emplace(
+      "delay", std::make_shared<FunObjTree>(FunObjTree{"delay", false, {}, types::delaystruct}));
+  this->toplevel_funmap = collectToplevelFuns(toplevel);
+  if (toplevel_funmap.count("dsp") > 0) {
+    auto* dspfun = toplevel_funmap.at("dsp");
+    auto res = traverseFunTree(*dspfun);
+    auto& insts = toplevel->instructions;
+    auto dspmemtype = res.objtype;
+    auto alloca = mir::AllocaInst{{"dsp.mem"}, dspmemtype};
+    insts.insert(std::begin(insts), alloca);
+    typeenv.emplace("dsp.mem", dspmemtype);
+  } else {
+    // create dummy dspmemobj
+    result_map.emplace("dsp",
+                       std::make_shared<FunObjTree>(FunObjTree{"dsp", false, {}, types::Tuple{}}));
+  }
+
+  return result_map;
+}
+
+std::string MemoryObjsCollector::indentHelper(int indent) {
+  std::string indent_s;
+  for (int i = 0; i < indent; i++) { indent_s += " "; }
+  return indent_s;
+}
+
+void MemoryObjsCollector::dumpFunObjTree(FunObjTree const& tree, int indent) {
+  std::string fn_s = indentHelper(indent) + tree.fname + "->";
+  std::cerr << fn_s;
+  if (tree.hasself) { std::cerr << "self\n" << indentHelper(fn_s.size()); }
+  for (auto&& o : tree.memobjs) {
+    dumpFunObjTree(o, fn_s.size());
+    std::cerr << "\n";
   }
 }
 
 void MemoryObjsCollector::dump() {
   std::cerr << "-------------Memory Object Functions: -----\n";
-  for (auto&& [key, val] : memobjs_map) {
-    std::cerr << key << " : ";
-    std::for_each(val.begin(), val.end(), [](auto& s) { std::cerr << s << " "; });
-    std::cerr << "\n";
-  }
-  std::cerr << "-------------type alias Map: -----\n";
-  for (auto&& [key, val] : type_alias_map) {
-    std::cerr << key << " : " << types::toString(val, true) << "\n";
-  }
+  dumpFunObjTree(res);
+
+  // std::cerr << "-------------type alias Map: -----\n";
+  // for (auto&& [key, val] : type_alias_map) {
+  //   std::cerr << key << " : " << types::toString(val, true) << "\n";
+  // }
   std::cerr << "------------\n";
 }
 
 // visitor
 
-void MemoryObjsCollector::CollectMemVisitor::operator()(mir::RefInst& i) {
-  M.collectSelf(cur_fun, i.val);
-}
-void MemoryObjsCollector::CollectMemVisitor::operator()(mir::AssignInst& i) {
-  M.collectSelf(cur_fun, i.val);
-}
+void MemoryObjsCollector::CollectMemVisitor::operator()(mir::RefInst& i) { checkHasSelf(i.val); }
+void MemoryObjsCollector::CollectMemVisitor::operator()(mir::AssignInst& i) { checkHasSelf(i.val); }
 
 void MemoryObjsCollector::CollectMemVisitor::operator()(mir::OpInst& i) {
-  M.collectSelf(cur_fun, i.lhs);
-  M.collectSelf(cur_fun, i.rhs);
-}
-void MemoryObjsCollector::CollectMemVisitor::operator()(mir::FunInst& i) {
-  auto memname = i.lv_name + ".mem";
-  this->cur_fun = i.lv_name;
-  for (auto& inst : i.body->instructions) { std::visit(*this, inst); }
-  auto result = M.memobjs_map[i.lv_name];
-  if (!result.empty()) {
-    std::vector<types::Value> objs;
-    objs.reserve(result.size());
-    for (auto& alias_name : result) {
-      // fixmeee
-      // if(alias_name!=i.lv_name){
-      objs.emplace_back(M.getAliasFromMap(alias_name).value());
-      // }
-    }
-    auto type = types::Alias{memname, types::Tuple{std::move(objs)}};
-
-    if (i.lv_name == "dsp") {
-      insertAllocaInst(i, type);
-      M.typeenv.emplace("dsp.memobj", type);
-    }
-    M.type_alias_map.emplace(i.lv_name, std::move(type));
-    i.args.push_back(memname);
-    i.memory_objects = result;
-    i.hasself = true;
-  }
+  checkHasSelf(i.lhs);
+  checkHasSelf(i.rhs);
 }
 void MemoryObjsCollector::CollectMemVisitor::insertAllocaInst(mir::FunInst& i,
                                                               types::Alias& type) const {
-  i.parent->instructions.insert(std::next(position),
-                                mir::AllocaInst{{i.lv_name + ".memobj"}, type});
+  // i.parent->instructions.insert(std::next(position),
+  //                               mir::AllocaInst{{i.lv_name + ".memobj"}, type});
 }
 
 void MemoryObjsCollector::CollectMemVisitor::operator()(mir::FcallInst& i) {
-  if (i.fname == "delay") {
-    // how to track delay size in ssa !!!
-    // M.collectDelay(cur_fun, int delay_size)
-  } else {
-    M.collectMemFun(cur_fun, i.fname);
+  FunObjTree tree;
+  if (M.toplevel_funmap.count(i.fname) > 0) {
+    // TODO(tomoya) create and use cache here
+    auto* fun = M.toplevel_funmap.at(i.fname);
+    tree = M.traverseFunTree(*fun);
+  } else if (i.fname == "delay") {
+    // TODO(tomoya):size should be compile-time constant like below↓
+    // int delay_size = eval(i.args[1]);
+    tree = FunObjTree{"delay", false, {}, types::delaystruct};
   }
-  for (auto& a : i.args) { M.collectSelf(cur_fun, a); }
-  if (i.time) { M.collectSelf(cur_fun, i.time.value()); }
+
+  if (tree.hasself || !tree.memobjs.empty() || i.fname == "delay") {
+    obj.emplace_back(tree);
+    objtype.arg_types.push_back(tree.objtype);
+  }
+  for (auto& a : i.args) { checkHasSelf(a); }
+  if (i.time) { checkHasSelf(i.time.value()); }
 }
 void MemoryObjsCollector::CollectMemVisitor::operator()(mir::MakeClosureInst& i) {
   //??
 }
 void MemoryObjsCollector::CollectMemVisitor::operator()(mir::ArrayInst& i) {
-  for (auto&& e : i.args) { M.collectSelf(cur_fun, e); }
+  for (auto&& e : i.args) { checkHasSelf(e); }
 }
 void MemoryObjsCollector::CollectMemVisitor::operator()(mir::ArrayAccessInst& i) {
-  M.collectSelf(cur_fun, i.name);
-  M.collectSelf(cur_fun, i.index);
+  checkHasSelf(i.name);
+  checkHasSelf(i.index);
 }
 void MemoryObjsCollector::CollectMemVisitor::operator()(mir::IfInst& i) {
-  M.collectSelf(cur_fun, i.cond);
+  checkHasSelf(i.cond);
   for (auto& inst : i.thenblock->instructions) { std::visit(*this, inst); }
   if (i.elseblock.has_value()) {
     for (auto& inst : i.elseblock.value()->instructions) { std::visit(*this, inst); }
   }
 }
-void MemoryObjsCollector::CollectMemVisitor::operator()(mir::ReturnInst& i) {
-  M.collectSelf(cur_fun, i.val);
-}
+void MemoryObjsCollector::CollectMemVisitor::operator()(mir::ReturnInst& i) { checkHasSelf(i.val); }
 }  // namespace mimium
