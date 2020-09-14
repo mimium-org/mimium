@@ -24,12 +24,11 @@ AudioDriverRtAudio::AudioDriverRtAudio(std::shared_ptr<Scheduler> sch, unsigned 
 RtAudioCallback AudioDriverRtAudio::callback = [](void* output, void* input, unsigned int nFrames,
                                                   double time, RtAudioStreamStatus status,
                                                   void* userdata) -> int {
-  auto data = static_cast<CallbackData*>(userdata);
+  auto* data = static_cast<CallbackData*>(userdata);
   auto& [sch, dspfn, dspfn_cls, dspfn_memobj, timeelapsed] = *data;
-  bool isactive = data->scheduler->isactive;
-  if (isactive) {
+  if (sch->isactive) {
     auto* output_buffer_d = static_cast<double*>(output);
-    if (status) Logger::debug_log("Stream underflow detected!", Logger::WARNING);
+    if (status > 0) { Logger::debug_log("Stream underflow detected!", Logger::WARNING); }
     // Write interleaved audio data.
     for (int i = 0; i < nFrames; i++) {
       auto shouldstop = sch->incrementTime();
@@ -38,12 +37,11 @@ RtAudioCallback AudioDriverRtAudio::callback = [](void* output, void* input, uns
         break;
       }
       if (dspfn != nullptr) {
-        // std::cerr << dspfn_memobj << "\n";
-        double res = dspfn((double)timeelapsed, dspfn_cls, dspfn_memobj);
+        double res = dspfn(static_cast<double>(timeelapsed), dspfn_cls, dspfn_memobj);
         output_buffer_d[i * 2] = res;
         output_buffer_d[i * 2 + 1] = res;
       }
-      ++data->timeelapsed;
+      data->timeelapsed+=1;
     }
   }
   return 0;

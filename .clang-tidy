@@ -11,6 +11,7 @@ portability-*,\
 -modernize-use-trailing-return-type,\
 -misc-non-private-member-variables-in-classes,\
 -cppcoreguidelines-special-member-functions,\
+-cppcoreguidelines-non-private-member-variables-in-classes,\
 -google-runtime-references\
 "
 HeaderFilterRegex: 'src.*\.(hpp|h)'

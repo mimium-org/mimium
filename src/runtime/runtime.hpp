@@ -31,7 +31,6 @@ class Runtime {
 
   auto getScheduler() { return sch; };
   virtual void addAudioDriver(std::shared_ptr<AudioDriver> a) = 0;
-  ;
   virtual DspFnType getDspFn() = 0;
   virtual void* getDspFnCls() = 0;
   bool hasDsp() { return hasdsp; }
