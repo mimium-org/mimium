@@ -5,9 +5,8 @@
 #include "runtime/backend/rtaudio/driver_rtaudio.hpp"
 
 namespace mimium {
-AudioDriverRtAudio::AudioDriverRtAudio( unsigned int bs ,
-                       unsigned int sr, unsigned int chs )
-    : AudioDriver( bs, sr, chs) {
+AudioDriverRtAudio::AudioDriverRtAudio(unsigned int bs, unsigned int sr, unsigned int chs)
+    : AudioDriver(bs, sr, chs) {
   try {
     rtaudio = std::make_unique<RtAudio>();
   } catch (RtAudioError& e) { e.printMessage(); }
@@ -36,7 +35,6 @@ RtAudioCallback AudioDriverRtAudio::callback = [](void* output, void* input, uns
 
 bool AudioDriverRtAudio::start() {
   try {
-
     sample_rate = rtaudio->getDeviceInfo(parameters.deviceId).preferredSampleRate;
     rtaudio->openStream(&parameters, nullptr, RTAUDIO_FLOAT64, sample_rate, &buffer_size,
                         AudioDriverRtAudio::callback, this);
@@ -46,7 +44,7 @@ bool AudioDriverRtAudio::start() {
     deviceinfo += ", Sampling Rate : " + std::to_string(rtaudio->getStreamSampleRate());
     deviceinfo += ", Output Channels : " + std::to_string(device.outputChannels);
     Logger::debug_log(deviceinfo, Logger::INFO);
-    bool hasdsp = dspfn!=nullptr;
+    bool hasdsp = dspfninfos.fn != nullptr;
     sch.start(hasdsp);
     rtaudio->startStream();
   } catch (RtAudioError& e) {
@@ -58,8 +56,10 @@ bool AudioDriverRtAudio::start() {
 bool AudioDriverRtAudio::stop() {
   try {
     sch.stop();
-    rtaudio->stopStream();
-    if (rtaudio->isStreamOpen()) { rtaudio->closeStream(); }
+    if (rtaudio->isStreamOpen()) {
+      rtaudio->stopStream();
+      rtaudio->closeStream();
+    }
   } catch (RtAudioError& e) {
     e.printMessage();
     return false;
