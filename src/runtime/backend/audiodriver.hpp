@@ -8,24 +8,23 @@
 
 namespace mimium {
 
+
 class AudioDriver {
  protected:
-  Scheduler sch;
   unsigned int buffer_size;  // 256 sample per frames
   unsigned int sample_rate;
   unsigned int channels;
-  void* dspfn_cls_address = nullptr;
-  void* dspfn_memobj_address = nullptr;
-  DspFnType dspfn = nullptr;
+  Scheduler sch;
+  DspFnInfos dspfninfos;
 
  public:
   AudioDriver() = delete;
   explicit AudioDriver(unsigned int bs = 256,
                        unsigned int sr = 44100, unsigned int chs = 2)
       : buffer_size(bs), sample_rate(sr), channels(chs), sch(){};
-  void setDspFn(DspFnType fn) { dspfn = fn; }
-  void setDspClsAddress(void* address) { dspfn_cls_address = address; }
-  void setDspMemObjAddress(void* address) { dspfn_memobj_address = address; }
+  void setDspFnInfos(DspFnInfos&& infos) { 
+    dspfninfos = infos;
+  }
   virtual ~AudioDriver() = default;
   Scheduler& getScheduler() { return sch; }
   virtual bool start() = 0;

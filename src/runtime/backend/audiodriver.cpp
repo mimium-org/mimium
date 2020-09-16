@@ -7,8 +7,8 @@ bool AudioDriver::processSample(double* input, double* output) {
     sch.stop();
     return false;
   }
-  if (dspfn != nullptr) {
-    double res = dspfn(static_cast<double>(sch.getTime()), dspfn_cls_address, dspfn_memobj_address);
+  if (dspfninfos.fn != nullptr) {
+    double res = dspfninfos.fn(static_cast<double>(sch.getTime()), dspfninfos.cls_address, dspfninfos.memobj_address);
     for (int ch = 0; ch < this->channels; ch++) { output[ch] = res; }
   }
   return true;

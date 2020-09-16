@@ -9,9 +9,7 @@ mimium::Runtime_LLVM* global_runtime;
 
 void setDspParams(void* dspfn, void* clsaddress, void* memobjaddress) {
   auto audiodriver = global_runtime->getAudioDriver();
-  audiodriver->setDspFn(reinterpret_cast<mimium::DspFnType>(dspfn));
-  audiodriver->setDspClsAddress(clsaddress);
-  audiodriver->setDspMemObjAddress(memobjaddress);
+  audiodriver->setDspFnInfos(mimium::DspFnInfos{reinterpret_cast<mimium::DspFnPtr>(dspfn),clsaddress,memobjaddress});
 }
 
 NO_SANITIZE void addTask(double time, void* addresstofn, double arg) {
@@ -55,7 +53,7 @@ void Runtime_LLVM::executeModule(std::unique_ptr<llvm::Module> module) {
   mimium_main_function();
   //
   if (auto symbolorerror = jitengine->lookup("dsp")) {
-    auto address = (DspFnType)symbolorerror->getAddress();
+    auto address = (DspFnPtr)symbolorerror->getAddress();
     hasdsp = true;
   } else {
     auto err = symbolorerror.takeError();
