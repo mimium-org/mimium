@@ -47,7 +47,8 @@ jobs:
         name: deps-ubuntu
         run: |
           sudo apt update
-          sudo apt-get install libalsa-ocaml-dev libfl-dev libbison-dev libz-dev libsndfile-dev libopus-dev llvm-${{matrix.llvm}}-dev clang-10 libclang-10-dev gcc-9  libgtest-dev
+          sudo apt upgrade
+          sudo apt-get install libalsa-ocaml-dev libfl-dev libbison-dev libz-dev libsndfile-dev libopus-dev llvm-${{matrix.llvm}}-dev clang-10 gcc-9  libgtest-dev
           sudo mkdir /usr/lib/llvm && sudo ln -s /usr/lib/llvm-10** /usr/lib/llvm
   
       # - if: contains(matrix.os, 'ubuntu-18.04')
@@ -59,7 +60,7 @@ jobs:
       - if: contains(matrix.os, 'macos')
         name: deps-macos
         run: |
-          brew update
+          brew upgrade
           brew install flex bison libsndfile llvm@${{matrix.llvm}}
       # - name: install-googletest
       #   run: |
