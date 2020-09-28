@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## v0.1.5 (2020-09-28)
+
+### Fixed bugs
+
+- fixed a compile error when if statement contains only a single fcall inside braces(Thanks @t-sin).
+
+### Improvements
+
+- Automatically copies changelog to release body in GitHub actions
+
+### Other
+
+Now new features such as delay primitive function which will be included in v0.2.0 are under development.
+
 ## v0.1.4 (2020-09-11)
 
 ### Fixed bugs
