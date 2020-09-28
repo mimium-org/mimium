@@ -402,7 +402,7 @@ void CodeGenVisitor::createIfBody(mir::blockptr& block, llvm::Value* ret_ptr) {
     for (auto& ti : insts) { std::visit(*this, ti); }
   } else {
     if (!std::holds_alternative<mir::ReturnInst>(insts.back())) {
-      std::runtime_error("non-void block should have mir::ReturnInst for last line");
+      throw std::logic_error("non-void block should have mir::ReturnInst for last line");
     }
     for (auto&& iter = std::begin(insts); iter != std::prev(std::end(insts)); iter++) {
       std::visit(*this, *iter);

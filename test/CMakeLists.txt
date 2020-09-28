@@ -26,7 +26,7 @@ target_link_libraries(UnitTest
     ${test_llvm}
   )
 
-add_test(Name UnitTest Command UnitTest)
+add_test(Name UnitTest Command "ASAN_OPTIONS=detect_container_overflow=0 ${CMAKE_CURRENT_BINARY_DIR}/UnitTest")
 
 file(GLOB_RECURSE testsource LIST_DIRECTORIES true mmm/*.mmm)
 

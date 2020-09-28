@@ -429,7 +429,17 @@ statement: assign       {$$=ast::makeStatement(std::move($1));}
 
 block: LBRACE   statements newlines expr_non_fcall opt_nl RBRACE {$$ = ast::Block{{@$,"block"},std::move($2),std::optional(std::move($4))};}
       | LBRACE  opt_nl expr_non_fcall opt_nl RBRACE {$$ = ast::Block{{@$,"block"},{},std::move($3)};}
-      | LBRACE   statements opt_nl RBRACE {$$ = ast::Block{{@$,"block"},std::move($2),std::nullopt};}
+      | LBRACE   statements opt_nl RBRACE {
+            auto& lastline = $2.back();
+            std::optional<ast::ExprPtr> optexpr =std::nullopt;
+            if(std::holds_alternative<ast::Fcall>(*lastline)){
+                  optexpr = ast::makeExpr(std::get<ast::Fcall>(*lastline));
+                  $2.pop_back();
+            }else if(rv::holds_alternative<ast::If>(*lastline)){
+                  optexpr = ast::makeExpr(rv::get<ast::If>(*lastline));
+                  $2.pop_back();
+            }
+            $$ = ast::Block{{@$,"block"},std::move($2),std::move(optexpr)};}
 
 newlines: newlines NEWLINE
        | NEWLINE
