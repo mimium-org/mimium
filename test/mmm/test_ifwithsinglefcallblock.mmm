@@ -1,0 +1,7 @@
+// made for a bugfix on block which only has single fcall 
+fn hihat(){
+    return 1
+}
+hihat_note_on = 1
+h = 0.7 * if (hihat_note_on) { hihat() } else { 0 }
+print(h)

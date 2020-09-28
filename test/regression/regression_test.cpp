@@ -30,3 +30,5 @@ namespace fs = std::filesystem;
 REGRESSION(regression, "120")
 
 REGRESSION(closure2, "20015")
+
+REGRESSION(ifwithsinglefcallblock,"0.7")
