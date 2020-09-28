@@ -14,10 +14,16 @@ jobs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
       - uses: actions/checkout@v2
+      - name: Get Changelog
+        id: get_changelog
+        run: |
+          git diff HEAD~ CHANGELOG.md | grep '^+[^+]' | sed  -e "s/^+//" >| /tmp/changelog.diff.txt
+          echo  ::set-output name=CHANGELOG::$(cat /tmp/changelog.diff.txt)
       - name: Create Source Release
         id: create_release
         uses: actions/create-release@v1.0.0
         with:
+          body: ${{ steps.get_changelog.outputs.CHANGELOG }}
           tag_name: ${{ github.ref }}
           release_name: ${{ github.ref }}
           draft: false
@@ -108,6 +114,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+
           upload_url: ${{ needs.create_release.outputs.upload_url }}
           asset_path: ./build/mimium-${{ steps.get_version.outputs.VERSION }}-${{ matrix.zip_postfix }}.zip
           asset_name: mimium-${{ steps.get_version.outputs.VERSION }}-${{ matrix.zip_postfix }}.zip
