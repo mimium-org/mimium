@@ -41,8 +41,8 @@ jobs:
             - os: windows-latest
               shell: msys2 {0}
               cmake-generator: -G MSYS Makefiles
-              cc: /mingw64/bin/clang
-              cxx: /mingw64/bin/clang++
+              cc: /usr/bin/gcc
+              cxx: /usr/bin/g++
     defaults:
       run:
         shell: ${{ matrix.shell }}
@@ -54,15 +54,15 @@ jobs:
         with:
           update: true
           msystem: MSYS
-          install: base-devel cmake git mingw64/mingw-w64-x86_64-clang mingw64/mingw-w64-x86_64-llvm mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus mingw64/mingw-w64-x86_64-ninja
-          run: |
-            export LLVM_DIR=/mingw64/share/llvm/cmake
+          install: base-devel cmake git gcc mingw64/mingw-w64-x86_64-llvm mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus mingw64/mingw-w64-x86_64-ninja
+        run: |
+            export LLVM_DIR=/mingw64/share/llvm/cmake/modules
       - if: ${{contains(matrix.os, 'macos')||contains(matrix.os, 'ubuntu') }}
         name: deps-homebrew-mac
         run: |
           brew upgrade
           brew install flex bison libsndfile llvm@${{matrix.llvm_ver}}
-          export LLVM_DIR=$(brew --prefix)/opt/llvm@${{matrix.llvm_ver}}/lib/cmake
+          export LLVM_DIR=$(brew --prefix)/opt/llvm@${{matrix.llvm_ver}}/lib/cmake/llvm
       - name: configure
         run:
           mkdir build && cd build && cmake ${{ matrix.cmake-generator }} -DCMAKE_BUILD_CONFIG=${{ matrix.config }} -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} ..
