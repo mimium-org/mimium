@@ -33,7 +33,7 @@ jobs:
               cxx: /usr/bin/g++-9
               llvm_dir: /usr/lib/llvm-
             - os: macos-latest
-              shell: zsh
+              shell: bash
               cc: /usr/bin/clang
               cxx: /usr/bin/clang++
               llvm_dir: /usr/local/opt/llvm@
