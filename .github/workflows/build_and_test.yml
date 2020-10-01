@@ -35,12 +35,12 @@ jobs:
               shell: bash
               cc: /usr/bin/gcc-9
               cxx: /usr/bin/g++-9
-              llvm_dir: /usr/lib/llvm-{{matrix.llvm_ver}}/lib/cmake
+              llvm_dir: /usr/lib/llvm-${{matrix.llvm_ver}}/lib/cmake
             - os: macos-latest
               shell: bash
               cc: /usr/bin/clang
               cxx: /usr/bin/clang++
-              llvm_dir: /usr/local/opt/llvm@{{matrix.llvm_ver}}/lib/cmake
+              llvm_dir: /usr/local/opt/llvm@${{matrix.llvm_ver}}/lib/cmake
             - os: windows-latest
               shell: msys2 {0}
               cmake-generator: -G MSYS Makefiles
