@@ -63,7 +63,7 @@ jobs:
           brew install flex bison libsndfile llvm@${{matrix.llvm_ver}}
           echo $(brew --prefix)/opt/llvm@${{matrix.llvm_ver}}/lib/cmake/llvm >| /tmp/llvm_dir.txt
       - if: contains(matrix.os, 'ubuntu')
-        run: apt install -yq libasound2-dev 
+        run: sudo apt-get install -yq libasound2-dev 
       - name: configure
         run:
           mkdir build && cd build && cmake ${{ matrix.cmake-generator }} -DCMAKE_BUILD_CONFIG=${{ matrix.config }} -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} -DLLVM_DIR=$(cat /tmp/llvm_dir.txt) ..
