@@ -57,11 +57,13 @@ jobs:
       - if: contains(matrix.os, 'windows')
         run: echo /mingw64/share/llvm/cmake/modules >| /tmp/llvm_dir.txt
       - if: ${{contains(matrix.os, 'macos')||contains(matrix.os, 'ubuntu') }}
-        name: deps-homebrew-mac
+        name: deps-homebrew
         run: |
           brew upgrade
           brew install flex bison libsndfile llvm@${{matrix.llvm_ver}}
           echo $(brew --prefix)/opt/llvm@${{matrix.llvm_ver}}/lib/cmake/llvm >| /tmp/llvm_dir.txt
+      - if: contains(matrix.os, 'ubuntu')
+        run: brew install alsa-lib
       - name: configure
         run:
           mkdir build && cd build && cmake ${{ matrix.cmake-generator }} -DCMAKE_BUILD_CONFIG=${{ matrix.config }} -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} -DLLVM_DIR=$(cat /tmp/llvm_dir.txt) ..
