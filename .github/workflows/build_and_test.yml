@@ -40,9 +40,9 @@ jobs:
               cxx: /usr/bin/clang++
               llvm_dir: /usr/lib/llvm-
     defaults:
-      run:
-        if: contains(matrix.os, windows)
-        shell: msys2 {0}
+      - if: contains(matrix.os, windows)
+        run:
+          shell: msys2 {0}
     steps:
       - uses: actions/checkout@v2
       - if: contains(matrix.os, windows)
