@@ -20,15 +20,15 @@ if (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
   set(SNDFILE_FOUND TRUE)
 else (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
 if(APPLE)
-set(HOMEBREW_PATH /usr/local/opt)
+set(HOMEBREW_PATH /usr/local)
 elseif(UNIX)
-set(HOMEBREW_PATH /home/.linuxbrew/linuxbrew/opt )
+set(HOMEBREW_PATH /home/.linuxbrew/linuxbrew )
 endif()
   find_path(SNDFILE_INCLUDE_DIR
     NAMES
       sndfile.h
     PATHS
-      ${HOMEBREW_PATH}/libsndfile/include
+      ${HOMEBREW_PATH}/include
       /usr/include
       /usr/local/include
       /opt/local/include
@@ -39,7 +39,7 @@ endif()
     NAMES
       sndfile
     PATHS
-      ${HOMEBREW_PATH}/libsndfile/lib
+      ${HOMEBREW_PATH}/lib
       /usr/lib
       /usr/local/lib
       /opt/local/lib
@@ -50,11 +50,10 @@ endif()
   NAMES
   ogg
   PATHS
-  ${HOMEBREW_PATH}/libogg/lib
+  ${HOMEBREW_PATH}/lib
   /usr/lib
   /usr/lib/x86_64-linux-gnu/
   /usr/local/lib
-  /usr/local/
   /opt/local/lib
   /sw/lib
   )
@@ -62,7 +61,7 @@ endif()
   NAMES
   vorbis
   PATHS
-  ${HOMEBREW_PATH}/libvorbis/lib
+  ${HOMEBREW_PATH}/lib
   /usr/lib
   /usr/lib/x86_64-linux-gnu/
   /usr/local/lib
@@ -73,7 +72,7 @@ endif()
   NAMES
   vorbisenc
   PATHS
-  ${HOMEBREW_PATH}/libvorbis/lib
+  ${HOMEBREW_PATH}/lib
   /usr/lib
   /usr/lib/x86_64-linux-gnu/
   /usr/local/lib
@@ -84,7 +83,7 @@ endif()
   NAMES
   flac FLAC
   PATHS
-  ${HOMEBREW_PATH}/flac/lib
+  ${HOMEBREW_PATH}/lib
   /usr/lib
   /usr/lib/x86_64-linux-gnu/
   /usr/local/lib
@@ -95,7 +94,7 @@ endif()
   NAMES
   opus
   PATHS
-  ${HOMEBREW_PATH}/opus/lib
+  ${HOMEBREW_PATH}/lib
   /usr/lib
   /usr/lib/x86_64-linux-gnu/
   /usr/local/lib
