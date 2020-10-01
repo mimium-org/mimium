@@ -1,8 +1,8 @@
 project(rtaudio-download NONE)
 
-if(MINGW or WIN32)
+if(MINGW OR WIN32)
 set(RTAUDIO_BUILD_FLAG  -DAUDIO_WINDOWS_WASAPI=ON -RTAUDIO_API_ALSA=OFF)
-else
+else()
 set(RTAUDIO_BUILD_FLAG )
 endif()
 
