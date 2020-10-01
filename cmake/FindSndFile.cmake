@@ -19,13 +19,16 @@ if (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
   # in cache already
   set(SNDFILE_FOUND TRUE)
 else (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
-  set(LINUXBREW_PATH /home/.linuxbrew/linuxbrew/opt )
+if(APPLE)
+set(HOMEBREW_PATH /usr/local/opt)
+elseif(UNIX)
+set(HOMEBREW_PATH /home/.linuxbrew/linuxbrew/opt )
+endif()
   find_path(SNDFILE_INCLUDE_DIR
     NAMES
       sndfile.h
     PATHS
-      /usr/local/opt/libsndfile/include
-      ${LINUXBREW_PATH}
+      ${HOMEBREW_PATH}/libsndfile/include
       /usr/include
       /usr/local/include
       /opt/local/include
@@ -36,8 +39,7 @@ else (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
     NAMES
       sndfile
     PATHS
-      /usr/local/opt/libsndfile/lib
-      ${LINUXBREW_PATH}
+      ${HOMEBREW_PATH}/libsndfile/lib
       /usr/lib
       /usr/local/lib
       /opt/local/lib
@@ -48,8 +50,8 @@ else (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
   NAMES
   ogg
   PATHS
+  ${HOMEBREW_PATH}/libogg/lib
   /usr/lib
-  ${LINUXBREW_PATH}
   /usr/lib/x86_64-linux-gnu/
   /usr/local/lib
   /usr/local/
@@ -60,8 +62,8 @@ else (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
   NAMES
   vorbis
   PATHS
+  ${HOMEBREW_PATH}/libvorbis/lib
   /usr/lib
-  ${LINUXBREW_PATH}
   /usr/lib/x86_64-linux-gnu/
   /usr/local/lib
   /opt/local/lib
@@ -71,8 +73,8 @@ else (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
   NAMES
   vorbisenc
   PATHS
+  ${HOMEBREW_PATH}/libvorbis/lib
   /usr/lib
-  ${LINUXBREW_PATH}
   /usr/lib/x86_64-linux-gnu/
   /usr/local/lib
   /opt/local/lib
@@ -82,8 +84,8 @@ else (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
   NAMES
   flac FLAC
   PATHS
+  ${HOMEBREW_PATH}/flac/lib
   /usr/lib
-  ${LINUXBREW_PATH}
   /usr/lib/x86_64-linux-gnu/
   /usr/local/lib
   /opt/local/lib
@@ -93,8 +95,8 @@ else (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
   NAMES
   opus
   PATHS
+  ${HOMEBREW_PATH}/opus/lib
   /usr/lib
-  ${LINUXBREW_PATH}
   /usr/lib/x86_64-linux-gnu/
   /usr/local/lib
   /opt/local/lib
@@ -110,7 +112,6 @@ else (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
     ${VORBISENC_LIBRARY}
     ${FLAC_LIBRARY}
     ${OPUS_LIBRARY}
-
   )
   message(STATUS "------------------")
 
