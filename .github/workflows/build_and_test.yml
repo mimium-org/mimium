@@ -40,7 +40,6 @@ jobs:
               cxx: /usr/bin/clang++
             - os: windows-latest
               shell: msys2 {0}
-              cmake-generator: -G Ninja
               cc: /usr/bin/gcc
               cxx: /usr/bin/g++
     defaults:
@@ -65,7 +64,7 @@ jobs:
           export LLVM_DIR=$(brew --prefix)/opt/llvm@${{matrix.llvm_ver}}/lib/cmake/llvm
       - name: configure
         run:
-          mkdir build && cd build && cmake ${{ matrix.cmake-generator }} -DCMAKE_BUILD_CONFIG=${{ matrix.config }} -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} ..
+          mkdir build && cd build && cmake ${{ matrix.cmake-generator }} -DCMAKE_BUILD_CONFIG=${{ matrix.config }} -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} -DLLVM_DIR=$LLVM_DIR ..
 
       - name: build
         run: cmake --build build --config ${{ matrix.config }}
