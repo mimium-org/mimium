@@ -55,16 +55,16 @@ jobs:
           msystem: MSYS
           install: base-devel cmake git gcc mingw64/mingw-w64-x86_64-llvm mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus mingw64/mingw-w64-x86_64-ninja
       - if: contains(matrix.os, 'windows')
-        run: export LLVM_DIR=/mingw64/share/llvm/cmake/modules
+        run: echo /mingw64/share/llvm/cmake/modules >| /tmp/llvm_dir.txt
       - if: ${{contains(matrix.os, 'macos')||contains(matrix.os, 'ubuntu') }}
         name: deps-homebrew-mac
         run: |
           brew upgrade
           brew install flex bison libsndfile llvm@${{matrix.llvm_ver}}
-          export LLVM_DIR=$(brew --prefix)/opt/llvm@${{matrix.llvm_ver}}/lib/cmake/llvm
+          echo $(brew --prefix)/opt/llvm@${{matrix.llvm_ver}}/lib/cmake/llvm >| /tmp/llvm_dir.txt
       - name: configure
         run:
-          mkdir build && cd build && cmake ${{ matrix.cmake-generator }} -DCMAKE_BUILD_CONFIG=${{ matrix.config }} -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} -DLLVM_DIR=$LLVM_DIR ..
+          mkdir build && cd build && cmake ${{ matrix.cmake-generator }} -DCMAKE_BUILD_CONFIG=${{ matrix.config }} -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} -DLLVM_DIR=$(cat /tmp/llvm_dir.txt) ..
 
       - name: build
         run: cmake --build build --config ${{ matrix.config }}
