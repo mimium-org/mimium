@@ -63,7 +63,7 @@ jobs:
         env:
           LLVM_DIR: ${{ matrix.llvm_dir }}${{ matrix.llvm_ver}}/lib/cmake
         run:
-          mkdir build && cd build && cmake ${{ matrix.cmake-generator }}-DCMAKE_BUILD_CONFIG=${{ matrix.config }} -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} ..
+          mkdir build && cd build && cmake ${{ matrix.cmake-generator }} -DCMAKE_BUILD_CONFIG=${{ matrix.config }} -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} ..
 
       - name: build
         run: cmake --build build --config ${{ matrix.config }}
