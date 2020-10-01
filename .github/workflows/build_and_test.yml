@@ -55,8 +55,8 @@ jobs:
           update: true
           msystem: MSYS
           install: base-devel cmake git gcc mingw64/mingw-w64-x86_64-llvm mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus mingw64/mingw-w64-x86_64-ninja
-        run: |
-            export LLVM_DIR=/mingw64/share/llvm/cmake/modules
+      - if: contains(matrix.os, 'windows')
+        run: export LLVM_DIR=/mingw64/share/llvm/cmake/modules
       - if: ${{contains(matrix.os, 'macos')||contains(matrix.os, 'ubuntu') }}
         name: deps-homebrew-mac
         run: |
