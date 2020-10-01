@@ -39,7 +39,7 @@ jobs:
               llvm_dir: /usr/local/opt/llvm@
             - os: windows-latest
               shell: msys2 {0}
-              cmake-generator: -G Ninja
+              cmake-generator: -G MSYS Makefiles
               cc: clang
               cxx: clang++
               llvm_dir: /usr/lib/llvm-
@@ -53,7 +53,9 @@ jobs:
         uses: msys2/setup-msys2@v2
         with:
           update: true
-          install: base-devel cmake git mingw64/mingw-w64-x86_64-llvm mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus mingw64/mingw-w64-x86_64-ninja
+          msystem: MSYS
+          install: base-devel cmake git  mingw64/mingw-w64-x86_64-clang
+ mingw64/mingw-w64-x86_64-llvm mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus mingw64/mingw-w64-x86_64-ninja
       - if: ${{contains(matrix.os, 'macos')||contains(matrix.os, 'ubuntu') }}
         name: deps-homebrew
         run: |
