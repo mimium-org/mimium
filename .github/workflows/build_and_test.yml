@@ -40,8 +40,8 @@ jobs:
             - os: windows-latest
               shell: msys2 {0}
               cmake-generator: -G Ninja
-              cc: /usr/bin/clang
-              cxx: /usr/bin/clang++
+              cc: clang
+              cxx: clang++
               llvm_dir: /usr/lib/llvm-
     defaults:
       run:
