@@ -40,7 +40,7 @@ jobs:
               cxx: /usr/bin/clang++
             - os: windows-latest
               shell: msys2 {0}
-              cmake-generator: -G MSYS Makefiles
+              cmake-generator: -G Ninja
               cc: /usr/bin/gcc
               cxx: /usr/bin/g++
     defaults:
