@@ -54,7 +54,7 @@ jobs:
         with:
           update: true
           install: base-devel cmake git mingw64/mingw-w64-x86_64-llvm mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus
-      - if: ${{contains(matrix.os, 'macos')&&contains(matrix.os, 'ubuntu') }}
+      - if: ${{contains(matrix.os, 'macos')||contains(matrix.os, 'ubuntu') }}
         name: deps-homebrew
         run: |
           brew upgrade
