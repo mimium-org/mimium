@@ -33,6 +33,7 @@ endif()
       /usr/local/include
       /opt/local/include
       /sw/include
+      /mingw64/include
   )
   
   find_library(SNDFILE_LIBRARY
@@ -44,6 +45,7 @@ endif()
       /usr/local/lib
       /opt/local/lib
       /sw/lib
+      /mingw64/lib
   )
 
   find_library(OGG_LIBRARY
@@ -56,6 +58,7 @@ endif()
   /usr/local/lib
   /opt/local/lib
   /sw/lib
+  /mingw64/lib
   )
   find_library(VORBIS_LIBRARY
   NAMES
@@ -67,6 +70,7 @@ endif()
   /usr/local/lib
   /opt/local/lib
   /sw/lib
+  /mingw64/lib
   )
   find_library(VORBISENC_LIBRARY
   NAMES
@@ -78,6 +82,7 @@ endif()
   /usr/local/lib
   /opt/local/lib
   /sw/lib
+  /mingw64/lib
   )
   find_library(FLAC_LIBRARY
   NAMES
@@ -89,6 +94,7 @@ endif()
   /usr/local/lib
   /opt/local/lib
   /sw/lib
+  /mingw64/lib
   )
   find_library(OPUS_LIBRARY
   NAMES
@@ -100,6 +106,7 @@ endif()
   /usr/local/lib
   /opt/local/lib
   /sw/lib
+  /mingw64/lib
   )
   set(SNDFILE_INCLUDE_DIRS
     ${SNDFILE_INCLUDE_DIR}
