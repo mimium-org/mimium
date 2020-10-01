@@ -22,7 +22,7 @@ else (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
 if(APPLE)
 set(HOMEBREW_PATH /usr/local)
 elseif(UNIX)
-set(HOMEBREW_PATH /home/.linuxbrew/.linuxbrew )
+set(HOMEBREW_PATH /home/linuxbrew/.linuxbrew )
 endif()
   find_path(SNDFILE_INCLUDE_DIR
     NAMES
