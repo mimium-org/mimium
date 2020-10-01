@@ -48,7 +48,7 @@ jobs:
         shell: ${{ matrix.shell }}
     steps:
       - uses: actions/checkout@v2
-      - if: contains(matrix.os, windows)
+      - if: contains(matrix.os, 'windows')
         name: setup-windows
         uses: msys2/setup-msys2@v2
         with:
