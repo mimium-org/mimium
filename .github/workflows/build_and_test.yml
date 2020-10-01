@@ -30,23 +30,19 @@ jobs:
               shell: bash
               cc: /usr/bin/gcc-9
               cxx: /usr/bin/g++-9
-              llvm_dir: /usr/lib/llvm-{{matrix.llvm_ver}}/lib/cmake
             - os: ubuntu-20.04
               shell: bash
               cc: /usr/bin/gcc-9
               cxx: /usr/bin/g++-9
-              llvm_dir: /usr/lib/llvm-${{matrix.llvm_ver}}/lib/cmake
             - os: macos-latest
               shell: bash
               cc: /usr/bin/clang
               cxx: /usr/bin/clang++
-              llvm_dir: /usr/local/opt/llvm@${{matrix.llvm_ver}}/lib/cmake
             - os: windows-latest
               shell: msys2 {0}
               cmake-generator: -G MSYS Makefiles
               cc: /mingw64/bin/clang
               cxx: /mingw64/bin/clang++
-              llvm_dir: /mingw64/share/llvm/cmake
     defaults:
       run:
         shell: ${{ matrix.shell }}
@@ -59,14 +55,15 @@ jobs:
           update: true
           msystem: MSYS
           install: base-devel cmake git mingw64/mingw-w64-x86_64-clang mingw64/mingw-w64-x86_64-llvm mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus mingw64/mingw-w64-x86_64-ninja
+          run: |
+            export LLVM_DIR=/mingw64/share/llvm/cmake
       - if: ${{contains(matrix.os, 'macos')||contains(matrix.os, 'ubuntu') }}
-        name: deps-homebrew
+        name: deps-homebrew-mac
         run: |
           brew upgrade
           brew install flex bison libsndfile llvm@${{matrix.llvm_ver}}
+          export LLVM_DIR=$(brew --prefix)/opt/llvm@${{matrix.llvm_ver}}/lib/cmake
       - name: configure
-        env:
-          LLVM_DIR: ${{ matrix.llvm_dir }}
         run:
           mkdir build && cd build && cmake ${{ matrix.cmake-generator }} -DCMAKE_BUILD_CONFIG=${{ matrix.config }} -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} ..
 
