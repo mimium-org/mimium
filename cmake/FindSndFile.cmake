@@ -19,12 +19,13 @@ if (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
   # in cache already
   set(SNDFILE_FOUND TRUE)
 else (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
-
+  set(LINUXBREW_PATH /home/.linuxbrew/linuxbrew/opt )
   find_path(SNDFILE_INCLUDE_DIR
     NAMES
       sndfile.h
     PATHS
       /usr/local/opt/libsndfile/include
+      ${LINUXBREW_PATH}
       /usr/include
       /usr/local/include
       /opt/local/include
@@ -35,7 +36,8 @@ else (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
     NAMES
       sndfile
     PATHS
-    /usr/local/opt/libsndfile/lib
+      /usr/local/opt/libsndfile/lib
+      ${LINUXBREW_PATH}
       /usr/lib
       /usr/local/lib
       /opt/local/lib
@@ -47,6 +49,7 @@ else (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
   ogg
   PATHS
   /usr/lib
+  ${LINUXBREW_PATH}
   /usr/lib/x86_64-linux-gnu/
   /usr/local/lib
   /usr/local/
@@ -58,6 +61,7 @@ else (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
   vorbis
   PATHS
   /usr/lib
+  ${LINUXBREW_PATH}
   /usr/lib/x86_64-linux-gnu/
   /usr/local/lib
   /opt/local/lib
@@ -68,6 +72,7 @@ else (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
   vorbisenc
   PATHS
   /usr/lib
+  ${LINUXBREW_PATH}
   /usr/lib/x86_64-linux-gnu/
   /usr/local/lib
   /opt/local/lib
@@ -78,6 +83,7 @@ else (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
   flac FLAC
   PATHS
   /usr/lib
+  ${LINUXBREW_PATH}
   /usr/lib/x86_64-linux-gnu/
   /usr/local/lib
   /opt/local/lib
@@ -88,6 +94,7 @@ else (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
   opus
   PATHS
   /usr/lib
+  ${LINUXBREW_PATH}
   /usr/lib/x86_64-linux-gnu/
   /usr/local/lib
   /opt/local/lib
