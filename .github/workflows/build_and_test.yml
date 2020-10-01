@@ -38,7 +38,7 @@ jobs:
               cmake-generator: -G Ninja
               cc: /usr/bin/clang
               cxx: /usr/bin/clang++
-              llvm_dir: /usr/local/opt/llvm@
+              llvm_dir: /usr/lib/llvm-
     defaults:
       run:
         if: contains(matrix.os, windows)
@@ -48,10 +48,10 @@ jobs:
       - if: contains(matrix.os, windows)
         name: setup-windows
           uses: msys2/setup-msys2@v2
-          with:
-            update: true
-            install: base-devel cmake git mingw64/mingw-w64-x86_64-llvm mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus
-            
+            with:
+              update: true
+              install: base-devel cmake git mingw64/mingw-w64-x86_64-llvm mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus
+
       - if: ${{contains(matrix.os, 'macos')&&contains(matrix.os, 'ubuntu') }}
         name: deps-homebrew
         run: |
