@@ -87,13 +87,6 @@ jobs:
         run: |
           brew upgrade
           brew install flex bison libsndfile llvm@${{matrix.llvm}}
-      # - name: install-googletest
-      #   run: |
-      #     git clone https://github.com/google/googletest.git && pushd googletest
-      #     mkdir build && pushd build && cmake .. && make -j && popd
-      #     sudo cp -r googletest/include/gtest /usr/local/include/gtest
-      #     sudo cp -r googlemock/include/gmock /usr/local/include/gmock
-      #     sudo cp build/lib/*.a /usr/local/lib/
       - name: configure
         env:
           LLVM_DIR: ${{ matrix.llvm_dir }}${{ matrix.llvm}}/lib/cmake

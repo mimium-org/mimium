@@ -10,13 +10,12 @@ target_link_options(RegressionTest PUBLIC -fsanitize=address)
 endif()
 target_include_directories(RegressionTest
     PRIVATE
-    ${GTEST_INCLUDE_DIRS}
+    ${GTEST_DIR}/include
     )
 
 target_link_libraries(RegressionTest
   PRIVATE
-    GTest::GTest
-    GTest::Main   # GTest::Mainをリンクすると自分でmain関数を書く必要がなくなる
+  gtest_main
   )
 
 add_test(Name RegressionTest Command RegressionTest)

@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-find_package(GTest REQUIRED)
-include(GoogleTest)
+add_subdirectory(googletest)
 
 file(GLOB SRCS ./*.cpp)
 
@@ -12,15 +11,14 @@ message(STATUS "Components mapped by llvm_config: ${test_llvm}")
 target_include_directories(UnitTest
     PRIVATE
     .
-    ${GTEST_INCLUDE_DIRS}
+    ${GTEST_DIR}/include
     ${FLEX_INCLUDE_CACHE}
     ${PARSER_HEADER_DIR}
     )
 
 target_link_libraries(UnitTest
   PRIVATE
-    GTest::GTest
-    GTest::Main   # GTest::Mainをリンクすると自分でmain関数を書く必要がなくなる
+    gtest_main
     mimium_utils
     mimium_compiler
     ${test_llvm}
