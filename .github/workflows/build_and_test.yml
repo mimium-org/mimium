@@ -17,9 +17,8 @@ jobs:
           - ubuntu-18.04
           - ubuntu-20.04
           - macos-latest
-#           - windows-2016
-#           - windows-latest
-        llvm: [9,10]
+          - windows-latest
+        llvm_ver: [9,10]
         config:
           - Release
         include:
@@ -35,35 +34,32 @@ jobs:
               cc: /usr/bin/clang
               cxx: /usr/bin/clang++
               llvm_dir: /usr/local/opt/llvm@
-#           - os: windows-2016
-#             cmake-generator: -G "Visual Studio 15 2017" -A x64
-#           - os: windows-latest
-#             cmake-generator: -G "Visual Studio 16 2019" -A x64
+            - os: windows-latest
+              cmake-generator: -G Ninja
+              cc: /usr/bin/clang
+              cxx: /usr/bin/clang++
+              llvm_dir: /usr/local/opt/llvm@
+    defaults:
+      run:
+        if: contains(matrix.os, windows)
+        shell: msys2 {0}
     steps:
       - uses: actions/checkout@v2
-
-      - if: contains(matrix.os, 'ubuntu')
-        name: deps-ubuntu
-        run: |
-          sudo apt update
-          sudo apt upgrade
-          sudo apt-get install libalsa-ocaml-dev libfl-dev libbison-dev libz-dev libsndfile-dev libopus-dev llvm-${{matrix.llvm}}-dev clang-10 gcc-9  libgtest-dev
-          sudo mkdir /usr/lib/llvm && sudo ln -s /usr/lib/llvm-10** /usr/lib/llvm
-  
-      - if: contains(matrix.os, 'ubuntu-18.04')
-        name: deps-bison-latest-for-bionic
-        run: |
-          wget http://ftp.gnu.org/gnu/bison/bison-3.6.tar.gz
-          tar -xzvf bison-3.6.tar.gz
-          pushd bison-3.6 && ./configure --prefix=/usr && make && sudo make install && popd
-      - if: contains(matrix.os, 'macos')
-        name: deps-macos
+      - if: contains(matrix.os, windows)
+        name: setup-windows
+          uses: msys2/setup-msys2@v2
+          with:
+            update: true
+            install: base-devel cmake git mingw64/mingw-w64-x86_64-llvm mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus
+            
+      - if: ${{contains(matrix.os, 'macos')&&contains(matrix.os, 'ubuntu') }}
+        name: deps-homebrew
         run: |
           brew upgrade
-          brew install flex bison libsndfile llvm@${{matrix.llvm}}
+          brew install flex bison libsndfile llvm@${{matrix.llvm_ver}}
       - name: configure
         env:
-          LLVM_DIR: ${{ matrix.llvm_dir }}${{ matrix.llvm}}/lib/cmake
+          LLVM_DIR: ${{ matrix.llvm_dir }}${{ matrix.llvm_ver}}/lib/cmake
         run:
           mkdir build && cd build && cmake ${{ matrix.cmake-generator }}-DCMAKE_BUILD_CONFIG=${{ matrix.config }} -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} ..
 
