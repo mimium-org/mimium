@@ -69,7 +69,7 @@ lvarid ExprKnormVisitor::operator()(ast::Lambda& ast) {
   auto label = mirgen.makeNewName();
   auto fun = mir::FunInst{{label},
                           mirgen.transformArgs(ast.args.args, std::deque<std::string>{},
-                                               [&](ast::Lvar& lvar) { return lvar.value; }),
+                                               [&](ast::DeclVar& lvar) { return lvar.value; }),
                           {}};
   auto* typeptr = mirgen.typeenv.tryFind(label);
   auto [lvar, ctx] = mirgen.generateBlock(ast.body, label);
@@ -80,7 +80,7 @@ lvarid ExprKnormVisitor::operator()(ast::Lambda& ast) {
           : types::Function{lvar.second,
                             mirgen.transformArgs(
                                 ast.args.args, std::vector<types::Value>{},
-                                [&](ast::Lvar& lvar) { return mirgen.typeenv.find(lvar.value); })};
+                                [&](ast::DeclVar& lvar) { return mirgen.typeenv.find(lvar.value); })};
   return mirgen.emplace(std::move(fun), std::move(type));
 }
 lvarid MirGenerator::genFcallInst(ast::Fcall& fcall, std::optional<std::string> when) {
@@ -176,6 +176,7 @@ lvarid StatementKnormVisitor::operator()(ast::Fdef& ast) {
 }
 
 lvarid StatementKnormVisitor::operator()(ast::Assign& ast) {
+  //todo
   bool is_overwrite = mirgen.isOverWrite(ast.lvar.value);
   if (!is_overwrite) { mirgen.lvar_holder = ast.lvar.value; }
   lvarid res = std::visit(mirgen.exprvisitor, *ast.expr);

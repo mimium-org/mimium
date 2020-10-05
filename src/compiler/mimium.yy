@@ -129,6 +129,12 @@ using namespace mimium;
 
 
 %type <ast::Number> num "number"
+
+%type <ast::DeclVar> lvar "lvar variable declaration"
+%type <ast::ArrayLvar> arrayLvar "array access lvar"
+%type <ast::TupleLvar> tupleLvar "tuple unpack"
+
+
 %type <ast::Lvar> lvar "left value"
 
 %type <ast::Rvar> rvar "right value"
@@ -150,7 +156,7 @@ using namespace mimium;
 
 %type <ast::Lambda> lambda "lambda"
 %type <ast::LambdaArgs> arguments_top "arguments top"
-%type <std::deque<ast::Lvar>> arguments "arguments for fdef"
+%type <std::deque<ast::DeclVar>> arguments "arguments for fdef and tupleLvar" 
 
 // %type <AST_Ptr> declaration "declaration"
 // %type <AST_Ptr> include "include declaration"
@@ -163,6 +169,8 @@ using namespace mimium;
 
 
 %type <ast::ArrayInit> array "array"
+%type <ast::Tuple> tuple "tuple"
+
 %type <std::deque<ast::ExprPtr>> arrayelems "arrayelems"
 
 
@@ -239,10 +247,20 @@ num:  NUM {
             $$ = ast::Number{{@1 ,std::to_string($1)} ,$1};}
 
 
-lvar: SYMBOL TYPE_DELIM types {
+declvar: SYMBOL TYPE_DELIM types {
             $$ = ast::Lvar{ { {@$,$1},$1,}, std::move($3)};}
       |SYMBOL {
             $$ = ast::Lvar{ { {@$,$1},$1,}, std::nullopt };}
+arrayLvar: expr '[' expr ']' {
+      $$ = ast::ArrayLvar{{@$,"arraylvar"},std::move($1),std::move($3)};}
+
+tupleLvar: '(' arguments ')'{
+      $$ = ast::TupleLvar{{@$,"tuplelvar"},std::move($2)};}
+}
+
+lvar: declvar{ $$ = std::move($1);}
+      | arrayLvar{ $$ = std::move($1);}
+      | tupleLvar{ $$ = std::move($1);}
 
 rvar: SYMBOL {
             @$ = @1;
@@ -397,9 +415,9 @@ assign : lvar ASSIGN expr {$$ = ast::Assign{{@$,"assign"},std::move($1),std::mov
 
 arguments_top: '(' arguments ')' {$$=ast::LambdaArgs{{@$,"largs"},std::move($2)};}
 
-arguments: lvar ',' arguments {$3.push_front(std::move($1));
+arguments: declvar ',' arguments {$3.push_front(std::move($1));
                                $$ = std::move($3); }
-         | lvar   {$$ = std::deque<ast::Lvar>{std::move($1)};}
+         | declvar  {$$ = std::deque<ast::declvar>{std::move($1)};}
          | %empty {$$ = {};}
 
 fdef: FUNC lvar arguments_top block {

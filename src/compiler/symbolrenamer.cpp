@@ -59,10 +59,10 @@ ast::ExprPtr ExprRenameVisitor::operator()(ast::Block& ast) {
   return ast::makeExpr(renamer.renameBlock(ast));
 }
 ast::LambdaArgs ExprRenameVisitor::renameLambdaArgs(ast::LambdaArgs& ast) {
-  auto newargs = ast::transformArgs(ast.args, [&](ast::Lvar a) {
+  auto newargs = ast::transformArgs(ast.args, [&](ast::DeclVar a) {
     auto newname = renamer.getNewName(a.value);
     renamer.env->addToMap(a.value, newname);
-    return ast::Lvar{a.debuginfo, newname, a.type};
+    return ast::DeclVar{a.debuginfo, newname, a.type};
   });
   return ast::LambdaArgs{ast.debuginfo, std::move(newargs)};
 }
@@ -137,6 +137,7 @@ StatementPtr StatementRenameVisitor::operator()(ast::Fdef& ast) {
 }
 
 StatementPtr StatementRenameVisitor::operator()(ast::Assign& ast) {
+  //todo
   auto newname = renamer.getNewName(ast.lvar.value);
   renamer.env->addToMap(ast.lvar.value, newname);
   auto newrvar = renamer.renameExpr(ast.expr);
@@ -163,7 +164,7 @@ StatementPtr StatementRenameVisitor::operator()(ast::For& ast) {
   renamer.env = renamer.env->expand();
   auto newname = renamer.getNewName(ast.index.value);
   renamer.env->addToMap(ast.index.value, newname);
-  auto newindex = ast::Lvar{ast.index.debuginfo, newname, ast.index.type};
+  auto newindex = ast::DeclVar{ast.index.debuginfo, newname, ast.index.type};
   auto newstmts = renamer.renameBlock(ast.statements);
   renamer.env = renamer.env->parent_env;
   return ast::makeStatement(

@@ -18,7 +18,10 @@ struct Number;
 struct String;
 
 struct Symbol;
-struct Lvar;
+struct DeclVar;
+struct ArrayLvar;
+struct TupleLvar;
+using Lvar = std::variant<DeclVar, ArrayLvar, TupleLvar>;
 struct TypeSpec;
 
 struct Rvar;
@@ -149,8 +152,17 @@ struct String : public Symbol {};
 
 struct TypeSpec : public Symbol {};
 
-struct Lvar : public Symbol {
+// Lvar related definitions
+struct DeclVar : public Symbol {
   std::optional<types::Value> type;
+};
+
+struct ArrayLvar : public Base {
+  ExprPtr array;
+  ExprPtr index;
+};
+struct TupleLvar : public Base {
+  std::deque<DeclVar> args;
 };
 
 struct Rvar : public Symbol {};
@@ -163,7 +175,7 @@ struct Block : public Base {
   std::optional<ExprPtr> expr;
 };
 struct LambdaArgs : public Base {
-  std::deque<Lvar> args;
+  std::deque<DeclVar> args;
 };
 
 struct Lambda : public Base {
@@ -217,7 +229,7 @@ struct Assign : public Base {
 };
 
 struct Fdef : public Base {
-  Lvar lvar;
+  DeclVar lvar;
   Lambda fun;
 };
 
@@ -230,7 +242,7 @@ struct Declaration : public Base {
 };
 
 struct For : public Base {
-  Lvar index;
+  DeclVar index;
   ExprPtr iterator;
   Block statements;
 };
