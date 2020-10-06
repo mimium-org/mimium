@@ -391,6 +391,10 @@ void CodeGenVisitor::operator()(mir::ArrayAccessInst& i) {
   auto* res = G.builder->CreateCall(arraccessfun, {v, indexfloat}, "arrayaccess");
   G.setValuetoMap(i.lv_name, res);
 }
+void CodeGenVisitor::operator()(mir::FieldInst& i) {
+  auto* v = G.tryfindValue(i.name);
+
+}
 
 void CodeGenVisitor::createIfBody(mir::blockptr& block, llvm::Value* ret_ptr) {
   auto& insts = block->instructions;

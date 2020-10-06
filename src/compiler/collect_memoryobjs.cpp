@@ -122,6 +122,10 @@ void MemoryObjsCollector::CollectMemVisitor::operator()(mir::ArrayAccessInst& i)
   checkHasSelf(i.name);
   checkHasSelf(i.index);
 }
+void MemoryObjsCollector::CollectMemVisitor::operator()(mir::FieldInst& i) {
+  checkHasSelf(i.name);
+  checkHasSelf(i.index);
+}
 void MemoryObjsCollector::CollectMemVisitor::operator()(mir::IfInst& i) {
   checkHasSelf(i.cond);
   for (auto& inst : i.thenblock->instructions) { std::visit(*this, inst); }

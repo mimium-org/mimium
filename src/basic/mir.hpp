@@ -100,6 +100,12 @@ struct ArrayAccessInst : public instruction {
 };
 std::string toString(ArrayAccessInst& i);
 
+struct FieldInst : public instruction {
+  std::string name;
+  std::string index;
+};
+std::string toString(FieldInst& i);
+
 struct IfInst : public instruction {
   std::string cond;
   blockptr thenblock;
@@ -111,9 +117,9 @@ struct ReturnInst : public instruction {
   std::string val;
 };
 std::string toString(ReturnInst& i);
-using Instructions =
-    std::variant<NumberInst, StringInst, AllocaInst, RefInst, AssignInst, OpInst, FunInst,
-                 FcallInst, MakeClosureInst, ArrayInst, ArrayAccessInst, IfInst, ReturnInst>;
+using Instructions = std::variant<NumberInst, StringInst, AllocaInst, RefInst, AssignInst, OpInst,
+                                  FunInst, FcallInst, MakeClosureInst, ArrayInst, ArrayAccessInst,
+                                  FieldInst, IfInst, ReturnInst>;
 
 inline std::string toString(Instructions& inst) {
   return std::visit([](auto& i) -> std::string { return toString(i); }, inst);

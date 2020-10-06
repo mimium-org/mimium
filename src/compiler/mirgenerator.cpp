@@ -39,6 +39,7 @@ std::pair<lvarid, mir::blockptr> MirGenerator::generateBlock(ast::Block& block, 
 
 using ExprKnormVisitor = MirGenerator::ExprKnormVisitor;
 using StatementKnormVisitor = MirGenerator::StatementKnormVisitor;
+using AssignKnormVisitor = MirGenerator::AssignKnormVisitor;
 
 lvarid ExprKnormVisitor::operator()(ast::Op& ast) {
   auto newname = mirgen.makeNewName();
@@ -78,9 +79,10 @@ lvarid ExprKnormVisitor::operator()(ast::Lambda& ast) {
       (typeptr != nullptr)
           ? *typeptr
           : types::Function{lvar.second,
-                            mirgen.transformArgs(
-                                ast.args.args, std::vector<types::Value>{},
-                                [&](ast::DeclVar& lvar) { return mirgen.typeenv.find(lvar.value); })};
+                            mirgen.transformArgs(ast.args.args, std::vector<types::Value>{},
+                                                 [&](ast::DeclVar& lvar) {
+                                                   return mirgen.typeenv.find(lvar.value);
+                                                 })};
   return mirgen.emplace(std::move(fun), std::move(type));
 }
 lvarid MirGenerator::genFcallInst(ast::Fcall& fcall, std::optional<std::string> when) {
@@ -161,13 +163,12 @@ lvarid MirGenerator::genIfInst(ast::If& ast) {
       ast.else_stmts.has_value()
           ? std::optional(genIfBlock(ast.else_stmts.value(), lvname + "$else").second)
           : std::nullopt;
-  if (need_alloca) {
-    emplace(mir::AllocaInst{{lvname}, rettype},rettype);
-  }
+  if (need_alloca) { emplace(mir::AllocaInst{{lvname}, rettype}, rettype); }
   return emplace(mir::IfInst{{lvname}, cond, thenblock, elseblock}, thenvarid.second);
 }
 
 lvarid ExprKnormVisitor::operator()(ast::If& ast) { return mirgen.genIfInst(ast); }
+
 lvarid StatementKnormVisitor::operator()(ast::If& ast) { return mirgen.genIfInst(ast); }
 lvarid StatementKnormVisitor::operator()(ast::Fdef& ast) {
   bool is_overwrite = mirgen.isOverWrite(ast.lvar.value);
@@ -175,26 +176,48 @@ lvarid StatementKnormVisitor::operator()(ast::Fdef& ast) {
   return mirgen.exprvisitor(ast.fun);
 }
 
-lvarid StatementKnormVisitor::operator()(ast::Assign& ast) {
-  //todo
-  bool is_overwrite = mirgen.isOverWrite(ast.lvar.value);
-  if (!is_overwrite) { mirgen.lvar_holder = ast.lvar.value; }
-  lvarid res = std::visit(mirgen.exprvisitor, *ast.expr);
+lvarid AssignKnormVisitor::operator()(ast::DeclVar& ast) {
+  bool is_overwrite = mirgen.isOverWrite(ast.value);
+  if (!is_overwrite) { mirgen.lvar_holder = ast.value; }
+  lvarid res = std::visit(mirgen.exprvisitor, *expr);
   auto [rvar, type] = res;
   if (!rv::holds_alternative<types::Function>(type)) {
     if (!is_overwrite) {
-      std::string ptrname = ast.lvar.value;
+      std::string ptrname = ast.value;
       types::Value ptrtype = type;
       auto iter = mirgen.ctx->instructions.insert(std::prev(mirgen.ctx->instructions.end()),
                                                   mir::AllocaInst{{ptrname}, ptrtype});
       // mirgen.typeenv.emplace(ptrname, ptrtype);
-      mirgen.lvarlist.emplace_back(ast.lvar.value);
-    }
-    if (is_overwrite) {
-      res = mirgen.emplace(mir::AssignInst{{ast.lvar.value}, rvar, type}, types::Value(type));
+      mirgen.lvarlist.emplace_back(ast.value);
+    } else {
+      res = mirgen.emplace(mir::AssignInst{{ast.value}, rvar, type}, types::Value(type));
     }
   }
   return std::pair(res.first, types::Void{});
+}
+lvarid AssignKnormVisitor::operator()(ast::ArrayLvar& ast) {
+  auto [arrayname, type] = std::visit(mirgen.exprvisitor, *ast.array);
+  auto [indexname, indextype] = std::visit(mirgen.exprvisitor, *ast.index);
+  auto newlvarname = arrayname + "_lvar";  // todo: avoid namespace conflict
+  auto [rvar, rvartype] = std::visit(mirgen.exprvisitor, *expr);
+  auto [arrayaccessname, arracctype] =
+      mirgen.emplace(mir::ArrayAccessInst{{newlvarname}, arrayname, indexname});
+  mirgen.emplace(mir::AssignInst{{arrayaccessname}, rvar, arracctype}, types::Value(arracctype));
+  return std::pair("", types::Void{});
+}
+lvarid AssignKnormVisitor::operator()(ast::TupleLvar& ast) {
+  // how to get tuple element... add gettupleelement instruction?
+  int count = 0;
+  auto [rvar, rvartype] = std::visit(mirgen.exprvisitor, *expr);
+  for (auto&& arg : ast.args) {
+    mirgen.emplace(mir::FieldInst{{arg.value}, rvar, std::to_string(count++)}, rvartype);
+  }
+  return std::pair("", types::Void{});
+}
+
+lvarid StatementKnormVisitor::operator()(ast::Assign& ast) {
+  auto visitor = AssignKnormVisitor(mirgen, ast.expr);
+  return std::visit(visitor, ast.lvar);
 }
 lvarid StatementKnormVisitor::operator()(ast::Return& ast) {
   auto [ret, type] = std::visit(mirgen.exprvisitor, *ast.value);
