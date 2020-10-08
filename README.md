@@ -36,24 +36,49 @@ Calling function with `@` specifies the time when the function will be executed.
 An event scheduling for this mechanism is driven by a clock from an audio driver thus have a sample-accuracy.
 
 <!-- More specific info about language is currently in [design](design/design-proposal.md) section. -->
-# Download
 
-You can download from [release](https://github.com/mimium-org/mimium/releases) section.
-Currently only macOS is supported. Windows, Linux and web browser will be supported for future.
+# Installation
+
+Installation via [Homebrew](https://brew.sh/) is recommended.
+
+Open your terminal application and type 
+
+```sh
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)" 
+```
+
+to install homebrew itself. After installation, you can install by entering
+
+```sh
+brew tap mimium-org/mimium
+brew install mimium
+```
+
+Also, you can download a built binary from [release](https://github.com/mimium-org/mimium/releases) section.
+
+Currently only macOS and Linux(ALSA backend) is supported. Windows, and web browser will be supported for future.
 
 # Build from Source
 
-## dependency
+See also [GitHub Action Workflow](https://github.com/mimium-org/mimium/blob/dev/.github/workflows/build_and_test.yml).
+
+## Dependencies
+
+### build 
 
 - cmake
-- llvm >= 9.0.0
 - bison >= 3.3
 - flex
-- Libsndfile
+- llvm >= 9.0.0
 
+### build and runtime
+
+- Libsndfile
 - RtAudio(cmake will automatically download)
 
 ```sh
+git clone https://github.com/mimium-org/mimium
+cd mimium
 mkdir build && cd build
 # configure. if you want to install to specific directory, add -DCMAKE_INSTALL_PREFIX=/your/directory
 cmake .. 
@@ -65,10 +90,7 @@ cmake --build . --target install
 
 ### notes for linux build
 
-Currently tested building on Ubuntu 18.04(Bionic) and 20.04(Focal)
-For a compiler, GCC>9 is recommended.
-
-At Bionic, a version of bison from apt is 3.0.4, which will not work. Please install latest version manually.(See also GitHub Action page.)
+At Bionic, a version of bison from apt is 3.0.4, which will not work. Please install latest version manually.
 
 # Author
 
