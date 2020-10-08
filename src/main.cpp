@@ -9,8 +9,10 @@
 #include <unistd.h>
 
 #include <csignal>
+#include <filesystem>
 #include <fstream>
 #include <string>
+namespace fs = std::filesystem;
 
 #include "basic/helper_functions.hpp"
 // #include "cli_tools.cpp"
@@ -73,9 +75,11 @@ auto main(int argc, char** argv) -> int {
                               "infrastructure for sound and music\n");  // launch cli helper
 
   std::ifstream input(input_filename.c_str());
+  fs::path filename = input_filename.c_str();
+  auto abspath = fs::absolute(filename).string();
   signal(SIGINT, signalHandler);
   Logger::current_report_level = Logger::INFO;
-  auto tmpfilename = (input_filename.hasArgStr()) ? "" : input_filename.getValue();
+  auto tmpfilename = fs::exists(filename) ? "" :abspath;
   auto runtime = std::make_shared<mimium::Runtime_LLVM>(
       tmpfilename, std::make_shared<mimium::AudioDriverRtAudio>());
   global_runtime = runtime.get();
@@ -90,9 +94,8 @@ auto main(int argc, char** argv) -> int {
     // filename is empty:enter repl mode
   } else {  // try to parse and exec input file
     try {
-      std::string filename = input_filename.c_str();
-      Logger::debug_log("Opening " + filename, Logger::INFO);
-      compiler->setFilePath(filename);
+      Logger::debug_log("Opening " + abspath, Logger::INFO);
+      compiler->setFilePath(abspath);
       compiler->setDataLayout(runtime->getJitEngine().getDataLayout());
 
       auto stage = compile_stage.getValue();

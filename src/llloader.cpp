@@ -7,8 +7,10 @@
 
 #include <unistd.h>
 #include <csignal>
+#include <filesystem>
 #include <fstream>
 #include <string>
+namespace fs = std::filesystem;
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
@@ -57,10 +59,11 @@ auto main(int argc, char** argv) -> int {
     out << "\n";
   });
   std::ifstream input(input_filename.c_str());
+  fs::path filename = input_filename.c_str();
+  auto abspath = fs::absolute(filename).string();
   signal(SIGINT, signalHandler);
   Logger::current_report_level = Logger::INFO;
-  auto tmpfilename = (input_filename.hasArgStr()) ? "" : input_filename.getValue();
-  auto runtime = std::make_shared<mimium::Runtime_LLVM>(
+  auto tmpfilename = fs::exists(filename) ? "" :abspath;  auto runtime = std::make_shared<mimium::Runtime_LLVM>(
       tmpfilename, std::make_shared<mimium::AudioDriverRtAudio>());
   shutdown_handler = [&runtime](int /*signal*/) {
     runtime->getAudioDriver()->stop();
@@ -75,10 +78,9 @@ auto main(int argc, char** argv) -> int {
     // filename is empty:enter repl mode
   } else {  // try to parse and exec input file
     try {
-      std::string filename = input_filename.c_str();
-      Logger::debug_log("Opening " + filename, Logger::INFO);
+      Logger::debug_log("Opening " + abspath, Logger::INFO);
 
-      auto m = llvm::parseIRFile(filename, errorreporter, runtime->getLLVMContext());
+      auto m = llvm::parseIRFile(abspath, errorreporter, runtime->getLLVMContext());
       runtime->executeModule(std::move(m));
       runtime->start();  // start() blocks thread until scheduler stops
       returncode = 0;
