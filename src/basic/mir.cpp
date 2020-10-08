@@ -61,7 +61,12 @@ std::string toString(ArrayAccessInst& i) {
 }
 
 std::string toString(FieldInst& i) {
-  return i.lv_name + " = field " + i.name + " " + i.index;
+  std::string res =  i.lv_name + " = field " + i.name + " ";
+  std::visit(overloaded{
+    [&](std::string& s){ res+= s;},
+    [&](int i){ res += std::to_string(i);}
+  } ,i.index);
+  return res;
 }
 std::string toString(IfInst& i) {
   std::string s;

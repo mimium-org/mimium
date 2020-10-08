@@ -210,7 +210,7 @@ lvarid AssignKnormVisitor::operator()(ast::TupleLvar& ast) {
   int count = 0;
   auto [rvar, rvartype] = std::visit(mirgen.exprvisitor, *expr);
   for (auto&& arg : ast.args) {
-    mirgen.emplace(mir::FieldInst{{arg.value}, rvar, std::to_string(count++)}, rvartype);
+    mirgen.emplace(mir::FieldInst{{arg.value}, rvar, count++}, rvartype);
   }
   return std::pair("", types::Void{});
 }

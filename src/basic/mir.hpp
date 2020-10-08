@@ -102,7 +102,7 @@ std::string toString(ArrayAccessInst& i);
 
 struct FieldInst : public instruction {
   std::string name;
-  std::string index;
+  std::variant<std::string,int> index;
 };
 std::string toString(FieldInst& i);
 

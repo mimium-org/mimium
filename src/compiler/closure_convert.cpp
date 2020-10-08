@@ -216,10 +216,9 @@ void ClosureConverter::CCVisitor::operator()(mir::ArrayAccessInst& i) {
 }
 void ClosureConverter::CCVisitor::operator()(mir::FieldInst& i) {
   registerFv(i.name);
-  registerFv(i.index);
+  if (auto* iname = std::get_if<std::string>(&i.index)) { registerFv(*iname); }
   localvlist.push_back(i.lv_name);
 }
-
 
 void ClosureConverter::CCVisitor::operator()(mir::IfInst& i) {
   registerFv(i.cond);

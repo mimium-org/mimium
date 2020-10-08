@@ -22,7 +22,7 @@ TEST(newast, statement) {
   ast::DebugInfo dbg;
   auto statement =
       ast::makeStatement(ast::Assign{dbg,
-                                     {dbg, {"leftvar"}, {std::optional(types::Float{})}},
+                                     ast::DeclVar{dbg, {"leftvar"}, {std::optional(types::Float{})}},
                                      ast::makeExpr(ast::Number{dbg, 1})});
   EXPECT_TRUE(std::holds_alternative<ast::Assign>(*statement));
   // EXPECT_EQ(std::get<ast::Assign>(*statement).lvar.type.value() ,types::Value(types::Float{}));

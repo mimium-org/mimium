@@ -8,6 +8,7 @@ namespace mimium {
 // new TypeInferer
 using ExprTypeVisitor = TypeInferer::ExprTypeVisitor;
 using StatementTypeVisitor = TypeInferer::StatementTypeVisitor;
+using LvarTypeVisitor = TypeInferer::LvarTypeVisitor;
 using TypeUnifyVisitor = TypeInferer::TypeUnifyVisitor;
 
 types::Value ExprTypeVisitor::operator()(ast::Op& ast) {
@@ -26,7 +27,7 @@ types::Value ExprTypeVisitor::operator()(ast::Self& ast) {
 }
 types::Value ExprTypeVisitor::operator()(ast::Lambda& ast) {
   std::vector<types::Value> argtypes;
-  for (auto&& a : ast.args.args) { argtypes.emplace_back(inferer.addLvar(a)); }
+  for (auto&& a : ast.args.args) { argtypes.emplace_back(inferer.addDeclVar(a)); }
 
   auto rettype_tv = ast.ret_type.value_or(*inferer.typeenv.createNewTypeVar());
   inferer.selftype_stack.push(rettype_tv);
@@ -73,10 +74,10 @@ types::Value ExprTypeVisitor::operator()(ast::StructAccess& ast) {
 types::Value ExprTypeVisitor::operator()(ast::ArrayInit& ast) {
   std::vector<types::Value> argtypes;
   types::Value tmptype;
-  types::Value atype=  std::accumulate(ast.args.begin(),ast.args.end(),types::Value(*inferer.typeenv.createNewTypeVar()),[&](types::Value v,ast::ExprPtr e){
-    return inferer.unify(v, std::visit(*this,*e));
-  });
-  return types::Array{std::move(atype),static_cast<int>(ast.args.size())};
+  types::Value atype = std::accumulate(
+      ast.args.begin(), ast.args.end(), types::Value(*inferer.typeenv.createNewTypeVar()),
+      [&](types::Value v, ast::ExprPtr e) { return inferer.unify(v, std::visit(*this, *e)); });
+  return types::Array{std::move(atype), static_cast<int>(ast.args.size())};
 }
 types::Value ExprTypeVisitor::operator()(ast::ArrayAccess& ast) {
   auto indextype = inferer.unify(std::visit(*this, *ast.index), types::Value(types::Float{}));
@@ -111,16 +112,44 @@ types::Value ExprTypeVisitor::operator()(ast::If& ast) { return inferer.inferIf(
 types::Value StatementTypeVisitor::operator()(ast::If& ast) { return inferer.inferIf(ast); }
 
 types::Value StatementTypeVisitor::operator()(ast::Fdef& ast) {
-  auto lvartype = inferer.addLvar(ast.lvar);
+  auto lvartype = inferer.addDeclVar(ast.lvar);
   auto rvartype = inferer.exprvisitor(ast.fun);
   inferer.unify(lvartype, rvartype);
   return types::Void{};
 }
 
+void LvarTypeVisitor::operator()(ast::DeclVar& ast) {
+  auto lvartype = inferer.addDeclVar(ast);
+  auto rvartype = inferer.inferExpr(rvar);
+  inferer.typeenv.emplace(ast.value, inferer.unify(lvartype, rvartype));
+}
+void LvarTypeVisitor::operator()(ast::TupleLvar& ast) {
+  std::vector<types::Value> typevec;
+  for (auto&& a : ast.args) { typevec.push_back(inferer.addDeclVar(a)); }
+  types::Tuple tuplelvar{typevec};
+  auto rvartype = inferer.inferExpr(rvar);
+  inferer.unify(tuplelvar, rvartype);
+  auto rvartupletype = rv::get<types::Tuple>(rvartype);
+  int count = 0;
+  for (auto&& a : ast.args) { inferer.typeenv.emplace(a.value, rvartupletype.arg_types[count++]); }
+}
+void LvarTypeVisitor::operator()(ast::ArrayLvar& ast) {
+  auto indextype = inferer.unify(inferer.inferExpr(ast.index), types::Value(types::Float{}));
+  auto tv = inferer.typeenv.createNewTypeVar();
+  auto arraytype =
+      inferer.unify(inferer.inferExpr(ast.array), types::Value(types::Array{*std::move(tv)}));
+  if (!rv::holds_alternative<types::Array>(arraytype)) {
+    throw std::runtime_error(
+        "you cannot access to variables other than Array type with [] "
+        "operator.");
+  }
+  auto lvartype = rv::get<types::Array>(arraytype).elem_type;
+  auto rvartype = inferer.inferExpr(rvar);
+  inferer.unify(lvartype, rvartype);
+}
 types::Value StatementTypeVisitor::operator()(ast::Assign& ast) {
-  auto lvartype = inferer.addLvar(ast.lvar);
-  auto rvartype = inferer.inferExpr(ast.expr);
-  inferer.typeenv.emplace(ast.lvar.value, inferer.unify(lvartype, rvartype));
+  LvarTypeVisitor assignvisitor(inferer, ast.expr);
+  std::visit(assignvisitor, ast.lvar);
   return types::Void{};
 }
 types::Value StatementTypeVisitor::operator()(ast::Return& ast) {
@@ -141,7 +170,7 @@ types::Value StatementTypeVisitor::operator()(ast::Time& ast) {
   return inferer.unify(fcalltype, types::Void{});
 }
 
-types::Value TypeInferer::addLvar(ast::Lvar& lvar) {
+types::Value TypeInferer::addDeclVar(ast::DeclVar& lvar) {
   auto res = lvar.type.value_or(*typeenv.createNewTypeVar());
   auto [iter, was_newvar] = typeenv.emplace(lvar.value, res);
   return res;

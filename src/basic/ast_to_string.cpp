@@ -23,7 +23,7 @@ void AstStringifier::operator()(const ast::Op& ast) {
     output << format.delim;
     toString(ast.lhs.value());
   }
-  output << format.delim << ast.rhs << format.rpar;
+  output << format.delim << *ast.rhs << format.rpar;
 }
 void AstStringifier::operator()(const ast::Rvar& ast) { output << ast.value; }
 void AstStringifier::operator()(const ast::Self& /*ast*/) { output << "self"; }
@@ -36,7 +36,7 @@ void AstStringifier::operator()(const ast::Lambda& ast) {
   output << format.rpar;
 }
 void AstStringifier::operator()(const ast::Fcall& ast) {
-  output << format.lpar << "funcall" << format.delim << ast.fn << format.delim;
+  output << format.lpar << "funcall" << format.delim << *ast.fn << format.delim;
   const auto& fargs = ast.args;
   output << format.lpar_a;
   toStringVec(fargs.args);
@@ -130,18 +130,27 @@ void AstStringifier::operator()(const ast::TupleLvar& ast) {
 }
 void AstStringifier::operator()(const ast::DeclVar& ast) {
   output << format.lpar << "lvar" << format.delim << ast.value;
-  ;
-  if (ast.type.has_value()) { output << types::toString(ast.type.value()); }
+  if (ast.type.has_value()) {
+    output << format.delim << types::toString(ast.type.value());
+  } else {
+    output << format.delim << "unspecified";
+  }
   output << format.rpar;
 }
 
-void AstStringifier::toString(const ast::Expr& ast) { std::visit(*this, ast); }
 void AstStringifier::toString(const ast::Lvar& ast) { std::visit(*this, ast); }
 
+void AstStringifier::toString(const ast::Expr& ast) { std::visit(*this, ast); }
 void AstStringifier::toString(ast::ExprPtr ast) { std::visit(*this, *ast); }
-void AstStringifier::toString(const ast::Statement& ast) { std::visit(*this, ast); }
+
+void AstStringifier::toString(const ast::Statement& ast) {
+  std::visit(*this, ast);
+}
 void AstStringifier::toString(const ast::Statements& ast) {
-  for (auto&& stmt : ast) { std::visit(*this, *stmt); }
+  for (auto&& stmt : ast) {
+    toString(*stmt);
+    output << format.br;
+  }
 }
 
 }  // namespace mimium

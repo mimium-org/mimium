@@ -28,7 +28,7 @@ struct ToStringVisitor {
 };
 
 struct AstStringifier : public ToStringVisitor {
-  explicit AstStringifier(std::ostream& output, Mode mode = Mode::Lisp);
+  explicit AstStringifier(std::ostream& output, Mode mode = Mode::Lisp):ToStringVisitor(output,mode){};
   void operator()(const ast::Number& ast);
   void operator()(const ast::String& ast);
   void operator()(const ast::Op& ast);
@@ -77,7 +77,7 @@ inline std::string joinVec(const CONTAINER& vec, const std::string& delim) {
   if (vec.size() > 0) {
     for (auto& elem : vec) {
       if (&elem != &vec[0]) { stream << delim; }
-      toString(*elem);
+      stream << elem;
     }
   }
   return stream.str();
@@ -85,10 +85,26 @@ inline std::string joinVec(const CONTAINER& vec, const std::string& delim) {
 
 namespace ast {
 
-template <typename T, std::enable_if_t<!is_smart_pointer<T>::value>>
-inline std::ostream& operator<<(std::ostream& os, T val) {
-  toString(os, val);
+inline std::ostream& operator<<(std::ostream& os, ast::Expr const& val) {
+  AstStringifier visitor(os);
+  visitor.toString(val);
   return os;
 }
+inline std::ostream& operator<<(std::ostream& os, ast::Statement const& val) {
+  AstStringifier visitor(os);
+  visitor.toString(val);
+  return os;
+}
+inline std::ostream& operator<<(std::ostream& os, ast::Statements const& val) {
+  AstStringifier visitor(os);
+  visitor.toString(val);
+  return os;
+}
+inline std::ostream& operator<<(std::ostream& os, ast::Lvar const& val) {
+  AstStringifier visitor(os);
+  visitor.toString(val);
+  return os;
+}
+
 }  // namespace ast
 }  // namespace mimium

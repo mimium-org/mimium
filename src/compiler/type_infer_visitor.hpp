@@ -88,6 +88,18 @@ struct TypeInferer {
    private:
     TypeInferer& inferer;
   };
+  struct LvarTypeVisitor {
+    explicit LvarTypeVisitor(TypeInferer& parent,ast::ExprPtr rvar) : inferer(parent),rvar(std::move(rvar)) {}
+
+    void operator()(ast::DeclVar& ast);
+    void operator()(ast::TupleLvar& ast);
+    void operator()(ast::ArrayLvar& ast);
+
+   private:
+    ast::ExprPtr rvar;
+    TypeInferer& inferer;
+  };
+
   struct TypeUnifyVisitor {
     explicit TypeUnifyVisitor(TypeInferer& parent) : inferer(parent) {}
     TypeInferer& inferer;
@@ -206,6 +218,7 @@ struct TypeInferer {
 
     std::vector<types::Value> replaceArgs(std::vector<types::Value>& arg) {
       std::vector<types::Value> res;
+      res.reserve(arg.size());
       for (auto&& a : arg) { res.emplace_back(std::visit(*this, a)); }
       return res;
     }
@@ -243,7 +256,7 @@ struct TypeInferer {
   StatementTypeVisitor statementvisitor;
   TypeUnifyVisitor unifyvisitor;
   SubstituteVisitor substitutevisitor;
-  types::Value addLvar(ast::Lvar& lvar);
+  types::Value addDeclVar(ast::DeclVar& lvar);
   types::Value inferFcall(ast::Fcall& fcall);
   types::Value inferIf(ast::If& ast);
 

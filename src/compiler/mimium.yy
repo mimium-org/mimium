@@ -130,8 +130,9 @@ using namespace mimium;
 
 %type <ast::Number> num "number"
 
-%type <ast::DeclVar> lvar "lvar variable declaration"
+%type <ast::DeclVar> declvar "lvar variable declaration"
 %type <ast::ArrayLvar> arrayLvar "array access lvar"
+%type <std::deque<ast::DeclVar>> tuplelvar_args "tuplelvar_args"
 %type <ast::TupleLvar> tupleLvar "tuple unpack"
 
 
@@ -248,19 +249,23 @@ num:  NUM {
 
 
 declvar: SYMBOL TYPE_DELIM types {
-            $$ = ast::Lvar{ { {@$,$1},$1,}, std::move($3)};}
+            $$ = ast::DeclVar{ { {@$,$1},$1,}, std::move($3)};}
       |SYMBOL {
-            $$ = ast::Lvar{ { {@$,$1},$1,}, std::nullopt };}
+            $$ = ast::DeclVar{ { {@$,$1},$1,}, std::nullopt };}
 arrayLvar: expr '[' expr ']' {
       $$ = ast::ArrayLvar{{@$,"arraylvar"},std::move($1),std::move($3)};}
 
-tupleLvar: '(' arguments ')'{
+tuplelvar_args: declvar ',' {$$ = std::deque<ast::DeclVar>{std::move($1)};}
+      |     tuplelvar_args declvar {$1.emplace_back(std::move($2));
+      $$ = std::move($1);}
+
+tupleLvar: '(' tuplelvar_args ')'{
       $$ = ast::TupleLvar{{@$,"tuplelvar"},std::move($2)};}
-}
+
 
 lvar: declvar{ $$ = std::move($1);}
-      | arrayLvar{ $$ = std::move($1);}
-      | tupleLvar{ $$ = std::move($1);}
+     | arrayLvar{ $$ = std::move($1);}
+     | tupleLvar{ $$ = std::move($1);}
 
 rvar: SYMBOL {
             @$ = @1;
@@ -417,13 +422,13 @@ arguments_top: '(' arguments ')' {$$=ast::LambdaArgs{{@$,"largs"},std::move($2)}
 
 arguments: declvar ',' arguments {$3.push_front(std::move($1));
                                $$ = std::move($3); }
-         | declvar  {$$ = std::deque<ast::declvar>{std::move($1)};}
+         | declvar  {$$ = std::deque<ast::DeclVar>{std::move($1)};}
          | %empty {$$ = {};}
 
-fdef: FUNC lvar arguments_top block {
+fdef: FUNC declvar arguments_top block {
       auto lambda = ast::Lambda{{@$,"lambda"} ,std::move($3),std::move($4),std::nullopt};
       $$ = ast::Fdef{{@$,"fdef"},std::move($2),lambda};}
-      |FUNC lvar arguments_top ARROW types block {
+      |FUNC declvar arguments_top ARROW types block {
       auto lambda = ast::Lambda{{@$,"lambda"} ,std::move($3),std::move($6),std::move($5)};
       $$ = ast::Fdef{{@$,"fdef"},std::move($2),lambda};}
 
@@ -467,7 +472,7 @@ opt_nl:%empty
 
 
 
-forloop: FOR '(' lvar IN expr ')' block {$$ = ast::For{{@$,"for"},std::move($3),std::move($5),std::move($7)};};
+forloop: FOR '(' declvar IN expr ')' block {$$ = ast::For{{@$,"for"},std::move($3),std::move($5),std::move($7)};};
 
 
 // declaration : include {$$=std::move($1);} 
