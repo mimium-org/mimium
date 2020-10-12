@@ -25,7 +25,7 @@ void AstStringifier::operator()(const ast::Op& ast) {
   }
   output << format.delim << *ast.rhs << format.rpar;
 }
-void AstStringifier::operator()(const ast::Rvar& ast) { output << ast.value; }
+void AstStringifier::operator()(const ast::Symbol& ast) { output << ast.value; }
 void AstStringifier::operator()(const ast::Self& /*ast*/) { output << "self"; }
 void AstStringifier::operator()(const ast::Lambda& ast) {
   output << format.lpar << "lambda" << format.delim << format.lpar_a;
@@ -86,7 +86,7 @@ void AstStringifier::operator()(const ast::Assign& ast) {
 }
 void AstStringifier::operator()(const ast::Fdef& ast) {
   output << format.lpar << "Fdef" << format.delim;
-  toString(ast.lvar);
+  (*this)(ast.lvar);
   output << format.delim;
   (*this)(ast.fun);
   output << format.rpar;

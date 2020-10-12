@@ -43,8 +43,8 @@ ast::ExprPtr ExprRenameVisitor::operator()(ast::Number& ast) { return ast::makeE
 ast::ExprPtr ExprRenameVisitor::operator()(ast::String& ast) {
   return ast::makeExpr(ast::String{ast.debuginfo, ast.value});
 }
-ast::ExprPtr ExprRenameVisitor::operator()(ast::Rvar& ast) {
-  return ast::makeExpr(ast::Rvar{ast.debuginfo, renamer.searchFromEnv(ast.value)});
+ast::ExprPtr ExprRenameVisitor::operator()(ast::Symbol& ast) {
+  return ast::makeExpr(ast::Symbol{ast.debuginfo, renamer.searchFromEnv(ast.value)});
 }
 ast::ExprPtr ExprRenameVisitor::operator()(ast::Self& ast) { return ast::makeExpr(ast); }
 ast::Block SymbolRenamer::renameBlock(ast::Block& ast) {
@@ -125,9 +125,9 @@ ast::ExprPtr ExprRenameVisitor::operator()(ast::If& ast) {
 
 using LvarRenameVisitor = SymbolRenamer::LvarRenameVisitor;
 ast::DeclVar LvarRenameVisitor::renameDeclVar(ast::DeclVar& ast) {
-  auto newname = renamer.getNewName(ast.value);
-  renamer.env->addToMap(ast.value, newname);
-  return ast::DeclVar{ast.debuginfo, newname, ast.type};
+  auto newname = renamer.getNewName(ast.value.value);
+  renamer.env->addToMap(ast.value.value, newname);
+  return ast::DeclVar{ast.debuginfo, ast::Symbol{ast.value.debuginfo, newname}, ast.type};
 }
 
 ast::Lvar LvarRenameVisitor::operator()(ast::DeclVar& ast) { return renameDeclVar(ast); }

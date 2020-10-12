@@ -27,7 +27,7 @@ class SymbolRenamer {
     ast::ExprPtr operator()(ast::Op& ast);
     ast::ExprPtr operator()(ast::Number& ast);
     ast::ExprPtr operator()(ast::String& ast);
-    ast::ExprPtr operator()(ast::Rvar& ast);
+    ast::ExprPtr operator()(ast::Symbol& ast);
     ast::ExprPtr operator()(ast::Self& ast);
     ast::LambdaArgs renameLambdaArgs(ast::LambdaArgs& ast);
     ast::Lambda renameLambda(ast::Lambda& ast);

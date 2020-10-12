@@ -17,7 +17,7 @@ types::Value ExprTypeVisitor::operator()(ast::Op& ast) {
 }
 types::Value ExprTypeVisitor::operator()(ast::Number& ast) { return types::Float{}; }
 types::Value ExprTypeVisitor::operator()(ast::String& ast) { return types::String{}; }
-types::Value ExprTypeVisitor::operator()(ast::Rvar& ast) { return inferer.typeenv.find(ast.value); }
+types::Value ExprTypeVisitor::operator()(ast::Symbol& ast) { return inferer.typeenv.find(ast.value); }
 types::Value ExprTypeVisitor::operator()(ast::Self& ast) {
   if (inferer.selftype_stack.empty()) {
     throw std::runtime_error("keyword \"self\" cannot be used out of function");
@@ -121,7 +121,7 @@ types::Value StatementTypeVisitor::operator()(ast::Fdef& ast) {
 void LvarTypeVisitor::operator()(ast::DeclVar& ast) {
   auto lvartype = inferer.addDeclVar(ast);
   auto rvartype = inferer.inferExpr(rvar);
-  inferer.typeenv.emplace(ast.value, inferer.unify(lvartype, rvartype));
+  inferer.typeenv.emplace(ast.value.value, inferer.unify(lvartype, rvartype));
 }
 void LvarTypeVisitor::operator()(ast::TupleLvar& ast) {
   std::vector<types::Value> typevec;
@@ -131,7 +131,7 @@ void LvarTypeVisitor::operator()(ast::TupleLvar& ast) {
   inferer.unify(tuplelvar, rvartype);
   auto rvartupletype = rv::get<types::Tuple>(rvartype);
   int count = 0;
-  for (auto&& a : ast.args) { inferer.typeenv.emplace(a.value, rvartupletype.arg_types[count++]); }
+  for (auto&& a : ast.args) { inferer.typeenv.emplace(a.value.value, rvartupletype.arg_types[count++]); }
 }
 void LvarTypeVisitor::operator()(ast::ArrayLvar& ast) {
   auto indextype = inferer.unify(inferer.inferExpr(ast.index), types::Value(types::Float{}));
@@ -172,7 +172,7 @@ types::Value StatementTypeVisitor::operator()(ast::Time& ast) {
 
 types::Value TypeInferer::addDeclVar(ast::DeclVar& lvar) {
   auto res = lvar.type.value_or(*typeenv.createNewTypeVar());
-  auto [iter, was_newvar] = typeenv.emplace(lvar.value, res);
+  auto [iter, was_newvar] = typeenv.emplace(lvar.value.value, res);
   return res;
 }
 

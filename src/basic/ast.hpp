@@ -24,7 +24,7 @@ struct TupleLvar;
 using Lvar = std::variant<DeclVar, ArrayLvar, TupleLvar>;
 struct TypeSpec;
 
-struct Rvar;
+// struct Rvar;
 struct Self;
 
 struct Lambda;
@@ -45,7 +45,7 @@ struct Time;
 struct If;
 struct Block;
 using Expr =
-    std::variant<Op, Number, String, Rvar, Self, Box<Lambda>, Box<Fcall>, Box<If>, Box<Struct>,
+    std::variant<Op, Number, String, Symbol, Self, Box<Lambda>, Box<Fcall>, Box<If>, Box<Struct>,
                  Box<StructAccess>, Box<ArrayInit>, Box<ArrayAccess>, Box<Tuple>, Box<Block>>;
 using ExprPtr = std::shared_ptr<Expr>;
 
@@ -153,7 +153,8 @@ struct String : public Symbol {};
 struct TypeSpec : public Symbol {};
 
 // Lvar related definitions
-struct DeclVar : public Symbol {
+struct DeclVar : public Base {
+  Symbol value;
   std::optional<types::Value> type;
 };
 
@@ -165,7 +166,6 @@ struct TupleLvar : public Base {
   std::deque<DeclVar> args;
 };
 
-struct Rvar : public Symbol {};
 struct Self : public Base {
   std::optional<types::Value> type;  // will be captured at typeinference stage-
                                      // and used at mirgen stage.

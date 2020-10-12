@@ -53,7 +53,7 @@ struct TypeInferer {
     types::Value operator()(ast::Op& ast);
     types::Value operator()(ast::Number& ast);
     types::Value operator()(ast::String& ast);
-    types::Value operator()(ast::Rvar& ast);
+    types::Value operator()(ast::Symbol& ast);
     types::Value operator()(ast::Self& ast);
     types::Value operator()(ast::Lambda& ast);
     types::Value operator()(ast::Fcall& ast);

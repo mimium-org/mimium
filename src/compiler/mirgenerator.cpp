@@ -53,7 +53,7 @@ lvarid ExprKnormVisitor::operator()(ast::Number& ast) {
 lvarid ExprKnormVisitor::operator()(ast::String& ast) {
   return mirgen.emplace(mir::StringInst{{mirgen.makeNewName()}, ast.value}, types::String{});
 }
-lvarid ExprKnormVisitor::operator()(ast::Rvar& ast) {
+lvarid ExprKnormVisitor::operator()(ast::Symbol& ast) {
   if (ast.value == "now") {
     return mirgen.emplace(
         mir::FcallInst{
@@ -70,7 +70,7 @@ lvarid ExprKnormVisitor::operator()(ast::Lambda& ast) {
   auto label = mirgen.makeNewName();
   auto fun = mir::FunInst{{label},
                           mirgen.transformArgs(ast.args.args, std::deque<std::string>{},
-                                               [&](ast::DeclVar& lvar) { return lvar.value; }),
+                                               [&](ast::DeclVar& lvar) { return lvar.value.value; }),
                           {}};
   auto* typeptr = mirgen.typeenv.tryFind(label);
   auto [lvar, ctx] = mirgen.generateBlock(ast.body, label);
@@ -81,7 +81,7 @@ lvarid ExprKnormVisitor::operator()(ast::Lambda& ast) {
           : types::Function{lvar.second,
                             mirgen.transformArgs(ast.args.args, std::vector<types::Value>{},
                                                  [&](ast::DeclVar& lvar) {
-                                                   return mirgen.typeenv.find(lvar.value);
+                                                   return mirgen.typeenv.find(lvar.value.value);
                                                  })};
   return mirgen.emplace(std::move(fun), std::move(type));
 }
@@ -172,25 +172,25 @@ lvarid ExprKnormVisitor::operator()(ast::If& ast) { return mirgen.genIfInst(ast)
 lvarid StatementKnormVisitor::operator()(ast::If& ast) { return mirgen.genIfInst(ast); }
 lvarid StatementKnormVisitor::operator()(ast::Fdef& ast) {
   bool is_overwrite = mirgen.isOverWrite(ast.lvar.value);
-  if (!is_overwrite) { mirgen.lvar_holder = ast.lvar.value; }
+  if (!is_overwrite) { mirgen.lvar_holder = ast.lvar.value.value; }
   return mirgen.exprvisitor(ast.fun);
 }
 
 lvarid AssignKnormVisitor::operator()(ast::DeclVar& ast) {
   bool is_overwrite = mirgen.isOverWrite(ast.value);
-  if (!is_overwrite) { mirgen.lvar_holder = ast.value; }
+  if (!is_overwrite) { mirgen.lvar_holder = ast.value.value; }
   lvarid res = std::visit(mirgen.exprvisitor, *expr);
   auto [rvar, type] = res;
   if (!rv::holds_alternative<types::Function>(type)) {
     if (!is_overwrite) {
-      std::string ptrname = ast.value;
+      std::string ptrname = ast.value.value;
       types::Value ptrtype = type;
       auto iter = mirgen.ctx->instructions.insert(std::prev(mirgen.ctx->instructions.end()),
                                                   mir::AllocaInst{{ptrname}, ptrtype});
       // mirgen.typeenv.emplace(ptrname, ptrtype);
-      mirgen.lvarlist.emplace_back(ast.value);
+      mirgen.lvarlist.emplace_back(ast.value.value);
     } else {
-      res = mirgen.emplace(mir::AssignInst{{ast.value}, rvar, type}, types::Value(type));
+      res = mirgen.emplace(mir::AssignInst{{ast.value.value}, rvar, type}, types::Value(type));
     }
   }
   return std::pair(res.first, types::Void{});
@@ -210,7 +210,7 @@ lvarid AssignKnormVisitor::operator()(ast::TupleLvar& ast) {
   int count = 0;
   auto [rvar, rvartype] = std::visit(mirgen.exprvisitor, *expr);
   for (auto&& arg : ast.args) {
-    mirgen.emplace(mir::FieldInst{{arg.value}, rvar, count++}, rvartype);
+    mirgen.emplace(mir::FieldInst{{arg.value.value}, rvar, count++}, rvartype);
   }
   return std::pair("", types::Void{});
 }

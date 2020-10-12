@@ -32,7 +32,7 @@ struct AstStringifier : public ToStringVisitor {
   void operator()(const ast::Number& ast);
   void operator()(const ast::String& ast);
   void operator()(const ast::Op& ast);
-  void operator()(const ast::Rvar& ast);
+  void operator()(const ast::Symbol& ast);
   void operator()(const ast::Self& ast);
   void operator()(const ast::Lambda& ast);
   void operator()(const ast::Fcall& ast);
