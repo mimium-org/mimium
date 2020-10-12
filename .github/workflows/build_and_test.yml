@@ -47,7 +47,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt upgrade
-          sudo apt-get install libalsa-ocaml-dev libfl-dev libbison-dev libz-dev libsndfile-dev libopus-dev llvm-${{matrix.llvm}}-dev clang-10 gcc-9  libgtest-dev
+          sudo apt-get install libalsa-ocaml-dev libfl-dev libbison-dev libz-dev libsndfile-dev libopus-dev llvm-${{matrix.llvm}}-dev clang-10 gcc-9  libgtest-dev ninja-build
           sudo mkdir /usr/lib/llvm && sudo ln -s /usr/lib/llvm-10** /usr/lib/llvm
   
       - if: contains(matrix.os, 'ubuntu-18.04')
@@ -60,12 +60,12 @@ jobs:
         name: deps-macos
         run: |
           brew upgrade
-          brew install flex bison libsndfile llvm@${{matrix.llvm}}
+          brew install flex bison libsndfile ninja llvm@${{matrix.llvm}}
       - name: configure
         env:
           LLVM_DIR: ${{ matrix.llvm_dir }}${{ matrix.llvm}}/lib/cmake
         run:
-          mkdir build && cd build && cmake ${{ matrix.cmake-generator }}-DCMAKE_BUILD_CONFIG=${{ matrix.config }} -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} ..
+          mkdir build && cd build && cmake ${{ matrix.cmake-generator }}-DCMAKE_BUILD_CONFIG=${{ matrix.config }} -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} -G Ninja ..
 
       - name: build
         run: cmake --build build --config ${{ matrix.config }}
