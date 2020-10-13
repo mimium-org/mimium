@@ -1,2 +1,2 @@
-(a:float,b) = (100,hoge)
-(c:float,) = (100+d*e,)
+a:float,b = (100,hoge)
+c:float, = (100+d*e,)
