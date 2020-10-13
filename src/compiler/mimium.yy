@@ -262,8 +262,8 @@ tuplelvar_args: declvar ',' {$$ = std::deque<ast::DeclVar>{std::move($1)};}
       |     tuplelvar_args declvar {$1.emplace_back(std::move($2));
       $$ = std::move($1);}
 
-tupleLvar: '(' tuplelvar_args ')'{
-      $$ = ast::TupleLvar{{@$,"tuplelvar"},std::move($2)};}
+tupleLvar: tuplelvar_args {
+      $$ = ast::TupleLvar{{@$,"tuplelvar"},std::move($1)};}
 
 
 lvar: declvar{ $$ = std::move($1);}
