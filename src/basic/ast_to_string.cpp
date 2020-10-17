@@ -117,14 +117,14 @@ void AstStringifier::operator()(const ast::Block& ast) {
 
 // Lvar Related
 void AstStringifier::operator()(const ast::ArrayLvar& ast) {
-  output << format.lpar << "arrayassign" << format.delim;
+  output << format.lpar << "arraylvar" << format.delim;
   toString(ast.array);
   output << format.delim;
   toString(ast.index);
   output << format.rpar;
 }
 void AstStringifier::operator()(const ast::TupleLvar& ast) {
-  output << format.lpar << "tupleassign" << format.delim << format.lpar_a;
+  output << format.lpar << "tuplelvar" << format.delim << format.lpar_a;
   toStringVec(ast.args);
   output << format.rpar_a << format.delim << format.rpar;
 }

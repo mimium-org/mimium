@@ -102,12 +102,12 @@ auto main(int argc, char** argv) -> int {
       do {
         auto ast = compiler->loadSourceFile(filename);
         if (stage == CompileStage::AST) {
-          std::cout << ast << std::endl;
+          std::cout << *ast << std::endl;
           break;
         }
         auto ast_u = compiler->renameSymbols(ast);
         if (stage == CompileStage::AST_UNIQUENAME) {
-          std::cout << ast_u << std::endl;
+          std::cout << *ast_u << std::endl;
           break;
         }
         auto& typeinfos = compiler->typeInfer(ast_u);
