@@ -116,7 +116,7 @@ ast::ExprPtr ExprRenameVisitor::operator()(ast::ArrayAccess& ast) {
 ast::ExprPtr ExprRenameVisitor::operator()(ast::Tuple& ast) {
   auto newargs =
       ast::transformArgs(ast.args, [&](ast::ExprPtr e) { return renamer.renameExpr(e); });
-  return ast::makeExpr(ast::ArrayInit{ast.debuginfo, std::move(newargs)});
+  return ast::makeExpr(ast::Tuple{ast.debuginfo, std::move(newargs)});
 }
 
 ast::ExprPtr ExprRenameVisitor::operator()(ast::If& ast) {

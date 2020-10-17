@@ -17,7 +17,9 @@ types::Value ExprTypeVisitor::operator()(ast::Op& ast) {
 }
 types::Value ExprTypeVisitor::operator()(ast::Number& ast) { return types::Float{}; }
 types::Value ExprTypeVisitor::operator()(ast::String& ast) { return types::String{}; }
-types::Value ExprTypeVisitor::operator()(ast::Symbol& ast) { return inferer.typeenv.find(ast.value); }
+types::Value ExprTypeVisitor::operator()(ast::Symbol& ast) {
+  return inferer.typeenv.find(ast.value);
+}
 types::Value ExprTypeVisitor::operator()(ast::Self& ast) {
   if (inferer.selftype_stack.empty()) {
     throw std::runtime_error("keyword \"self\" cannot be used out of function");
@@ -93,7 +95,9 @@ types::Value ExprTypeVisitor::operator()(ast::ArrayAccess& ast) {
 }
 types::Value ExprTypeVisitor::operator()(ast::Tuple& ast) {
   // Todo(tomoya)
-  return types::Tuple{{types::Float{}}};
+  types::Tuple res{};
+  for (auto& a : ast.args) { res.arg_types.emplace_back(inferer.inferExpr(a)); }
+  return res;
 }
 
 types::Value ExprTypeVisitor::operator()(ast::Block& ast) {
@@ -131,7 +135,9 @@ void LvarTypeVisitor::operator()(ast::TupleLvar& ast) {
   inferer.unify(tuplelvar, rvartype);
   auto rvartupletype = rv::get<types::Tuple>(rvartype);
   int count = 0;
-  for (auto&& a : ast.args) { inferer.typeenv.emplace(a.value.value, rvartupletype.arg_types[count++]); }
+  for (auto&& a : ast.args) {
+    inferer.typeenv.emplace(a.value.value, rvartupletype.arg_types[count++]);
+  }
 }
 void LvarTypeVisitor::operator()(ast::ArrayLvar& ast) {
   auto indextype = inferer.unify(inferer.inferExpr(ast.index), types::Value(types::Float{}));
