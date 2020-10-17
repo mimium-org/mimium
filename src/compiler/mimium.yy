@@ -258,13 +258,15 @@ declvar: symbol TYPE_DELIM types {
 arrayLvar: expr '[' expr ']' {
       $$ = ast::ArrayLvar{{@$,"arraylvar"},std::move($1),std::move($3)};}
 
-tuplelvar_args: declvar ',' {$$ = std::deque<ast::DeclVar>{std::move($1)};}
-      |     tuplelvar_args declvar {$1.emplace_back(std::move($2));
+tuplelvar_args: declvar ',' declvar {$$ = std::deque<ast::DeclVar>{std::move($1),std::move($3)};}
+      |     tuplelvar_args ',' declvar {$1.emplace_back(std::move($3));
       $$ = std::move($1);}
 
 tupleLvar: tuplelvar_args {
       $$ = ast::TupleLvar{{@$,"tuplelvar"},std::move($1)};}
-
+      |    declvar ',' {
+      auto arg = std::deque<ast::DeclVar>{std::move($1)};
+      $$ = ast::TupleLvar{{@$,"tuplelvar"},std::move(arg)};}
 
 lvar: declvar{ $$ = std::move($1);}
      | arrayLvar{ $$ = std::move($1);}
@@ -364,12 +366,15 @@ array_access: expr '[' expr ']' {
       // @$ = {@1.first_line,@1.first_col,@4.last_line,@4.last_col};
       $$ = ast::ArrayAccess{{@$,"arrayaccess"},std::move($1),std::move($3)};}
 
-tupleargs: expr ',' {$$ = std::deque<ast::ExprPtr>{std::move($1)};}
-      |     tupleargs expr {$1.emplace_back(std::move($2));
-      $$ = std::move($1);}%prec TUPLE
+tupleargs: expr ',' expr {$$ = std::deque<ast::ExprPtr>{std::move($1),std::move($3)};}
+      |     tupleargs ',' expr {$1.emplace_back(std::move($3));
+                              $$ = std::move($1);}%prec TUPLE
 
 tuple: '(' tupleargs ')'{
       $$ = ast::Tuple{{@$,"tuple"},std::move($2)};}
+      |'(' expr ',' ')' {
+      auto arg = std::deque<ast::ExprPtr>{std::move($2)};
+      $$ = ast::Tuple{{@$,"tuple"},std::move(arg)};}
 
 
 op:   expr ADD    expr   {$$ = ast::Op{{@$,"op"},ast::OpId::Add,        std::move($1),std::move($3)};}
