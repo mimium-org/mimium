@@ -19,62 +19,74 @@ std::string toString(const blockptr block) {
   return ss.str();
 }
 
-std::string toString(NumberInst& i) { return i.lv_name + " = " + std::to_string(i.val); }
-std::string toString(StringInst& i) { return i.lv_name + " = " + i.val; }
+std::string toString(Value const& v) { return v.name; }
 
-std::string toString(AllocaInst& i) {
-  return "alloca: " + i.lv_name + " (" + types::toString(i.type) + ")";
+namespace instruction {
+std::string toString(Number& i) {
+  return toString(i.lv_name.value()) + " = " + std::to_string(i.val);
 }
-std::string toString(RefInst& i) { return i.lv_name + " = ref " + i.val; }
+std::string toString(String& i) { return toString(i.lv_name.value()) + " = " + i.val; }
 
-std::string toString(AssignInst& i) { return i.lv_name + " =(overwrite) " + i.val; }
+std::string toString(Allocate& i) {
+  return "alloca: " + toString(i.lv_name.value()) + " (" + types::toString(i.type) + ")";
+}
+std::string toString(Ref& i) {
+  return toString(i.lv_name.value()) + " = ref " + toString(*i.target);
+}
 
-std::string toString(OpInst& i) {
+std::string toString(Load& i) {
+  return toString(i.lv_name.value()) + "= load " + toString(*i.target);
+}
+std::string toString(Store& i) {
+  return toString(*i.target) + " = " + toString(*i.value) + "(store)";
+}
+
+std::string toString(Op& i) {
   auto opstr = std::string(ast::op_str.find(i.op)->second);
-  return i.lv_name + " = " + opstr + " " + i.lhs + " " + i.rhs;
+  return toString(i.lv_name.value()) + " = " + opstr + " " + toString(*i.lhs) + " " +
+         toString(*i.rhs);
 }
 
-std::string toString(FunInst& i) {
+std::string toString(Function& i) {
   std::stringstream ss;
-  ss << i.lv_name << " = fun" << ((i.isrecursive) ? "[rec]" : "") << " " << join(i.args, " , ");
+  ss << toString(i.lv_name.value()) << " = fun" << ((i.isrecursive) ? "[rec]" : "") << " "
+     << join(i.args, " , ");
   if (!i.freevariables.empty()) { ss << " fv{" << joinVec(i.freevariables, ",") << "}"; }
   ss << "\n" << toString(i.body);
   return ss.str();
 }
 
-std::string toString(MakeClosureInst& i) {
+std::string toString(MakeClosure& i) {
   std::stringstream ss;
-  ss << i.lv_name << " = makeclosure " << i.fname << " " << joinVec(i.captures, ",");
+  ss << toString(i.lv_name.value()) << " = makeclosure " << toString(*i.fname) << " "
+     << joinVec(i.captures, ",");
   return ss.str();
 }
-std::string toString(FcallInst& i) {
+std::string toString(Fcall& i) {
   std::string s;
-  auto timestr = (i.time) ? "@" + i.time.value() : "";
-  return i.lv_name + " = app" + fcalltype_str[i.ftype] + " " + i.fname + " " + join(i.args, " , ") +
-         timestr;
+  auto timestr = (i.time) ? "@" + toString(*i.time.value()) : "";
+  return toString(i.lv_name.value()) + " = app" + fcalltype_str[i.ftype] + " " +
+         toString(*i.fname) + " " + join(i.args, " , ") + timestr;
 }
 
-std::string toString(ArrayInst& i) { return i.lv_name + " = array " + join(i.args, " , "); }
-
-std::string toString(ArrayAccessInst& i) {
-  return i.lv_name + " = arrayaccess " + i.name + " " + i.index;
+std::string toString(Array& i) {
+  return toString(i.lv_name.value()) + " = array " + join(i.args, " , ");
 }
 
-std::string toString(FieldInst& i) {
-  std::string res =  i.lv_name + " = field " + i.name + " ";
-  std::visit(overloaded{
-    [&](std::string& s){ res+= s;},
-    [&](int i){ res += std::to_string(i);}
-  } ,i.index);
+std::string toString(Field& i) {
+  std::string res = toString(i.lv_name.value()) + " = field " + toString(*i.name) + " ";
+  std::visit(
+      overloaded{[&](std::string& s) { res += s; }, [&](int i) { res += std::to_string(i); }},
+      i.index);
   return res;
 }
-std::string toString(IfInst& i) {
+std::string toString(If& i) {
   std::string s;
-  s += i.lv_name + " = if " + i.cond + "\n";
+  s += toString(i.lv_name.value()) + " = if " + toString(*i.cond) + "\n";
   s += toString(i.thenblock);
   if (i.elseblock.has_value()) { s += toString(i.elseblock.value()); }
   return s;
 }
-std::string toString(ReturnInst& i) { return "return " + i.val; }
-
+std::string toString(Return& i) { return "return " + toString(*i.val); }
+}  // namespace instruction
 }  // namespace mimium::mir

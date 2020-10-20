@@ -19,110 +19,129 @@ namespace mir {
 
 class block;
 using blockptr = std::shared_ptr<block>;
-struct instruction {  // base class for MIR instruction
-  std::string lv_name;
+
+struct Value {
+  std::string name;
+  types::Value type;
+};
+
+std::string toString(Value const&);
+
+using valueptr = std::shared_ptr<Value>;
+namespace instruction {
+struct Base {  // base class for MIR instruction
+  std::optional<Value> lv_name;
   blockptr parent = nullptr;
 };
 
-struct NumberInst : public instruction {
+struct Number : public Base {
   double val = 0.0;
 };
-std::string toString(NumberInst& i);
+std::string toString(Number& i);
 
-struct StringInst : public instruction {
+struct String : public Base {
   std::string val;
 };
-std::string toString(StringInst& i);
+std::string toString(String& i);
 
-struct AllocaInst : public instruction {
+struct Allocate : public Base {
   types::Value type = types::None();
 };
-std::string toString(AllocaInst& i);
+std::string toString(Allocate& i);
 
-struct RefInst : public instruction {
-  std::string val;
-  types::Value type = types::None();
+struct Ref : public Base {
+  valueptr target;
 };
-std::string toString(RefInst& i);
+std::string toString(Ref& i);
 
-struct AssignInst : public instruction {
-  std::string val;
-
-  types::Value type = types::None();
+struct Load :public Base{
+  valueptr target;
 };
-std::string toString(AssignInst& i);
+std::string toString(Load& i);
 
-struct OpInst : public instruction {
+struct Store :public Base{
+  valueptr target;
+  valueptr value;
+};
+std::string toString(Store& i);
+
+struct Op : public Base {
  public:
   ast::OpId op;
-  std::string lhs;
-  std::string rhs;
+  valueptr lhs;
+  valueptr rhs;
 };
-std::string toString(OpInst& i);
+std::string toString(Op& i);
 
-struct FunInst : public instruction {
-  std::deque<std::string> args;
+struct Function : public Base {
+  std::deque<valueptr> args;
   blockptr body;
   bool hasself = false;
   bool isrecursive = false;
   // introduced after closure conversion;
   // contains self & delay, and fcall which
   // has self&delay
-  std::vector<std::string> freevariables = {};
-  std::vector<std::string> memory_objects = {};
+  std::vector<valueptr> freevariables = {};
+  std::vector<valueptr> memory_objects = {};
   bool ccflag = false;  // utility for closure conversion
 };
-std::string toString(FunInst& i);
+std::string toString(Function& i);
 
-struct FcallInst : public instruction {
-  std::string fname;
-  std::deque<std::string> args;
+struct Fcall : public Base {
+  valueptr fname;
+  std::deque<valueptr> args;
   FCALLTYPE ftype;
-  std::optional<std::string> time;
+  std::optional<valueptr> time;
 };
-std::string toString(FcallInst& i);
+std::string toString(Fcall& i);
 
-struct MakeClosureInst : public instruction {
-  std::string fname;
-  std::vector<std::string> captures;
+struct MakeClosure : public Base {
+  valueptr fname;
+  std::vector<valueptr> captures;
   types::Value capturetype;
 };
-std::string toString(MakeClosureInst& i);
+std::string toString(MakeClosure& i);
 
-struct ArrayInst : public instruction {
-  std::deque<std::string> args;
+struct Array : public Base {
+  std::deque<valueptr> args;
 };
-std::string toString(ArrayInst& i);
+std::string toString(Array& i);
 
-struct ArrayAccessInst : public instruction {
-  std::string name;
-  std::string index;
+struct Field : public Base {
+  valueptr name;
+  std::variant<std::string, int> index;
 };
-std::string toString(ArrayAccessInst& i);
+std::string toString(Field& i);
 
-struct FieldInst : public instruction {
-  std::string name;
-  std::variant<std::string,int> index;
-};
-std::string toString(FieldInst& i);
-
-struct IfInst : public instruction {
-  std::string cond;
+struct If : public Base {
+  valueptr cond;
   blockptr thenblock;
   std::optional<blockptr> elseblock;
 };
-std::string toString(IfInst& i);
+std::string toString(If& i);
 
-struct ReturnInst : public instruction {
-  std::string val;
+struct Return : public Base {
+  valueptr val;
 };
-std::string toString(ReturnInst& i);
-using Instructions = std::variant<NumberInst, StringInst, AllocaInst, RefInst, AssignInst, OpInst,
-                                  FunInst, FcallInst, MakeClosureInst, ArrayInst, ArrayAccessInst,
-                                  FieldInst, IfInst, ReturnInst>;
 
+std::string toString(Return& i);
+using Instructions = std::variant<Number, String, Allocate, Ref, Load, Store, Op, Function, Fcall,
+                                  MakeClosure, Array, Field, If, Return>;
+}  // namespace instruction
+
+inline std::string join(std::deque<valueptr>& vec, std::string delim) {
+  std::string res;
+  if (!vec.empty()) {
+    res = std::accumulate(
+        std::next(vec.begin()), vec.end(), toString((**vec.begin())),
+        [&](std::string a, valueptr& b) { return std::move(a) + delim + toString(*b); });
+  }
+  return res;
+};
+
+using Instructions = instruction::Instructions;
 inline std::string toString(Instructions& inst) {
-  return std::visit([](auto& i) -> std::string { return toString(i); }, inst);
+  return std::visit([](auto& i) -> std::string { return instruction::toString(i); }, inst);
 }
 
 class block : public std::enable_shared_from_this<block> {
