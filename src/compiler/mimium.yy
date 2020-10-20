@@ -129,9 +129,16 @@ using namespace mimium;
 
 
 %type <ast::Number> num "number"
+
+%type <ast::DeclVar> declvar "lvar variable declaration"
+%type <ast::ArrayLvar> arrayLvar "array access lvar"
+%type <std::deque<ast::DeclVar>> tuplelvar_args "tuplelvar_args"
+%type <ast::TupleLvar> tupleLvar "tuple unpack"
+
+
 %type <ast::Lvar> lvar "left value"
 
-%type <ast::Rvar> rvar "right value"
+%type <ast::Symbol> symbol "symbol"
 %type <ast::Self> self "self"
 
 %type <ast::String> string "string" 
@@ -150,7 +157,7 @@ using namespace mimium;
 
 %type <ast::Lambda> lambda "lambda"
 %type <ast::LambdaArgs> arguments_top "arguments top"
-%type <std::deque<ast::Lvar>> arguments "arguments for fdef"
+%type <std::deque<ast::DeclVar>> arguments "arguments for fdef and tupleLvar" 
 
 // %type <AST_Ptr> declaration "declaration"
 // %type <AST_Ptr> include "include declaration"
@@ -163,6 +170,9 @@ using namespace mimium;
 
 
 %type <ast::ArrayInit> array "array"
+%type <ast::Tuple> tuple "tuple"
+%type <std::deque<ast::ExprPtr>> tupleargs "tupleargs"
+
 %type <std::deque<ast::ExprPtr>> arrayelems "arrayelems"
 
 
@@ -215,6 +225,7 @@ using namespace mimium;
 %left  ')'
 %right '['
 %left  ']'
+%left TUPLE
 %left FCALL
 
 
@@ -239,14 +250,31 @@ num:  NUM {
             $$ = ast::Number{{@1 ,std::to_string($1)} ,$1};}
 
 
-lvar: SYMBOL TYPE_DELIM types {
-            $$ = ast::Lvar{ { {@$,$1},$1,}, std::move($3)};}
-      |SYMBOL {
-            $$ = ast::Lvar{ { {@$,$1},$1,}, std::nullopt };}
+declvar: symbol TYPE_DELIM types {
+            $$ = ast::DeclVar{{@$,"declvar"},$1,std::move($3)};}
+      |symbol {
+            $$ = ast::DeclVar{{@$,"declvar"},$1,std::nullopt };}
 
-rvar: SYMBOL {
+arrayLvar: expr '[' expr ']' {
+      $$ = ast::ArrayLvar{{@$,"arraylvar"},std::move($1),std::move($3)};}
+
+tuplelvar_args: declvar ',' declvar {$$ = std::deque<ast::DeclVar>{std::move($1),std::move($3)};}
+      |     tuplelvar_args ',' declvar {$1.emplace_back(std::move($3));
+      $$ = std::move($1);}
+
+tupleLvar: tuplelvar_args {
+      $$ = ast::TupleLvar{{@$,"tuplelvar"},std::move($1)};}
+      |    declvar ',' {
+      auto arg = std::deque<ast::DeclVar>{std::move($1)};
+      $$ = ast::TupleLvar{{@$,"tuplelvar"},std::move(arg)};}
+
+lvar: declvar{ $$ = std::move($1);}
+     | arrayLvar{ $$ = std::move($1);}
+     | tupleLvar{ $$ = std::move($1);}
+
+symbol: SYMBOL {
             @$ = @1;
-            $$ = ast::Rvar{{{@$,$1} ,$1}};}
+            $$ = ast::Symbol{{@$,$1} ,$1};}
 
 self: SELF {
             @$ = @1;
@@ -284,7 +312,7 @@ types:
 single:   
        self   {$$=ast::makeExpr($1);}
       |now    {$$=ast::makeExpr($1);}
-      |rvar   {$$=ast::makeExpr($1);}
+      |symbol   {$$=ast::makeExpr($1);}
       |string {$$=ast::makeExpr($1);}
       |num    {$$=ast::makeExpr($1);}
 
@@ -307,7 +335,7 @@ fcalltime: fcall AT expr      {$$ = ast::Time{{@$,""},std::move($1),std::move($3
 // now: syntax sugar to fcall;
 now: NOW { 
       $$ = ast::Fcall{{@1,"now"},
-                         ast::makeExpr(ast::Rvar{ {{ @1,"now"} ,"mimium_getnow"}}),
+                         ast::makeExpr(ast::Symbol{ { @1,"now"} ,"mimium_getnow"}),
                          ast::FcallArgs{ { @1,"now"},{}}};
       }
 
@@ -337,6 +365,16 @@ arrayelems: expr ',' arrayelems   {
 array_access: expr '[' expr ']' {
       // @$ = {@1.first_line,@1.first_col,@4.last_line,@4.last_col};
       $$ = ast::ArrayAccess{{@$,"arrayaccess"},std::move($1),std::move($3)};}
+
+tupleargs: expr ',' expr {$$ = std::deque<ast::ExprPtr>{std::move($1),std::move($3)};}
+      |     tupleargs ',' expr {$1.emplace_back(std::move($3));
+                              $$ = std::move($1);}%prec TUPLE
+
+tuple: '(' tupleargs ')'{
+      $$ = ast::Tuple{{@$,"tuple"},std::move($2)};}
+      |'(' expr ',' ')' {
+      auto arg = std::deque<ast::ExprPtr>{std::move($2)};
+      $$ = ast::Tuple{{@$,"tuple"},std::move(arg)};}
 
 
 op:   expr ADD    expr   {$$ = ast::Op{{@$,"op"},ast::OpId::Add,        std::move($1),std::move($3)};}
@@ -373,6 +411,7 @@ ifstmt: IF cond expr   {$$ = ast::If{{@$,"if"},std::move($2),std::move($3),std::
 expr_non_fcall:op      {$$ = ast::makeExpr($1);}
       |    array     {$$ = ast::makeExpr($1);}
       | array_access {$$ = ast::makeExpr($1);}
+      |     tuple    {$$ = ast::makeExpr($1);}%prec TUPLE
       |    lambda    {$$ = ast::makeExpr($1);}
       |    single    {$$ = std::move($1);}
       |'(' expr ')' {$$ = std::move($2);}
@@ -397,15 +436,15 @@ assign : lvar ASSIGN expr {$$ = ast::Assign{{@$,"assign"},std::move($1),std::mov
 
 arguments_top: '(' arguments ')' {$$=ast::LambdaArgs{{@$,"largs"},std::move($2)};}
 
-arguments: lvar ',' arguments {$3.push_front(std::move($1));
+arguments: declvar ',' arguments {$3.push_front(std::move($1));
                                $$ = std::move($3); }
-         | lvar   {$$ = std::deque<ast::Lvar>{std::move($1)};}
+         | declvar  {$$ = std::deque<ast::DeclVar>{std::move($1)};}
          | %empty {$$ = {};}
 
-fdef: FUNC lvar arguments_top block {
+fdef: FUNC declvar arguments_top block {
       auto lambda = ast::Lambda{{@$,"lambda"} ,std::move($3),std::move($4),std::nullopt};
       $$ = ast::Fdef{{@$,"fdef"},std::move($2),lambda};}
-      |FUNC lvar arguments_top ARROW types block {
+      |FUNC declvar arguments_top ARROW types block {
       auto lambda = ast::Lambda{{@$,"lambda"} ,std::move($3),std::move($6),std::move($5)};
       $$ = ast::Fdef{{@$,"fdef"},std::move($2),lambda};}
 
@@ -449,7 +488,7 @@ opt_nl:%empty
 
 
 
-forloop: FOR '(' lvar IN expr ')' block {$$ = ast::For{{@$,"for"},std::move($3),std::move($5),std::move($7)};};
+forloop: FOR '(' declvar IN expr ')' block {$$ = ast::For{{@$,"for"},std::move($3),std::move($5),std::move($7)};};
 
 
 // declaration : include {$$=std::move($1);} 

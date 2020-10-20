@@ -56,6 +56,7 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
     void operator()(mir::MakeClosureInst& i);
     void operator()(mir::ArrayInst& i);
     void operator()(mir::ArrayAccessInst& i);
+    void operator()(mir::FieldInst& i);
     void operator()(mir::IfInst& i);
     void operator()(mir::ReturnInst& i);
     template <typename T>
