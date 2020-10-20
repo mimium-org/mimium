@@ -135,9 +135,25 @@ lvarid ExprKnormVisitor::operator()(ast::ArrayAccess& ast) {
       mir::ArrayAccessInst{{newname}, arrname, std::visit(*this, *ast.index).first},
       std::move(rettype));
 }
-lvarid ExprKnormVisitor::operator()(ast::Tuple& /*ast*/) {
-  // TODO(tomoya)
-  return lvarid{};
+lvarid ExprKnormVisitor::operator()(ast::Tuple& ast) {
+  auto lvname = mirgen.makeNewName();
+    std::deque<std::string> newelems;
+  std::vector<types::Value> tupletypes;
+  for(auto& a:ast.args){
+    auto[name,type] = std::visit(*this,*a);
+    newelems.emplace_back(name);
+    tupletypes.emplace_back(type);
+  }
+  types::Value rettype = types::Tuple{{tupletypes}};
+  // auto res = mirgen.emplace(mir::AllocaInst{{lvname}, rettype}, rettype);
+  int count=0;
+  for(auto& elem:newelems){
+    auto newlvname = mirgen.makeNewName();
+    mirgen.emplace(mir::FieldInst{{newlvname},lvname,count});
+    mirgen.emplace(mir::AssignInst{{newlvname},elem,tupletypes.at(count)});
+    count++;
+  }
+  return lvarid{lvname,rettype};
 }
 
 lvarid ExprKnormVisitor::operator()(ast::Block& /*ast*/) {
