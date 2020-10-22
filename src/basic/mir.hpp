@@ -27,7 +27,7 @@ struct Value {
 
 std::string toString(Value const&);
 
-using valueptr = std::shared_ptr<Value>;
+using valueptr = Value*;
 namespace instruction {
 struct Base {  // base class for MIR instruction
   std::optional<Value> lv_name;
@@ -54,12 +54,13 @@ struct Ref : public Base {
 };
 std::string toString(Ref& i);
 
-struct Load :public Base{
+struct Load : public Base {
   valueptr target;
 };
 std::string toString(Load& i);
 
-struct Store :public Base{
+// lv_name should be discarded for Store
+struct Store : public Base {
   valueptr target;
   valueptr value;
 };
@@ -68,7 +69,7 @@ std::string toString(Store& i);
 struct Op : public Base {
  public:
   ast::OpId op;
-  valueptr lhs;
+  std::optional<valueptr> lhs;
   valueptr rhs;
 };
 std::string toString(Op& i);
@@ -109,7 +110,7 @@ std::string toString(Array& i);
 
 struct Field : public Base {
   valueptr name;
-  std::variant<std::string, int> index;
+  std::variant<valueptr, int> index;
 };
 std::string toString(Field& i);
 
@@ -139,6 +140,11 @@ inline std::string join(std::deque<valueptr>& vec, std::string delim) {
   return res;
 };
 
+template <typename T, typename... Ts>
+valueptr makeInst(std::string lv_name, types::Value type, blockptr parent, Ts... args) {
+  return T{mir::instruction::Base{{std::optional(Value{lv_name, type})}}, args...};
+}
+
 using Instructions = instruction::Instructions;
 inline std::string toString(Instructions& inst) {
   return std::visit([](auto& i) -> std::string { return instruction::toString(i); }, inst);
@@ -160,9 +166,16 @@ inline blockptr makeBlock(std::string const& label, int indent = 0) {
 
 std::string toString(blockptr block);
 
-inline Instructions& addInstToBlock(Instructions&& inst, blockptr block) {
-  std::visit([&](auto& i) { i.parent = block->shared_from_this(); }, inst);
-  return block->instructions.emplace_back(std::move(inst));
+inline auto addInstToBlock(Instructions&& inst, blockptr block) {
+  std::visit([&](auto& i) { i.parent = block; }, inst);
+  std::optional<valueptr> ret = std::nullopt;
+  std::visit(
+      [&](auto& i) {
+        if (i.lv_name.has_value()) { ret = &i.lv_name.value(); }
+      },
+      inst);
+  block->instructions.emplace_back(std::move(inst));
+  return ret;
 }
 
 inline void addIndentToBlock(blockptr block, int level = 0) { block->indent_level += level; }

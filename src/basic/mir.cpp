@@ -43,8 +43,8 @@ std::string toString(Store& i) {
 
 std::string toString(Op& i) {
   auto opstr = std::string(ast::op_str.find(i.op)->second);
-  return toString(i.lv_name.value()) + " = " + opstr + " " + toString(*i.lhs) + " " +
-         toString(*i.rhs);
+  return toString(i.lv_name.value()) + " = " + opstr + " " +
+         (i.lhs.has_value() ? toString(*i.lhs.value()) : "") + " " + toString(*i.rhs);
 }
 
 std::string toString(Function& i) {
