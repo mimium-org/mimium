@@ -16,21 +16,21 @@ class MirGenerator {
       : statementvisitor(*this), exprvisitor(*this), typeenv(typeenv), ctx(nullptr) {}
   struct ExprKnormVisitor : public VisitorBase<mir::valueptr&> {
     explicit ExprKnormVisitor(MirGenerator& parent) : mirgen(parent) {}
-    optvalptr operator()(ast::Op& ast);
-    optvalptr operator()(ast::Number& ast);
-    optvalptr operator()(ast::String& ast);
-    optvalptr operator()(ast::Symbol& ast);
-    optvalptr operator()(ast::Self& ast);
-    optvalptr operator()(ast::Lambda& ast);
-    optvalptr operator()(ast::Fcall& ast);
-    optvalptr operator()(ast::Struct& ast);
-    optvalptr operator()(ast::StructAccess& ast);
-    optvalptr operator()(ast::ArrayInit& ast);
-    optvalptr operator()(ast::ArrayAccess& ast);
-    optvalptr operator()(ast::Tuple& ast);
-    optvalptr operator()(ast::If& ast);
-    optvalptr operator()(ast::Block& ast);
-    optvalptr genInst(ast::ExprPtr expr) { return std::visit(*this, *expr); }
+    mir::valueptr operator()(ast::Op& ast);
+    mir::valueptr operator()(ast::Number& ast);
+    mir::valueptr operator()(ast::String& ast);
+    mir::valueptr operator()(ast::Symbol& ast);
+    mir::valueptr operator()(ast::Self& ast);
+    mir::valueptr operator()(ast::Lambda& ast);
+    mir::valueptr operator()(ast::Fcall& ast);
+    mir::valueptr operator()(ast::Struct& ast);
+    mir::valueptr operator()(ast::StructAccess& ast);
+    mir::valueptr operator()(ast::ArrayInit& ast);
+    mir::valueptr operator()(ast::ArrayAccess& ast);
+    mir::valueptr operator()(ast::Tuple& ast);
+    mir::valueptr operator()(ast::If& ast);
+    mir::valueptr operator()(ast::Block& ast);
+    mir::valueptr genInst(ast::ExprPtr expr) { return std::visit(*this, *expr); }
 
    private:
     MirGenerator& mirgen;
@@ -38,25 +38,26 @@ class MirGenerator {
   struct AssignKnormVisitor {
     explicit AssignKnormVisitor(MirGenerator& parent, ast::ExprPtr expr)
         : mirgen(parent), expr(std::move(expr)){};
-    optvalptr operator()(ast::DeclVar& ast);
-    optvalptr operator()(ast::ArrayLvar& ast);
-    optvalptr operator()(ast::TupleLvar& ast);
+    void operator()(ast::DeclVar& ast);
+    void operator()(ast::ArrayLvar& ast);
+    void operator()(ast::TupleLvar& ast);
 
    private:
     MirGenerator& mirgen;
     ast::ExprPtr expr;
   };
   struct StatementKnormVisitor {
-    explicit StatementKnormVisitor(MirGenerator& parent) : mirgen(parent) {}
-    optvalptr operator()(ast::Assign& ast);
-    optvalptr operator()(ast::Fdef& ast);
-    optvalptr operator()(ast::Return& ast);
-    optvalptr operator()(ast::Time& ast);
-    optvalptr operator()(ast::Fcall& ast);
-    optvalptr operator()(ast::For& ast);
-    optvalptr operator()(ast::If& ast);
-    // mir::Instructions operator()(ast::Declaration& ast);
-    optvalptr genInst(ast::Statement stmt) { return std::visit(*this, stmt); }
+    explicit StatementKnormVisitor(MirGenerator& parent) : mirgen(parent), retvalue(std::nullopt) {}
+    void operator()(ast::Assign& ast);
+    void operator()(ast::Fdef& ast);
+    void operator()(ast::Return& ast);
+    void operator()(ast::Time& ast);
+    void operator()(ast::Fcall& ast);
+    void operator()(ast::For& ast);
+    void operator()(ast::If& ast);
+    void genInst(ast::Statement stmt) { return std::visit(*this, stmt); }
+
+    optvalptr retvalue;
 
    private:
     MirGenerator& mirgen;
@@ -84,6 +85,8 @@ class MirGenerator {
     }
     return val;
   }
+  // expect return value
+  auto emplaceExpr(mir::Instructions&& inst) { return require(emplace(std::move(inst))); }
   template <typename FROM, typename TO, class LAMBDA>
   auto transformArgs(FROM&& from, TO&& to, LAMBDA&& op) -> decltype(to) {
     std::transform(from.begin(), from.end(), std::back_inserter(to), op);
@@ -92,11 +95,11 @@ class MirGenerator {
   static bool isExternalFun(std::string const& str) {
     return LLVMBuiltin::ftable.find(str) != LLVMBuiltin::ftable.end();
   }
-  optvalptr genFcallInst(ast::Fcall& fcall, optvalptr const& when = std::nullopt);
+  mir::valueptr genFcallInst(ast::Fcall& fcall, optvalptr const& when = std::nullopt);
   std::pair<optvalptr, mir::blockptr> genIfBlock(ast::ExprPtr& block, std::string const& label);
-  optvalptr genIfInst(ast::If& ast, bool need_alloca);
-  optvalptr genInst(ast::ExprPtr expr) { return exprvisitor.genInst(expr); }
-  optvalptr genInst(ast::Statement stmt) { return statementvisitor.genInst(stmt); }
+  optvalptr genIfInst(ast::If& ast, bool is_expr);
+  mir::valueptr genInst(ast::ExprPtr expr) { return exprvisitor.genInst(expr); }
+  void genInst(ast::Statement stmt) { return statementvisitor.genInst(stmt); }
 
  private:
   StatementKnormVisitor statementvisitor;
