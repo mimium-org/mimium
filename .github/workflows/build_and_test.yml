@@ -7,7 +7,29 @@ on:
   pull_request:
 
 jobs:
+  prebuild:
+    runs-on: ubuntu-latest
+    outputs:
+      lastmessage: ${{ steps.checkmessage.outputs.lastmessage }}
+    steps: 
+      - name : GITHUB CONTEXT
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: echo "$GITHUB_CONTEXT"
+      - if: contains(github.event_name, 'pull_request')      
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - if: "!contains(github.event_name, 'pull_request')"  
+        uses: actions/checkout@v2
+      - id: checkmessage
+        run: |
+          git log --no-merges -1 --oneline
+          echo "::set-output name=lastmessage::$(git log --no-merges -1 --oneline)"
+
   build:
+    needs: prebuild
+    if: "!contains( needs.prebuild.outputs.lastmessage , '[ci skip]')"
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
     strategy:
@@ -40,6 +62,7 @@ jobs:
 #           - os: windows-latest
 #             cmake-generator: -G "Visual Studio 16 2019" -A x64
     steps:
+      - run: echo "${{needs.prebuild.outputs.lastmessage}}"
       - uses: actions/checkout@v2
 
       - if: contains(matrix.os, 'ubuntu')
