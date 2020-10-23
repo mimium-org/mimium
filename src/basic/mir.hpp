@@ -20,51 +20,69 @@ namespace mir {
 class block;
 using blockptr = std::shared_ptr<block>;
 
-struct Value {
-  std::string name;
-  types::Value type;
-};
+namespace instruction {
 
-std::string toString(Value const&);
+struct Number;
+struct String;
+struct Allocate;
+struct Ref;
+struct Load;
+struct Store;
+struct Op;
+struct Function;
+struct Fcall;
+struct MakeClosure;
+struct Array;
+struct Field;
+struct If;
+struct Return;
+using Instructions = std::variant<Number, String, Allocate, Ref, Load, Store, Op, Function, Fcall,
+                                  MakeClosure, Array, Field, If, Return>;
+}  // namespace instruction
+// todo: more specific value
+using Constants = std::variant<double, std::string>;
 
-using valueptr = Value*;
+using Value = std::variant<instruction::Instructions, Constants>;
+using valueptr = std::shared_ptr<Value>;
+
 namespace instruction {
 struct Base {  // base class for MIR instruction
-  std::optional<Value> lv_name;
+  std::string name;
+  types::Value type;
   blockptr parent = nullptr;
 };
 
 struct Number : public Base {
   double val = 0.0;
 };
-std::string toString(Number& i);
+std::string toString(Number const& i);
 
 struct String : public Base {
   std::string val;
 };
-std::string toString(String& i);
+std::string toString(String const& i);
 
 struct Allocate : public Base {
   types::Value type = types::None();
 };
-std::string toString(Allocate& i);
+std::string toString(Allocate const& i);
 
 struct Ref : public Base {
   valueptr target;
 };
-std::string toString(Ref& i);
+std::string toString(Ref const& i);
 
 struct Load : public Base {
   valueptr target;
 };
-std::string toString(Load& i);
+std::string toString(Load const& i);
 
 // lv_name should be discarded for Store
 struct Store : public Base {
   valueptr target;
   valueptr value;
 };
-std::string toString(Store& i);
+std::string toString(Store const& i);
 
 struct Op : public Base {
  public:
@@ -72,7 +90,7 @@ struct Op : public Base {
   std::optional<valueptr> lhs;
   valueptr rhs;
 };
-std::string toString(Op& i);
+std::string toString(Op const& i);
 
 struct Function : public Base {
   std::deque<valueptr> args;
@@ -86,7 +104,7 @@ struct Function : public Base {
   std::vector<valueptr> memory_objects = {};
   bool ccflag = false;  // utility for closure conversion
 };
-std::string toString(Function& i);
+std::string toString(Function const& i);
 
 struct Fcall : public Base {
   valueptr fname;
@@ -94,67 +112,69 @@ struct Fcall : public Base {
   FCALLTYPE ftype;
   std::optional<valueptr> time;
 };
-std::string toString(Fcall& i);
+std::string toString(Fcall const& i);
 
 struct MakeClosure : public Base {
   valueptr fname;
   std::vector<valueptr> captures;
   types::Value capturetype;
 };
-std::string toString(MakeClosure& i);
+std::string toString(MakeClosure const& i);
 
 struct Array : public Base {
   std::deque<valueptr> args;
 };
-std::string toString(Array& i);
+std::string toString(Array const& i);
 
 struct Field : public Base {
-  valueptr name;
-  std::variant<valueptr, int> index;
+  valueptr target;
+  valueptr index;
 };
-std::string toString(Field& i);
+std::string toString(Field const& i);
 
 struct If : public Base {
   valueptr cond;
   blockptr thenblock;
   std::optional<blockptr> elseblock;
 };
-std::string toString(If& i);
+std::string toString(If const& i);
 
 struct Return : public Base {
   valueptr val;
 };
 
-std::string toString(Return& i);
-using Instructions = std::variant<Number, String, Allocate, Ref, Load, Store, Op, Function, Fcall,
-                                  MakeClosure, Array, Field, If, Return>;
+std::string toString(Return const& i);
+
 }  // namespace instruction
 
-inline std::string join(std::deque<valueptr>& vec, std::string delim) {
+using Instructions = instruction::Instructions;
+inline std::string toString(Instructions const& inst) {
+  return std::visit([](auto const& i) -> std::string { return instruction::toString(i); }, inst);
+}
+inline std::string toString(Constants const& inst) {
+  return std::visit(overloaded{[](std::string const& s) -> std::string { return s; },
+                               [](const double i) { return std::to_string(i); }},
+                    inst);
+}
+inline std::string toString(Value const& inst) {
+  return std::visit(overloaded{[](Instructions const& i) { return toString(i); },
+                               [](Constants const& i) { return toString(i); }},
+                    inst);
+}
+inline std::string join(std::deque<valueptr> const& vec, std::string const& delim) {
   std::string res;
   if (!vec.empty()) {
     res = std::accumulate(
-        std::next(vec.begin()), vec.end(), toString((**vec.begin())),
-        [&](std::string a, valueptr& b) { return std::move(a) + delim + toString(*b); });
+        std::next(vec.begin()), vec.end(), toString(**vec.begin()),
+        [&](std::string const& a, valueptr const& b) { return a + delim + toString(*b); });
   }
   return res;
 };
-
-template <typename T, typename... Ts>
-valueptr makeInst(std::string lv_name, types::Value type, blockptr parent, Ts... args) {
-  return T{mir::instruction::Base{{std::optional(Value{lv_name, type})}}, args...};
-}
-
-using Instructions = instruction::Instructions;
-inline std::string toString(Instructions& inst) {
-  return std::visit([](auto& i) -> std::string { return instruction::toString(i); }, inst);
-}
-
 class block : public std::enable_shared_from_this<block> {
  public:
   std::string label;
-  std::list<Instructions> instructions;  // sequence of instructions
-  int indent_level = 0;                  // shared between instances
+  std::list<std::shared_ptr<Instructions>> instructions;  // sequence of instructions
+  int indent_level = 0;                                   // shared between instances
 };
 
 inline blockptr makeBlock(std::string const& label, int indent = 0) {
@@ -168,17 +188,26 @@ std::string toString(blockptr block);
 
 inline auto addInstToBlock(Instructions&& inst, blockptr block) {
   std::visit([&](auto& i) { i.parent = block; }, inst);
-  std::optional<valueptr> ret = std::nullopt;
-  std::visit(
-      [&](auto& i) {
-        if (i.lv_name.has_value()) { ret = &i.lv_name.value(); }
-      },
-      inst);
-  block->instructions.emplace_back(std::move(inst));
-  return ret;
+  auto ptr = std::make_shared<Instructions>(inst);
+  block->instructions.emplace_back(ptr);
+  return ptr;
 }
 
 inline void addIndentToBlock(blockptr block, int level = 0) { block->indent_level += level; }
+
+inline types::Value getType(Constants const& v) {
+  return std::visit(overloaded{[](std::string const&  /*s*/)->types::Value { return types::String{}; },
+                               [](const double  /*i*/)->types::Value { return types::Float{}; }},
+                    v);
+}
+inline types::Value getType(Instructions const& v) {
+  return std::visit([](auto const& i) { return i.type; }, v);
+}
+inline types::Value getType(Value const& v) {
+  return std::visit(overloaded{[](Instructions const& i) { return getType(i); },
+                               [](Constants const& i) { return getType(i); }},
+                    v);
+}
 
 }  // namespace mir
 }  // namespace mimium
