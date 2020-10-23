@@ -195,9 +195,7 @@ std::pair<optvalptr, mir::blockptr> MirGenerator::genIfBlock(ast::ExprPtr& block
 
 optvalptr MirGenerator::genIfInst(ast::If& ast, bool is_expr) {
   auto lvname = makeNewName();
-  auto laststmt = std::prev(ctx->instructions.end());
   auto* cond = genInst(ast.cond);
-
   auto [thenretval, thenblock] = genIfBlock(ast.then_stmts, lvname + "$then");
   types::Value& rettype = this->require(thenretval)->type;
   if (ast.else_stmts.has_value()) {

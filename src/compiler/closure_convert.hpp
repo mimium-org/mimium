@@ -8,7 +8,9 @@
 #include "compiler/ffi.hpp"
 namespace mimium {
 
-class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
+namespace minst = mir::instruction;
+
+class ClosureConverter {
  public:
   explicit ClosureConverter(TypeEnv& typeenv);
   ~ClosureConverter();
@@ -44,35 +46,38 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
     ClosureConverter& cc;
     std::vector<std::string>& fvlist;
     std::vector<std::string>& localvlist;
+    mir::valueptr fn_ctx;
     std::list<mir::Instructions>::iterator position;
     void updatepos() { ++position; }
     void registerFv(std::string& name);
+    
+    void operator()(minst::Ref& i);
+    void operator()(minst::Load& i);
+    void operator()(minst::Store& i);
 
-    void operator()(mir::RefInst& i);
-    void operator()(mir::AssignInst& i);
-    void operator()(mir::OpInst& i);
-    void operator()(mir::FunInst& i);
-    void operator()(mir::FcallInst& i);
-    void operator()(mir::MakeClosureInst& i);
-    void operator()(mir::ArrayInst& i);
-    void operator()(mir::ArrayAccessInst& i);
-    void operator()(mir::FieldInst& i);
-    void operator()(mir::IfInst& i);
-    void operator()(mir::ReturnInst& i);
+    void operator()(minst::Op& i);
+    void operator()(minst::Function& i);
+    void operator()(minst::Fcall& i);
+    void operator()(minst::MakeClosure& i);
+    void operator()(minst::Array& i);
+    void operator()(minst::Field& i);
+    void operator()(minst::If& i);
+    void operator()(minst::Return& i);
+
+    // for primitive operations
     template <typename T>
     void operator()(T& i) {
-      if constexpr (std::is_base_of_v<mir::instruction, std::decay_t<T>>) {
-        localvlist.push_back(i.lv_name);
-      } else {
-        static_assert(true, "mir instruction unreachable");
-      }
+      constexpr bool isprimitive = std::is_base_of_v<mir::instruction::Base, std::decay_t<T>>;
+      static_assert(isprimitive, "mir instruction unreachable");
+      localvlist.push_back(i.lv_name);
     }
     bool isFreeVar(const std::string& name);
 
    private:
-    static void visitinsts(mir::FunInst& i, CCVisitor& ccvis,
+    static void visitinsts(minst::Function& i, CCVisitor& ccvis,
                            std::list<mir::Instructions>::iterator pos);
-    mir::MakeClosureInst createClosureInst(types::Function ftype, types::Alias fvtype, std::string& lv_name);
+    minst::MakeClosure createClosureInst(types::Function ftype, types::Alias fvtype,
+                                         std::string& lv_name);
   };
   friend struct CCVisitor;
 };

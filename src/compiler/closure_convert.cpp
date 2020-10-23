@@ -25,14 +25,14 @@ void ClosureConverter::moveFunToTop(mir::blockptr mir) {
   auto& tinsts = toplevel->instructions;
   for (auto it = mir->instructions.begin(), end = mir->instructions.end(); it != end; ++it) {
     auto& cinst = *it;
-    if (std::holds_alternative<mir::FunInst>(cinst)) {
-      auto f = std::get<mir::FunInst>(cinst);  // copy
+    if (std::holds_alternative<minst::Function>(cinst)) {
+      auto f = std::get<minst::Function>(cinst);  // copy
       moveFunToTop(f.body);                    // recursive call
       if (this->toplevel != mir) {
         tinsts.insert(tinsts.begin(), f);  // move on toplevel
       }
       f.body->instructions.remove_if(
-          [](mir::Instructions v) { return std::holds_alternative<mir::FunInst>(v); });
+          [](mir::Instructions v) { return std::holds_alternative<minst::Function>(v); });
     }
   }
 }
@@ -89,7 +89,7 @@ void ClosureConverter::CCVisitor::registerFv(std::string& name) {
   if (isfreevar) { fvlist.push_back(name); }
 };
 
-void ClosureConverter::CCVisitor::visitinsts(mir::FunInst& i, CCVisitor& ccvis,
+void ClosureConverter::CCVisitor::visitinsts(minst::Function& i, CCVisitor& ccvis,
                                              std::list<mir::Instructions>::iterator pos) {
   for (auto &it = pos, end = i.body->instructions.end(); pos != end; ++it) {
     auto& child = *it;
@@ -99,7 +99,8 @@ void ClosureConverter::CCVisitor::visitinsts(mir::FunInst& i, CCVisitor& ccvis,
   }
 }
 
-void ClosureConverter::CCVisitor::operator()(mir::FunInst& i) {
+void ClosureConverter::CCVisitor::operator()(minst::Function& i) {
+
   this->localvlist.push_back(i.lv_name);
   std::vector<std::string> fvlist;
   std::vector<std::string> localvlist = {i.lv_name};
@@ -168,23 +169,21 @@ mir::MakeClosureInst ClosureConverter::CCVisitor::createClosureInst(types::Funct
   return makecls;
 }
 
-void ClosureConverter::CCVisitor::operator()(mir::RefInst& i) {
-  registerFv(i.lv_name);
-  localvlist.push_back(i.lv_name);
+void ClosureConverter::CCVisitor::operator()(minst::Ref& i) {
+
 }
 
-void ClosureConverter::CCVisitor::operator()(mir::AssignInst& i) {
-  // case of overwrite
-  registerFv(i.lv_name);
-  registerFv(i.val);
+void ClosureConverter::CCVisitor::operator()(minst::Load& i) {
+  i.target->;
+  registerFv(std::string &name)
 }
-void ClosureConverter::CCVisitor::operator()(mir::OpInst& i) {
-  if (!i.lhs.empty()) { registerFv(i.lhs); }
-  registerFv(i.rhs);
-  localvlist.push_back(i.lv_name);
+void ClosureConverter::CCVisitor::operator()(minst::Store& i) {
+}
+void ClosureConverter::CCVisitor::operator()(minst::Op& i) {
+
 }
 
-void ClosureConverter::CCVisitor::operator()(mir::FcallInst& i) {
+void ClosureConverter::CCVisitor::operator()(minst::Fcall& i) {
   for (auto& a : i.args) { registerFv(a); }
   if (i.time) { registerFv(i.time.value()); }
   if (cc.isKnownFunction(i.fname)) {
@@ -199,28 +198,23 @@ void ClosureConverter::CCVisitor::operator()(mir::FcallInst& i) {
   localvlist.push_back(i.lv_name);
 }
 
-void ClosureConverter::CCVisitor::operator()(mir::MakeClosureInst& i) {
+void ClosureConverter::CCVisitor::operator()(minst::MakeClosure& i) {
   // registerFv(i.fname);
   // localvlist.push_back(i.lv_name);
 }
 
-void ClosureConverter::CCVisitor::operator()(mir::ArrayInst& i) {
+void ClosureConverter::CCVisitor::operator()(minst::Array& i) {
   for (auto& e : i.args) { registerFv(e); }
   localvlist.push_back(i.lv_name);
 }
 
-void ClosureConverter::CCVisitor::operator()(mir::ArrayAccessInst& i) {
-  registerFv(i.name);
-  registerFv(i.index);
-  localvlist.push_back(i.lv_name);
-}
-void ClosureConverter::CCVisitor::operator()(mir::FieldInst& i) {
+void ClosureConverter::CCVisitor::operator()(minst::Field& i) {
   registerFv(i.name);
   if (auto* iname = std::get_if<std::string>(&i.index)) { registerFv(*iname); }
   localvlist.push_back(i.lv_name);
 }
 
-void ClosureConverter::CCVisitor::operator()(mir::IfInst& i) {
+void ClosureConverter::CCVisitor::operator()(minst::If& i) {
   registerFv(i.cond);
   for (auto& ti : i.thenblock->instructions) { std::visit(*this, ti); }
   if (i.elseblock.has_value()) {
@@ -229,6 +223,6 @@ void ClosureConverter::CCVisitor::operator()(mir::IfInst& i) {
   localvlist.push_back(i.lv_name);
 }
 
-void ClosureConverter::CCVisitor::operator()(mir::ReturnInst& i) { registerFv(i.val); }
+void ClosureConverter::CCVisitor::operator()(minst::Return& i) { registerFv(i.val); }
 
 }  // namespace mimium
