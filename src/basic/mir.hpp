@@ -45,10 +45,17 @@ struct ExternalSymbol {
   std::string name;
   types::Value type;
 };
+
+struct Self;
 using Constants = std::variant<int, double, std::string>;
 
-using Value = std::variant<instruction::Instructions, Constants, ExternalSymbol, Argument>;
+using Value = std::variant<instruction::Instructions, Constants, ExternalSymbol, Argument, Self>;
+
 using valueptr = std::shared_ptr<Value>;
+struct Self {
+  valueptr fn;
+  types::Value type;
+};
 struct Argument {
   std::string name;
   types::Value type;
@@ -171,6 +178,7 @@ inline std::string toString(Value const& inst) {
   return std::visit(overloaded{[](Instructions const& i) { return toString(i); },
                                [](Constants const& i) { return toString(i); },
                                [](Argument const& i) { return toString(i); },
+                               [](Self const & /*i*/) -> std::string { return "self"; },
                                [](auto const& i) { return i.name; }},
                     inst);
 }

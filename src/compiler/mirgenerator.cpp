@@ -86,7 +86,9 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Symbol& ast) {
 }  // namespace mimium
 mir::valueptr ExprKnormVisitor::operator()(ast::Self& ast) {
   // todo: create special type for self
-  return mirgen.getOrGenExternalSymbol("self", types::Float{});
+  assert(mirgen.ctx->parent);
+  auto self = mir::Self{mirgen.ctx->parent.value(),types::Float{}};
+  return std::make_shared<mir::Value>(std::move(self));
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::Lambda& ast) {
   auto label = mirgen.makeNewName();
