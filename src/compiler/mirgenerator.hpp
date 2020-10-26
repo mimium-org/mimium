@@ -77,12 +77,12 @@ class MirGenerator {
   //   // todo(tomoya):prevent redefinition of variable in tuple structural binding
   // }
   auto emplace(mir::Instructions&& inst) {
-    std::optional<mir::valueptr> val = mir::addInstToBlock(std::move(inst), ctx);
-    if (auto* v = val.value_or(nullptr)) {
-      // todo: redundunt data store?
-      symbol_table.emplace(v->name, mir::Value{v->name, v->type});
-      typeenv.emplace(v->name, v->type);
-    }
+    mir::valueptr val = mir::addInstToBlock(std::move(inst), ctx);
+    // if (auto* v = val.value_or(nullptr)) {
+    //   // todo: redundunt data store?
+    //   symbol_table.emplace(v->name, mir::Value{v->name, v->type});
+    //   typeenv.emplace(v->name, v->type);
+    // }
     return val;
   }
   // expect return value
@@ -92,9 +92,7 @@ class MirGenerator {
     std::transform(from.begin(), from.end(), std::back_inserter(to), op);
     return std::forward<decltype(to)>(to);
   }
-  static bool isExternalFun(std::string const& str) {
-    return LLVMBuiltin::ftable.find(str) != LLVMBuiltin::ftable.end();
-  }
+
   mir::valueptr genFcallInst(ast::Fcall& fcall, optvalptr const& when = std::nullopt);
   std::pair<optvalptr, mir::blockptr> genIfBlock(ast::ExprPtr& block, std::string const& label);
   optvalptr genIfInst(ast::If& ast, bool is_expr);
@@ -109,13 +107,17 @@ class MirGenerator {
   int64_t varcounter = 0;
   std::string makeNewName();
   TypeEnv& typeenv;
-  std::unordered_map<std::string, mir::Value> symbol_table;
-  std::unordered_map<std::string, mir::Value> external_symbols;
+  std::unordered_map<std::string, mir::valueptr> symbol_table;
+  std::unordered_map<std::string, mir::valueptr> external_symbols;
+
+  // static bool isExternalFun(std::string const& str) {
+  //   return LLVMBuiltin::ftable.find(str) != LLVMBuiltin::ftable.end();
+  // }
   mir::valueptr getOrGenExternalSymbol(std::string const& name, types::Value const& type);
   mir::valueptr getInternalSymbol(std::string const& name);
   optvalptr tryGetInternalSymbol(std::string const& name);
 
-  // unpack optional value ptr, and throw error if it does not exist.
+  // // unpack optional value ptr, and throw error if it does not exist.
   static mir::valueptr require(optvalptr const& v);
 };
 

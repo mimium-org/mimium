@@ -18,17 +18,18 @@ std::string MirGenerator::makeNewName() { return "k" + std::to_string(varcounter
 
 mir::valueptr MirGenerator::getOrGenExternalSymbol(std::string const& name,
                                                    types::Value const& type) {
-  auto [iter, res] = external_symbols.try_emplace(name, mir::Value{name, type});
-  return &iter->second;
+  auto [iter, res] = external_symbols.try_emplace(
+      name, std::make_shared<mir::Value>(mir::ExternalSymbol{name, type}));
+  return iter->second;
 }
 
 mir::valueptr MirGenerator::require(optvalptr const& v) {
-  if (auto* res = v.value_or(nullptr)) { return res; }
+  if (auto res = v.value_or(nullptr)) { return res; }
   throw std::runtime_error("mir generation error: reference to value does not exist");
 }
 optvalptr MirGenerator::tryGetInternalSymbol(std::string const& name) {
   auto iter = symbol_table.find(name);
-  return (iter != symbol_table.cend()) ? std::optional(&iter->second) : std::nullopt;
+  return (iter != symbol_table.cend()) ? std::optional(iter->second) : std::nullopt;
 }
 mir::valueptr MirGenerator::getInternalSymbol(std::string const& name) {
   auto res = tryGetInternalSymbol(name);
@@ -60,30 +61,27 @@ namespace minst = mir::instruction;
 mir::valueptr ExprKnormVisitor::operator()(ast::Op& ast) {
   auto newname = mirgen.makeNewName();
   auto newlhs = ast.lhs.has_value() ? std::optional(genInst(ast.lhs.value())) : std::nullopt;
-  auto* newrhs = genInst(ast.rhs);
-  return mirgen.emplaceExpr(
-      minst::Op{{mir::Value{newname, types::Float{}}}, ast.op, newlhs, mirgen.require(newrhs)});
+  auto newrhs = genInst(ast.rhs);
+  return mirgen.emplace(
+      minst::Op{{newname, types::Float{}}, ast.op, newlhs, mirgen.require(newrhs)});
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::Number& ast) {
-  return mirgen.emplaceExpr(
-      minst::Number{{mir::Value{mirgen.makeNewName(), types::Float{}}}, ast.value});
+  return mirgen.emplace(minst::Number{{mirgen.makeNewName(), types::Float{}}, ast.value});
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::String& ast) {
-  return mirgen.emplaceExpr(
-      minst::String{{mir::Value{mirgen.makeNewName(), types::String{}}}, ast.value});
+  return mirgen.emplace(minst::String{{mirgen.makeNewName(), types::String{}}, ast.value});
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::Symbol& ast) {
   if (ast.value == "now") {  // todo: handle external symbols other than functions?
-    return mirgen.emplaceExpr(
-        minst::Fcall{{mir::Value{mirgen.makeNewName(), types::Float{}}},
+    return mirgen.emplace(
+        minst::Fcall{{mirgen.makeNewName(), types::Float{}},
                      mirgen.getOrGenExternalSymbol("mimium_getnow", types::Float{}),
                      {},
                      FCALLTYPE::DIRECT,
                      std::nullopt});
   }
-  auto* ptrtoload = mirgen.getInternalSymbol(ast.value + "_ptr");
-  return mirgen.emplaceExpr(
-      minst::Load{{mir::Value{mirgen.makeNewName(), ptrtoload->type}}, ptrtoload});
+  auto ptrtoload = mirgen.getInternalSymbol(ast.value + "_ptr");
+  return mirgen.emplace(minst::Load{{mirgen.makeNewName(), mir::getType(*ptrtoload)}, ptrtoload});
 
 }  // namespace mimium
 mir::valueptr ExprKnormVisitor::operator()(ast::Self& ast) {
@@ -92,37 +90,44 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Self& ast) {
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::Lambda& ast) {
   auto label = mirgen.makeNewName();
-  auto fun = minst::Function{
-      {mir::Value{label, types::None{}}},
-      mirgen.transformArgs(ast.args.args, std::deque<mir::valueptr>{},
-                           [&](ast::DeclVar& lvar) {
-                             auto& name = lvar.value.value;
-                             auto& type = mirgen.typeenv.find(name);
-                             return mirgen.symbol_table.emplace(name, mir::Value{name, type});
-                           }),
-      {}};
-  auto* typeptr = mirgen.typeenv.tryFind(label);
-  auto [rettype, ctx] = mirgen.generateBlock(ast.body, label);
+  auto fun =
+      minst::Function{{label, types::None{}},
+                      mirgen.transformArgs(
+                          ast.args.args, std::vector<std::shared_ptr<mir::Argument>>{},
+                          [&](ast::DeclVar& lvar) {
+                            auto& name = lvar.value.value;
+                            auto& type = mirgen.typeenv.find(name);
+                            auto res = std::make_shared<mir::Argument>(
+                                mir::Argument{name, type});
+                            mirgen.symbol_table.emplace(name, std::make_shared<mir::Value>(*res));
+                            return res;
+                          }),
+                      {}};
+  auto fn_ptr = std::make_shared<mir::Value>(fun);
+  auto* typeptr = mirgen.typeenv.tryFind(label);  // todo!!
+  auto [blockret, ctx] = mirgen.generateBlock(ast.body, label);
   fun.body = ctx;
-  fun.lv_name->type =
+  fun.type =
       (typeptr != nullptr)
           ? *typeptr
-          : types::Function{mirgen.require(rettype)->type,
+          : types::Function{mir::getType(*mirgen.require(blockret)),
                             mirgen.transformArgs(ast.args.args, std::vector<types::Value>{},
                                                  [&](ast::DeclVar& lvar) {
                                                    return mirgen.typeenv.find(lvar.value.value);
                                                  })};
-  return mirgen.emplaceExpr(std::move(fun));
+  auto resptr = mirgen.emplace(std::move(fun));
+  ctx->parent = resptr;
+  return resptr;
+
 }
 mir::valueptr MirGenerator::genFcallInst(ast::Fcall& fcall, optvalptr const& when) {
-  auto* fun = genInst(fcall.fn);
-  auto* rettype_ptr = std::get_if<types::rFunction>(&typeenv.find(fun->name));
-  types::Value rettype = (rettype_ptr == nullptr) ? types::None() : rettype_ptr->getraw().ret_type;
-  auto fnkind = MirGenerator::isExternalFun(fun->name) ? EXTERNAL : CLOSURE;
+  auto fnptr = genInst(fcall.fn);
+  types::Value rettype = mir::getType(*fnptr);
+  auto fnkind = mir::isConstant(*fnptr) ? EXTERNAL : CLOSURE;
   auto newname = makeNewName();
-  auto newargs = transformArgs(fcall.args.args, std::deque<mir::valueptr>{},
+  auto newargs = transformArgs(fcall.args.args, std::vector<mir::valueptr>{},
                                [&](auto expr) { return require(genInst(expr)); });
-  return emplaceExpr(minst::Fcall{{mir::Value{newname, rettype}}, fun, newargs, fnkind, when});
+  return emplace(minst::Fcall{{newname, rettype}, fnptr, newargs, fnkind, when});
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::Fcall& ast) {
   return mirgen.genFcallInst(ast, std::nullopt);
@@ -137,44 +142,44 @@ mir::valueptr ExprKnormVisitor::operator()(ast::StructAccess& /*ast*/) {
   return nullptr;
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::ArrayInit& ast) {
-  std::deque<mir::valueptr> newelems;
+  std::vector<mir::valueptr> newelems;
   types::Value lasttype;
   std::transform(ast.args.begin(), ast.args.end(), std::back_inserter(newelems),
                  [&](ast::ExprPtr e) { return genInst(e); });
   auto newname = mirgen.makeNewName();
-  auto type = types::Array{newelems[0]->type};
-  return mirgen.emplaceExpr(minst::Array{{mir::Value{newname, type}}, newelems});
+  auto type = types::Array{mir::getType(*newelems[0])};
+  return mirgen.emplace(minst::Array{{newname, type}, newelems});
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::ArrayAccess& ast) {
-  auto* array = genInst(ast.array);
-  auto* arrtype_ptr = std::get_if<types::rArray>(&array->type);
+  auto array = genInst(ast.array);
   types::Value rettype;
-  if (arrtype_ptr != nullptr) {
-    rettype = arrtype_ptr->getraw().elem_type;
+  if (std::holds_alternative<types::rArray>(mir::getType(*array))) {
+    rettype = std::get<types::rArray>(mir::getType(*array)).getraw().elem_type;
   } else {
     throw std::runtime_error("[] operator cannot be used for other than array type");
   }
   auto newname = mirgen.makeNewName();
-  auto* index = genInst(ast.index);
-  return mirgen.emplaceExpr(minst::Field{{mir::Value{newname, rettype}}, array, index});
+  auto index = genInst(ast.index);
+  return mirgen.emplace(minst::Field{{newname, rettype}, array, index});
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::Tuple& ast) {
   auto lvname = mirgen.makeNewName();
   std::vector<mir::valueptr> newelems;
   std::vector<types::Value> tupletypes;
   for (auto& a : ast.args) {
-    auto* arg = genInst(a);
+    auto arg = genInst(a);
     newelems.emplace_back(arg);
-    tupletypes.emplace_back(arg->type);
+    tupletypes.emplace_back(mir::getType(*arg));
   }
   types::Value rettype = types::Tuple{{tupletypes}};
-  mir::valueptr lvar = mirgen.emplaceExpr(minst::Allocate{{mir::Value{lvname + "_ptr", rettype}}});
+  mir::valueptr lvar = mirgen.emplace(minst::Allocate{{lvname + "_ptr", rettype}, rettype});
   int count = 0;
   for (auto& elem : newelems) {
     auto newlvname = mirgen.makeNewName();
-    auto* ptrtostore =
-        mirgen.emplaceExpr(minst::Field{{mir::Value{newlvname, tupletypes[count]}}, lvar, count});
-    mirgen.emplaceExpr(minst::Store{{mir::Value{newlvname, tupletypes[count]}}, ptrtostore, elem});
+    auto index = std::make_shared<mir::Value>(mir::Constants{(double)count});
+    auto ptrtostore =
+        mirgen.emplace(minst::Field{{newlvname, tupletypes[count]}, lvar, std::move(index)});
+    mirgen.emplace(minst::Store{{newlvname, tupletypes[count]}, ptrtostore, elem});
     count++;
   }
   return lvar;
@@ -195,14 +200,14 @@ std::pair<optvalptr, mir::blockptr> MirGenerator::genIfBlock(ast::ExprPtr& block
 
 optvalptr MirGenerator::genIfInst(ast::If& ast, bool is_expr) {
   auto lvname = makeNewName();
-  auto* cond = genInst(ast.cond);
+  auto cond = genInst(ast.cond);
   auto [thenretval, thenblock] = genIfBlock(ast.then_stmts, lvname + "$then");
-  types::Value& rettype = this->require(thenretval)->type;
+  auto rettype = mir::getType(*require(thenretval));
   if (ast.else_stmts.has_value()) {
     auto [elseretval, elseblock] = genIfBlock(ast.else_stmts.value(), lvname + "$else");
-    return emplaceExpr(minst::If{{mir::Value{lvname, rettype}}, cond, thenblock, elseblock});
+    return emplace(minst::If{{lvname, rettype}, cond, thenblock, elseblock});
   }
-  return emplaceExpr(minst::If{{mir::Value{lvname, rettype}}, cond, thenblock, std::nullopt});
+  return emplace(minst::If{{lvname, rettype}, cond, thenblock, std::nullopt});
 }
 
 mir::valueptr ExprKnormVisitor::operator()(ast::If& ast) {
@@ -218,32 +223,35 @@ void StatementKnormVisitor::operator()(ast::Fdef& ast) {
 void AssignKnormVisitor::operator()(ast::DeclVar& ast) {
   auto& lvname = ast.value.value;
   optvalptr lvarptr = mirgen.tryGetInternalSymbol(lvname);
-  auto& type = mirgen.typeenv.find(lvname);
+  types::Value& type = mirgen.typeenv.find(lvname);
+  assert(type == mir::getType(*require(lvarptr)));
   mir::valueptr ptr =
-      lvarptr.value_or(mirgen.emplaceExpr(minst::Allocate{{mir::Value{lvname + "_ptr", type}}}));
+      lvarptr.value_or(mirgen.emplace(minst::Allocate{{lvname + "_ptr", type}, type}));
   mirgen.symbol_table.emplace(lvname + "_ptr", ptr);
-  mirgen.emplace(minst::Store{{std::nullopt}, ptr, mirgen.genInst(expr)});
+  mirgen.emplace(minst::Store{{lvname, types::None{}}, ptr, mirgen.genInst(expr)});
 }
 void AssignKnormVisitor::operator()(ast::ArrayLvar& ast) {
-  auto* array = mirgen.genInst(ast.array);
-  auto* index = mirgen.genInst(ast.index);
-  auto* rvar = mirgen.genInst(expr);
-  auto* ptrtostore = mirgen.emplaceExpr(
-      minst::Field{{mir::Value{array->name + index->name, rvar->type}}, array, index});
-  mirgen.emplace(minst::Store{{std::nullopt}, ptrtostore, rvar});
-}
+  auto array = mirgen.genInst(ast.array);
+  auto index = mirgen.genInst(ast.index);
+  auto rvar = mirgen.genInst(expr);
+  auto name = mir::toString(*array) + mir::toString(*index);
+  auto type = mir::getType(*rvar);
+  auto ptrtostore = mirgen.emplace(minst::Field{{name, type}, array, index});
+  mirgen.emplace(minst::Store{{name, type}, ptrtostore, rvar});
+}  // namespace mimium
 void AssignKnormVisitor::operator()(ast::TupleLvar& ast) {
   // how to get tuple element... add gettupleelement instruction?
   int count = 0;
-  auto* rvar = mirgen.require(mirgen.genInst(expr));
+  auto rvar = mirgen.genInst(expr);
   for (auto&& arg : ast.args) {
     auto& name = arg.value.value;
     auto& type = mirgen.typeenv.find(name);
-    mir::valueptr lvar = mirgen.emplaceExpr(minst::Allocate{{mir::Value{name + "_ptr", type}}});
-    auto* ptrtoval = mirgen.emplaceExpr(minst::Field{{mir::Value{name, type}}, rvar, count++});
-    auto* valtostore =
-        mirgen.emplaceExpr(minst::Load{{mir::Value{mirgen.makeNewName(), type}}, ptrtoval});
-    mirgen.emplace(minst::Store{{std::nullopt}, lvar, valtostore});
+    mir::valueptr lvar = mirgen.emplace(minst::Allocate{{name + "_ptr", type}, type});
+    mir::Constants index = count++;
+    auto ptrtoval = mirgen.emplace(
+        minst::Field{{name, type}, rvar, std::make_shared<mir::Value>(std::move(index))});
+    auto valtostore = mirgen.emplace(minst::Load{{mirgen.makeNewName(), type}, ptrtoval});
+    mirgen.emplace(minst::Store{{name, type}, lvar, valtostore});
   }
 }
 
@@ -252,17 +260,15 @@ void StatementKnormVisitor::operator()(ast::Assign& ast) {
   std::visit(visitor, ast.lvar);
 }
 void StatementKnormVisitor::operator()(ast::Return& ast) {
-  auto* val = mirgen.require(mirgen.genInst(ast.value));
-  mirgen.emplace(minst::Return{{mir::Value{mirgen.makeNewName(), val->type}}, val});
+  auto val = mirgen.genInst(ast.value);
+  mirgen.emplace(minst::Return{{mirgen.makeNewName(), mir::getType(*val)}, val});
 }
 // Instructions StatementKnormVisitor::operator()(ast::Declaration& ast){}
 void StatementKnormVisitor::operator()(ast::For& /*ast*/) {
   // TODO(tomyoa)
 }
 
-void StatementKnormVisitor::operator()(ast::Fcall& ast) {
-  mirgen.genFcallInst(ast, std::nullopt);
-}
+void StatementKnormVisitor::operator()(ast::Fcall& ast) { mirgen.genFcallInst(ast, std::nullopt); }
 void StatementKnormVisitor::operator()(ast::Time& ast) {
   mirgen.genFcallInst(ast.fcall, mirgen.genInst(ast.when));
 }
