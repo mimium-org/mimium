@@ -80,9 +80,16 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Symbol& ast) {
                      FCALLTYPE::DIRECT,
                      std::nullopt});
   }
-  auto ptrtoload = mirgen.getInternalSymbol(ast.value + "_ptr");
-  return mirgen.emplace(minst::Load{{mirgen.makeNewName(), mir::getType(*ptrtoload)}, ptrtoload});
 
+  if (auto ptrtoload = mirgen.tryGetInternalSymbol(ast.value + "_ptr")) {
+    return mirgen.emplace(
+        minst::Load{{mirgen.makeNewName(), mir::getType(*ptrtoload.value())}, ptrtoload.value()});
+  }
+  if (LLVMBuiltin::isBuiltin(ast.value)) {
+    return mirgen.getOrGenExternalSymbol(ast.value,
+                                         LLVMBuiltin::ftable.find(ast.value)->second.mmmtype);
+  }
+  throw std::runtime_error("symbol " + ast.value + " not found");
 }  // namespace mimium
 mir::valueptr ExprKnormVisitor::operator()(ast::Self& ast) {
   // todo: create special type for self
@@ -172,6 +179,8 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Tuple& ast) {
   }
   types::Value rettype = types::Tuple{{tupletypes}};
   mir::valueptr lvar = mirgen.emplace(minst::Allocate{{lvname + "_ptr", rettype}, rettype});
+  mirgen.symbol_table.emplace(lvname + "_ptr", lvar);
+
   int count = 0;
   for (auto& elem : newelems) {
     auto newlvname = mirgen.makeNewName();
@@ -243,13 +252,14 @@ void AssignKnormVisitor::operator()(ast::ArrayLvar& ast) {
   mirgen.emplace(minst::Store{{name, type}, ptrtostore, rvar});
 }  // namespace mimium
 void AssignKnormVisitor::operator()(ast::TupleLvar& ast) {
-  // how to get tuple element... add gettupleelement instruction?
   int count = 0;
   auto rvar = mirgen.genInst(expr);
   for (auto&& arg : ast.args) {
     auto& name = arg.value.value;
     auto& type = mirgen.typeenv.find(name);
     mir::valueptr lvar = mirgen.emplace(minst::Allocate{{name + "_ptr", type}, type});
+    mirgen.symbol_table.emplace(name + "_ptr", lvar);
+
     mir::Constants index = count++;
     auto ptrtoval = mirgen.emplace(
         minst::Field{{name, type}, rvar, std::make_shared<mir::Value>(std::move(index))});
