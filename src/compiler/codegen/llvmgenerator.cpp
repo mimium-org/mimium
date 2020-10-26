@@ -54,7 +54,7 @@ void LLVMGenerator::switchToMainFun() {
 }
 llvm::Function* LLVMGenerator::getForeignFunction(const std::string& name) {
   auto& [type, targetname] = LLVMBuiltin::ftable.find(name)->second;
-  if(name=="delay"){
+  if (name == "delay") {
     rv::get<types::Function>(type).arg_types.emplace_back(types::Ref{types::delaystruct});
   }
   auto* funtype = llvm::cast<llvm::FunctionType>(getType(type));
@@ -186,13 +186,16 @@ void LLVMGenerator::preprocess() {
   createTaskRegister(false);  // for closure
   setBB(mainentry);
 }
-void LLVMGenerator::visitInstructions(mir::Instructions& inst, bool isglobal) {
+void LLVMGenerator::visitInstructions(mir::valueptr inst, bool isglobal) {
   codegenvisitor->isglobal = isglobal;
-  std::visit(*codegenvisitor, inst);
+  if (auto* i = std::get_if<mir::Instructions>(inst.get())) {
+    llvm::Value* res = std::visit(*codegenvisitor, *i);
+    codegenvisitor->registerLlvmVal(inst, res);
+  }
 }
 
 void LLVMGenerator::generateCode(mir::blockptr mir, funobjmap const& funobjs) {
-  this->funobj_map = funobjs;//todo: this should be passed as argument to visitor
+  this->funobj_map = funobjs;  // todo: this should be passed as argument to visitor
   preprocess();
 
   for (auto& inst : mir->instructions) { visitInstructions(inst, true); }

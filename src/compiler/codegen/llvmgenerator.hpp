@@ -61,7 +61,7 @@ class LLVMGenerator {
   void createTaskRegister(bool isclosure);
   void createNewBasicBlock(std::string name, llvm::Function* f);
   llvm::Value* getOrCreateFunctionPointer(llvm::Function* f);
-  void visitInstructions(mir::Instructions& inst, bool isglobal);
+  void visitInstructions(mir::valueptr inst, bool isglobal);
 
   void dropAllReferences();
 

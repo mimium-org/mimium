@@ -29,6 +29,9 @@ struct CodeGenVisitor : public std::enable_shared_from_this<CodeGenVisitor> {
   llvm::Value* operator()(minst::Return& i);
 
  private:
+  llvm::Value* registerLlvmVal(mir::valueptr mirval, llvm::Value* llvmval);
+  llvm::Value* getLlvmVal(mir::valueptr mirval);
+  std::unordered_map<mir::valueptr, llvm::Value*> mir_to_llvm;
   LLVMGenerator& G;
   bool isglobal;
   bool context_hasself;
@@ -46,7 +49,7 @@ struct CodeGenVisitor : public std::enable_shared_from_this<CodeGenVisitor> {
   llvm::Value* createAllocation(bool isglobal, llvm::Type* type, llvm::Value* ArraySize,
                                 const llvm::Twine& name);
   bool createStoreOw(std::string varname, llvm::Value* val_to_store);
-  void createAddTaskFn(minst::Fcall& i, bool isclosure, bool isglobal);
+  llvm::Value* createAddTaskFn(minst::Fcall& i, bool isclosure, bool isglobal);
   void createIfBody(mir::blockptr& block, llvm::Value* ret_ptr);
   const static std::unordered_map<ast::OpId, std::string> opid_to_ffi;
 };
