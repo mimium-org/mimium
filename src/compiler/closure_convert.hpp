@@ -27,30 +27,30 @@ class ClosureConverter {
   mir::blockptr toplevel;
   int capturecount;
   int closurecount;
-  std::unordered_map<std::string, int> known_functions;
+  std::vector<mir::valueptr> known_functions;
   std::unordered_map<std::string, std::vector<std::string>> fvinfo;
   // fname: types::Tuple(...)
   std::unordered_map<std::string, types::Value> clstypeenv;
 
   void moveFunToTop(mir::blockptr mir);
-  bool isKnownFunction(const std::string& name);
+  bool isKnownFunction(mir::valueptr fn);
   std::string makeCaptureName() { return "Capture." + std::to_string(capturecount++); }
   std::string makeClosureTypeName() { return "Closure." + std::to_string(closurecount++); }
 
   struct CCVisitor {
-    explicit CCVisitor(ClosureConverter& cc, std::vector<std::string>& fvlist,
-                       std::vector<std::string>& localvlist,
-                       std::list<mir::Instructions>::iterator& position)
-        : cc(cc), fvlist(fvlist), localvlist(localvlist), position(position) {}
+    explicit CCVisitor(ClosureConverter& cc, std::list<mir::valueptr>::iterator& position)
+        : cc(cc), position(position) {}
 
     ClosureConverter& cc;
-    std::vector<std::string>& fvlist;
-    std::vector<std::string>& localvlist;
-    mir::valueptr fn_ctx;
-    std::list<mir::Instructions>::iterator position;
+    std::list<mir::valueptr> fvlist;
+    mir::blockptr block_ctx;
+
+    std::list<mir::valueptr>::iterator position;
+
     void updatepos() { ++position; }
-    void registerFv(std::string& name);
-    
+    void checkFreeVar(mir::valueptr val);
+    void checkFreeVar(mir::blockptr block);
+    // void registerFv(std::string& name);
     void operator()(minst::Ref& i);
     void operator()(minst::Load& i);
     void operator()(minst::Store& i);
@@ -69,13 +69,15 @@ class ClosureConverter {
     void operator()(T& i) {
       constexpr bool isprimitive = std::is_base_of_v<mir::instruction::Base, std::decay_t<T>>;
       static_assert(isprimitive, "mir instruction unreachable");
-      localvlist.push_back(i.lv_name);
     }
     bool isFreeVar(const std::string& name);
+    void visit(mir::Value& i) {
+      if (auto* instptr = std::get_if<mir::Instructions>(&i)) { std::visit(*this, *instptr); }
+    }
+    void visit(mir::Instructions& i) { std::visit(*this, i); }
 
    private:
-    static void visitinsts(minst::Function& i, CCVisitor& ccvis,
-                           std::list<mir::Instructions>::iterator pos);
+    static void visitinsts(minst::Function& i, CCVisitor& ccvis);
     minst::MakeClosure createClosureInst(types::Function ftype, types::Alias fvtype,
                                          std::string& lv_name);
   };
