@@ -33,7 +33,7 @@ optvalptr MirGenerator::tryGetInternalSymbol(std::string const& name) {
 }
 mir::valueptr MirGenerator::getInternalSymbol(std::string const& name) {
   auto res = tryGetInternalSymbol(name);
-  if (res.has_value()) {
+  if (!res.has_value()) {
     throw std::runtime_error(" mir generation error: failed to resolve symbol name" + name);
   }
   return res.value();
@@ -87,24 +87,22 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Symbol& ast) {
 mir::valueptr ExprKnormVisitor::operator()(ast::Self& ast) {
   // todo: create special type for self
   assert(mirgen.ctx->parent);
-  auto self = mir::Self{mirgen.ctx->parent.value(),types::Float{}};
+  auto self = mir::Self{mirgen.ctx->parent.value(), types::Float{}};
   return std::make_shared<mir::Value>(std::move(self));
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::Lambda& ast) {
   auto label = mirgen.makeNewName();
-  auto fun =
-      minst::Function{{label, types::None{}},
-                      mirgen.transformArgs(
-                          ast.args.args, std::vector<std::shared_ptr<mir::Argument>>{},
-                          [&](ast::DeclVar& lvar) {
-                            auto& name = lvar.value.value;
-                            auto& type = mirgen.typeenv.find(name);
-                            auto res = std::make_shared<mir::Argument>(
-                                mir::Argument{name, type});
-                            mirgen.symbol_table.emplace(name, std::make_shared<mir::Value>(*res));
-                            return res;
-                          }),
-                      {}};
+  auto fun = minst::Function{
+      {label, types::None{}},
+      mirgen.transformArgs(ast.args.args, std::vector<std::shared_ptr<mir::Argument>>{},
+                           [&](ast::DeclVar& lvar) {
+                             auto& name = lvar.value.value;
+                             auto& type = mirgen.typeenv.find(name);
+                             auto res = std::make_shared<mir::Argument>(mir::Argument{name, type});
+                             mirgen.symbol_table.emplace(name, std::make_shared<mir::Value>(*res));
+                             return res;
+                           }),
+      {}};
   auto fn_ptr = std::make_shared<mir::Value>(fun);
   auto* typeptr = mirgen.typeenv.tryFind(label);  // todo!!
   auto [blockret, ctx] = mirgen.generateBlock(ast.body, label);
@@ -120,7 +118,6 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Lambda& ast) {
   auto resptr = mirgen.emplace(std::move(fun));
   ctx->parent = resptr;
   return resptr;
-
 }
 mir::valueptr MirGenerator::genFcallInst(ast::Fcall& fcall, optvalptr const& when) {
   auto fnptr = genInst(fcall.fn);
@@ -226,9 +223,13 @@ void AssignKnormVisitor::operator()(ast::DeclVar& ast) {
   auto& lvname = ast.value.value;
   optvalptr lvarptr = mirgen.tryGetInternalSymbol(lvname);
   types::Value& type = mirgen.typeenv.find(lvname);
-  assert(type == mir::getType(*require(lvarptr)));
-  mir::valueptr ptr =
-      lvarptr.value_or(mirgen.emplace(minst::Allocate{{lvname + "_ptr", type}, type}));
+  mir::valueptr ptr;
+  if (lvarptr.has_value()) {
+    assert(type == mir::getType(*require(lvarptr)));
+    ptr = lvarptr.value();
+  } else {
+    ptr = mirgen.emplace(minst::Allocate{{lvname + "_ptr", type}, type});
+  }
   mirgen.symbol_table.emplace(lvname + "_ptr", ptr);
   mirgen.emplace(minst::Store{{lvname, types::None{}}, ptr, mirgen.genInst(expr)});
 }
