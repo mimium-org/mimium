@@ -5,6 +5,7 @@
 #pragma once
 #include "basic/mir.hpp"
 namespace mimium {
+namespace minst = mir::instruction;
 
 struct FunObjTree {
   std::string fname;
@@ -12,7 +13,7 @@ struct FunObjTree {
   std::deque<Box<FunObjTree>> memobjs;
   types::Value objtype;
 };
-using funmap = std::unordered_map<std::string, mir::FunInst*>;
+using funmap = std::unordered_map<std::string, minst::Function*>;
 using funobjmap = std::unordered_map<std::string, std::shared_ptr<FunObjTree>>;
 
 class MemoryObjsCollector {
@@ -31,39 +32,40 @@ class MemoryObjsCollector {
   static funmap collectToplevelFuns(mir::blockptr toplevel);
   funmap toplevel_funmap;
   funobjmap result_map;
-  FunObjTree& traverseFunTree(mir::FunInst const& f);
+  FunObjTree& traverseFunTree(minst::Function const& f);
   struct CollectMemVisitor {
-    explicit CollectMemVisitor(MemoryObjsCollector& m,mir::FunInst const& f) : M(m),fun(f){};
+    explicit CollectMemVisitor(MemoryObjsCollector& m,minst::Function const& f) : M(m),fun(f){};
     MemoryObjsCollector& M;
-    const mir::FunInst& fun;
+    const minst::Function& fun;
     std::deque<Box<FunObjTree>> obj = {};
     bool res_hasself = false;
     types::Tuple objtype;
 
-    void operator()(mir::RefInst& i);
-    void operator()(mir::AssignInst& i);
-    void operator()(mir::OpInst& i);
-    void operator()(mir::FcallInst& i);
-    void operator()(mir::MakeClosureInst& i);
-    void operator()(mir::ArrayInst& i);
-    void operator()(mir::ArrayAccessInst& i);
-    void operator()(mir::FieldInst& i);
-    void operator()(mir::IfInst& i);
-    void operator()(mir::ReturnInst& i);
+
+    void operator()(minst::Ref& i);
+    void operator()(minst::Load& i);
+    void operator()(minst::Store& i);
+    void operator()(minst::Op& i);
+    void operator()(minst::Fcall& i);
+    void operator()(minst::MakeClosure& i);
+    void operator()(minst::Array& i);
+    void operator()(minst::Field& i);
+    void operator()(minst::If& i);
+    void operator()(minst::Return& i);
     template <typename T>
     void operator()(T& /*i*/) {
-      constexpr bool isfun = std::is_same_v<mir::FunInst, std::decay_t<T>>;
+      constexpr bool isfun = std::is_same_v<minst::Function, std::decay_t<T>>;
       if constexpr (isfun) {
         // Memobj collector reached to FunInst. maybe failed to Closure Conversion?
         assert(!isfun);
       } else {
-        static_assert(std::is_base_of_v<mir::instruction, std::decay_t<T>>,
+        static_assert(std::is_base_of_v<mir::instruction::Base, std::decay_t<T>>,
                       "mir instruction unreachable");
       }
     }
 
    private:
-    void insertAllocaInst(mir::FunInst& i, types::Alias& type) const;
+    void insertAllocaInst(minst::Function& i, types::Alias& type) const;
     void checkHasSelf(std::string const& name) {
       res_hasself |= name == "self";
     }
