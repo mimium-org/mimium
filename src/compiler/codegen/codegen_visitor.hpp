@@ -11,23 +11,22 @@ class LLVMGenerator;
 struct CodeGenVisitor : public std::enable_shared_from_this<CodeGenVisitor> {
   friend LLVMGenerator;
   CodeGenVisitor(LLVMGenerator& g);
-  void operator()(minst::Number& i);
-  void operator()(minst::String& i);
-  void operator()(minst::Allocate& i);
-  void operator()(minst::Ref& i);
-  void operator()(minst::Load& i);
-    void operator()(minst::Store& i);
-
-  void operator()(minst::Op& i);
-  void createBinOp(minst::Op& i);
-  void createUniOp(minst::Op& i);
-  void operator()(minst::Function& i);
-  void operator()(minst::Fcall& i);
-  void operator()(minst::MakeClosure& i);
-  void operator()(minst::Array& i);
-  void operator()(minst::Field& i);
-  void operator()(minst::If& i);
-  void operator()(minst::Return& i);
+  llvm::Value* operator()(minst::Number& i);
+  llvm::Value* operator()(minst::String& i);
+  llvm::Value* operator()(minst::Allocate& i);
+  llvm::Value* operator()(minst::Ref& i);
+  llvm::Value* operator()(minst::Load& i);
+  llvm::Value* operator()(minst::Store& i);
+  llvm::Value* operator()(minst::Op& i);
+  llvm::Value* createBinOp(minst::Op& i);
+  llvm::Value* createUniOp(minst::Op& i);
+  llvm::Value* operator()(minst::Function& i);
+  llvm::Value* operator()(minst::Fcall& i);
+  llvm::Value* operator()(minst::MakeClosure& i);
+  llvm::Value* operator()(minst::Array& i);
+  llvm::Value* operator()(minst::Field& i);
+  llvm::Value* operator()(minst::If& i);
+  llvm::Value* operator()(minst::Return& i);
 
  private:
   LLVMGenerator& G;

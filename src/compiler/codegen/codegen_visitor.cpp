@@ -51,7 +51,7 @@ bool CodeGenVisitor::createStoreOw(std::string varname, llvm::Value* val_to_stor
   return res;
 }
 
-void CodeGenVisitor::operator()(minst::Number& i) {
+llvm::Value* CodeGenVisitor::operator()(minst::Number& i) {
   auto* finst = llvm::ConstantFP::get(G.ctx, llvm::APFloat(i.val));
   auto* ptr = G.tryfindValue("ptr_" + i.lv_name);
   if (ptr != nullptr) {  // case of temporary value
@@ -62,7 +62,7 @@ void CodeGenVisitor::operator()(minst::Number& i) {
     G.setValuetoMap(i.lv_name, finst);
   }
 }
-void CodeGenVisitor::operator()(minst::String& i) {
+llvm::Value* CodeGenVisitor::operator()(minst::String& i) {
   auto* cstr = llvm::ConstantDataArray::getString(G.ctx, i.val);
   auto* i8ptrty = G.builder->getInt8PtrTy();
   auto* gvalue =
@@ -77,14 +77,14 @@ void CodeGenVisitor::operator()(minst::String& i) {
   // auto strptr = G.builder->CreateLoad(gvalue,i.lv_name);
   G.setValuetoMap(i.lv_name, bitcast);
 }
-void CodeGenVisitor::operator()(minst::Allocate& i) {
+llvm::Value* CodeGenVisitor::operator()(minst::Allocate& i) {
   // TODO(tomoya) Is a type value for AllocaInst no longer needed?
   auto ptrname = "ptr_" + i.lv_name;
   auto* type = G.getType(i.lv_name);
   auto* ptr = createAllocation(isglobal, type, nullptr, i.lv_name);
   G.setValuetoMap(ptrname, ptr);
 }
-void CodeGenVisitor::operator()(minst::Ref& i) {  // temporarily unused
+llvm::Value* CodeGenVisitor::operator()(minst::Ref& i) {  // temporarily unused
   // auto ptrname = "ptr_" + i.lv_name;
   // auto ptrptrname = "ptr_" + ptrname;
   // auto* ptrtoptr =
@@ -94,7 +94,7 @@ void CodeGenVisitor::operator()(minst::Ref& i) {  // temporarily unused
   // G.setValuetoMap(ptrname, ptr);
   // G.setValuetoMap(ptrptrname, ptrtoptr);
 }
-void CodeGenVisitor::operator()(minst::Load& i) {
+llvm::Value* CodeGenVisitor::operator()(minst::Load& i) {
   if (types::isPrimitive(i.type)) {
     // copy assignment
     auto* ptr = G.findValue("ptr_" + i.lv_name);
@@ -108,10 +108,10 @@ void CodeGenVisitor::operator()(minst::Load& i) {
   }
 }
 
-void CodeGenVisitor::operator()(minst::Store& i) {
+llvm::Value* CodeGenVisitor::operator()(minst::Store& i) {
 }
 
-void CodeGenVisitor::operator()(minst::Op& i) {
+llvm::Value* CodeGenVisitor::operator()(minst::Op& i) {
   if (i.lhs.empty()) {
     createUniOp(i);
   } else {
@@ -119,7 +119,7 @@ void CodeGenVisitor::operator()(minst::Op& i) {
   }
 }
 
-void CodeGenVisitor::createUniOp(minst::Op& i) {
+llvm::Value* CodeGenVisitor::createUniOp(minst::Op& i) {
   llvm::Value* retvalue = nullptr;
   auto* rhs = G.findValue(i.rhs);
   switch (i.op) {
@@ -134,7 +134,7 @@ void CodeGenVisitor::createUniOp(minst::Op& i) {
   G.setValuetoMap(i.lv_name, retvalue);
 }
 
-void CodeGenVisitor::createBinOp(minst::Op& i) {
+llvm::Value* CodeGenVisitor::createBinOp(minst::Op& i) {
   llvm::Value* retvalue = nullptr;
   auto* lhs = G.findValue(i.lhs);
   auto* rhs = G.findValue(i.rhs);
@@ -155,7 +155,7 @@ void CodeGenVisitor::createBinOp(minst::Op& i) {
   }
   G.setValuetoMap(i.lv_name, retvalue);
 }
-void CodeGenVisitor::operator()(minst::Function& i) {
+llvm::Value* CodeGenVisitor::operator()(minst::Function& i) {
   bool hascapture = G.cc.hasCapture(i.lv_name);
   bool hasmemobj = G.funobj_map.count(i.lv_name) > 0;
   if (hasmemobj) { context_hasself = G.funobj_map.at(i.lv_name)->hasself; }
@@ -260,7 +260,7 @@ void CodeGenVisitor::setFvsToMap(minst::Function& i, llvm::Value* clsarg) {
   }
 }
 
-void CodeGenVisitor::operator()(minst::Fcall& i) {
+llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
   bool isclosure = i.ftype == CLOSURE;
   std::vector<llvm::Value*> args;
   auto m = G.variable_map[G.curfunc];
@@ -347,7 +347,7 @@ void CodeGenVisitor::createAddTaskFn(minst::Fcall& i, const bool isclosure,
   G.setValuetoMap(i.lv_name, res);
 }
 
-void CodeGenVisitor::operator()(minst::MakeClosure& i) {  // store the capture address to memory
+llvm::Value* CodeGenVisitor::operator()(minst::MakeClosure& i) {  // store the capture address to memory
   auto& capturenames = G.cc.getCaptureNames(i.fname);
   auto* closuretype = G.getType(G.cc.getCaptureType(i.fname));
 
@@ -374,7 +374,7 @@ void CodeGenVisitor::operator()(minst::MakeClosure& i) {  // store the capture a
   G.setValuetoMap(captureptrname, capture_ptr);
   // G.setValuetoMap("ptr_" + closureptrname, closure_ptr);
 }
-void CodeGenVisitor::operator()(minst::Array& i) {}
+llvm::Value* CodeGenVisitor::operator()(minst::Array& i) {}
 // void CodeGenVisitor::operator()(minst::ArrayAccess& i) {
 //   auto* v = G.tryfindValue(i.name);
 //   auto* indexfloat = G.tryfindValue(i.index);
@@ -392,7 +392,7 @@ void CodeGenVisitor::operator()(minst::Array& i) {}
 //   auto* res = G.builder->CreateCall(arraccessfun, {v, indexfloat}, "arrayaccess");
 //   G.setValuetoMap(i.lv_name, res);
 // }
-void CodeGenVisitor::operator()(minst::Field& i) {
+llvm::Value* CodeGenVisitor::operator()(minst::Field& i) {
   auto* v = G.findValue(i.name);
   if (auto* index = std::get_if<int>(&i.index)) {
     auto* tupleptrtype = llvm::PointerType::get(v->getType(), 0);
@@ -418,7 +418,7 @@ void CodeGenVisitor::createIfBody(mir::blockptr& block, llvm::Value* ret_ptr) {
   }
 }
 
-void CodeGenVisitor::operator()(minst::If& i) {
+llvm::Value* CodeGenVisitor::operator()(minst::If& i) {
   auto* thisbb = G.builder->GetInsertBlock();
   auto* cond = G.findValue(i.cond);
   auto* cmp = G.builder->CreateFCmpOGT(cond, llvm::ConstantFP::get(G.ctx, llvm::APFloat(0.0)));
@@ -445,7 +445,7 @@ void CodeGenVisitor::operator()(minst::If& i) {
   G.builder->CreateCondBr(cmp, thenbb, elsebb);
   G.builder->SetInsertPoint(endbb);
 }
-void CodeGenVisitor::operator()(minst::Return& i) {
+llvm::Value* CodeGenVisitor::operator()(minst::Return& i) {
   auto* res = G.tryfindValue(i.val);
   if (res == nullptr) {
     // case of returning function;
