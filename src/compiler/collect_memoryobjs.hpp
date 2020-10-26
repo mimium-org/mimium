@@ -10,7 +10,7 @@ namespace minst = mir::instruction;
 struct FunObjTree {
   std::string fname;
   bool hasself = false;
-  std::deque<Box<FunObjTree>> memobjs;
+  std::deque<std::shared_ptr<FunObjTree>> memobjs;
   types::Value objtype;
 };
 using funmap = std::unordered_map<std::string, minst::Function*>;
@@ -32,12 +32,12 @@ class MemoryObjsCollector {
   static funmap collectToplevelFuns(mir::blockptr toplevel);
   funmap toplevel_funmap;
   funobjmap result_map;
-  FunObjTree& traverseFunTree(minst::Function const& f);
+  std::shared_ptr<FunObjTree> traverseFunTree(minst::Function const& f);
   struct CollectMemVisitor {
     explicit CollectMemVisitor(MemoryObjsCollector& m,minst::Function const& f) : M(m),fun(f){};
     MemoryObjsCollector& M;
     const minst::Function& fun;
-    std::deque<Box<FunObjTree>> obj = {};
+    std::deque<std::shared_ptr<FunObjTree>> obj = {};
     bool res_hasself = false;
     types::Tuple objtype;
 
@@ -57,17 +57,21 @@ class MemoryObjsCollector {
       constexpr bool isfun = std::is_same_v<minst::Function, std::decay_t<T>>;
       if constexpr (isfun) {
         // Memobj collector reached to FunInst. maybe failed to Closure Conversion?
-        assert(!isfun);
+        assert(isfun);
       } else {
         static_assert(std::is_base_of_v<mir::instruction::Base, std::decay_t<T>>,
                       "mir instruction unreachable");
       }
     }
-
+  void visit(mir::valueptr v){
+    if(auto* instptr = std::get_if<mir::Instructions>(v.get())){
+      std::visit(*this,*instptr);
+    }
+  }
    private:
     void insertAllocaInst(minst::Function& i, types::Alias& type) const;
-    void checkHasSelf(std::string const& name) {
-      res_hasself |= name == "self";
+    void checkHasSelf(mir::valueptr val) {
+      res_hasself |= std::holds_alternative<mir::Self>(*val);
     }
     std::string cur_fun;
   };
