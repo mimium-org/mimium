@@ -27,9 +27,9 @@ struct CodeGenVisitor : public std::enable_shared_from_this<CodeGenVisitor> {
   llvm::Value* operator()(minst::Field& i);
   llvm::Value* operator()(minst::If& i);
   llvm::Value* operator()(minst::Return& i);
-
+  llvm::Value* visit(mir::valueptr val);
  private:
-  llvm::Value* registerLlvmVal(mir::valueptr mirval, llvm::Value* llvmval);
+  void registerLlvmVal(mir::valueptr mirval, llvm::Value* llvmval);
   llvm::Value* getLlvmVal(mir::valueptr mirval);
   std::unordered_map<mir::valueptr, llvm::Value*> mir_to_llvm;
   LLVMGenerator& G;

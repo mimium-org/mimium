@@ -18,7 +18,19 @@ const std::unordered_map<OpId, std::string> CodeGenVisitor::opid_to_ffi = {
 // Creates Allocation instruction or call malloc function depends on context
 CodeGenVisitor::CodeGenVisitor(LLVMGenerator& g) : G(g), isglobal(false) {}
 
-llvm::Value* CodeGenVisitor::registerLlvmVal(mir::valueptr mirval, llvm::Value* llvmval) {
+llvm::Value* CodeGenVisitor::visit(mir::valueptr val) {
+  return std::visit(overloaded{
+                        [&](mir::Instructions& inst) { return std::visit(*this, inst); },
+                        [](mir::Constants& c) -> llvm::Value* { return nullptr; },       // TODO
+                        [](mir::Argument& a) -> llvm::Value* { return nullptr; },        // TODO
+                        [](mir::ExternalSymbol& a) -> llvm::Value* { return nullptr; },  // TODO
+                        [](mir::Self& a) -> llvm::Value* { return nullptr; },            // TODO
+
+                    },
+                    *val);
+}
+
+void CodeGenVisitor::registerLlvmVal(mir::valueptr mirval, llvm::Value* llvmval) {
   mir_to_llvm.emplace(mirval, llvmval);
 }
 llvm::Value* CodeGenVisitor::getLlvmVal(mir::valueptr mirval) {
@@ -101,11 +113,8 @@ llvm::Value* CodeGenVisitor::operator()(minst::Store& i) {
 }
 
 llvm::Value* CodeGenVisitor::operator()(minst::Op& i) {
-  if (!i.lhs.has_value()) {
-    createUniOp(i);
-  } else {
-    createBinOp(i);
-  }
+  if (!i.lhs.has_value()) { return createUniOp(i); }
+  return createBinOp(i);
 }
 
 llvm::Value* CodeGenVisitor::createUniOp(minst::Op& i) {
@@ -135,17 +144,16 @@ llvm::Value* CodeGenVisitor::createBinOp(minst::Op& i) {
       if (opid_to_ffi.count(i.op) > 0) {
         auto fname = opid_to_ffi.find(i.op)->second;
         return G.builder->CreateCall(G.getForeignFunction(fname), {lhs, rhs}, i.name);
-      } else {
-        return G.builder->CreateUnreachable();
       }
+
+      return G.builder->CreateUnreachable();
       break;
     }
   }
 }
 llvm::Value* CodeGenVisitor::operator()(minst::Function& i) {
-  
   bool hascapture = !i.freevariables.empty();
-  bool hasmemobj =  !i.memory_objects.empty();
+  bool hasmemobj = !i.memory_objects.empty();
   if (hasmemobj) { context_hasself = i.hasself; }
   auto* ft = createFunctionType(i, hascapture, hasmemobj);
   auto* f = createFunction(ft, i);
@@ -255,19 +263,13 @@ llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
   bool isclosure = i.ftype == CLOSURE;
   std::vector<llvm::Value*> args;
   auto m = G.variable_map[G.curfunc];
-  for (auto& a : i.args) {
-    args.emplace_back(getLlvmVal(a));
+  for (auto& a : i.args) { args.emplace_back(getLlvmVal(a)); }
+  auto f = std::get<minst::Function>(std::get<mir::Instructions>(*i.fname));
+  if (f.freevariables.size() > 0) {
+    // TODO: append memory address made by MakeClosureInst
   }
-  if (G.cc.hasCapture(i.fname)) {
-    // append memory address made by MakeClosureInst
-    auto* cap = G.tryfindValue("ptr_" + i.fname + "_cls");
-    if (cap == nullptr) {  //, or inherited from argument
-      cap = G.tryfindValue("ptr_" + i.fname + ".cap");
-    }
-    args.emplace_back(cap);
-  }
-  if (G.funobj_map.count(i.fname) > 0) {
-    args.emplace_back(G.findValue("ptr_" + i.fname + ".mem"));
+  if (f.memory_objects.size() > 0) {
+    // TODO: append memory address made by memobj collector
   }
 
   llvm::Value* fun = nullptr;
@@ -281,8 +283,9 @@ llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
   if (i.time) {  // if arguments is timed value, call addTask
     res = createAddTaskFn(i, isclosure, isglobal);
   } else {
-     res = G.builder->CreateCall(fun, args);
+    res = G.builder->CreateCall(fun, args);
   }
+  return res;
 }
 llvm::Value* CodeGenVisitor::getDirFun(minst::Fcall& i) {
   auto* fun = llvm::cast<llvm::Function>(getLlvmVal(i.fname));
@@ -292,22 +295,26 @@ llvm::Value* CodeGenVisitor::getDirFun(minst::Fcall& i) {
 }
 llvm::Value* CodeGenVisitor::getClsFun(minst::Fcall& i) { return getDirFun(i); }
 llvm::Value* CodeGenVisitor::getExtFun(minst::Fcall& i) {
-  auto it = LLVMBuiltin::ftable.find(i.fname);
+  auto fun = std::get<minst::Function>(std::get<mir::Instructions>(*i.fname));
+
+  auto it = LLVMBuiltin::ftable.find(fun.name);
   if (it == LLVMBuiltin::ftable.end()) {
-    throw std::runtime_error("could not find external function \"" + i.fname + "\"");
+    throw std::runtime_error("could not find external function \"" + fun.name + "\"");
   }
-  return G.getForeignFunction(i.fname);
+  auto f = std::get<minst::Function>(std::get<mir::Instructions>(*i.fname));
+
+  return G.getForeignFunction(fun.name);
 }
 
-void CodeGenVisitor::createAddTaskFn(minst::Fcall& i, const bool isclosure,
-                                     const bool /*isglobal*/) {
+llvm::Value* CodeGenVisitor::createAddTaskFn(minst::Fcall& i, const bool isclosure,
+                                             const bool /*isglobal*/) {
   auto* i8ptrty = G.builder->getInt8PtrTy();
-  auto* timeval = G.findValue(i.time.value());
-  auto* targetfn = G.module->getFunction(i.fname);
+  auto* timeval = getLlvmVal(i.time.value());
+  auto* targetfn = G.module->getFunction(getLlvmVal(i.fname)->getName());
   auto* ptrtofn = llvm::ConstantExpr::getBitCast(targetfn, i8ptrty);
 
   std::vector<llvm::Value*> args = {timeval, ptrtofn};
-  for (auto& a : i.args) { args.emplace_back(G.findValue(a)); }
+  for (auto& a : i.args) { args.emplace_back(getLlvmVal(a)); }
   if (i.args.empty()) {
     auto* zero = llvm::ConstantFP::get(G.ctx, llvm::APFloat(0.0));
     args.emplace_back(zero);
@@ -316,50 +323,47 @@ void CodeGenVisitor::createAddTaskFn(minst::Fcall& i, const bool isclosure,
   llvm::Value* addtask_fn = nullptr;
   auto globalspace = G.variable_map[G.mainentry->getParent()];
   if (isclosure) {
-    auto* capptr = G.tryfindValue("ptr_" + i.fname + ".cap");
+    llvm::Value* capptr;  // TODO
     // fixme
-    if (capptr == nullptr) { capptr = G.tryfindValue("ptr_" + i.fname + "_cls"); }
+    if (capptr == nullptr) { capptr = G.tryfindValue("ptr_" + i.name + "_cls"); }
     args.push_back(G.builder->CreateBitCast(capptr, i8ptrty));
 
     addtask_fn = globalspace->find("addTask_cls")->second;
   } else {
     addtask_fn = globalspace->find("addTask")->second;
   }
-  auto* res = G.builder->CreateCall(addtask_fn, args);
-  G.setValuetoMap(i.lv_name, res);
+  return G.builder->CreateCall(addtask_fn, args);
 }
 
-llvm::Value* CodeGenVisitor::operator()(
-    minst::MakeClosure& i) {  // store the capture address to memory
-  auto& capturenames = G.cc.getCaptureNames(i.fname);
-  auto* closuretype = G.getType(G.cc.getCaptureType(i.fname));
+// store the capture address to memory
+llvm::Value* CodeGenVisitor::operator()(minst::MakeClosure& i) {
+  // auto& capturenames = G.cc.getCaptureNames(i.fname);
+  // auto* closuretype = G.getType(G.cc.getCaptureType(i.fname));
 
-  auto* targetf = G.module->getFunction(i.fname);
+  // auto* targetf = G.module->getFunction(i.fname);
 
-  auto captureptrname = "ptr_" + i.fname + ".cap";
-  // always heap allocation!
-  auto* capture_ptr = createAllocation(true, closuretype, nullptr, captureptrname);
+  // auto captureptrname = "ptr_" + i.fname + ".cap";
+  // // always heap allocation!
+  // auto* capture_ptr = createAllocation(true, closuretype, nullptr, captureptrname);
   // auto* fun_ptr =
   //     G.builder->CreateStructGEP(closure_ptr, 0, i.lv_name + "_fun_ptr");
   // G.builder->CreateStore(targetf, fun_ptr);
   // auto* capture_ptr =
   //     G.builder->CreateStructGEP(closure_ptr, 1, i.lv_name +
   //     "_capture_ptr");
-  unsigned int idx = 0;
-  for (auto& cap : capturenames) {
-    llvm::Value* fv = G.tryfindValue("ptr_" + cap);
-    if (fv == nullptr) { fv = G.findValue("ptr_" + cap + ".cap"); }
-    auto* gep = G.builder->CreateStructGEP(capture_ptr, idx, "capture_" + cap);
-    G.builder->CreateStore(fv, gep);
-    idx += 1;
-  }
+  // unsigned int idx = 0;
+  // for (auto& cap : capturenames) {
+  //   llvm::Value* fv = G.tryfindValue("ptr_" + cap);
+  //   if (fv == nullptr) { fv = G.findValue("ptr_" + cap + ".cap"); }
+  //   auto* gep = G.builder->CreateStructGEP(capture_ptr, idx, "capture_" + cap);
+  //   G.builder->CreateStore(fv, gep);
+  //   idx += 1;
+  // }
   // G.setValuetoMap(i.lv_name + "_capture_ptr", capture_ptr);
-  G.setValuetoMap(captureptrname, capture_ptr);
+  // G.setValuetoMap(captureptrname, capture_ptr);
   // G.setValuetoMap("ptr_" + closureptrname, closure_ptr);
 }
-llvm::Value* CodeGenVisitor::operator()(minst::Array& i) {
-
-}
+llvm::Value* CodeGenVisitor::operator()(minst::Array& i) {}
 // void CodeGenVisitor::operator()(minst::ArrayAccess& i) {
 //   auto* v = G.tryfindValue(i.name);
 //   auto* indexfloat = G.tryfindValue(i.index);
@@ -380,65 +384,59 @@ llvm::Value* CodeGenVisitor::operator()(minst::Array& i) {
 llvm::Value* CodeGenVisitor::operator()(minst::Field& i) {
   auto* target = getLlvmVal(i.target);
   auto* index = getLlvmVal(i.index);
-  auto* tupleptrtype = llvm::PointerType::get(v->getType(), 0);
-  G.builder->CreateInBoundsGEP(v, {G.getConstInt(*index), G.getZero()}, "tupleaccess");
-
+  auto* tupleptrtype = llvm::PointerType::get(target->getType(), 0);
+  return G.builder->CreateInBoundsGEP(target, {index, G.getZero()}, "tupleaccess");
 }
 
 void CodeGenVisitor::createIfBody(mir::blockptr& block, llvm::Value* ret_ptr) {
   auto& insts = block->instructions;
   if (ret_ptr == nullptr) {
-    for (auto& ti : insts) { std::visit(*this, ti); }
+    for (auto&& ti : insts) { visit(ti); }
   } else {
-    if (!std::holds_alternative<minst::ReturnInst>(s.back())) {
+    if (!std::holds_alternative<minst::Return>(std::get<mir::Instructions>(*insts.back()))) {
       throw std::logic_error("non-void block should have minst::Return for last line");
     }
     for (auto&& iter = std::begin(insts); iter != std::prev(std::end(insts)); iter++) {
-      std::visit(*this, *iter);
+      visit(*iter);
     }
-    auto& retinst = std::get<minst::ReturnInst>(s.back());
-    G.builder->CreateStore(G.findValue(retinst.val), ret_ptr);
+    auto& retinst = std::get<minst::Return>(std::get<mir::Instructions>(*insts.back()));
+    G.builder->CreateStore(getLlvmVal(retinst.val), ret_ptr);
   }
 }
 
 llvm::Value* CodeGenVisitor::operator()(minst::If& i) {
   auto* thisbb = G.builder->GetInsertBlock();
-  auto* cond = G.findValue(i.cond);
+  auto* cond = getLlvmVal(i.cond);
   auto* cmp = G.builder->CreateFCmpOGT(cond, llvm::ConstantFP::get(G.ctx, llvm::APFloat(0.0)));
-  auto* endbb = llvm::BasicBlock::Create(G.ctx, i.lv_name + "_end", G.curfunc);
-  llvm::Value* retptr = G.tryfindValue("ptr_" + i.lv_name);
+  auto* endbb = llvm::BasicBlock::Create(G.ctx, i.name + "_end", G.curfunc);
 
-  auto* thenbb = llvm::BasicBlock::Create(G.ctx, i.lv_name + "_then", G.curfunc);
+  llvm::Value* retptr;  // TODO
+  auto* thenbb = llvm::BasicBlock::Create(G.ctx, i.name + "_then", G.curfunc);
   G.builder->SetInsertPoint(thenbb);
   createIfBody(i.thenblock, retptr);
   G.builder->CreateBr(endbb);
-  auto* elsebb = llvm::BasicBlock::Create(G.ctx, i.lv_name + "_else", G.curfunc);
+  auto* elsebb = llvm::BasicBlock::Create(G.ctx, i.name + "_else", G.curfunc);
   G.builder->SetInsertPoint(elsebb);
   if (i.elseblock.has_value()) { createIfBody(i.elseblock.value(), retptr); }
   G.builder->CreateBr(endbb);
   G.builder->SetInsertPoint(endbb);
-  auto& ifrettype = G.typeenv.find(i.lv_name);
+  auto& ifrettype = i.type;
   bool isvoid = std::holds_alternative<types::Void>(ifrettype);
-  if (!isvoid) {
-    auto* retval = G.builder->CreateLoad(retptr, i.lv_name);
-    G.setValuetoMap(i.lv_name, retval);
-  }
+  llvm::Value* res = nullptr;
+  if (!isvoid) { res = G.builder->CreateLoad(retptr, i.name); }
 
   G.builder->SetInsertPoint(thisbb);
   G.builder->CreateCondBr(cmp, thenbb, elsebb);
   G.builder->SetInsertPoint(endbb);
+  return res;
 }
 llvm::Value* CodeGenVisitor::operator()(minst::Return& i) {
-  auto* res = G.tryfindValue(i.val);
-  if (res == nullptr) {
-    // case of returning function;
-    res = G.tryfindValue(i.val + "_cls");
-  }
+  auto* res = getLlvmVal(i.val);
   // store self value
   if (context_hasself) {
-    auto* selfv = G.tryfindValue("ptr_self");
+    llvm::Value* selfv;  // TODO
     G.builder->CreateStore(res, selfv);
   }
-  G.builder->CreateRet(res);
+  return G.builder->CreateRet(res);
 }
 }  // namespace mimium
