@@ -44,6 +44,10 @@ std::string instruction::toString(Op const& i) {
          (i.lhs.has_value() ? mir::toString(*i.lhs.value()) : "") + " " + mir::toString(*i.rhs);
 }
 
+std::string toString(Argument const& i) {
+  return i.name;
+}
+
 std::string instruction::toString(Function const& i) {
   std::stringstream ss;
   ss << i.name << " = fun" << ((i.isrecursive) ? "[rec]" : "") << " "

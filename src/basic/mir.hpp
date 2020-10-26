@@ -39,11 +39,22 @@ struct Return;
 using Instructions = std::variant<Number, String, Allocate, Ref, Load, Store, Op, Function, Fcall,
                                   MakeClosure, Array, Field, If, Return>;
 }  // namespace instruction
+struct Argument;
 // todo: more specific value
-using Constants = std::variant<double, std::string>;
+struct ExternalSymbol {
+  std::string name;
+  types::Value type;
+};
+using Constants = std::variant<int, double, std::string>;
 
-using Value = std::variant<instruction::Instructions, Constants>;
+using Value = std::variant<instruction::Instructions, Constants, ExternalSymbol, Argument>;
 using valueptr = std::shared_ptr<Value>;
+struct Argument {
+  std::string name;
+  types::Value type;
+  std::shared_ptr<instruction::Function> parent;
+};
+std::string toString(Argument const& i);
 
 namespace instruction {
 struct Base {  // base class for MIR instruction
@@ -93,7 +104,7 @@ struct Op : public Base {
 std::string toString(Op const& i);
 
 struct Function : public Base {
-  std::deque<valueptr> args;
+  std::vector<std::shared_ptr<Argument>> args;
   blockptr body;
   bool hasself = false;
   bool isrecursive = false;
@@ -108,7 +119,7 @@ std::string toString(Function const& i);
 
 struct Fcall : public Base {
   valueptr fname;
-  std::deque<valueptr> args;
+  std::vector<valueptr> args;
   FCALLTYPE ftype;
   std::optional<valueptr> time;
 };
@@ -122,7 +133,7 @@ struct MakeClosure : public Base {
 std::string toString(MakeClosure const& i);
 
 struct Array : public Base {
-  std::deque<valueptr> args;
+  std::vector<valueptr> args;
 };
 std::string toString(Array const& i);
 
@@ -153,28 +164,33 @@ inline std::string toString(Instructions const& inst) {
 }
 inline std::string toString(Constants const& inst) {
   return std::visit(overloaded{[](std::string const& s) -> std::string { return s; },
-                               [](const double i) { return std::to_string(i); }},
+                               [](const auto i) { return std::to_string(i); }},
                     inst);
 }
 inline std::string toString(Value const& inst) {
   return std::visit(overloaded{[](Instructions const& i) { return toString(i); },
-                               [](Constants const& i) { return toString(i); }},
+                               [](Constants const& i) { return toString(i); },
+                               [](Argument const& i) { return toString(i); },
+                               [](auto const& i) { return i.name; }},
                     inst);
 }
-inline std::string join(std::deque<valueptr> const& vec, std::string const& delim) {
+template <typename T>
+inline std::string join(std::vector<std::shared_ptr<T>> const& vec, std::string const& delim) {
   std::string res;
   if (!vec.empty()) {
-    res = std::accumulate(
-        std::next(vec.begin()), vec.end(), toString(**vec.begin()),
-        [&](std::string const& a, valueptr const& b) { return a + delim + toString(*b); });
+    res = std::accumulate(std::next(vec.begin()), vec.end(), toString(**vec.begin()),
+                          [&](std::string const& a, std::shared_ptr<T> const& b) {
+                            return a + delim + toString(*b);
+                          });
   }
   return res;
 };
 class block : public std::enable_shared_from_this<block> {
  public:
+  std::optional<valueptr> parent = std::nullopt;
   std::string label;
-  std::list<std::shared_ptr<Instructions>> instructions;  // sequence of instructions
-  int indent_level = 0;                                   // shared between instances
+  std::list<valueptr> instructions;  // sequence of instructions
+  int indent_level = 0;              // shared between instances
 };
 
 inline blockptr makeBlock(std::string const& label, int indent = 0) {
@@ -188,24 +204,32 @@ std::string toString(blockptr block);
 
 inline auto addInstToBlock(Instructions&& inst, blockptr block) {
   std::visit([&](auto& i) { i.parent = block; }, inst);
-  auto ptr = std::make_shared<Instructions>(inst);
+  auto ptr = std::make_shared<Value>(std::move(inst));
   block->instructions.emplace_back(ptr);
   return ptr;
 }
 
 inline void addIndentToBlock(blockptr block, int level = 0) { block->indent_level += level; }
 
+inline bool isConstant(Value const& v) { return std::holds_alternative<Constants>(v); }
+
+inline blockptr getParent(Instructions const& v) {
+  return std::visit([](auto const& i) { return i.parent; }, v);
+}
+
 inline types::Value getType(Constants const& v) {
-  return std::visit(overloaded{[](std::string const&  /*s*/)->types::Value { return types::String{}; },
-                               [](const double  /*i*/)->types::Value { return types::Float{}; }},
-                    v);
+  return std::visit(
+      overloaded{[](std::string const & /*s*/) -> types::Value { return types::String{}; },
+                 [](const double /*i*/) -> types::Value { return types::Float{}; }},
+      v);
 }
 inline types::Value getType(Instructions const& v) {
   return std::visit([](auto const& i) { return i.type; }, v);
 }
 inline types::Value getType(Value const& v) {
   return std::visit(overloaded{[](Instructions const& i) { return getType(i); },
-                               [](Constants const& i) { return getType(i); }},
+                               [](Constants const& i) { return getType(i); },
+                               [](auto const& i) { return i.type; }},
                     v);
 }
 
