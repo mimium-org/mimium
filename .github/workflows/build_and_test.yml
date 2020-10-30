@@ -42,7 +42,6 @@ jobs:
           - windows-latest
         config:
           - Release
-
         include:
             - os: ubuntu-18.04
               cxx: /usr/bin/g++-9
@@ -51,9 +50,6 @@ jobs:
             - os: macos-latest
               cxx: /usr/bin/clang++
             - os: windows-latest
-    defaults:
-      run:
-        shell: ${{ matrix.shell }}
     steps:
       - uses: actions/checkout@v2
       - if: contains(matrix.os, 'windows')
