@@ -56,7 +56,7 @@ jobs:
         run: | 
           choco install cmake ninja msys2 --no-progress
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=amd64 -host_arch=amd64
-          C:\tools\msys64\usr\bin\bash -c -l "pacman --no-confirm -S mingw64/mingw-w64-x86_64-llvm mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus"
+          C:\tools\msys64\usr\bin\bash -c -l "pacman --noconfirm -S mingw64/mingw-w64-x86_64-llvm mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus"
         shell: cmd
       - if: contains(matrix.os, 'macos')
         run: |
