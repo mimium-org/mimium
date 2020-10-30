@@ -55,10 +55,10 @@ jobs:
       - uses: actions/checkout@v2
       - if: contains(matrix.os, 'windows')
         run: | 
-          choco install cmake ninja msys2 --no-progress
+          choco install cmake ninja msys2 winflexbison3 --no-progress
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=amd64 -host_arch=amd64
           set MSYS2_PATH_TYPE=inherit
-          C:\tools\msys64\usr\bin\bash -c -l "pacman --noconfirm -S flex bison mingw-w64-x86_64-gcc mingw64/mingw-w64-x86_64-llvm mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus"
+          C:\tools\msys64\usr\bin\bash -c -l "pacman --noconfirm -S mingw-w64-x86_64-gcc mingw64/mingw-w64-x86_64-llvm mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus"
         shell: cmd
       - if: contains(matrix.os, 'macos')
         run: |
