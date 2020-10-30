@@ -45,7 +45,7 @@ target_compile_definitions(mimium_backend_rtaudio PRIVATE
 target_link_libraries(mimium_backend_rtaudio PUBLIC 
 RtAudio::rtaudio
 mimium_audiodriver
-LLVMSupport
+${LLVM_LIBRARIES}
 )
 install( TARGETS mimium_backend_rtaudio DESTINATION lib)
 
