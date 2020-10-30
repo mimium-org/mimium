@@ -76,9 +76,9 @@ jobs:
         name: deps-homebrew
         run: |
           brew upgrade
-          brew install flex bison libsndfile llvm ninja
+          brew install flex bison libsndfile llvm@10 ninja
       - if: contains(matrix.os, 'ubuntu')
-        run: sudo apt-get install -yq libasound2-dev flex
+        run: brew install gcc@9 alsa-lib
       - name: configure
         run:
           cmake . -Bbuild -GNinja -DCMAKE_BUILD_CONFIG=${{ matrix.config }} -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} 
