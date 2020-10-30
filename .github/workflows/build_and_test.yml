@@ -66,12 +66,14 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - if: contains(matrix.os, 'windows')
-        name: setup-windows
-        uses: msys2/setup-msys2@v2
-        with:
-          update: true
-          msystem: MINGW64
-          install: base-devel cmake git gcc mingw64/mingw-w64-x86_64-llvm mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus mingw64/mingw-w64-x86_64-ninja
+        run: | 
+          choco install cmake ninja msys2 --no-progress
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=amd64 -host_arch=amd64
+          set MSYS2_PATH_TYPE=inherit
+          $script = @'
+          pacman --norconfirm -S mingw64/mingw-w64-x86_64-llvm mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus 
+          '@
+          & C:\tools\msys64\usr\bin\bash -c -l $script
       - if: ${{contains(matrix.os, 'macos')||contains(matrix.os, 'ubuntu') }}
         name: deps-homebrew
         run: |
@@ -81,9 +83,8 @@ jobs:
         run: brew install gcc@9 alsa-lib
       - name: configure
         run:
-          cmake . -Bbuild -GNinja -DCMAKE_BUILD_CONFIG=${{ matrix.config }} -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} 
+          cmake . -Bbuild -DCMAKE_BUILD_CONFIG=${{ matrix.config }} -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} 
       - name: build
         run: cmake --build build -j
-
       - name: test
         run: cd build && ctest
