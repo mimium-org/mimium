@@ -50,6 +50,7 @@ jobs:
             - os: macos-latest
               cxx: /usr/bin/clang++
             - os: windows-latest
+              cxx: g++
     steps:
       - uses: actions/checkout@v2
       - if: contains(matrix.os, 'windows')
@@ -63,11 +64,11 @@ jobs:
           HOMEBREW_NO_AUTO_UPDATE=1 brew install flex bison libsndfile llvm@9 ninja
       - if: contains(matrix.os, 'ubuntu')
         run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 brew install gcc@9 llvm@9 ninja
-          sudo apt-get install -yq libasound2-dev libfl-dev libz-dev libsndfile-dev libopus-dev 
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install gcc@9 llvm@9 ninja libsndfile
+          sudo apt-get install -yq libasound2-dev libfl-dev libz-dev
       - name: configure
         run:
-          cmake . -Bbuild -DCMAKE_BUILD_CONFIG=${{ matrix.config }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} 
+          cmake . -Bbuild -GNinja -DCMAKE_BUILD_CONFIG=${{ matrix.config }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} 
       - name: build
         run: cmake --build build -j
       - name: test
