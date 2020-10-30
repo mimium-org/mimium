@@ -18,13 +18,9 @@ jobs:
           - ubuntu-20.04
           - macos-latest
           - windows-latest
-        llvm_ver: [9,10]
         config:
           - Release
-        exclude:
-      # excludes node 4 on macOS
-        - os: windows-latest
-          llvm_ver: 9
+
         include:
             - os: ubuntu-18.04
               shell: bash
@@ -40,8 +36,8 @@ jobs:
               cxx: /usr/bin/clang++
             - os: windows-latest
               shell: msys2 {0}
-              cc: /usr/bin/gcc
-              cxx: /usr/bin/g++
+              cc: /mingw64/bin/gcc
+              cxx: /mingw64/bin/g++
     defaults:
       run:
         shell: ${{ matrix.shell }}
@@ -52,24 +48,21 @@ jobs:
         uses: msys2/setup-msys2@v2
         with:
           update: true
-          msystem: MSYS
+          msystem: MINGW64
           install: base-devel cmake git gcc mingw64/mingw-w64-x86_64-llvm mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus mingw64/mingw-w64-x86_64-ninja
-      - if: contains(matrix.os, 'windows')
-        run: echo /mingw64/share/llvm/cmake/modules >| /tmp/llvm_dir.txt
       - if: ${{contains(matrix.os, 'macos')||contains(matrix.os, 'ubuntu') }}
         name: deps-homebrew
         run: |
           brew upgrade
-          brew install flex bison libsndfile llvm@${{matrix.llvm_ver}}
-          echo $(brew --prefix)/opt/llvm@${{matrix.llvm_ver}}/lib/cmake/llvm >| /tmp/llvm_dir.txt
+          brew install flex bison libsndfile llvm
       - if: contains(matrix.os, 'ubuntu')
         run: sudo apt-get install -yq libasound2-dev flex
       - name: configure
         run:
-          mkdir build && cd build && cmake ${{ matrix.cmake-generator }} -DCMAKE_BUILD_CONFIG=${{ matrix.config }} -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} -DLLVM_DIR=$(cat /tmp/llvm_dir.txt) ..
+          cmake . -Bbuild -GNinja -DCMAKE_BUILD_CONFIG=${{ matrix.config }} -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} 
 
       - name: build
-        run: cmake --build build --config ${{ matrix.config }}
+        run: cmake --build build -j
 
       - name: test
-        run: cd build && ctest --build-config ${{ matrix.config }}
+        run: cd build && ctest
