@@ -5,7 +5,6 @@ file(GLOB SRCS ./*.cpp)
 
 add_executable(UnitTest ${SRCS})
 target_compile_options(UnitTest PUBLIC -std=c++17)
-llvm_map_components_to_libnames(test_llvm core)
 message(STATUS "Components mapped by llvm_config: ${test_llvm}")
 
 target_include_directories(UnitTest
@@ -21,7 +20,7 @@ target_link_libraries(UnitTest
     gtest_main
     mimium_utils
     mimium_compiler
-    ${test_llvm}
+    LLVMCore
   )
 
 add_test(Name UnitTest Command "ASAN_OPTIONS=detect_container_overflow=0 ${CMAKE_CURRENT_BINARY_DIR}/UnitTest")

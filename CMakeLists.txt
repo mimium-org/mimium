@@ -26,9 +26,7 @@ set(CMAKE_FIND_PACKAGE_SORT_ORDER NATURAL)
 SET(CMAKE_FIND_PACKAGE_SORT_DIRECTION DEC)
 # list(APPEND CMAKE_PREFIX_PATH $ENV{LLVM_DIR})
 
-find_package(LLVM  REQUIRED CONFIG PATHS ${LLVM_DIR})
-message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
-message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+include(cmake/FindLlvm.cmake)
 
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
@@ -38,8 +36,10 @@ SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
 # for macOS SDK Root
 # Including custom cmake rules for clang-tidy and clang-format
+# disable on windows because glob_recurse takes too long time
+if(APPLE)
 include(cmake/clang-cxx-dev-tools.cmake)
-
+endif()
 #include ccache
 include(cmake/EnableCcache.cmake)
 
