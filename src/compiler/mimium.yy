@@ -468,5 +468,5 @@ MimiumParser::error( const location_type &l, const std::string &err_message )
 {
        std::stringstream ss;
       ss  << err_message << " at " << l.begin.line <<  ":" << l.begin.col << " to " << l.end.line <<  ":" << l.end.col << "\n";
-      mimium::Logger::debug_log(ss.str(),mimium::Logger::ERROR);
+      mimium::Logger::debug_log(ss.str(),mimium::Logger::ERROR_);
 }

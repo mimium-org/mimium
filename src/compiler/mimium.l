@@ -149,7 +149,7 @@ NEWLINE {BREAK}* | ";"
 . {
   std::stringstream ss;
   ss << "Lexer: Unrecognized char \"" << yytext[0] << "\"\n";
-    mimium::Logger::debug_log( ss.str() ,mimium::Logger::ERROR);
+    mimium::Logger::debug_log( ss.str() ,mimium::Logger::ERROR_);
 
 }
 %%
