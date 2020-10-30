@@ -22,9 +22,12 @@ else (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
 if(APPLE)
 set(HOMEBREW_PATH /usr/local)
 elseif(UNIX)
-set(HOMEBREW_PATH /home/linuxbrew/.linuxbrew )
+set(HOMEBREW_PATH /home/.linuxbrew/linuxbrew )
 endif()
-  find_path(SNDFILE_INCLUDE_DIR
+SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".lib" ".dll" ".a.dll")
+set(CMAKE_FIND_LIBRARY_PREFIXES "lib")  
+find_path(SNDFILE_INCLUDE_DIR
+  REQUIRED
     NAMES
       sndfile.h
     PATHS
@@ -33,12 +36,12 @@ endif()
       /usr/local/include
       /opt/local/include
       /sw/include
-      /mingw64/include
+      C:/tools/msys64/mingw64/include
   )
   
   find_library(SNDFILE_LIBRARY
     NAMES
-      sndfile
+      sndfile 
     PATHS
       ${HOMEBREW_PATH}/lib
       /usr/lib
@@ -46,6 +49,7 @@ endif()
       /opt/local/lib
       /sw/lib
       /mingw64/lib
+      C:/tools/msys64/mingw64/lib
   )
 
   find_library(OGG_LIBRARY
@@ -58,11 +62,11 @@ endif()
   /usr/local/lib
   /opt/local/lib
   /sw/lib
-  /mingw64/lib
+  C:/tools/msys64/mingw64/lib
   )
   find_library(VORBIS_LIBRARY
   NAMES
-  vorbis
+  vorbis 
   PATHS
   ${HOMEBREW_PATH}/lib
   /usr/lib
@@ -70,7 +74,7 @@ endif()
   /usr/local/lib
   /opt/local/lib
   /sw/lib
-  /mingw64/lib
+  C:/tools/msys64/mingw64/lib
   )
   find_library(VORBISENC_LIBRARY
   NAMES
@@ -82,7 +86,7 @@ endif()
   /usr/local/lib
   /opt/local/lib
   /sw/lib
-  /mingw64/lib
+  C:/tools/msys64/mingw64/lib
   )
   find_library(FLAC_LIBRARY
   NAMES
@@ -94,11 +98,11 @@ endif()
   /usr/local/lib
   /opt/local/lib
   /sw/lib
-  /mingw64/lib
+  C:/tools/msys64/mingw64/lib
   )
-  find_library(OPUS_LIBRARY
+  find_library(OPUS_LIBRARY  REQUIRED
   NAMES
-  opus
+  opus libopus.a
   PATHS
   ${HOMEBREW_PATH}/lib
   /usr/lib
@@ -106,8 +110,11 @@ endif()
   /usr/local/lib
   /opt/local/lib
   /sw/lib
+  C:/tools/msys64/mingw64/lib
   /mingw64/lib
+
   )
+  # find_package(OPUS REQUIRED)
   set(SNDFILE_INCLUDE_DIRS
     ${SNDFILE_INCLUDE_DIR}
   )
