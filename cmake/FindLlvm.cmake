@@ -14,6 +14,7 @@ endif()
 find_path(LLVM_INCLUDE_DIRS NAMES llvm/IR/IRBuilder.h
   PATHS
     ${HOMEBREW_PATH}/include
+    ${HOMEBREW_PATH}/opt/llvm@9/include
     /usr/local/opt/llvm/include
     /mingw64/include
     C:/tools/msys64/mingw64/include
