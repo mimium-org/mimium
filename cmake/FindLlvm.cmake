@@ -6,9 +6,14 @@
 # LLVM_INCLUDE_DIRS
 # LLVM_LIBRARIES
 # LLVM_LIBDIRS
-
+if(APPLE)
+set(HOMEBREW_PATH /usr/local)
+elseif(UNIX)
+set(HOMEBREW_PATH /home/linuxbrew/.linuxbrew )
+endif()
 find_path(LLVM_INCLUDE_DIRS NAMES llvm/IR/IRBuilder.h
   PATHS
+    ${HOMEBREW_PATH}/include
     /usr/local/opt/llvm/include
     /mingw64/include
     C:/tools/msys64/mingw64/include
@@ -23,6 +28,7 @@ if(ZIG_PREFER_CLANG_CPP_DYLIB)
       LLVM
     PATHS
       ${LLVM_LIBDIRS}
+      ${HOMEBREW_PATH}/lib
       /usr/local/opt/llvm/lib
       /mingw64/lib
       C:/tools/msys64/mingw64/lib
@@ -31,6 +37,7 @@ if(ZIG_PREFER_CLANG_CPP_DYLIB)
   find_program(LLVM_CONFIG_EXE
       NAMES llvm-config-11 llvm-config-11.0 llvm-config110 llvm-config11 llvm-config
       PATHS
+      ${HOMEBREW_PATH}/bin
         /usr/local/opt/llvm/bin
           "/mingw64/bin"
           "/c/msys64/mingw64/bin"
@@ -64,6 +71,8 @@ elseif(true)
 find_program(LLVM_CONFIG_EXE
       NAMES llvm-config-11 llvm-config-11.0 llvm-config110 llvm-config11 llvm-config
       PATHS
+      ${HOMEBREW_PATH}/bin
+      ${HOMEBREW_PATH}/opt/llvm@9/bin
       /usr/local/bin
       /usr/local/opt/llvm/bin
           "/mingw64/bin"
@@ -178,6 +187,8 @@ else()
     string(TOUPPER ${_libname_} _prettylibname_)
     find_library(LLVM_${_prettylibname_}_LIB NAMES ${_libname_}
       PATHS
+      ${HOMEBREW_PATH}/lib
+      ${HOMEBREW_PATH}/opt/llvm@9/lib
       ${LLVM_LIBDIRS}
         /usr/local/opt/llvm/lib
       /mingw64/lib
