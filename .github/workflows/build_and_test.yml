@@ -57,7 +57,7 @@ jobs:
               cc: /usr/bin/clang
               cxx: /usr/bin/clang++
             - os: windows-latest
-              shell: msys2 {0}
+              shell: cmd
               cc: gcc
               cxx: g++
     defaults:
