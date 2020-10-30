@@ -20,7 +20,7 @@ void LLVMGenerator::init(std::string filename) {
   codegenvisitor = std::make_shared<CodeGenVisitor>(*this);
   module->setSourceFileName(filename);
   module->setModuleIdentifier(filename);
-  module->setTargetTriple(llvm::sys::getDefaultTargetTriple());
+  module->setTargetTriple(LLVMGetDefaultTargetTriple());
 }
 
 void LLVMGenerator::setDataLayout(const llvm::DataLayout& dl) { module->setDataLayout(dl); }
