@@ -64,7 +64,6 @@ jobs:
       run:
         shell: ${{ matrix.shell }}
     steps:
-      - run: echo "${{needs.prebuild.outputs.lastmessage}}"
       - uses: actions/checkout@v2
       - if: contains(matrix.os, 'windows')
         name: setup-windows
@@ -77,7 +76,7 @@ jobs:
         name: deps-homebrew
         run: |
           brew upgrade
-          brew install flex bison libsndfile llvm
+          brew install flex bison libsndfile llvm ninja
       - if: contains(matrix.os, 'ubuntu')
         run: sudo apt-get install -yq libasound2-dev flex
       - name: configure
