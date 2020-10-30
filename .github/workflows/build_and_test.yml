@@ -76,7 +76,7 @@ jobs:
         name: deps-homebrew
         run: |
           brew upgrade
-          brew install flex bison libsndfile llvm@10 ninja
+          brew install flex bison libsndfile llvm@9 ninja
       - if: contains(matrix.os, 'ubuntu')
         run: brew install gcc@9 alsa-lib
       - name: configure
