@@ -75,10 +75,16 @@ class LLVMGenerator {
   void setDataLayout(const llvm::DataLayout& dl);
   void reset(std::string filename);
   void setBB(llvm::BasicBlock* newblock);
-  void generateCode(mir::blockptr mir,funobjmap const& funobjs);
+  void generateCode(mir::blockptr mir, funobjmap const& funobjs);
 
   void outputToStream(llvm::raw_ostream& ostream);
   void dumpvars();
+  auto getConstInt(int v, const int bitsize = 64) {
+    return llvm::ConstantInt::get(builder->getInt64Ty(), llvm::APInt(bitsize, v));
+  }
+  auto getZero(const int bitsize = 64) {
+    return getConstInt(0,bitsize);
+  }
 };
 
 }  // namespace mimium

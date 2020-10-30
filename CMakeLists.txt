@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.4)
 option(BUILD_DOCS "build a documentation")
 option(BUILD_TEST "build a test" OFF)
+option(ENABLE_LLD "use lld for linker" OFF)
 
 #set(CMAKE_CXX_COMPILER /usr/local/opt/llvm/bin/clang++)
 #set(CMAKE_C_COMPILER /usr/local/opt/llvm/bin/clang) 
@@ -17,9 +18,12 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
 	# set(CMAKE_STATIC_LIBRARY_SUFFIX ".js")
     # set(CMAKE_EXECUTABLE_SUFFIX ".html")
 endif()
-#if(${CMAKE_BUILD_TYPE}=="Debug")
-#    set(LLVM_CONFIG "/usr/local/Cellar/llvm/9.0.0debug/bin/llvm-config")
-#endif()
+
+if(NOT(APPLE)  AND  ${ENABLE_LLD} AND (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang"))#sadly lld will not work with macos
+set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=lld)
+set(CMAKE_MODULE_LINKER_FLAGS ${CMAKE_MODULE_LINKER_FLAGS} -fuse-ld=lld)
+set(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS} -fuse-ld=lld)
+endif()
 
 message(STATUS "set llvm dir to ${LLVM_DIR}")
 set(CMAKE_FIND_PACKAGE_SORT_ORDER NATURAL)

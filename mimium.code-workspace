@@ -111,7 +111,9 @@
 			"--verbose"
 		  ],
 		  "cmake.configureArgs": [
-			  "-DBUILD_TEST=ON"
-		  ]
+			  "-DBUILD_TEST=ON",
+			  "-DENABLE_LLD=ON"
+		  ],
+		  "cmake.generator": "Ninja"
 	}
 }

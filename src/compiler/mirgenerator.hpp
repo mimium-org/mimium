@@ -19,7 +19,7 @@ class MirGenerator {
     lvarid operator()(ast::Op& ast);
     lvarid operator()(ast::Number& ast);
     lvarid operator()(ast::String& ast);
-    lvarid operator()(ast::Rvar& ast);
+    lvarid operator()(ast::Symbol& ast);
     lvarid operator()(ast::Self& ast);
     lvarid operator()(ast::Lambda& ast);
     lvarid operator()(ast::Fcall& ast, std::optional<std::string> when = std::nullopt);
@@ -34,6 +34,17 @@ class MirGenerator {
 
    private:
     MirGenerator& mirgen;
+  };
+  struct AssignKnormVisitor {
+    explicit AssignKnormVisitor(MirGenerator& parent, ast::ExprPtr expr)
+        : mirgen(parent), expr(std::move(expr)){};
+    lvarid operator()(ast::DeclVar& ast);
+    lvarid operator()(ast::ArrayLvar& ast);
+    lvarid operator()(ast::TupleLvar& ast);
+
+   private:
+    MirGenerator& mirgen;
+    ast::ExprPtr expr;
   };
   struct StatementKnormVisitor : public VisitorBase<lvarid&> {
     explicit StatementKnormVisitor(MirGenerator& parent) : mirgen(parent) {}
@@ -52,8 +63,14 @@ class MirGenerator {
   };
   mir::blockptr generate(ast::Statements& topast);
   std::pair<lvarid, mir::blockptr> generateBlock(ast::Block& block, std::string label);
-  bool isOverWrite(std::string const& name) {
-    return std::find(lvarlist.begin(), lvarlist.end(), name) != lvarlist.end();
+  bool isOverWrite(ast::Symbol const& symbol) {
+    return std::find(lvarlist.begin(), lvarlist.end(), symbol.value) != lvarlist.end();
+  }
+  bool isOverWrite(ast::Lvar& lvar) {
+    if (auto* declvar = std::get_if<ast::DeclVar>(&lvar)) { return isOverWrite(declvar->value); }
+    // other cases: array tuple
+    return !std::holds_alternative<ast::TupleLvar>(lvar);
+    // todo(tomoya):prevent redefinition of variable in tuple structural binding
   }
   lvarid emplace(mir::Instructions&& inst, types::Value type = types::Float{}) {
     auto& newname = std::visit([](auto&& i) -> std::string& { return i.lv_name; },

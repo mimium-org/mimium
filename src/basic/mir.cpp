@@ -60,6 +60,14 @@ std::string toString(ArrayAccessInst& i) {
   return i.lv_name + " = arrayaccess " + i.name + " " + i.index;
 }
 
+std::string toString(FieldInst& i) {
+  std::string res =  i.lv_name + " = field " + i.name + " ";
+  std::visit(overloaded{
+    [&](std::string& s){ res+= s;},
+    [&](int i){ res += std::to_string(i);}
+  } ,i.index);
+  return res;
+}
 std::string toString(IfInst& i) {
   std::string s;
   s += i.lv_name + " = if " + i.cond + "\n";
