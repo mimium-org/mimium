@@ -52,8 +52,8 @@ jobs:
               cxx: /usr/bin/clang++
               shell: bash
             - os: windows-latest
-              cxx: C:/tools/msys64/mingw64/bin/g++
-              shell: C:\tools\msys64\usr\bin\bash -c -l {0}
+              cxx: /mingw64/bin/g++
+              shell: msys2 {0}
     defaults:
       run:
         shell: ${{ matrix.shell }}
