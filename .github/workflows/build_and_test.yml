@@ -59,6 +59,14 @@ jobs:
         shell: ${{ matrix.shell }}
     steps:
       - if: contains(matrix.os, 'windows')
+        uses: actions/cache@v2
+        with:
+          path: C:\Users\runneradmin\AppData\Local\Temp\chocolatey
+          key: ${{ runner.os }}-chocolatey-${{ matrix.os }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-chocolatey-${{ matrix.os }}-
+            ${{ runner.os }}-chocolatey-
+      - if: contains(matrix.os, 'windows')
         name: prepare windows env
         run: | 
           choco install cmake ninja msys2 --no-progress
