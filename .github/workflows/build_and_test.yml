@@ -54,9 +54,9 @@ jobs:
             - os: windows-latest
               cxx: C:/tools/msys64/mingw64/bin/g++
               shell: C:\tools\msys64\usr\bin\bash -c -l {0}
-        defaults:
-          run:
-            shell: ${{ matrix.shell }}
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
     steps:
       - if: contains(matrix.os, 'windows')
         name: prepare windows env
