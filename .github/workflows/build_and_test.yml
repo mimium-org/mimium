@@ -72,8 +72,8 @@ jobs:
           choco install cmake ninja msys2 --no-progress
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=amd64 -host_arch=amd64
           call refreshenv
-          echo ::set-env name=PATH::%PATH%
-          echo ::set-env name=MSYS2_PATH_TYPE::inherit
+          echo "C:\tools\msys64" >> $GITHUB_PATH
+          echo "MSYS2_PATH_TYPE=inherit" >> $GITHUB_ENV
         shell: cmd
       - if: contains(matrix.os, 'windows')
         name: windows dependencies
