@@ -47,19 +47,27 @@ jobs:
             #   cxx: /usr/bin/g++-9
             - os: ubuntu-20.04
               cxx: /usr/bin/g++-9
+              shell: bash
             - os: macos-latest
               cxx: /usr/bin/clang++
+              shell: bash
             - os: windows-latest
-              cxx: g++
+              cxx: C:/tools/msys64/mingw64/bin/g++
+              shell: C:\tools\msys64\usr\bin\bash -c -l {0}
+        defaults:
+          run:
+            shell: ${{ matrix.shell }}
     steps:
-      - uses: actions/checkout@v2
       - if: contains(matrix.os, 'windows')
+        name: prepare windows env
         run: | 
-          choco install cmake ninja msys2 winflexbison3 --no-progress
+          choco install cmake ninja msys2 --no-progress
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=amd64 -host_arch=amd64
           set MSYS2_PATH_TYPE=inherit
-          C:\tools\msys64\usr\bin\bash -c -l "pacman --noconfirm -S mingw-w64-x86_64-gcc mingw64/mingw-w64-x86_64-llvm mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus"
         shell: cmd
+      - if: contains(matrix.os, 'windows')
+        name: windows dependencies
+        run: pacman --noconfirm -S flex bison mingw-w64-x86_64-gcc mingw64/mingw-w64-x86_64-llvm mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus"
       - if: contains(matrix.os, 'macos')
         run: |
           HOMEBREW_NO_AUTO_UPDATE=1 brew install flex bison libsndfile llvm@9 ninja
@@ -67,7 +75,7 @@ jobs:
         run: |
           brew install llvm@9
           sudo apt-get install libalsa-ocaml-dev libfl-dev libbison-dev libz-dev libsndfile-dev libopus-dev gcc-9 ninja-build
-          sudo mkdir /usr/lib/llvm && sudo ln -s /usr/lib/llvm-10** /usr/lib/llvm
+      - uses: actions/checkout@v2
       - name: configure
         run:
           cmake . -Bbuild -GNinja -DCMAKE_BUILD_CONFIG=${{ matrix.config }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} 
