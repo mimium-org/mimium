@@ -63,7 +63,9 @@ jobs:
         run: | 
           choco install cmake ninja msys2 --no-progress
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=amd64 -host_arch=amd64
-          set MSYS2_PATH_TYPE=inherit
+          call refreshenv
+          echo ::set-env name=PATH::%PATH%
+          echo ::set-env name=MSYS2_PATH_TYPE::inherit
         shell: cmd
       - if: contains(matrix.os, 'windows')
         name: windows dependencies
