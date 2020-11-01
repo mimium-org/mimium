@@ -43,7 +43,9 @@ target_compile_definitions(mimium_backend_rtaudio PRIVATE
   )
   
 target_link_libraries(mimium_backend_rtaudio PUBLIC 
+PUBLIC
 RtAudio::rtaudio
+PRIVATE
 mimium_audiodriver
 ${LLVM_LIBRARIES}
 )

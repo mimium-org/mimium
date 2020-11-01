@@ -7,4 +7,4 @@ target_include_directories(mimium_llvm_codegen
 PUBLIC
 ${MIMIUM_SOURCE_DIR}
 )
-target_link_libraries(mimium_llvm_codegen PRIVATE mimium_utils mimium_builtinfn LLVMCore)
+target_link_libraries(mimium_llvm_codegen PRIVATE mimium_utils mimium_builtinfn ${LLVM_LIBRARIES})

@@ -13,6 +13,7 @@ PRIVATE
 )
 
 target_link_libraries(mimium_runtime_jit PUBLIC mimium_scheduler 
+PRIVATE
 ${LLVM_LIBRARIES}
 )
 
