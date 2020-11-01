@@ -100,7 +100,7 @@ auto main(int argc, char** argv) -> int {
 
       auto stage = compile_stage.getValue();
       do {
-        auto ast = compiler->loadSourceFile(filename);
+        auto ast = compiler->loadSourceFile(abspath);
         if (stage == CompileStage::AST) {
           std::cout << *ast << std::endl;
           break;
