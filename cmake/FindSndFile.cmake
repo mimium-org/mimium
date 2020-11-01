@@ -24,7 +24,7 @@ set(HOMEBREW_PATH /usr/local)
 elseif(UNIX)
 set(HOMEBREW_PATH /home/linuxbrew/.linuxbrew )
 else()#windows
-SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".lib" ".dll" ".a.dll")
+SET(CMAKE_FIND_LIBRARY_SUFFIXES ".lib" ".dll" ".a.dll" ".a")
 set(CMAKE_FIND_LIBRARY_PREFIXES "lib")  
 endif()
 find_path(SNDFILE_INCLUDE_DIR
