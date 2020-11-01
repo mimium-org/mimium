@@ -32,4 +32,6 @@ file(COPY ${testsource} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 add_subdirectory(regression)
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 add_subdirectory(fuzzing)
+endif()
