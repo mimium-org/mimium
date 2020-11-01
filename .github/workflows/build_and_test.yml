@@ -63,7 +63,7 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: git flex bison mingw-w64-x86_64-cmake mingw-w64-x86_64-gcc mingw64/mingw-w64-x86_64-llvm mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus
+          install: git flex bison mingw-w64-x86_64-cmake mingw-w64-x86_64-gcc mingw64/mingw-w64-x86_64-llvm mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus  mingw-w64-x86_64-ninja
       - if: contains(matrix.os, 'macos')
         run: |
           HOMEBREW_NO_AUTO_UPDATE=1 brew install flex bison libsndfile llvm@9 ninja
