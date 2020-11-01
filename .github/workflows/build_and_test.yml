@@ -59,25 +59,11 @@ jobs:
         shell: ${{ matrix.shell }}
     steps:
       - if: contains(matrix.os, 'windows')
-        uses: actions/cache@v2
-        with:
-          path: C:\Users\runneradmin\AppData\Local\Temp\chocolatey
-          key: ${{ runner.os }}-chocolatey-${{ matrix.os }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-chocolatey-${{ matrix.os }}-
-            ${{ runner.os }}-chocolatey-
-      - if: contains(matrix.os, 'windows')
-        name: prepare windows env
-        run: | 
-          choco install cmake ninja msys2 --no-progress
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=amd64 -host_arch=amd64
-          call refreshenv
-          echo "C:\tools\msys64" >> $GITHUB_PATH
-          echo "MSYS2_PATH_TYPE=inherit" >> $GITHUB_ENV
-        shell: cmd
-      - if: contains(matrix.os, 'windows')
-        name: windows dependencies
-        run: pacman --noconfirm -S flex bison mingw-w64-x86_64-gcc mingw64/mingw-w64-x86_64-llvm mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus"
+        uses: msys2/setup-msys2@v2
+          with:
+            msystem: MSYS
+            update: true
+            install: git flex bison mingw-w64-x86_64-cmake mingw-w64-x86_64-gcc mingw64/mingw-w64-x86_64-llvm mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus
       - if: contains(matrix.os, 'macos')
         run: |
           HOMEBREW_NO_AUTO_UPDATE=1 brew install flex bison libsndfile llvm@9 ninja
