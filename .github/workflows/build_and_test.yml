@@ -67,7 +67,7 @@ jobs:
         uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
-          update: true
+          # update: true
           install: git flex bison mingw-w64-x86_64-cmake mingw-w64-x86_64-gcc mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus mingw-w64-x86_64-ninja
       - if: contains(matrix.os, 'windows')
         run: pacman -U --noconfirm https://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-llvm-10.0.0-1-any.pkg.tar.xz
