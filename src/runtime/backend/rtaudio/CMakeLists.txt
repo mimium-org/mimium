@@ -6,7 +6,7 @@ message(STATUS "Subproject: Rtaudio...${CMAKE_CXX_COMPILER}")
 configure_file(
 	${CMAKE_CURRENT_SOURCE_DIR}/rtaudio.CMakeLists.txt
   ${CMAKE_BINARY_DIR}/rtaudio-download/CMakeLists.txt)
-execute_process(COMMAND ${CMAKE_COMMAND} . "-G ${CMAKE_GENERATOR}" "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
+execute_process(COMMAND ${CMAKE_COMMAND} . -G${CMAKE_GENERATOR} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
   RESULT_VARIABLE result
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/rtaudio-download)
 if(result)
