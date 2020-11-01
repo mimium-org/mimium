@@ -29,7 +29,7 @@ find_package(RtAudio REQUIRED)
 
 set(RTAUDIO_INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/rtaudio-src)
 
-add_library(mimium_backend_rtaudio SHARED driver_rtaudio.cpp)
+add_library(mimium_backend_rtaudio STATIC driver_rtaudio.cpp)
 
 target_include_directories(mimium_backend_rtaudio 
 PUBLIC
@@ -45,8 +45,8 @@ target_compile_definitions(mimium_backend_rtaudio PRIVATE
 target_link_libraries(mimium_backend_rtaudio PUBLIC 
 PUBLIC
 RtAudio::rtaudio
-PRIVATE
 mimium_audiodriver
+PRIVATE
 ${LLVM_LIBRARIES}
 )
 install( TARGETS mimium_backend_rtaudio DESTINATION lib)

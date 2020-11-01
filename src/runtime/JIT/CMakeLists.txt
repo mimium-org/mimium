@@ -1,4 +1,4 @@
-add_library(mimium_runtime_jit SHARED runtime_jit.cpp)
+add_library(mimium_runtime_jit STATIC runtime_jit.cpp)
 
 target_compile_options(mimium_runtime_jit PUBLIC -std=c++17)
 add_dependencies(mimium_runtime_jit mimium_utils)
@@ -12,9 +12,11 @@ PRIVATE
 # ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-target_link_libraries(mimium_runtime_jit PUBLIC mimium_scheduler 
-PRIVATE
+target_link_libraries(mimium_runtime_jit 
+PUBLIC 
+mimium_scheduler 
 ${LLVM_LIBRARIES}
+PRIVATE
 )
 
 install(TARGETS mimium_runtime_jit DESTINATION lib)
