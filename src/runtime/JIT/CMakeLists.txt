@@ -1,9 +1,7 @@
-add_library(mimium_runtime_jit SHARED runtime_jit.cpp)
+add_library(mimium_runtime_jit STATIC runtime_jit.cpp)
 
 target_compile_options(mimium_runtime_jit PUBLIC -std=c++17)
 add_dependencies(mimium_runtime_jit mimium_utils)
-llvm_map_components_to_libnames(llvmruntime orcjit native )
-message(STATUS "Components mapped by llvm_config: ${llvmruntime}")
 target_include_directories(mimium_runtime_jit
 PUBLIC
 ${MIMIUM_SOURCE_DIR}
@@ -14,6 +12,11 @@ PRIVATE
 # ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-target_link_libraries(mimium_runtime_jit PUBLIC mimium_scheduler ${llvmruntime})
+target_link_libraries(mimium_runtime_jit 
+PUBLIC 
+mimium_scheduler 
+${LLVM_LIBRARIES}
+PRIVATE
+)
 
 install(TARGETS mimium_runtime_jit DESTINATION lib)

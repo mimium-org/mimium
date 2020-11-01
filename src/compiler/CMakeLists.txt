@@ -2,7 +2,7 @@ include(AddFlexBisonDeps)
 
 find_package(SndFile REQUIRED)
 
-add_library(mimium_builtinfn SHARED ffi.cpp)
+add_library(mimium_builtinfn STATIC ffi.cpp)
 target_include_directories(mimium_builtinfn
 PUBLIC
 ${SNDFILE_INCLUDE_DIRS}

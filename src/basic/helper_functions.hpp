@@ -23,7 +23,7 @@
 #include "variant_visitor_helper.hpp"
 
 #ifdef _WIN32
-SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+// SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 #endif
 #if ( __has_feature(address_sanitizer)&&defined(__clang__)) || defined(__SANITIZE_ADDRESS__)
 // code that builds only under AddressSanitizer
@@ -145,7 +145,7 @@ class Logger {
     Logger::current_report_level = Logger::DEBUG;
   };
   virtual ~Logger() = default;
-  using REPORT_LEVEL = enum { FATAL = 1, ERROR, WARNING, INFO, DEBUG, TRACE };
+  using REPORT_LEVEL = enum { FATAL = 1, ERROR_, WARNING, INFO, DEBUG, TRACE };
   /// @callgraph
   static void debug_log(const std::string& str, REPORT_LEVEL report_level) {
     if (report_level <= Logger::current_report_level) {
@@ -177,7 +177,7 @@ class Logger {
   static inline const std::string yellow = "\033[1;33m";
   static inline const std::string norm = "\033[0m";
   static inline const std::map<Logger::REPORT_LEVEL, std::string> report_str = {
-      {FATAL, red + "Fatal"}, {ERROR, red + "Error"}, {WARNING, yellow + "Warning"},
+      {FATAL, red + "Fatal"}, {ERROR_, red + "Error"}, {WARNING, yellow + "Warning"},
       {INFO, green + "Info"}, {DEBUG, "Debug"},       {TRACE, "Trace"}};
 };
 
