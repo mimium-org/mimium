@@ -25,15 +25,18 @@
 #ifdef _WIN32
 // SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 #endif
-#if ( __has_feature(address_sanitizer)&&defined(__clang__)) || defined(__SANITIZE_ADDRESS__)
+#if (__has_feature(address_sanitizer) && defined(__clang__)) || defined(__SANITIZE_ADDRESS__)
 // code that builds only under AddressSanitizer
-#define NO_SANITIZE __attribute__((no_sanitize("address","undefined")))
+#define NO_SANITIZE __attribute__((no_sanitize("address", "undefined")))
 #else
-#define NO_SANITIZE 
+#define NO_SANITIZE
 #endif
 
-
 namespace mimium {
+
+#define MMMASSERT(cond, message) \
+  assert(cond);                 \
+  std::cerr << #message << std::endl;
 
 // meta function to check if it is smart pointer or not(used in ast_to_string);
 template <typename T, typename Enable = void>
@@ -178,7 +181,7 @@ class Logger {
   static inline const std::string norm = "\033[0m";
   static inline const std::map<Logger::REPORT_LEVEL, std::string> report_str = {
       {FATAL, red + "Fatal"}, {ERROR_, red + "Error"}, {WARNING, yellow + "Warning"},
-      {INFO, green + "Info"}, {DEBUG, "Debug"},       {TRACE, "Trace"}};
+      {INFO, green + "Info"}, {DEBUG, "Debug"},        {TRACE, "Trace"}};
 };
 
 }  // namespace mimium
