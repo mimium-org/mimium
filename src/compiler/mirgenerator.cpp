@@ -246,7 +246,7 @@ void AssignKnormVisitor::operator()(ast::ArrayLvar& ast) {
   auto array = mirgen.genInst(ast.array);
   auto index = mirgen.genInst(ast.index);
   auto rvar = mirgen.genInst(expr);
-  auto name = mir::toString(*array) + mir::toString(*index);
+  auto name = mir::getName(*array) + mir::getName(*index);
   auto type = mir::getType(*rvar);
   auto ptrtostore = mirgen.emplace(minst::Field{{name, type}, array, index});
   mirgen.emplace(minst::Store{{name, type}, ptrtostore, rvar});

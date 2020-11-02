@@ -28,20 +28,20 @@ std::string instruction::toString(Allocate const& i) {
   return "alloca: " + i.name + " (" + types::toString(i.type) + ")";
 }
 std::string instruction::toString(Ref const& i) {
-  return i.name + " = ref " + mir::toString(*i.target);
+  return i.name + " = ref " + mir::getName(*i.target);
 }
 
 std::string instruction::toString(Load const& i) {
-  return i.name + "= load " + mir::toString(*i.target);
+  return i.name + "= load " + mir::getName(*i.target);
 }
 std::string instruction::toString(Store const& i) {
-  return mir::toString(*i.target) + " = " + mir::toString(*i.value) + "(store)";
+  return "store " + mir::getName(*i.target) + " to " + mir::getName(*i.value);
 }
 
 std::string instruction::toString(Op const& i) {
   auto opstr = std::string(ast::op_str.find(i.op)->second);
   return i.name + " = " + opstr + " " +
-         (i.lhs.has_value() ? mir::toString(*i.lhs.value()) : "") + " " + mir::toString(*i.rhs);
+         (i.lhs.has_value() ? mir::getName(*i.lhs.value()) : "") + " " + mir::getName(*i.rhs);
 }
 
 std::string toString(Argument const& i) {
@@ -59,15 +59,15 @@ std::string instruction::toString(Function const& i) {
 
 std::string instruction::toString(MakeClosure const& i) {
   std::stringstream ss;
-  ss << i.name << " = makeclosure " << mir::toString(*i.fname) << " "
+  ss << i.name << " = makeclosure " << mir::getName(*i.fname) << " "
      << joinVec(i.captures, ",");
   return ss.str();
 }
 std::string instruction::toString(Fcall const& i) {
   std::string s;
-  auto timestr = (i.time) ? "@" + mir::toString(*i.time.value()) : "";
+  auto timestr = (i.time) ? "@" + mir::getName(*i.time.value()) : "";
   return i.name + " = app" + fcalltype_str[i.ftype] + " " +
-         mir::toString(*i.fname) + " " + join(i.args, " , ") + timestr;
+         mir::getName(*i.fname) + " " + join(i.args, " , ") + timestr;
 }
 
 std::string instruction::toString(Array const& i) {
@@ -75,15 +75,15 @@ std::string instruction::toString(Array const& i) {
 }
 
 std::string instruction::toString(Field const& i) {
-  std::string res = i.name + " = field " + mir::toString(*i.target) + " " + mir::toString(*i.index);
+  std::string res = i.name + " = field " + mir::getName(*i.target) + " " + mir::getName(*i.index);
   return res;
 }
 std::string instruction::toString(If const& i) {
   std::string s;
-  s += i.name + " = if " + mir::toString(*i.cond) + "\n";
+  s += i.name + " = if " + mir::getName(*i.cond) + "\n";
   s += toString(i.thenblock);
   if (i.elseblock.has_value()) { s += toString(i.elseblock.value()); }
   return s;
 }
-std::string instruction::toString(Return const& i) { return "return " + mir::toString(*i.val); }
+std::string instruction::toString(Return const& i) { return "return " + mir::getName(*i.val); }
 }  // namespace mimium::mir

@@ -182,13 +182,27 @@ inline std::string toString(Value const& inst) {
                                [](auto const& i) { return i.name; }},
                     inst);
 }
+
+inline std::string getName(Instructions const& inst) {
+  return std::visit([](auto const& i) { return i.name; }, inst);
+}
+
+inline std::string getName(Value const& val) {
+  return std::visit(overloaded{[](Instructions const& i) { return getName(i); },
+                               [](Constants const& i) { return toString(i); },
+                               [](Argument const& i) { return toString(i); },
+                               [](Self const & /*i*/) -> std::string { return "self"; },
+                               [](auto const& i) { return i.name; }},
+                    val);
+}
+
 template <typename T>
 inline std::string join(std::vector<std::shared_ptr<T>> const& vec, std::string const& delim) {
   std::string res;
   if (!vec.empty()) {
-    res = std::accumulate(std::next(vec.begin()), vec.end(), toString(**vec.begin()),
+    res = std::accumulate(std::next(vec.begin()), vec.end(), getName(**vec.begin()),
                           [&](std::string const& a, std::shared_ptr<T> const& b) {
-                            return a + delim + toString(*b);
+                            return a + delim + getName(*b);
                           });
   }
   return res;
