@@ -19,91 +19,113 @@ if (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
   # in cache already
   set(SNDFILE_FOUND TRUE)
 else (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
-
-  find_path(SNDFILE_INCLUDE_DIR
+if(APPLE)
+set(HOMEBREW_PATH /usr/local)
+elseif(UNIX)
+set(HOMEBREW_PATH /home/linuxbrew/.linuxbrew )
+else()#windows
+SET(CMAKE_FIND_LIBRARY_SUFFIXES ".lib" ".dll" ".a.dll" ".dll.a" ".a")
+set(CMAKE_FIND_LIBRARY_PREFIXES "lib")  
+endif()
+find_path(SNDFILE_INCLUDE_DIR
+  REQUIRED
     NAMES
       sndfile.h
     PATHS
-      /usr/local/opt/libsndfile/include
+      ${HOMEBREW_PATH}/include
       /usr/include
       /usr/local/include
       /opt/local/include
       /sw/include
+      C:/tools/msys64/mingw64/include
   )
   
   find_library(SNDFILE_LIBRARY
     NAMES
-      sndfile
+      sndfile 
     PATHS
-    /usr/local/opt/libsndfile/lib
+      ${HOMEBREW_PATH}/lib
       /usr/lib
       /usr/local/lib
       /opt/local/lib
       /sw/lib
+      /mingw64/lib
+      C:/tools/msys64/mingw64/lib
   )
 
   find_library(OGG_LIBRARY
   NAMES
   ogg
   PATHS
+  ${HOMEBREW_PATH}/lib
   /usr/lib
   /usr/lib/x86_64-linux-gnu/
   /usr/local/lib
-  /usr/local/
   /opt/local/lib
   /sw/lib
+  C:/tools/msys64/mingw64/lib
   )
   find_library(VORBIS_LIBRARY
   NAMES
-  vorbis
+  vorbis 
   PATHS
+  ${HOMEBREW_PATH}/lib
   /usr/lib
   /usr/lib/x86_64-linux-gnu/
   /usr/local/lib
   /opt/local/lib
   /sw/lib
+  C:/tools/msys64/mingw64/lib
   )
   find_library(VORBISENC_LIBRARY
   NAMES
   vorbisenc
   PATHS
+  ${HOMEBREW_PATH}/lib
   /usr/lib
   /usr/lib/x86_64-linux-gnu/
   /usr/local/lib
   /opt/local/lib
   /sw/lib
+  C:/tools/msys64/mingw64/lib
   )
   find_library(FLAC_LIBRARY
   NAMES
   flac FLAC
   PATHS
+  ${HOMEBREW_PATH}/lib
   /usr/lib
   /usr/lib/x86_64-linux-gnu/
   /usr/local/lib
   /opt/local/lib
   /sw/lib
+  C:/tools/msys64/mingw64/lib
   )
-  find_library(OPUS_LIBRARY
+  find_library(OPUS_LIBRARY  REQUIRED
   NAMES
-  opus
+  opus libopus.a
   PATHS
+  ${HOMEBREW_PATH}/lib
   /usr/lib
   /usr/lib/x86_64-linux-gnu/
   /usr/local/lib
   /opt/local/lib
   /sw/lib
+  C:/tools/msys64/mingw64/lib
+  /mingw64/lib
+
   )
+  # find_package(OPUS REQUIRED)
   set(SNDFILE_INCLUDE_DIRS
     ${SNDFILE_INCLUDE_DIR}
   )
   set(SNDFILE_LIBRARIES
-    ${SNDFILE_LIBRARY}
-    ${OGG_LIBRARY}
-    ${VORBIS_LIBRARY}
-    ${VORBISENC_LIBRARY}
-    ${FLAC_LIBRARY}
-    ${OPUS_LIBRARY}
-
+  ${SNDFILE_LIBRARY}
+  ${FLAC_LIBRARY}
+  ${VORBIS_LIBRARY}
+  ${VORBISENC_LIBRARY}
+  ${OGG_LIBRARY}
+  ${OPUS_LIBRARY}
   )
   message(STATUS "------------------")
 

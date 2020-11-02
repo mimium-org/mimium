@@ -6,7 +6,7 @@ message(STATUS "Subproject: Rtaudio...${CMAKE_CXX_COMPILER}")
 configure_file(
 	${CMAKE_CURRENT_SOURCE_DIR}/rtaudio.CMakeLists.txt
   ${CMAKE_BINARY_DIR}/rtaudio-download/CMakeLists.txt)
-execute_process(COMMAND ${CMAKE_COMMAND} . "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
+execute_process(COMMAND ${CMAKE_COMMAND} . -G${CMAKE_GENERATOR} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
   RESULT_VARIABLE result
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/rtaudio-download)
 if(result)
@@ -29,7 +29,7 @@ find_package(RtAudio REQUIRED)
 
 set(RTAUDIO_INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/rtaudio-src)
 
-add_library(mimium_backend_rtaudio SHARED driver_rtaudio.cpp)
+add_library(mimium_backend_rtaudio STATIC driver_rtaudio.cpp)
 
 target_include_directories(mimium_backend_rtaudio 
 PUBLIC
@@ -42,11 +42,12 @@ target_compile_options(mimium_backend_rtaudio PRIVATE
 target_compile_definitions(mimium_backend_rtaudio PRIVATE
   )
   
-  llvm_map_components_to_libnames(llvmrtaudio support)
 target_link_libraries(mimium_backend_rtaudio PUBLIC 
+PUBLIC
 RtAudio::rtaudio
 mimium_audiodriver
-${llvmrtaudio}
+PRIVATE
+${LLVM_LIBRARIES}
 )
 install( TARGETS mimium_backend_rtaudio DESTINATION lib)
 

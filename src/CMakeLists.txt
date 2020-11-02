@@ -29,15 +29,20 @@ PRIVATE
 ${FLEX_INCLUDE_CACHE}
 ${PARSER_HEADER_DIR} 
 )
-
+# target_compile_options(mimium
+# PUBLIC
+# -fvisibility=hidden
+# )
 target_link_libraries(mimium
-    LLVMCore
+    ${LLVM_LIBRARIES}
     mimium_compiler
     mimium_runtime_jit
     mimium_backend_rtaudio
     mimium_builtinfn 
     )
 target_link_libraries(mimium_llloader
+${LLVM_LIBRARIES}
+
     mimium_compiler
     mimium_runtime_jit
     mimium_backend_rtaudio

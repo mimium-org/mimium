@@ -44,10 +44,10 @@ Runtime_LLVM::Runtime_LLVM(std::string const& filename_i, std::shared_ptr<AudioD
 
 void Runtime_LLVM::executeModule(std::unique_ptr<llvm::Module> module) {
   llvm::Error err = jitengine->addModule(std::move(module));
-  Logger::debug_log(err, Logger::ERROR);
+  Logger::debug_log(err, Logger::ERROR_);
   auto mainfun = jitengine->lookup("mimium_main");
 
-  Logger::debug_log(mainfun, Logger::ERROR);
+  Logger::debug_log(mainfun, Logger::ERROR_);
   auto mimium_main_function = llvm::jitTargetAddressToPointer<void* (*)()>(mainfun->getAddress());
   //
   mimium_main_function();

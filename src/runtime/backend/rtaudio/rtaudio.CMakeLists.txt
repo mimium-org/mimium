@@ -1,5 +1,11 @@
 project(rtaudio-download NONE)
 
+if(MSYS OR MINGW OR WIN32)
+set(RTAUDIO_BUILD_FLAG  -DRTAUDIO_API_WASAPI=ON -DRTAUDIO_API_ALSA=OFF)
+else()
+set(RTAUDIO_BUILD_FLAG )
+endif()
+
 include(ExternalProject)
 ExternalProject_Add(rtaudio_project
   GIT_REPOSITORY https://github.com/thestk/rtaudio
@@ -9,7 +15,7 @@ ExternalProject_Add(rtaudio_project
   #prevent from updating everytime - for offline environment
   UPDATE_COMMAND ""
   ### Add cmake args 
-  CMAKE_ARGS -DBUILD_SHARED_LIBS=FALSE -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DRTAUDIO_BUILD_TESTING=FALSE  -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+  CMAKE_ARGS -DBUILD_SHARED_LIBS=FALSE -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DRTAUDIO_BUILD_TESTING=FALSE ${RTAUDIO_BUILD_FLAG}
 	### BUILD_COMMAND ""
 	INSTALL_COMMAND ""
 	TEST_COMMAND ""

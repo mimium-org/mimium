@@ -90,7 +90,7 @@ auto main(int argc, char** argv) -> int {
     exit(0);
   };
   if (!input.good()) {
-    Logger::debug_log("Specify file name, repl mode is not implemented yet", Logger::ERROR);
+    Logger::debug_log("Specify file name, repl mode is not implemented yet", Logger::ERROR_);
     // filename is empty:enter repl mode
   } else {  // try to parse and exec input file
     try {
@@ -100,7 +100,7 @@ auto main(int argc, char** argv) -> int {
 
       auto stage = compile_stage.getValue();
       do {
-        auto ast = compiler->loadSourceFile(filename);
+        auto ast = compiler->loadSourceFile(abspath);
         if (stage == CompileStage::AST) {
           std::cout << *ast << std::endl;
           break;
@@ -138,7 +138,7 @@ auto main(int argc, char** argv) -> int {
       } while (false);
       runtime->getAudioDriver()->stop();
     } catch (std::exception& e) {
-      mimium::Logger::debug_log(e.what(), mimium::Logger::ERROR);
+      mimium::Logger::debug_log(e.what(), mimium::Logger::ERROR_);
       runtime->getAudioDriver()->stop();
 
       returncode = 1;
