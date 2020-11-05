@@ -47,8 +47,9 @@ std::pair<optvalptr, mir::blockptr> MirGenerator::generateBlock(ast::Block& bloc
                                                                 std::string label,
                                                                 optvalptr const& fnctx) {
   auto tmpctx = this->block_ctx;
-  this->fnctx = fnctx;
   auto blockctx = mir::makeBlock(label, indent_counter++);
+  blockctx->parent = fnctx;
+  this->fnctx = fnctx;
   this->block_ctx = blockctx;
   auto retptr = exprvisitor(block);
   this->block_ctx = tmpctx;
