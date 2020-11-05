@@ -255,5 +255,10 @@ inline types::Value getType(Value const& v) {
                     v);
 }
 
+template<class ITYPE>
+ITYPE& getInstRef(valueptr ptr){
+  return std::get<ITYPE>(std::get<Instructions>(*ptr));
+}
+
 }  // namespace mir
 }  // namespace mimium

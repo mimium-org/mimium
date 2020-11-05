@@ -13,7 +13,7 @@ using optvalptr = std::optional<mir::valueptr>;
 class MirGenerator {
  public:
   explicit MirGenerator(TypeEnv& typeenv)
-      : statementvisitor(*this), exprvisitor(*this), typeenv(typeenv), ctx(nullptr) {}
+      : statementvisitor(*this), exprvisitor(*this), typeenv(typeenv), fnctx(std::nullopt) {}
   struct ExprKnormVisitor : public VisitorBase<mir::valueptr&> {
     explicit ExprKnormVisitor(MirGenerator& parent) : mirgen(parent) {}
     mir::valueptr operator()(ast::Op& ast);
@@ -63,7 +63,10 @@ class MirGenerator {
     MirGenerator& mirgen;
   };
   mir::blockptr generate(ast::Statements& topast);
-  std::pair<optvalptr, mir::blockptr> generateBlock(ast::Block& block, std::string label);
+
+ private:
+  std::pair<optvalptr, mir::blockptr> generateBlock(ast::Block& block, std::string label,
+                                                    optvalptr const& fnctx);
 
   // bool isOverWrite(ast::Symbol const& symbol) {
   //   auto iter = symbol_table.find(symbol.value);
@@ -77,7 +80,7 @@ class MirGenerator {
   //   // todo(tomoya):prevent redefinition of variable in tuple structural binding
   // }
   auto emplace(mir::Instructions&& inst) {
-    mir::valueptr val = mir::addInstToBlock(std::move(inst), ctx);
+    mir::valueptr val = mir::addInstToBlock(std::move(inst), block_ctx);
     // if (auto* v = val.value_or(nullptr)) {
     //   // todo: redundunt data store?
     //   symbol_table.emplace(v->name, mir::Value{v->name, v->type});
@@ -99,13 +102,14 @@ class MirGenerator {
   mir::valueptr genInst(ast::ExprPtr expr) { return exprvisitor.genInst(expr); }
   void genInst(ast::Statement stmt) { return statementvisitor.genInst(stmt); }
 
- private:
   StatementKnormVisitor statementvisitor;
   ExprKnormVisitor exprvisitor;
-  mir::blockptr ctx = nullptr;
-  std::stack<types::Value> selftype_stack;
+  optvalptr fnctx = nullptr;
+  mir::blockptr block_ctx = nullptr;
+  int indent_counter = 0;
   int64_t varcounter = 0;
   std::string makeNewName();
+  std::optional<std::string> lvar_holder=std::nullopt;
   TypeEnv& typeenv;
   std::unordered_map<std::string, mir::valueptr> symbol_table;
   std::unordered_map<std::string, mir::valueptr> external_symbols;
