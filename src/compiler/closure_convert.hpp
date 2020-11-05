@@ -20,7 +20,7 @@ class ClosureConverter {
 
   auto& getCaptureNames(const std::string& fname) { return fvinfo[fname]; }
   auto& getCaptureType(const std::string& fname) { return clstypeenv[fname]; }
-  void dump();
+  // void dump();
 
  private:
   TypeEnv& typeenv;
@@ -80,6 +80,8 @@ class ClosureConverter {
     static void visitinsts(minst::Function& i, CCVisitor& ccvis);
     minst::MakeClosure createClosureInst(types::Function ftype, types::Alias fvtype,
                                          std::string& lv_name);
+    void dump();
+
   };
   friend struct CCVisitor;
 };

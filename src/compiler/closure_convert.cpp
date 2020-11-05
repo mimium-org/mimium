@@ -16,8 +16,7 @@ void ClosureConverter::reset() { capturecount = 0; }
 ClosureConverter::~ClosureConverter() = default;
 
 bool ClosureConverter::isKnownFunction(mir::valueptr fn) {
-  return std::any_of(known_functions.begin(), known_functions.end(),
-                     [&](auto& f) { return fn == f; });
+  return std::binary_search(known_functions.begin(), known_functions.end(), fn);
 }
 
 void ClosureConverter::moveFunToTop(mir::blockptr mir) {
@@ -25,7 +24,7 @@ void ClosureConverter::moveFunToTop(mir::blockptr mir) {
   for (auto it = mir->instructions.begin(), end = mir->instructions.end(); it != end; ++it) {
     mir::valueptr cinst = *it;
     if (auto* f = std::get_if<minst::Function>(&std::get<mir::Instructions>(*cinst))) {
-      moveFunToTop(f->body);                         // recursive call
+      moveFunToTop(f->body);  // recursive call
       if (this->toplevel != mir) {
         tinsts.insert(tinsts.begin(), cinst);  // move on toplevel
         tinsts.erase(it);
@@ -49,9 +48,12 @@ mir::blockptr ClosureConverter::convert(mir::blockptr toplevel) {
   for (auto it = inss.begin(), end = inss.end(); it != end; ++it) {
     auto& cinst = *it;
     ccvis.position = it;
-    ccvis.visit(*cinst);
-    // std::visit(typereplacer, cinst);
+    if (auto* i = std::get_if<mir::Instructions>(cinst.get())) {
+      if (std::holds_alternative<mir::instruction::Function>(*i)) { ccvis.visit(*cinst); }
+    }
   }
+  // std::visit(typereplacer, cinst);
+
   moveFunToTop(this->toplevel);
   if (!(clstypeenv.count("dsp") > 0)) {
     types::Value dummycapture = types::Alias{makeCaptureName(), types::Tuple{{}}};
@@ -64,26 +66,21 @@ mir::blockptr ClosureConverter::convert(mir::blockptr toplevel) {
     // typeenv.emplace("dsp_cls", std::move(dummytype));
   }
   return this->toplevel;
-};
+};  // namespace mimium
 
-void ClosureConverter::dump() {
-  std::cerr << "----------fvinfo-----------\n";
-  for (auto&& [key, arr] : fvinfo) {
-    std::cerr << key << " : {";
-    std::for_each(arr.begin(), arr.end(), [](auto& v) { std::cerr << v << " "; });
-    std::cerr << "}\n";
-  }
-  std::cerr << "----------typeinfo-----------\n";
-  for (auto&& [key, val] : clstypeenv) {
-    std::cerr << key << " : " << types::toString(val, true) << "\n";
-  }
+void ClosureConverter::CCVisitor::dump() {
+  std::cerr << "----------fvlist-----------\n";
+  for (auto& v : fvlist) { std::cerr << mir::getName(*v) << "\n"; }
+  std::flush(std::cerr);
 }
 
 void ClosureConverter::CCVisitor::checkFreeVar(mir::valueptr val) {
   if (auto* iptr = std::get_if<mir::Instructions>(val.get())) {
-    if (mir::getParent(*iptr) != this->block_ctx) { fvlist.emplace_back(val); }
+    bool isfun = std::holds_alternative<types::rFunction>(mir::getType(*iptr));
+    bool has_different_root = mir::getParent(*iptr) != this->block_ctx;
+    if (!isfun && has_different_root) { fvlist.emplace_back(val); }
   }
-}
+=}
 
 void ClosureConverter::CCVisitor::checkFreeVar(mir::blockptr block) {
   for (auto& inst : block->instructions) { checkFreeVar(inst); }
@@ -110,13 +107,14 @@ void ClosureConverter::CCVisitor::operator()(minst::Function& i) {
   auto pos = std::begin(i.body->instructions);
   auto ccvis = CCVisitor(cc, pos);
   auto ptr = *pos;
+  auto know_function_tmp = cc.known_functions;  // copy
   auto stored_fn_iter = cc.known_functions.insert(cc.known_functions.end(), ptr);
   this->block_ctx = i.body;
   bool checked = false;
 checkpoint:
   visitinsts(i, ccvis);
   if (!fvlist.empty()) {
-    cc.known_functions.erase(stored_fn_iter);
+    cc.known_functions = know_function_tmp;
     if (!checked) {
       checked = true;
       goto checkpoint;  // NOLINT
