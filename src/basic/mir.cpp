@@ -52,7 +52,7 @@ std::string instruction::toString(Function const& i) {
   std::stringstream ss;
   ss << i.name << " = fun" << ((i.isrecursive) ? "[rec]" : "") << " "
      << join(i.args, " , ");
-  if (!i.freevariables.empty()) { ss << " fv{" << joinVec(i.freevariables, ",") << "}"; }
+  if (!i.freevariables.empty()) { ss << " fv{" << join(i.freevariables, ",") << "}"; }
   ss << "\n" << toString(i.body);
   return ss.str();
 }
@@ -60,7 +60,7 @@ std::string instruction::toString(Function const& i) {
 std::string instruction::toString(MakeClosure const& i) {
   std::stringstream ss;
   ss << i.name << " = makeclosure " << mir::getName(*i.fname) << " "
-     << joinVec(i.captures, ",");
+     << join(i.captures, ",");
   return ss.str();
 }
 std::string instruction::toString(Fcall const& i) {
