@@ -25,7 +25,7 @@ std::string instruction::toString(Number const& i) {
 std::string instruction::toString(String const& i) { return i.name + " = " + i.val; }
 
 std::string instruction::toString(Allocate const& i) {
-  return "alloca: " + i.name + " (" + types::toString(i.type) + ")";
+  return "allocate " + i.name + " : " + types::toString(i.type);
 }
 std::string instruction::toString(Ref const& i) {
   return i.name + " = ref " + mir::getName(*i.target);
