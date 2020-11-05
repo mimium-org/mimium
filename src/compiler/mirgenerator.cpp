@@ -31,10 +31,14 @@ optvalptr MirGenerator::tryGetInternalSymbol(std::string const& name) {
   auto iter = symbol_table.find(name);
   return (iter != symbol_table.cend()) ? std::optional(iter->second) : std::nullopt;
 }
+mir::valueptr MirGenerator::getFunctionSymbol(std::string const& name, types::Value const& type) {
+  auto res = tryGetInternalSymbol(name);
+  return res.value_or(getOrGenExternalSymbol(name, type));
+}
 mir::valueptr MirGenerator::getInternalSymbol(std::string const& name) {
   auto res = tryGetInternalSymbol(name);
   if (!res.has_value()) {
-    throw std::runtime_error(" mir generation error: failed to resolve symbol name" + name);
+    throw std::runtime_error(" mir generation error: failed to resolve symbol name " + name);
   }
   return res.value();
 }
@@ -108,7 +112,7 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Self& ast) {
   return std::make_shared<mir::Value>(std::move(self));
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::Lambda& ast) {
-  auto label = mirgen.makeNewName();
+  auto label = lvar_holder.has_value() ? lvar_holder.value() : mirgen.makeNewName();
   auto fun = minst::Function{
       {label, types::None{}},
       mirgen.transformArgs(ast.args.args, std::vector<std::shared_ptr<mir::Argument>>{},
@@ -136,7 +140,12 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Lambda& ast) {
   return resptr;
 }
 mir::valueptr MirGenerator::genFcallInst(ast::Fcall& fcall, optvalptr const& when) {
-  auto fnptr = genInst(fcall.fn);
+  mir::valueptr fnptr = nullptr;
+  if (auto* fnlabel = std::get_if<ast::Symbol>(fcall.fn.get())) {
+    fnptr = getFunctionSymbol(fnlabel->value, typeenv.find(fnlabel->value));
+  } else {
+    fnptr = genInst(fcall.fn);
+  }
   types::Value rettype = mir::getType(*fnptr);
   auto fnkind = mir::isConstant(*fnptr) ? EXTERNAL : CLOSURE;
   auto newname = makeNewName();
@@ -246,6 +255,12 @@ void AssignKnormVisitor::operator()(ast::DeclVar& ast) {
   optvalptr lvarptr = mirgen.tryGetInternalSymbol(lvname);
   types::Value& type = mirgen.typeenv.find(lvname);
   mir::valueptr ptr;
+  if (std::holds_alternative<types::rFunction>(type)) {
+    // do not allocate and store for function definition
+    auto rvar = mirgen.exprvisitor.genInst(expr, lvname);
+    mirgen.symbol_table.emplace(lvname, rvar);
+    return;
+  }
   if (lvarptr.has_value()) {
     MMMASSERT(type == mir::getType(*require(lvarptr)), "lvar type are different")
     ptr = lvarptr.value();

@@ -30,10 +30,17 @@ class MirGenerator {
     mir::valueptr operator()(ast::Tuple& ast);
     mir::valueptr operator()(ast::If& ast);
     mir::valueptr operator()(ast::Block& ast);
-    mir::valueptr genInst(ast::ExprPtr expr) { return std::visit(*this, *expr); }
+    mir::valueptr genInst(ast::ExprPtr expr,
+                          std::optional<std::string> const& lvar = std::nullopt) {
+      lvar_holder = lvar;
+      auto res = std::visit(*this, *expr);
+      lvar_holder = std::nullopt;
+      return res;
+    }
 
    private:
     MirGenerator& mirgen;
+    std::optional<std::string> lvar_holder;
   };
   struct AssignKnormVisitor {
     explicit AssignKnormVisitor(MirGenerator& parent, ast::ExprPtr expr)
@@ -101,7 +108,7 @@ class MirGenerator {
   optvalptr genIfInst(ast::If& ast, bool is_expr);
   mir::valueptr genInst(ast::ExprPtr expr) { return exprvisitor.genInst(expr); }
   void genInst(ast::Statement stmt) { return statementvisitor.genInst(stmt); }
-  mir::valueptr genAllocate( std::string const& name, types::Value const& type);
+  mir::valueptr genAllocate(std::string const& name, types::Value const& type);
 
   static bool isPassByValue(types::Value const& type);
 
@@ -122,7 +129,7 @@ class MirGenerator {
   mir::valueptr getOrGenExternalSymbol(std::string const& name, types::Value const& type);
   mir::valueptr getInternalSymbol(std::string const& name);
   optvalptr tryGetInternalSymbol(std::string const& name);
-
+  mir::valueptr getFunctionSymbol(std::string const& name, types::Value const& type);
   // // unpack optional value ptr, and throw error if it does not exist.
   static mir::valueptr require(optvalptr const& v);
 };
