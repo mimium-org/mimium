@@ -32,7 +32,7 @@ std::string instruction::toString(Ref const& i) {
 }
 
 std::string instruction::toString(Load const& i) {
-  return i.name + "= load " + mir::getName(*i.target);
+  return i.name + " = load " + mir::getName(*i.target);
 }
 std::string instruction::toString(Store const& i) {
   return "store " + mir::getName(*i.value) + " to " + mir::getName(*i.target);

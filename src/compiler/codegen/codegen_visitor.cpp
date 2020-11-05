@@ -19,6 +19,7 @@ const std::unordered_map<OpId, std::string> CodeGenVisitor::opid_to_ffi = {
 CodeGenVisitor::CodeGenVisitor(LLVMGenerator& g) : G(g), isglobal(false) {}
 
 llvm::Value* CodeGenVisitor::visit(mir::valueptr val) {
+  instance_holder = val;
   return std::visit(
       overloaded{
           [&](mir::Instructions& inst) { return std::visit(*this, inst); },
@@ -37,15 +38,27 @@ void CodeGenVisitor::registerLlvmVal(mir::valueptr mirval, llvm::Value* llvmval)
 void CodeGenVisitor::registerLlvmVal(std::shared_ptr<mir::Argument> mirval, llvm::Value* llvmval) {
   mirarg_to_llvm.emplace(mirval, llvmval);
 }
+void CodeGenVisitor::registerLlvmValforFreeVar(mir::valueptr mirval, llvm::Value* llvmval) {
+  mirfv_to_llvm.emplace(mirval, llvmval);
+}
 
 llvm::Value* CodeGenVisitor::getLlvmVal(mir::valueptr mirval) {
+  // search in order of argument -> local variable -> free variable
+
   if (auto* arg = std::get_if<std::shared_ptr<mir::Argument>>(mirval.get())) {
     auto iter = mirarg_to_llvm.find(*arg);
     return iter->second;
   }
-  auto iter = mir_to_llvm.find(mirval);
-  MMMASSERT(iter == mir_to_llvm.end(), "failed to find llvm value for " + mir::getName(*mirval));
-  return iter->second;
+  {
+    auto iter = mir_to_llvm.find(mirval);
+    if (iter != mir_to_llvm.end()) { return iter->second; }
+  }
+  {
+    auto iter = mirfv_to_llvm.find(mirval);
+    if (iter != mir_to_llvm.end()) { return iter->second; }
+  }
+  MMMASSERT(false, "failed to find llvm value for " + mir::getName(*mirval));
+  return nullptr;
 }
 
 llvm::Value* CodeGenVisitor::createAllocation(bool isglobal, llvm::Type* type,
@@ -93,8 +106,9 @@ llvm::Value* CodeGenVisitor::operator()(minst::String& i) {
   return bitcast;
 }
 llvm::Value* CodeGenVisitor::operator()(minst::Allocate& i) {
-  // TODO(tomoya) Is a type value for AllocaInst no longer needed?
-  return createAllocation(isglobal, G.getType(i.type), nullptr, i.name);
+  auto* res = createAllocation(isglobal, G.getType(i.type), nullptr, i.name);
+  registerLlvmVal(getValPtr(&i), res);
+  return res;
 }
 llvm::Value* CodeGenVisitor::operator()(minst::Ref& i) {  // temporarily unused
   // auto ptrname = "ptr_" + i.lv_name;
@@ -157,6 +171,7 @@ llvm::Value* CodeGenVisitor::createBinOp(minst::Op& i) {
   }
 }
 llvm::Value* CodeGenVisitor::operator()(minst::Function& i) {
+  mirfv_to_llvm.clear();
   bool hascapture = !i.freevariables.empty();
   bool hasmemobj = !i.memory_objects.empty();
   if (hasmemobj) { context_hasself = i.hasself; }
@@ -248,21 +263,10 @@ void CodeGenVisitor::setMemObjsToMap(minst::Function& i, llvm::Value* memarg) {
 }
 
 void CodeGenVisitor::setFvsToMap(minst::Function& i, llvm::Value* clsarg) {
-  auto& captures = G.cc.getCaptureNames(i.name);
-
   int count = 0;
-  for (auto& cap : captures) {
-    auto capname = cap;
-    if (G.module->getFunction(cap) != nullptr) { capname = cap + "_cls"; }
+  for (auto& fv : i.freevariables) {
     auto* gep = G.builder->CreateStructGEP(clsarg, count++, "fv");
-    auto ptrname = "ptr_" + capname;
-    auto* ptrload = G.builder->CreateLoad(gep, ptrname);
-    G.setValuetoMap(ptrname, ptrload);
-    auto* ptype = llvm::cast<llvm::PointerType>(ptrload->getType());
-    if (ptype->getElementType()->isFirstClassType()) {
-      auto* valload = G.builder->CreateLoad(ptrload, capname);
-      G.setValuetoMap(capname, valload);
-    }
+    registerLlvmValforFreeVar(fv, gep);
   }
 }
 

@@ -28,14 +28,17 @@ struct CodeGenVisitor : public std::enable_shared_from_this<CodeGenVisitor> {
   llvm::Value* operator()(minst::If& i);
   llvm::Value* operator()(minst::Return& i);
   llvm::Value* visit(mir::valueptr val);
+
  private:
   void registerLlvmVal(mir::valueptr mirval, llvm::Value* llvmval);
+  void registerLlvmValforFreeVar(mir::valueptr mirval, llvm::Value* llvmval);
+
   void registerLlvmVal(std::shared_ptr<mir::Argument> mirval, llvm::Value* llvmval);
 
   llvm::Value* getLlvmVal(mir::valueptr mirval);
   std::unordered_map<mir::valueptr, llvm::Value*> mir_to_llvm;
+  std::unordered_map<mir::valueptr, llvm::Value*> mirfv_to_llvm;
   std::unordered_map<std::shared_ptr<mir::Argument>, llvm::Value*> mirarg_to_llvm;
-
 
   LLVMGenerator& G;
   bool isglobal;
@@ -57,5 +60,13 @@ struct CodeGenVisitor : public std::enable_shared_from_this<CodeGenVisitor> {
   llvm::Value* createAddTaskFn(minst::Fcall& i, bool isclosure, bool isglobal);
   void createIfBody(mir::blockptr& block, llvm::Value* ret_ptr);
   const static std::unordered_map<ast::OpId, std::string> opid_to_ffi;
+
+  mir::valueptr instance_holder = nullptr;
+
+  template <class T>
+  mir::valueptr getValPtr(T* ptr) {
+    assert(ptr = &mir::getInstRef<T>(instance_holder));
+    return instance_holder;
+  }
 };
 }  // namespace mimium
