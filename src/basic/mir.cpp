@@ -35,7 +35,7 @@ std::string instruction::toString(Load const& i) {
   return i.name + "= load " + mir::getName(*i.target);
 }
 std::string instruction::toString(Store const& i) {
-  return "store " + mir::getName(*i.target) + " to " + mir::getName(*i.value);
+  return "store " + mir::getName(*i.value) + " to " + mir::getName(*i.target);
 }
 
 std::string instruction::toString(Op const& i) {
