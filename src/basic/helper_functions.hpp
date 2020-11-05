@@ -36,9 +36,9 @@ namespace mimium {
 
 #ifdef MIMIUM_DEBUG_BUILD
 #define MMMASSERT(cond, message) \
-  assert(cond);              \
+             \
   if(!bool(cond)) {std::cerr << "assertion failed at line " << __LINE__ << " in "<< __FILE__<< ". :"<< message << std::endl;\
-  std::exit(-1);}
+  std::abort();}
 #else
 #define MMMASSERT(cond, message)
 #endif
