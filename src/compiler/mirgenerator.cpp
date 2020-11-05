@@ -53,6 +53,16 @@ std::pair<optvalptr, mir::blockptr> MirGenerator::generateBlock(ast::Block& bloc
   return {ret, blockctx};
 }
 
+bool MirGenerator::isPassByValue(types::Value const& type) { return types::isPrimitive(type); }
+
+mir::valueptr MirGenerator::genAllocate(std::string const& name, types::Value const& type) {
+  if (!isPassByValue(type)) {
+    auto reftype = types::Pointer{type};
+    return emplace(mir::instruction::Allocate{{name, reftype}, reftype});
+  }
+  return emplace(mir::instruction::Allocate{{name, type}, type});
+}
+
 using ExprKnormVisitor = MirGenerator::ExprKnormVisitor;
 using StatementKnormVisitor = MirGenerator::StatementKnormVisitor;
 using AssignKnormVisitor = MirGenerator::AssignKnormVisitor;
@@ -177,8 +187,8 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Tuple& ast) {
     tupletypes.emplace_back(mir::getType(*arg));
   }
   types::Value rettype = types::Tuple{{tupletypes}};
-  mir::valueptr lvar = mirgen.emplace(minst::Allocate{{lvname + "_ptr", rettype}, rettype});
-  mirgen.symbol_table.emplace(lvname + "_ptr", lvar);
+  mir::valueptr lvar = mirgen.emplace(minst::Allocate{{lvname + "_ref", rettype}, rettype});
+  mirgen.symbol_table.emplace(lvname + "_ref", lvar);
 
   int count = 0;
   for (auto& elem : newelems) {
@@ -233,7 +243,6 @@ void StatementKnormVisitor::operator()(ast::Fdef& ast) {
 
 void AssignKnormVisitor::operator()(ast::DeclVar& ast) {
   auto& lvname = ast.value.value;
-  mirgen.lvar_holder = lvname;
   optvalptr lvarptr = mirgen.tryGetInternalSymbol(lvname);
   types::Value& type = mirgen.typeenv.find(lvname);
   mir::valueptr ptr;
@@ -241,12 +250,11 @@ void AssignKnormVisitor::operator()(ast::DeclVar& ast) {
     MMMASSERT(type == mir::getType(*require(lvarptr)), "lvar type are different")
     ptr = lvarptr.value();
   } else {
-    ptr = mirgen.emplace(minst::Allocate{{lvname + "_ptr", type}, type});
+    ptr = mirgen.genAllocate(lvname, type);
   }
   mirgen.symbol_table.emplace(lvname + "_ptr", ptr);
   auto rvar = mirgen.genInst(expr);
   mirgen.emplace(minst::Store{{lvname, types::None{}}, ptr, rvar});
-  mirgen.lvar_holder = std::nullopt;
 }
 void AssignKnormVisitor::operator()(ast::ArrayLvar& ast) {
   auto array = mirgen.genInst(ast.array);

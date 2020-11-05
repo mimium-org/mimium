@@ -101,6 +101,9 @@ class MirGenerator {
   optvalptr genIfInst(ast::If& ast, bool is_expr);
   mir::valueptr genInst(ast::ExprPtr expr) { return exprvisitor.genInst(expr); }
   void genInst(ast::Statement stmt) { return statementvisitor.genInst(stmt); }
+  mir::valueptr genAllocate( std::string const& name, types::Value const& type);
+
+  static bool isPassByValue(types::Value const& type);
 
   StatementKnormVisitor statementvisitor;
   ExprKnormVisitor exprvisitor;
@@ -109,7 +112,6 @@ class MirGenerator {
   int indent_counter = 0;
   int64_t varcounter = 0;
   std::string makeNewName();
-  std::optional<std::string> lvar_holder=std::nullopt;
   TypeEnv& typeenv;
   std::unordered_map<std::string, mir::valueptr> symbol_table;
   std::unordered_map<std::string, mir::valueptr> external_symbols;
