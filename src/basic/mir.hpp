@@ -225,8 +225,8 @@ inline blockptr makeBlock(std::string const& label, int indent = 0) {
 std::string toString(blockptr block);
 
 inline auto addInstToBlock(Instructions&& inst, blockptr block) {
-  std::visit([&](auto& i) { i.parent = block; }, inst);
   auto ptr = std::make_shared<Value>(std::move(inst));
+  std::visit([&](auto& i) mutable { i.parent = block; }, std::get<Instructions>(*ptr));
   block->instructions.emplace_back(ptr);
   return ptr;
 }
