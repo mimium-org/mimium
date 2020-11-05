@@ -34,9 +34,14 @@
 
 namespace mimium {
 
+#ifdef MIMIUM_DEBUG_BUILD
 #define MMMASSERT(cond, message) \
-  assert(cond);                 \
-  std::cerr << #message << std::endl;
+             \
+  if(!bool(cond)) {std::cerr << "assertion failed at line " << __LINE__ << " in "<< __FILE__<< ". :"<< message << std::endl;\
+  std::abort();}
+#else
+#define MMMASSERT(cond, message)
+#endif
 
 // meta function to check if it is smart pointer or not(used in ast_to_string);
 template <typename T, typename Enable = void>
