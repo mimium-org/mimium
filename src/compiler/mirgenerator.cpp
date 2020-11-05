@@ -261,7 +261,7 @@ void StatementKnormVisitor::operator()(ast::Fdef& ast) {
 
 void AssignKnormVisitor::operator()(ast::DeclVar& ast) {
   auto& lvname = ast.value.value;
-  optvalptr lvarptr = mirgen.tryGetInternalSymbol(lvname);
+  optvalptr lvarptr = mirgen.tryGetInternalSymbol(lvname+"_ptr");
   types::Value& type = mirgen.typeenv.find(lvname);
   mir::valueptr ptr;
   if (std::holds_alternative<types::rFunction>(type)) {
