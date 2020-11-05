@@ -137,6 +137,7 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Lambda& ast) {
   auto [blockret, ctx] = mirgen.generateBlock(ast.body, label, resptr);
   auto rettype = blockret ? getType(*blockret.value()) : types::Void{};
   auto& fref = mir::getInstRef<minst::Function>(resptr);
+  for (auto& a : fref.args) { a->parentfn = resptr; }
   auto* typeptr = mirgen.typeenv.tryFind(label);  // todo!!
   fref.body = ctx;
   fref.type = (typeptr != nullptr)
@@ -261,7 +262,7 @@ void StatementKnormVisitor::operator()(ast::Fdef& ast) {
 
 void AssignKnormVisitor::operator()(ast::DeclVar& ast) {
   auto& lvname = ast.value.value;
-  optvalptr lvarptr = mirgen.tryGetInternalSymbol(lvname+"_ptr");
+  optvalptr lvarptr = mirgen.tryGetInternalSymbol(lvname + "_ptr");
   types::Value& type = mirgen.typeenv.find(lvname);
   mir::valueptr ptr;
   if (std::holds_alternative<types::rFunction>(type)) {

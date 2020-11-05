@@ -60,7 +60,7 @@ struct Self {
 struct Argument {
   std::string name;
   types::Value type;
-  std::shared_ptr<instruction::Function> parent;
+  valueptr parentfn;
 };
 std::string toString(Argument const& i);
 

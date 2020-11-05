@@ -3,6 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
+
+#include <set>
+
 #include "basic/mir.hpp"
 #include "basic/variant_visitor_helper.hpp"
 #include "compiler/ffi.hpp"
@@ -27,7 +30,7 @@ class ClosureConverter {
   mir::blockptr toplevel;
   int capturecount;
   int closurecount;
-  std::vector<mir::valueptr> known_functions;
+  std::set<mir::valueptr> known_functions;
   std::unordered_map<std::string, std::vector<std::string>> fvinfo;
   // fname: types::Tuple(...)
   std::unordered_map<std::string, types::Value> clstypeenv;
@@ -42,13 +45,14 @@ class ClosureConverter {
         : cc(cc) {}
 
     ClosureConverter& cc;
-    std::list<mir::valueptr> fvlist;
+    std::set<mir::valueptr> fvset;
     mir::blockptr block_ctx;
 
     std::list<mir::valueptr>::iterator position;
 
     void checkFreeVar(mir::valueptr val);
     void checkFreeVar(mir::blockptr block);
+    void checkFreeVarArg(mir::valueptr val);
     // void registerFv(std::string& name);
     void operator()(minst::Ref& i);
     void operator()(minst::Load& i);
