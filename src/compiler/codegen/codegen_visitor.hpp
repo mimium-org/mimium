@@ -30,8 +30,13 @@ struct CodeGenVisitor : public std::enable_shared_from_this<CodeGenVisitor> {
   llvm::Value* visit(mir::valueptr val);
  private:
   void registerLlvmVal(mir::valueptr mirval, llvm::Value* llvmval);
+  void registerLlvmVal(std::shared_ptr<mir::Argument> mirval, llvm::Value* llvmval);
+
   llvm::Value* getLlvmVal(mir::valueptr mirval);
   std::unordered_map<mir::valueptr, llvm::Value*> mir_to_llvm;
+  std::unordered_map<std::shared_ptr<mir::Argument>, llvm::Value*> mirarg_to_llvm;
+
+
   LLVMGenerator& G;
   bool isglobal;
   bool context_hasself;

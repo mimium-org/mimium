@@ -19,44 +19,50 @@ const std::unordered_map<OpId, std::string> CodeGenVisitor::opid_to_ffi = {
 CodeGenVisitor::CodeGenVisitor(LLVMGenerator& g) : G(g), isglobal(false) {}
 
 llvm::Value* CodeGenVisitor::visit(mir::valueptr val) {
-  return std::visit(overloaded{
-                        [&](mir::Instructions& inst) { return std::visit(*this, inst); },
-                        [](mir::Constants& c) -> llvm::Value* { return nullptr; },       // TODO
-                        [](mir::Argument& a) -> llvm::Value* { return nullptr; },        // TODO
-                        [](mir::ExternalSymbol& a) -> llvm::Value* { return nullptr; },  // TODO
-                        [](mir::Self& a) -> llvm::Value* { return nullptr; },            // TODO
+  return std::visit(
+      overloaded{
+          [&](mir::Instructions& inst) { return std::visit(*this, inst); },
+          [](mir::Constants& c) -> llvm::Value* { return nullptr; },                 // TODO
+          [](std::shared_ptr<mir::Argument> a) -> llvm::Value* { return nullptr; },  // TODO
+          [](mir::ExternalSymbol& a) -> llvm::Value* { return nullptr; },            // TODO
+          [](mir::Self& a) -> llvm::Value* { return nullptr; },                      // TODO
 
-                    },
-                    *val);
+      },
+      *val);
 }
 
 void CodeGenVisitor::registerLlvmVal(mir::valueptr mirval, llvm::Value* llvmval) {
   mir_to_llvm.emplace(mirval, llvmval);
 }
+void CodeGenVisitor::registerLlvmVal(std::shared_ptr<mir::Argument> mirval, llvm::Value* llvmval) {
+  mirarg_to_llvm.emplace(mirval, llvmval);
+}
+
 llvm::Value* CodeGenVisitor::getLlvmVal(mir::valueptr mirval) {
+  if (auto* arg = std::get_if<std::shared_ptr<mir::Argument>>(mirval.get())) {
+    auto iter = mirarg_to_llvm.find(*arg);
+    return iter->second;
+  }
   auto iter = mir_to_llvm.find(mirval);
-  assert(iter == mir_to_llvm.end());
+  MMMASSERT(iter == mir_to_llvm.end(), "failed to find llvm value for " + mir::getName(*mirval));
   return iter->second;
 }
 
 llvm::Value* CodeGenVisitor::createAllocation(bool isglobal, llvm::Type* type,
                                               llvm::Value* arraysize = nullptr,
                                               const llvm::Twine& name = "") {
-  llvm::Value* res = nullptr;
-  llvm::Type* t = type;
   if (isglobal) {
+    llvm::Type* t = type;
     auto rawname = "ptr_" + name.str() + "_raw";
     auto size = G.module->getDataLayout().getTypeAllocSize(t);
     const int bitsize = 64;
     auto* sizeinst = llvm::ConstantInt::get(G.ctx, llvm::APInt(bitsize, size, false));
     auto* rawres =
         G.builder->CreateCall(G.module->getFunction("mimium_malloc"), {sizeinst}, rawname);
-    res = G.builder->CreatePointerCast(rawres, llvm::PointerType::get(t, 0), "ptr_" + name);
-    G.setValuetoMap(rawname, rawres);
-  } else {
-    res = G.builder->CreateAlloca(type, arraysize, "ptr_" + name);
+    auto* res = G.builder->CreatePointerCast(rawres, llvm::PointerType::get(t, 0), "ptr_" + name);
+    return res;
   }
-  return res;
+  return G.builder->CreateAlloca(type, arraysize, "ptr_" + name);
 };
 // Create StoreInst if storing to already allocated value
 bool CodeGenVisitor::createStoreOw(std::string varname, llvm::Value* val_to_store) {
@@ -88,8 +94,7 @@ llvm::Value* CodeGenVisitor::operator()(minst::String& i) {
 }
 llvm::Value* CodeGenVisitor::operator()(minst::Allocate& i) {
   // TODO(tomoya) Is a type value for AllocaInst no longer needed?
-  auto* ptr = createAllocation(isglobal, G.getType(i.type), nullptr, i.name);
-  return ptr;
+  return createAllocation(isglobal, G.getType(i.type), nullptr, i.name);
 }
 llvm::Value* CodeGenVisitor::operator()(minst::Ref& i) {  // temporarily unused
   // auto ptrname = "ptr_" + i.lv_name;
@@ -178,13 +183,16 @@ llvm::FunctionType* CodeGenVisitor::createFunctionType(minst::Function& i, bool 
   auto& argtypes = mmmfntype.arg_types;
 
   if (hascapture || i.name == "dsp") {
-    auto captype = types::Ref{G.cc.getCaptureType(i.name)};
-    argtypes.emplace_back(std::move(captype));
-    // auto clsty = llvm::cast<llvm::StructType>(G.getType(captype));
+    std::vector<types::Value> captype_internal;
+    for (auto& fv : i.freevariables) { captype_internal.emplace_back(mir::getType(*fv)); }
+    argtypes.emplace_back(
+        types::Alias{i.name + "_cap", types::Ref{types::Tuple{std::move(captype_internal)}}});
   }
   if (hasmemobj || i.name == "dsp") {
-    auto memobjtype = types::Ref{G.funobj_map.at(i.name)->objtype};
-    argtypes.emplace_back(std::move(memobjtype));
+    std::vector<types::Value> fvtype_internal;
+    for (auto& fv : i.freevariables) { fvtype_internal.emplace_back(mir::getType(*fv)); }
+    argtypes.emplace_back(
+        types::Alias{i.name + "_fv", types::Ref{types::Tuple{std::move(fvtype_internal)}}});
   }
 
   return llvm::cast<llvm::FunctionType>(G.typeconverter(mmmfntype));
@@ -202,7 +210,7 @@ void CodeGenVisitor::addArgstoMap(llvm::Function* f, minst::Function& i, bool ha
   auto* arg = std::begin(f->args());
   for (auto& a : i.args) {
     arg->setName(a->name);
-    registerLlvmVal(std::make_shared<mir::Value>(*a), arg);
+    registerLlvmVal(a, arg);
     std::advance(arg, 1);
   }
   if (hascapture || i.name == "dsp") {

@@ -101,7 +101,7 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Symbol& ast) {
         minst::Load{{mirgen.makeNewName(), mir::getType(*ptrtoload.value())}, ptrtoload.value()});
   }
   if (auto arg = mirgen.tryGetInternalSymbol(ast.value)) {
-    bool is_argument = std::holds_alternative<mir::Argument>(*arg.value());
+    bool is_argument = std::holds_alternative<std::shared_ptr<mir::Argument>>(*arg.value());
     bool is_function = mir::isInstA<minst::Function>(arg.value());
     MMMASSERT(is_argument || is_function,
               "failed to find symbol. Internal symbols should be a pointer for value, argument or "
@@ -129,7 +129,7 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Lambda& ast) {
                              auto& name = lvar.value.value;
                              auto& type = mirgen.typeenv.find(name);
                              auto res = std::make_shared<mir::Argument>(mir::Argument{name, type});
-                             mirgen.symbol_table.emplace(name, std::make_shared<mir::Value>(*res));
+                             mirgen.symbol_table.emplace(name, std::make_shared<mir::Value>(res));
                              return res;
                            }),
       {}};

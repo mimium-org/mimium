@@ -49,7 +49,8 @@ struct ExternalSymbol {
 struct Self;
 using Constants = std::variant<int, double, std::string>;
 
-using Value = std::variant<instruction::Instructions, Constants, ExternalSymbol, Argument, Self>;
+using Value = std::variant<instruction::Instructions, Constants, ExternalSymbol,
+                           std::shared_ptr<Argument>, Self>;
 
 using valueptr = std::shared_ptr<Value>;
 struct Self {
@@ -177,7 +178,7 @@ inline std::string toString(Constants const& inst) {
 inline std::string toString(Value const& inst) {
   return std::visit(overloaded{[](Instructions const& i) { return toString(i); },
                                [](Constants const& i) { return toString(i); },
-                               [](Argument const& i) { return toString(i); },
+                               [](std::shared_ptr<Argument> i) { return toString(*i); },
                                [](Self const & /*i*/) -> std::string { return "self"; },
                                [](auto const& i) { return i.name; }},
                     inst);
@@ -190,20 +191,31 @@ inline std::string getName(Instructions const& inst) {
 inline std::string getName(Value const& val) {
   return std::visit(overloaded{[](Instructions const& i) { return getName(i); },
                                [](Constants const& i) { return toString(i); },
-                               [](Argument const& i) { return toString(i); },
+                               [](std::shared_ptr<Argument> const& i) { return toString(*i); },
                                [](Self const & /*i*/) -> std::string { return "self"; },
                                [](auto const& i) { return i.name; }},
                     val);
+}
+
+inline std::string join(std::vector<std::shared_ptr<Argument>> const& vec,
+                        std::string const& delim) {
+  std::string res;
+  if (!vec.empty()) {
+    res = std::accumulate(std::next(vec.begin()), vec.end(), toString(**vec.begin()),
+                          [&](std::string const& a, std::shared_ptr<Argument> const& b) {
+                            return a + delim + toString(*b);
+                          });
+  }
+  return res;
 }
 
 template <typename T>
 inline std::string join(std::vector<std::shared_ptr<T>> const& vec, std::string const& delim) {
   std::string res;
   if (!vec.empty()) {
-    res = std::accumulate(std::next(vec.begin()), vec.end(), getName(**vec.begin()),
-                          [&](std::string const& a, std::shared_ptr<T> const& b) {
-                            return a + delim + getName(*b);
-                          });
+    res = std::accumulate(
+        std::next(vec.begin()), vec.end(), getName(**vec.begin()),
+        [&](std::string const& a, std::shared_ptr<T> const& b) { return a + delim + getName(*b); });
   }
   return res;
 };
@@ -251,23 +263,23 @@ inline types::Value getType(Instructions const& v) {
 inline types::Value getType(Value const& v) {
   return std::visit(overloaded{[](Instructions const& i) { return getType(i); },
                                [](Constants const& i) { return getType(i); },
+                               [](std::shared_ptr<Argument> i) { return i->type; },
                                [](auto const& i) { return i.type; }},
                     v);
 }
 
-template<class ITYPE>
-ITYPE& getInstRef(valueptr ptr){
+template <class ITYPE>
+ITYPE& getInstRef(valueptr ptr) {
   return std::get<ITYPE>(std::get<Instructions>(*ptr));
 }
 
-template<class ITYPE>
-bool isInstA(valueptr ptr){
-  if(std::holds_alternative<Instructions>(*ptr)){
+template <class ITYPE>
+bool isInstA(valueptr ptr) {
+  if (std::holds_alternative<Instructions>(*ptr)) {
     return std::holds_alternative<ITYPE>(std::get<Instructions>(*ptr));
   }
   return false;
 }
-
 
 }  // namespace mir
 }  // namespace mimium
