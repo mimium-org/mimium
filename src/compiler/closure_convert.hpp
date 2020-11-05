@@ -39,7 +39,7 @@ class ClosureConverter {
 
   struct CCVisitor {
     explicit CCVisitor(ClosureConverter& cc, std::list<mir::valueptr>::iterator& position)
-        : cc(cc), position(position) {}
+        : cc(cc) {}
 
     ClosureConverter& cc;
     std::list<mir::valueptr> fvlist;
@@ -47,7 +47,6 @@ class ClosureConverter {
 
     std::list<mir::valueptr>::iterator position;
 
-    void updatepos() { ++position; }
     void checkFreeVar(mir::valueptr val);
     void checkFreeVar(mir::blockptr block);
     // void registerFv(std::string& name);
@@ -76,12 +75,21 @@ class ClosureConverter {
     }
     void visit(mir::Instructions& i) { std::visit(*this, i); }
 
+    mir::valueptr instance_holder=nullptr;
    private:
-    static void visitinsts(minst::Function& i, CCVisitor& ccvis);
+    void visitinsts(minst::Function& i, CCVisitor& ccvis);
     minst::MakeClosure createClosureInst(types::Function ftype, types::Alias fvtype,
                                          std::string& lv_name);
     void dump();
 
+
+    // helper function to get pointer of actual instance in visitor function.
+    // it validates raw pointer is really same before evaluation.
+    template<class T> 
+    mir::valueptr getValPtr(T* i){
+      assert(i == &mir::getInstRef<T>(instance_holder));
+      return instance_holder;
+    }
   };
   friend struct CCVisitor;
 };

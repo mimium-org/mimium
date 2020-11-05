@@ -48,9 +48,8 @@ mir::blockptr ClosureConverter::convert(mir::blockptr toplevel) {
   for (auto it = inss.begin(), end = inss.end(); it != end; ++it) {
     auto& cinst = *it;
     ccvis.position = it;
-    if (auto* i = std::get_if<mir::Instructions>(cinst.get())) {
-      if (std::holds_alternative<mir::instruction::Function>(*i)) { ccvis.visit(*cinst); }
-    }
+    ccvis.instance_holder = cinst;
+    ccvis.visit(*cinst);
   }
   // std::visit(typereplacer, cinst);
 
@@ -80,7 +79,7 @@ void ClosureConverter::CCVisitor::checkFreeVar(mir::valueptr val) {
     bool has_different_root = mir::getParent(*iptr) != this->block_ctx;
     if (!isfun && has_different_root) { fvlist.emplace_back(val); }
   }
-=}
+}
 
 void ClosureConverter::CCVisitor::checkFreeVar(mir::blockptr block) {
   for (auto& inst : block->instructions) { checkFreeVar(inst); }
@@ -98,6 +97,8 @@ void ClosureConverter::CCVisitor::checkFreeVar(mir::blockptr block) {
 void ClosureConverter::CCVisitor::visitinsts(minst::Function& i, CCVisitor& ccvis) {
   for (auto it = i.body->instructions.begin(), end = i.body->instructions.end(); it != end; ++it) {
     ccvis.position = it;
+    mir::valueptr instance = *it;
+    ccvis.instance_holder = instance;
     if (auto* i = std::get_if<mir::Instructions>(it->get())) { std::visit(ccvis, *i); }
     // std::visit(cc.typereplacer, child);
   }
@@ -106,59 +107,54 @@ void ClosureConverter::CCVisitor::visitinsts(minst::Function& i, CCVisitor& ccvi
 void ClosureConverter::CCVisitor::operator()(minst::Function& i) {
   auto pos = std::begin(i.body->instructions);
   auto ccvis = CCVisitor(cc, pos);
-  auto ptr = *pos;
   auto know_function_tmp = cc.known_functions;  // copy
-  auto stored_fn_iter = cc.known_functions.insert(cc.known_functions.end(), ptr);
+  auto stored_fn_iter = cc.known_functions.insert(cc.known_functions.end(), getValPtr(&i));
   this->block_ctx = i.body;
   bool checked = false;
-checkpoint:
+  // first, try assuming the function is not a closure.
   visitinsts(i, ccvis);
-  if (!fvlist.empty()) {
-    cc.known_functions = know_function_tmp;
-    if (!checked) {
-      checked = true;
-      goto checkpoint;  // NOLINT
+  // when the function was really not a closure, end.
+  if (fvlist.empty()) { return; }
+  // if the function refers free variable, try conversion again-
+  // by assuming the function is closure.
+
+  cc.known_functions.erase(stored_fn_iter);
+  // cc.known_functions = know_function_tmp;//reset state
+
+  visitinsts(i, ccvis);
+  // if (i.isrecursive) {//to replace recursive call to appcls
+  //   visitinsts(i, ccvis,pos);
+  // }
+  // make closure
+  std::vector<types::Value> fvtype_inside;
+  fvtype_inside.reserve(fvlist.size());
+  auto it = std::begin(fvlist);
+  for (auto& fv : fvlist) {
+    bool isrecurse = mir::toString(*fv) == i.name;
+    if (!isrecurse) {
+      auto ft = mir::getType(*fv);
+      fvtype_inside.emplace_back(types::Ref{ft});
+    } else {
+      fvlist.erase(it);
     }
-    // if (i.isrecursive) {//to replace recursive call to appcls
-    //   visitinsts(i, ccvis,pos);
-    // }
-    // make closure
-    std::vector<types::Value> fvtype_inside;
-    fvtype_inside.reserve(fvlist.size());
-    auto it = std::begin(fvlist);
-    for (auto& fv : fvlist) {
-      bool isrecurse = mir::toString(*fv) == i.name;
-      if (!isrecurse) {
-        auto ft = mir::getType(*fv);
-        // if (rv::holds_alternative<types::Function>(ft)) { ft = cc.typeenv.find(fv + "_cls"); }
-        fvtype_inside.emplace_back(types::Ref{ft});
-      } else {
-        fvlist.erase(it);
-      }
-      ++it;
-    }
-    std::vector<mir::valueptr> fvlistvec;
-    std::transform(fvlist.begin(), fvlist.end(), std::back_inserter(fvlistvec),
-                   [](auto& i) { return i; });
-    i.freevariables = fvlistvec;  // copy;
-
-    // do not use auto here, move happens...
-    types::Alias fvtype{cc.makeCaptureName(), types::Tuple{fvtype_inside}};
-    types::Function ftype = rv::get<types::Function>(i.type);
-    // types::Alias clstype{cc.makeClosureTypeName(),
-    //                      types::Closure{types::Ref{types::Function{ftype}},
-    //                      types::Alias{fvtype}}};
-
-    auto makecls = createClosureInst(ftype, fvtype, i.name);
-
-    i.parent->instructions.insert(std::next(position),
-                                  std::make_shared<mir::Value>(std::move(makecls)));
-
-    // replace original function type
-    // cc.typeenv.emplace(i.lv_name, clstype);
-    // auto& ft = std::get<Box<types::Function>>(i.type).getraw();
-    // ft.arg_types.emplace_back(fvtype);
+    ++it;
   }
+  std::vector<mir::valueptr> fvlistvec;
+  std::transform(fvlist.begin(), fvlist.end(), std::back_inserter(fvlistvec),
+                 [](auto& i) { return i; });
+  i.freevariables = fvlistvec;  // copy;
+
+  // do not use auto here, move happens...
+  types::Alias fvtype{cc.makeCaptureName(), types::Tuple{fvtype_inside}};
+  types::Function ftype = rv::get<types::Function>(i.type);
+  // types::Alias clstype{cc.makeClosureTypeName(),
+  //                      types::Closure{types::Ref{types::Function{ftype}},
+  //                      types::Alias{fvtype}}};
+
+  auto makecls = createClosureInst(ftype, fvtype, i.name);
+
+  i.parent->instructions.insert(std::next(position),
+                                std::make_shared<mir::Value>(std::move(makecls)));
 }
 minst::MakeClosure ClosureConverter::CCVisitor::createClosureInst(types::Function ftype,
                                                                   types::Alias fvtype,
@@ -178,26 +174,14 @@ minst::MakeClosure ClosureConverter::CCVisitor::createClosureInst(types::Functio
 void ClosureConverter::CCVisitor::operator()(minst::Ref& i) { checkFreeVar(i.target); }
 
 void ClosureConverter::CCVisitor::operator()(minst::Load& i) { checkFreeVar(i.target); }
-void ClosureConverter::CCVisitor::operator()(minst::Store& i) {
-  checkFreeVar(i.target);
-  checkFreeVar(i.value);
-}
-void ClosureConverter::CCVisitor::operator()(minst::Op& i) {
-  if (i.lhs.has_value()) { checkFreeVar(i.lhs.value()); }
-  checkFreeVar(i.rhs);
-}
+void ClosureConverter::CCVisitor::operator()(minst::Store& i) { checkFreeVar(i.target); }
+void ClosureConverter::CCVisitor::operator()(minst::Op& i) {}
 
 void ClosureConverter::CCVisitor::operator()(minst::Fcall& i) {
-  for (auto& a : i.args) { checkFreeVar(a); }
-  if (i.time) { checkFreeVar(i.time.value()); }
   if (cc.isKnownFunction(i.fname)) {
     i.ftype = DIRECT;
   } else {
-    if (i.ftype != EXTERNAL) {
-      i.ftype = CLOSURE;
-      // auto clsname = i.fname+"_cls";
-      checkFreeVar(i.fname);
-    }
+    if (i.ftype != EXTERNAL) { i.ftype = CLOSURE; }
   }
 }
 
@@ -206,14 +190,9 @@ void ClosureConverter::CCVisitor::operator()(minst::MakeClosure& i) {
   // localvlist.push_back(i.lv_name);
 }
 
-void ClosureConverter::CCVisitor::operator()(minst::Array& i) {
-  for (auto& e : i.args) { checkFreeVar(e); }
-}
+void ClosureConverter::CCVisitor::operator()(minst::Array& i) {}
 
-void ClosureConverter::CCVisitor::operator()(minst::Field& i) {
-  checkFreeVar(i.target);
-  checkFreeVar(i.index);
-}
+void ClosureConverter::CCVisitor::operator()(minst::Field& i) { checkFreeVar(i.target); }
 
 void ClosureConverter::CCVisitor::operator()(minst::If& i) {
   checkFreeVar(i.cond);
@@ -221,6 +200,5 @@ void ClosureConverter::CCVisitor::operator()(minst::If& i) {
   if (i.elseblock.has_value()) { checkFreeVar(i.elseblock.value()); }
 }
 
-void ClosureConverter::CCVisitor::operator()(minst::Return& i) { checkFreeVar(i.val); }
-
+void ClosureConverter::CCVisitor::operator()(minst::Return& i) {}
 }  // namespace mimium
