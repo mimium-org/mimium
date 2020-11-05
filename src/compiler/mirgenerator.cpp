@@ -99,6 +99,14 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Symbol& ast) {
     return mirgen.emplace(
         minst::Load{{mirgen.makeNewName(), mir::getType(*ptrtoload.value())}, ptrtoload.value()});
   }
+  if (auto arg = mirgen.tryGetInternalSymbol(ast.value)) {
+    bool is_argument = std::holds_alternative<mir::Argument>(*arg.value());
+    bool is_function = mir::isInstA<minst::Function>(arg.value());
+    MMMASSERT(is_argument || is_function,
+              "failed to find symbol. Internal symbols should be a pointer for value, argument or "
+              "function")
+    return arg.value();
+  }
   if (LLVMBuiltin::isBuiltin(ast.value)) {
     return mirgen.getOrGenExternalSymbol(ast.value,
                                          LLVMBuiltin::ftable.find(ast.value)->second.mmmtype);

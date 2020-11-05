@@ -260,5 +260,14 @@ ITYPE& getInstRef(valueptr ptr){
   return std::get<ITYPE>(std::get<Instructions>(*ptr));
 }
 
+template<class ITYPE>
+bool isInstA(valueptr ptr){
+  if(std::holds_alternative<Instructions>(*ptr)){
+    return std::holds_alternative<ITYPE>(std::get<Instructions>(*ptr));
+  }
+  return false;
+}
+
+
 }  // namespace mir
 }  // namespace mimium
