@@ -47,7 +47,9 @@ llvm::Value* CodeGenVisitor::getLlvmVal(mir::valueptr mirval) {
 
   if (auto* arg = std::get_if<std::shared_ptr<mir::Argument>>(mirval.get())) {
     auto iter = mirarg_to_llvm.find(*arg);
-    return iter->second;
+    // maybe, value is not contained in mirarg_to_llvm because the value might points argument of
+    // outer function.
+    if (iter != mirarg_to_llvm.end()) { return iter->second; }
   }
   {
     auto iter = mir_to_llvm.find(mirval);
@@ -55,7 +57,7 @@ llvm::Value* CodeGenVisitor::getLlvmVal(mir::valueptr mirval) {
   }
   {
     auto iter = mirfv_to_llvm.find(mirval);
-    if (iter != mir_to_llvm.end()) { return iter->second; }
+    if (iter != mirfv_to_llvm.end()) { return iter->second; }
   }
   MMMASSERT(false, "failed to find llvm value for " + mir::getName(*mirval));
   return nullptr;
@@ -274,20 +276,21 @@ llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
   llvm::Value* res;
   bool isclosure = i.ftype == CLOSURE;
   std::vector<llvm::Value*> args;
-  auto m = G.variable_map[G.curfunc];
   for (auto& a : i.args) { args.emplace_back(getLlvmVal(a)); }
-  auto f = std::get<minst::Function>(std::get<mir::Instructions>(*i.fname));
-  if (f.freevariables.size() > 0) {
-    // TODO: append memory address made by MakeClosureInst
-  }
-  if (f.memory_objects.size() > 0) {
-    // TODO: append memory address made by memobj collector
-  }
+  //TODO: for closure
+  // if (f.freevariables.size() > 0) {
+  //   // TODO: append memory address made by MakeClosureInst
+  // }
+  // if (f.memory_objects.size() > 0) {
+  //   // TODO: append memory address made by memobj collector
+  // }
 
   llvm::Value* fun = nullptr;
   switch (i.ftype) {
     case DIRECT: fun = getDirFun(i); break;
-    case CLOSURE: fun = getClsFun(i); break;
+    case CLOSURE: fun = getClsFun(i); 
+    args.push_back()
+    break;
     case EXTERNAL: fun = getExtFun(i); break;
     default: break;
   }
@@ -295,17 +298,27 @@ llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
   if (i.time) {  // if arguments is timed value, call addTask
     res = createAddTaskFn(i, isclosure, isglobal);
   } else {
-    res = G.builder->CreateCall(fun, args);
+    res = G.builder->CreateCall(fun, args,i.name);
   }
   return res;
 }
 llvm::Value* CodeGenVisitor::getDirFun(minst::Fcall& i) {
   auto* fun = llvm::cast<llvm::Function>(getLlvmVal(i.fname));
-  fun->setLinkage(llvm::GlobalValue::InternalLinkage);
   if (fun == nullptr) { throw std::runtime_error("function could not be referenced"); }
   return fun;
 }
-llvm::Value* CodeGenVisitor::getClsFun(minst::Fcall& i) { return getDirFun(i); }
+llvm::Value* CodeGenVisitor::getClsFun(minst::Fcall& i) { 
+  auto llvar = getLlvmVal(i.fname);
+  llvar->print(llvm::errs(),nullptr);
+  
+  auto* fptype = llvm::cast<llvm::PointerType>(getLlvmVal(i.fname)->getType());
+  auto* ftype = llvm::cast<llvm::FunctionType>(fptype->getElementType());
+  G.dumpvar(ftype);
+  assert(ftype!=nullptr);
+  return getLlvmVal(i.fname); 
+
+  
+  }
 llvm::Value* CodeGenVisitor::getExtFun(minst::Fcall& i) {
   auto fun = std::get<minst::Function>(std::get<mir::Instructions>(*i.fname));
 
