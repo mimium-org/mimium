@@ -189,6 +189,7 @@ void LLVMGenerator::preprocess() {
 void LLVMGenerator::visitInstructions(mir::valueptr inst, bool isglobal) {
   codegenvisitor->isglobal = isglobal;
   if (auto* i = std::get_if<mir::Instructions>(inst.get())) {
+    codegenvisitor->instance_holder = inst;
     llvm::Value* res = std::visit(*codegenvisitor, *i);
     codegenvisitor->registerLlvmVal(inst, res);
   }
@@ -232,6 +233,7 @@ void LLVMGenerator::setValuetoMap(std::string name, llvm::Value* val) {
 void LLVMGenerator::outputToStream(llvm::raw_ostream& stream) {
   module->print(stream, nullptr, false, true);
 }
+
 
 void LLVMGenerator::dumpvars() {
   for (auto& [f, map] : variable_map) {
