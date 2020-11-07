@@ -136,7 +136,6 @@ std::string toString(Fcall const& i);
 struct MakeClosure : public Base {
   valueptr fname;
   std::vector<valueptr> captures;
-  types::Value capturetype;
 };
 std::string toString(MakeClosure const& i);
 

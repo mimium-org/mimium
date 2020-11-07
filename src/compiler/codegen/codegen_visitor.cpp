@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #include "compiler/codegen/codegen_visitor.hpp"
+#include "compiler/codegen/llvmgenerator.hpp"
 
 namespace mimium {
 using OpId = ast::OpId;
@@ -200,10 +201,10 @@ llvm::FunctionType* CodeGenVisitor::createFunctionType(minst::Function& i, bool 
   auto& argtypes = mmmfntype.arg_types;
 
   if (hascapture || i.name == "dsp") {
-    std::vector<types::Value> captype_internal;
-    for (auto& fv : i.freevariables) { captype_internal.emplace_back(mir::getType(*fv)); }
-    argtypes.emplace_back(
-        types::Alias{i.name + "_cap", types::Ref{types::Tuple{std::move(captype_internal)}}});
+    // std::vector<types::Value> captype_internal;
+    // for (auto& fv : i.freevariables) { captype_internal.emplace_back(mir::getType(*fv)); }
+    // argtypes.emplace_back(
+    //     types::Alias{i.name + "_cap", types::Ref{types::Tuple{std::move(captype_internal)}}});
   }
   if (hasmemobj || i.name == "dsp") {
     std::vector<types::Value> fvtype_internal;
@@ -277,7 +278,7 @@ llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
   bool isclosure = i.ftype == CLOSURE;
   std::vector<llvm::Value*> args;
   for (auto& a : i.args) { args.emplace_back(getLlvmVal(a)); }
-  //TODO: for closure
+  // TODO: for closure
   // if (f.freevariables.size() > 0) {
   //   // TODO: append memory address made by MakeClosureInst
   // }
@@ -288,9 +289,7 @@ llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
   llvm::Value* fun = nullptr;
   switch (i.ftype) {
     case DIRECT: fun = getDirFun(i); break;
-    case CLOSURE: fun = getClsFun(i); 
-    args.push_back()
-    break;
+    case CLOSURE: fun = getClsFun(i); break;
     case EXTERNAL: fun = getExtFun(i); break;
     default: break;
   }
@@ -298,7 +297,7 @@ llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
   if (i.time) {  // if arguments is timed value, call addTask
     res = createAddTaskFn(i, isclosure, isglobal);
   } else {
-    res = G.builder->CreateCall(fun, args,i.name);
+    res = G.builder->CreateCall(fun, args, i.name);
   }
   return res;
 }
@@ -307,18 +306,13 @@ llvm::Value* CodeGenVisitor::getDirFun(minst::Fcall& i) {
   if (fun == nullptr) { throw std::runtime_error("function could not be referenced"); }
   return fun;
 }
-llvm::Value* CodeGenVisitor::getClsFun(minst::Fcall& i) { 
+llvm::Value* CodeGenVisitor::getClsFun(minst::Fcall& i) {
   auto llvar = getLlvmVal(i.fname);
-  llvar->print(llvm::errs(),nullptr);
-  
   auto* fptype = llvm::cast<llvm::PointerType>(getLlvmVal(i.fname)->getType());
   auto* ftype = llvm::cast<llvm::FunctionType>(fptype->getElementType());
-  G.dumpvar(ftype);
-  assert(ftype!=nullptr);
-  return getLlvmVal(i.fname); 
-
-  
-  }
+  assert(ftype != nullptr);
+  return getLlvmVal(i.fname);
+}
 llvm::Value* CodeGenVisitor::getExtFun(minst::Fcall& i) {
   auto fun = std::get<minst::Function>(std::get<mir::Instructions>(*i.fname));
 
@@ -363,30 +357,22 @@ llvm::Value* CodeGenVisitor::createAddTaskFn(minst::Fcall& i, const bool isclosu
 // store the capture address to memory
 llvm::Value* CodeGenVisitor::operator()(minst::MakeClosure& i) {
   // auto& capturenames = G.cc.getCaptureNames(i.fname);
-  // auto* closuretype = G.getType(G.cc.getCaptureType(i.fname));
+  assert(types::isClosure(i.type) && "closure type is invalid");
+  auto clstype = rv::get<types::Closure>(rv::get<types::Alias>(i.type).target);
+  auto* targetf = getLlvmVal(i.fname);
 
-  // auto* targetf = G.module->getFunction(i.fname);
-
-  // auto captureptrname = "ptr_" + i.fname + ".cap";
   // // always heap allocation!
-  // auto* capture_ptr = createAllocation(true, closuretype, nullptr, captureptrname);
-  // auto* fun_ptr =
-  //     G.builder->CreateStructGEP(closure_ptr, 0, i.lv_name + "_fun_ptr");
-  // G.builder->CreateStore(targetf, fun_ptr);
-  // auto* capture_ptr =
-  //     G.builder->CreateStructGEP(closure_ptr, 1, i.lv_name +
-  //     "_capture_ptr");
-  // unsigned int idx = 0;
-  // for (auto& cap : capturenames) {
-  //   llvm::Value* fv = G.tryfindValue("ptr_" + cap);
-  //   if (fv == nullptr) { fv = G.findValue("ptr_" + cap + ".cap"); }
-  //   auto* gep = G.builder->CreateStructGEP(capture_ptr, idx, "capture_" + cap);
-  //   G.builder->CreateStore(fv, gep);
-  //   idx += 1;
-  // }
-  // G.setValuetoMap(i.lv_name + "_capture_ptr", capture_ptr);
-  // G.setValuetoMap(captureptrname, capture_ptr);
-  // G.setValuetoMap("ptr_" + closureptrname, closure_ptr);
+  auto* closure_ptr = createAllocation(true, G.getType(i.type), nullptr, i.name);
+
+  auto* fun_ptr = G.builder->CreateStructGEP(closure_ptr, 0, i.name + "_fun_ptr");
+  G.builder->CreateStore(targetf, fun_ptr);
+  auto* capture_ptr = G.builder->CreateStructGEP(closure_ptr, 1, i.name + "_capture_ptr");
+  unsigned int idx = 0;
+  for (auto& cap : i.captures) {
+    auto* gep = G.builder->CreateStructGEP(capture_ptr, idx++, "capture_" + mir::getName(*cap));
+    G.builder->CreateStore(getLlvmVal(cap), gep);
+  }
+  return closure_ptr;
 }
 llvm::Value* CodeGenVisitor::operator()(minst::Array& i) {}
 // void CodeGenVisitor::operator()(minst::ArrayAccess& i) {

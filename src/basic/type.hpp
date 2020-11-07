@@ -240,6 +240,16 @@ inline bool isPrimitive(const Value& v) {
       [](auto& a) { return std::is_base_of_v<PrimitiveType, std::decay_t<decltype(a)>>; }, v);
 }
 
+inline bool isClosure(const Value&v){
+  if(std::holds_alternative<rClosure>(v)){
+    return true;
+  }
+  if(const auto* alias = std::get_if<Box<Alias>>(&v)){
+    return std::holds_alternative<rClosure>(alias->getraw().target);
+  }
+  return false;
+}
+
 }  // namespace types
 
 class TypeEnv {

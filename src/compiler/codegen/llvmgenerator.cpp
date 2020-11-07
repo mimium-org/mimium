@@ -234,7 +234,14 @@ void LLVMGenerator::outputToStream(llvm::raw_ostream& stream) {
   module->print(stream, nullptr, false, true);
 }
 
-
+void LLVMGenerator::dumpvar(llvm::Value* v) {
+  v->print(llvm::errs(), true);
+  llvm::errs() << "\n";
+}
+void LLVMGenerator::dumpvar(llvm::Type* v) {
+  v->print(llvm::errs(), true);
+  llvm::errs() << "\n";
+}
 void LLVMGenerator::dumpvars() {
   for (auto& [f, map] : variable_map) {
     llvm::errs() << f->getName() << ":\n";

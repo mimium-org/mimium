@@ -24,7 +24,6 @@ class ClosureConverter {
   auto& getCaptureNames(const std::string& fname) { return fvinfo[fname]; }
   auto& getCaptureType(const std::string& fname) { return clstypeenv[fname]; }
   // void dump();
-
  private:
   TypeEnv& typeenv;
   mir::blockptr toplevel;
@@ -34,6 +33,7 @@ class ClosureConverter {
   std::unordered_map<std::string, std::vector<std::string>> fvinfo;
   // fname: types::Tuple(...)
   std::unordered_map<std::string, types::Value> clstypeenv;
+  std::unordered_map<mir::valueptr, mir::valueptr> fn_to_cls;
 
   void moveFunToTop(mir::blockptr mir);
   bool isKnownFunction(mir::valueptr fn);
@@ -53,6 +53,9 @@ class ClosureConverter {
     void checkFreeVar(mir::valueptr val);
     void checkFreeVar(mir::blockptr block);
     void checkFreeVarArg(mir::valueptr val);
+    void checkVariable(mir::valueptr& val, bool ismemoryvalue = false);
+    void tryReplaceFntoCls(mir::valueptr& val);
+
     // void registerFv(std::string& name);
     void operator()(minst::Ref& i);
     void operator()(minst::Load& i);
@@ -79,18 +82,19 @@ class ClosureConverter {
     }
     void visit(mir::Instructions& i) { std::visit(*this, i); }
 
-    mir::valueptr instance_holder=nullptr;
+    mir::valueptr instance_holder = nullptr;
+
    private:
     void visitinsts(minst::Function& i, CCVisitor& ccvis);
-    minst::MakeClosure createClosureInst(types::Function ftype, types::Alias fvtype,
+    minst::MakeClosure createClosureInst(mir::valueptr fnptr,
+                                         std::vector<mir::valueptr> const& fvs, types::Alias fvtype,
                                          std::string& lv_name);
     void dump();
 
-
     // helper function to get pointer of actual instance in visitor function.
     // it validates raw pointer is really same before evaluation.
-    template<class T> 
-    mir::valueptr getValPtr(T* i){
+    template <class T>
+    mir::valueptr getValPtr(T* i) {
       assert(i == &mir::getInstRef<T>(instance_holder));
       return instance_holder;
     }

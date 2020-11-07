@@ -79,14 +79,8 @@ class LLVMGenerator {
 
   void outputToStream(llvm::raw_ostream& ostream);
   void dumpvars();
-  static void dumpvar(llvm::Value* v) {
-    v->print(llvm::errs(), true);
-    llvm::errs() << "\n";
-  }
-  static void dumpvar(llvm::Type* v) {
-    v->print(llvm::errs(), true);
-    llvm::errs() << "\n";
-  }
+  static void dumpvar(llvm::Value* v);
+  static void dumpvar(llvm::Type* v);
   auto getConstInt(int v, const int bitsize = 64) {
     return llvm::ConstantInt::get(builder->getInt64Ty(), llvm::APInt(bitsize, v));
   }
