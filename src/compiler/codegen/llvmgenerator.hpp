@@ -3,19 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
-#include "basic/helper_functions.hpp"
-#include "basic/mir.hpp"
-#include "compiler/closure_convert.hpp"
-#include "compiler/codegen/llvm_header.hpp"
-#include "compiler/codegen/typeconverter.hpp"
-#include "compiler/collect_memoryobjs.hpp"
-#include "compiler/ffi.hpp"
 
-#include "compiler/codegen/codegen_visitor.hpp"
+#include "basic/mir.hpp"
+#include "compiler/codegen/llvm_header.hpp"
+#include "compiler/ffi.hpp"
 
 namespace mimium {
 struct LLVMBuiltin;
 struct CodeGenVisitor;
+struct TypeConverter;
+struct FunObjTree;
+using funobjmap = std::unordered_map<std::string, std::shared_ptr<FunObjTree>>;
 class LLVMGenerator {
   friend struct CodeGenVisitor;
 
@@ -26,11 +24,9 @@ class LLVMGenerator {
   std::unique_ptr<llvm::IRBuilder<>> builder;
   llvm::BasicBlock* mainentry;
   llvm::BasicBlock* currentblock;
-  funobjmap funobj_map;
   TypeEnv& typeenv;
-  TypeConverter typeconverter;
+  std::unique_ptr<TypeConverter> typeconverter;
   std::shared_ptr<CodeGenVisitor> codegenvisitor;
-  ClosureConverter& cc;
   std::vector<std::string> overwritten_vars;
   llvm::FunctionCallee addtask;
   llvm::FunctionCallee addtask_cls;
@@ -66,7 +62,7 @@ class LLVMGenerator {
   void dropAllReferences();
 
  public:
-  LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv, ClosureConverter& cc);
+  LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv);
 
   llvm::Module& getModule() { return *module; }
   auto moveModule() { return std::move(module); }
@@ -75,7 +71,7 @@ class LLVMGenerator {
   void setDataLayout(const llvm::DataLayout& dl);
   void reset(std::string filename);
   void setBB(llvm::BasicBlock* newblock);
-  void generateCode(mir::blockptr mir, funobjmap const& funobjs);
+  void generateCode(mir::blockptr mir, const funobjmap* funobjs);
 
   void outputToStream(llvm::raw_ostream& ostream);
   void dumpvars();

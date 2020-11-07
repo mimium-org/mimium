@@ -3,14 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
-#include "compiler/codegen/llvmgenerator.hpp"
+#include "basic/mir.hpp"
+#include "compiler/codegen/llvm_header.hpp"
 
 namespace mimium {
 namespace minst = mir::instruction;
 class LLVMGenerator;
-struct CodeGenVisitor : public std::enable_shared_from_this<CodeGenVisitor> {
+struct FunObjTree;
+using funobjmap = std::unordered_map<std::string, std::shared_ptr<FunObjTree>>;
+struct CodeGenVisitor {
   friend LLVMGenerator;
-  CodeGenVisitor(LLVMGenerator& g);
+  CodeGenVisitor(LLVMGenerator& g,const funobjmap* funobj_map);
   llvm::Value* operator()(minst::Number& i);
   llvm::Value* operator()(minst::String& i);
   llvm::Value* operator()(minst::Allocate& i);
@@ -41,6 +44,7 @@ struct CodeGenVisitor : public std::enable_shared_from_this<CodeGenVisitor> {
   std::unordered_map<std::shared_ptr<mir::Argument>, llvm::Value*> mirarg_to_llvm;
 
   LLVMGenerator& G;
+  const funobjmap* funobj_map;
   bool isglobal;
   bool context_hasself;
   llvm::Value* getDirFun(minst::Fcall& i);

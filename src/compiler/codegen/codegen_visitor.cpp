@@ -4,6 +4,8 @@
 
 #include "compiler/codegen/codegen_visitor.hpp"
 #include "compiler/codegen/llvmgenerator.hpp"
+#include "compiler/codegen/typeconverter.hpp"
+#include "compiler/collect_memoryobjs.hpp"
 
 namespace mimium {
 using OpId = ast::OpId;
@@ -17,7 +19,8 @@ const std::unordered_map<OpId, std::string> CodeGenVisitor::opid_to_ffi = {
 };
 
 // Creates Allocation instruction or call malloc function depends on context
-CodeGenVisitor::CodeGenVisitor(LLVMGenerator& g) : G(g), isglobal(false) {}
+CodeGenVisitor::CodeGenVisitor(LLVMGenerator& g, const funobjmap* funobj_map)
+    : G(g), isglobal(false), funobj_map(funobj_map) {}
 
 llvm::Value* CodeGenVisitor::visit(mir::valueptr val) {
   instance_holder = val;
@@ -213,7 +216,7 @@ llvm::FunctionType* CodeGenVisitor::createFunctionType(minst::Function& i, bool 
         types::Alias{i.name + "_fv", types::Ref{types::Tuple{std::move(fvtype_internal)}}});
   }
 
-  return llvm::cast<llvm::FunctionType>(G.typeconverter(mmmfntype));
+  return llvm::cast<llvm::FunctionType>((*G.typeconverter)(mmmfntype));
 }
 
 llvm::Function* CodeGenVisitor::createFunction(llvm::FunctionType* type, minst::Function& i) {
@@ -254,7 +257,7 @@ void CodeGenVisitor::setMemObj(llvm::Value* memarg, std::string const& name, int
   G.setValuetoMap(name, valload);
 }
 void CodeGenVisitor::setMemObjsToMap(minst::Function& i, llvm::Value* memarg) {
-  auto& fobjtree = G.funobj_map.at(i.name);
+  auto& fobjtree = funobj_map->at(i.name);
   auto& memobjs = fobjtree->memobjs;
   int count = 0;
   // appending order matters! self should be put on last.

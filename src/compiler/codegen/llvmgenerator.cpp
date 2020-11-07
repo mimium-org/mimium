@@ -3,10 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #include "compiler/codegen/llvmgenerator.hpp"
+#include "compiler/codegen/typeconverter.hpp"
+#include "compiler/codegen/codegen_visitor.hpp"
 
 namespace mimium {
 
-LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv, ClosureConverter& cc)
+LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv)
     : ctx(ctx),
       module(std::make_unique<llvm::Module>("no_file_name.mmm", ctx)),
       builder(std::make_unique<llvm::IRBuilder<>>(ctx)),
@@ -14,10 +16,9 @@ LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv, ClosureCo
       currentblock(nullptr),
       curfunc(nullptr),
       typeenv(typeenv),
-      typeconverter(*builder, *module),
-      cc(cc) {}
+      typeconverter(std::make_unique<TypeConverter>(*builder, *module))
+      {}
 void LLVMGenerator::init(std::string filename) {
-  codegenvisitor = std::make_shared<CodeGenVisitor>(*this);
   module->setSourceFileName(filename);
   module->setModuleIdentifier(filename);
   module->setTargetTriple(LLVMGetDefaultTargetTriple());
@@ -36,7 +37,7 @@ void LLVMGenerator::dropAllReferences() {
   if (module != nullptr) { module->dropAllReferences(); }
 }
 
-llvm::Type* LLVMGenerator::getType(types::Value& type) { return std::visit(typeconverter, type); }
+llvm::Type* LLVMGenerator::getType(types::Value& type) { return std::visit(*typeconverter, type); }
 
 llvm::Type* LLVMGenerator::getType(const std::string& name) { return getType(typeenv.find(name)); }
 llvm::Type* LLVMGenerator::getClosureToFunType(types::Value& type) {
@@ -45,7 +46,7 @@ llvm::Type* LLVMGenerator::getClosureToFunType(types::Value& type) {
 
   auto fty = rv::get<types::Function>(clsty.fun.val);
   fty.arg_types.emplace_back(types::Ref{clsty.captures});
-  return typeconverter(fty);
+  return (*typeconverter)(fty);
 }
 void LLVMGenerator::switchToMainFun() {
   setBB(mainentry);
@@ -195,8 +196,8 @@ void LLVMGenerator::visitInstructions(mir::valueptr inst, bool isglobal) {
   }
 }
 
-void LLVMGenerator::generateCode(mir::blockptr mir, funobjmap const& funobjs) {
-  this->funobj_map = funobjs;  // todo: this should be passed as argument to visitor
+void LLVMGenerator::generateCode(mir::blockptr mir,const funobjmap* funobjs) {
+  codegenvisitor = std::make_shared<CodeGenVisitor>(*this,funobjs);
   preprocess();
 
   for (auto& inst : mir->instructions) { visitInstructions(inst, true); }
