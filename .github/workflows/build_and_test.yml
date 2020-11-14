@@ -74,6 +74,7 @@ jobs:
       - if: contains(matrix.os, 'ubuntu')
         run: |
           brew install llvm@9
+          sudo apt-get update
           sudo apt-get install libalsa-ocaml-dev libfl-dev libbison-dev libz-dev libsndfile-dev libopus-dev gcc-9 ninja-build
       - uses: actions/checkout@v2
       - name: configure
