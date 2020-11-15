@@ -323,14 +323,8 @@ llvm::Value* CodeGenVisitor::getClsFun(minst::Fcall& i) {
   return fptr;
 }
 llvm::Value* CodeGenVisitor::getExtFun(minst::Fcall& i) {
-  auto fun = std::get<minst::Function>(std::get<mir::Instructions>(*i.fname));
-
-  auto it = LLVMBuiltin::ftable.find(fun.name);
-  if (it == LLVMBuiltin::ftable.end()) {
-    throw std::runtime_error("could not find external function \"" + fun.name + "\"");
-  }
-  auto f = std::get<minst::Function>(std::get<mir::Instructions>(*i.fname));
-
+  auto fun = std::get<mir::ExternalSymbol>(*i.fname);
+  MMMASSERT(LLVMBuiltin::ftable.count(fun.name)>0,"failed to find external function in llvm conversion.");
   return G.getForeignFunction(fun.name);
 }
 

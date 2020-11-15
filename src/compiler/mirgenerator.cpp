@@ -157,7 +157,7 @@ mir::valueptr MirGenerator::genFcallInst(ast::Fcall& fcall, optvalptr const& whe
     fnptr = genInst(fcall.fn);
   }
   types::Value rettype = mir::getType(*fnptr);
-  auto fnkind = mir::isConstant(*fnptr) ? EXTERNAL : CLOSURE;
+  auto fnkind = std::holds_alternative<mir::ExternalSymbol>(*fnptr) ? EXTERNAL : CLOSURE;
   auto newname = makeNewName();
   auto newargs = transformArgs(fcall.args.args, std::vector<mir::valueptr>{},
                                [&](auto expr) { return require(genInst(expr)); });
