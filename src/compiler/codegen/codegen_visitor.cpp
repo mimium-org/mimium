@@ -55,10 +55,22 @@ llvm::Value* CodeGenVisitor::getLlvmVal(mir::valueptr mirval) {
     // outer function.
     if (iter != mirarg_to_llvm.end()) { return iter->second; }
   }
+
   {
     auto iter = mir_to_llvm.find(mirval);
-    if (iter != mir_to_llvm.end()) { return iter->second; }
+    // fixme: nested if should be split into subroutine
+    if (iter != mir_to_llvm.end()) {
+      if (llvm::isa<llvm::Instruction>(iter->second)) {
+        if (llvm::cast<llvm::Instruction>(iter->second)->getParent() ==
+            G.builder->GetInsertBlock()) {
+          return iter->second;
+        }
+      } else {
+        return iter->second;
+      }
+    }
   }
+
   {
     auto iter = mirfv_to_llvm.find(mirval);
     if (iter != mirfv_to_llvm.end()) { return iter->second; }
