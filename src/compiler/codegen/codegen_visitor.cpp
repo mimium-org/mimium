@@ -279,7 +279,7 @@ void CodeGenVisitor::setFvsToMap(minst::Function& i, llvm::Value* clsarg) {
 }
 
 llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
-  llvm::Value* res;
+  llvm::Value* res = nullptr;
   bool isclosure = i.ftype == CLOSURE;
   std::vector<llvm::Value*> args;
   for (auto& a : i.args) { args.emplace_back(getLlvmVal(a)); }
@@ -305,10 +305,19 @@ llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
   }
 
   if (i.time) {  // if arguments is timed value, call addTask
-    res = createAddTaskFn(i, isclosure, isglobal);
+    createAddTaskFn(i, isclosure, isglobal);
   } else {
-    res = G.builder->CreateCall(fun, args, i.name);
+    if (llvm::cast<llvm::FunctionType>(
+            llvm::cast<llvm::PointerType>(fun->getType())->getElementType())
+            ->getReturnType()
+            ->isVoidTy()) {
+      // if return type is void, llvm cannot have return value
+      G.builder->CreateCall(fun, args);
+    } else {
+      res = G.builder->CreateCall(fun, args, i.name);
+    }
   }
+
   return res;
 }
 llvm::Value* CodeGenVisitor::getDirFun(minst::Fcall& i) {
