@@ -271,8 +271,10 @@ void CodeGenVisitor::setMemObjsToMap(minst::Function& i, llvm::Value* memarg) {
 void CodeGenVisitor::setFvsToMap(minst::Function& i, llvm::Value* clsarg) {
   int count = 0;
   for (auto& fv : i.freevariables) {
-    auto* gep = G.builder->CreateStructGEP(clsarg, count++, "fv");
-    registerLlvmValforFreeVar(fv, gep);
+    auto* gep = G.builder->CreateStructGEP(clsarg, count++, mir::getName(*fv) + "_ptr");
+    // load variable from ptr(closure is reference capture mode)
+    auto* val = G.builder->CreateLoad(gep, mir::getName(*fv));
+    registerLlvmValforFreeVar(fv, val);
   }
 }
 
@@ -310,11 +312,15 @@ llvm::Value* CodeGenVisitor::getDirFun(minst::Fcall& i) {
   return fun;
 }
 llvm::Value* CodeGenVisitor::getClsFun(minst::Fcall& i) {
-  auto llvar = getLlvmVal(i.fname);
-  auto* fptype = llvm::cast<llvm::PointerType>(getLlvmVal(i.fname)->getType());
-  auto* ftype = llvm::cast<llvm::FunctionType>(fptype->getElementType());
-  assert(ftype != nullptr);
-  return getLlvmVal(i.fname);
+  MMMASSERT(
+      std::holds_alternative<mir::instruction::MakeClosure>(std::get<mir::Instructions>(*i.fname)),
+      "function is not a closure");
+  auto* llvar = getLlvmVal(i.fname);
+  auto* fptrptr = G.builder->CreateStructGEP(llvar, 0);
+  auto* fptr = G.builder->CreateLoad(fptrptr, mir::getName(*i.fname));
+  assert(llvm::cast<llvm::FunctionType>(
+             llvm::cast<llvm::PointerType>(fptr->getType())->getElementType()) != nullptr);
+  return fptr;
 }
 llvm::Value* CodeGenVisitor::getExtFun(minst::Fcall& i) {
   auto fun = std::get<minst::Function>(std::get<mir::Instructions>(*i.fname));
