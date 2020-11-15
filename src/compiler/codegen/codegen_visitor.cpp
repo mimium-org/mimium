@@ -284,9 +284,7 @@ llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
   std::vector<llvm::Value*> args;
   for (auto& a : i.args) { args.emplace_back(getLlvmVal(a)); }
   // TODO: for closure
-  // if (f.freevariables.size() > 0) {
-  //   // TODO: append memory address made by MakeClosureInst
-  // }
+
   // if (f.memory_objects.size() > 0) {
   //   // TODO: append memory address made by memobj collector
   // }
@@ -294,7 +292,14 @@ llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
   llvm::Value* fun = nullptr;
   switch (i.ftype) {
     case DIRECT: fun = getDirFun(i); break;
-    case CLOSURE: fun = getClsFun(i); break;
+    case CLOSURE:
+      fun = getClsFun(i);
+      {
+        auto* capptr = G.builder->CreateStructGEP(getLlvmVal(i.fname), 1);
+        auto* cap = G.builder->CreateLoad(capptr);
+        args.emplace_back(capptr);
+      }
+      break;
     case EXTERNAL: fun = getExtFun(i); break;
     default: break;
   }
@@ -324,7 +329,8 @@ llvm::Value* CodeGenVisitor::getClsFun(minst::Fcall& i) {
 }
 llvm::Value* CodeGenVisitor::getExtFun(minst::Fcall& i) {
   auto fun = std::get<mir::ExternalSymbol>(*i.fname);
-  MMMASSERT(LLVMBuiltin::ftable.count(fun.name)>0,"failed to find external function in llvm conversion.");
+  MMMASSERT(LLVMBuiltin::ftable.count(fun.name) > 0,
+            "failed to find external function in llvm conversion.");
   return G.getForeignFunction(fun.name);
 }
 
