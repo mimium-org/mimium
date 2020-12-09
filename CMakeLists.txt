@@ -25,12 +25,12 @@ set(CMAKE_MODULE_LINKER_FLAGS ${CMAKE_MODULE_LINKER_FLAGS} -fuse-ld=lld)
 set(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS} -fuse-ld=lld)
 endif()
 
-message(STATUS "set llvm dir to ${LLVM_DIR}")
 set(CMAKE_FIND_PACKAGE_SORT_ORDER NATURAL)
 SET(CMAKE_FIND_PACKAGE_SORT_DIRECTION DEC)
 # list(APPEND CMAKE_PREFIX_PATH $ENV{LLVM_DIR})
 
 include(cmake/FindLlvm.cmake)
+message(STATUS "set llvm include dir to ${LLVM_INCLUDE_DIRS}, libdir to ${LLVM_LIBDIRS}")
 
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
