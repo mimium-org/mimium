@@ -32,3 +32,4 @@ REGRESSION(regression, "120")
 REGRESSION(closure2, "20015\n")
 
 REGRESSION(tuple, "100\n")
+REGRESSION(fibonacchi, "610\n")

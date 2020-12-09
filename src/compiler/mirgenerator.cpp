@@ -47,12 +47,14 @@ std::pair<optvalptr, mir::blockptr> MirGenerator::generateBlock(ast::Block& bloc
                                                                 std::string label,
                                                                 optvalptr const& fnctx) {
   auto tmpctx = this->block_ctx;
+  auto tmpfnctx = this->fnctx;
   auto blockctx = mir::makeBlock(label, indent_counter++);
   blockctx->parent = fnctx;
   this->fnctx = fnctx;
   this->block_ctx = blockctx;
   auto retptr = exprvisitor(block);
   this->block_ctx = tmpctx;
+  this->fnctx = tmpfnctx;
   auto ret = (retptr == nullptr) ? std::nullopt : std::optional(retptr);
   indent_counter--;
   return {ret, blockctx};
@@ -151,13 +153,24 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Lambda& ast) {
 }
 mir::valueptr MirGenerator::genFcallInst(ast::Fcall& fcall, optvalptr const& when) {
   mir::valueptr fnptr = nullptr;
+  bool is_fn_recursive = false;
   if (auto* fnlabel = std::get_if<ast::Symbol>(fcall.fn.get())) {
-    fnptr = getFunctionSymbol(fnlabel->value, typeenv.find(fnlabel->value));
+    if (fnctx.has_value()) {
+      auto& cur_fn = mir::getInstRef<minst::Function>(fnctx.value());
+      cur_fn.isrecursive |= fnlabel->value == cur_fn.name;
+      is_fn_recursive = cur_fn.isrecursive;
+    }
+    if (is_fn_recursive) {
+      fnptr = this->fnctx.value();
+    } else {
+      fnptr = getFunctionSymbol(fnlabel->value, typeenv.find(fnlabel->value));
+    }
   } else {
     fnptr = genInst(fcall.fn);
   }
   types::Value rettype = mir::getType(*fnptr);
-  auto fnkind = std::holds_alternative<mir::ExternalSymbol>(*fnptr) ? EXTERNAL : CLOSURE;
+  bool is_fn_ext = std::holds_alternative<mir::ExternalSymbol>(*fnptr);
+  auto fnkind = is_fn_ext && !is_fn_recursive ? EXTERNAL : CLOSURE;
   auto newname = makeNewName();
   auto newargs = transformArgs(fcall.args.args, std::vector<mir::valueptr>{},
                                [&](auto expr) { return require(genInst(expr)); });
@@ -227,7 +240,7 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Block& ast) {
     auto val = genInst(ast.expr.value());
     return mirgen.emplace(minst::Return{{mirgen.makeNewName(), mir::getType(*val)}, val});
   }
-  return nullptr;
+  return mirgen.statementvisitor.retvalue.value_or(nullptr);
 }
 
 std::pair<optvalptr, mir::blockptr> MirGenerator::genIfBlock(ast::ExprPtr& block,
@@ -313,7 +326,7 @@ void StatementKnormVisitor::operator()(ast::Assign& ast) {
 }
 void StatementKnormVisitor::operator()(ast::Return& ast) {
   auto val = mirgen.genInst(ast.value);
-  mirgen.emplace(minst::Return{{mirgen.makeNewName(), mir::getType(*val)}, val});
+  retvalue = mirgen.emplace(minst::Return{{mirgen.makeNewName(), mir::getType(*val)}, val});
 }
 // Instructions StatementKnormVisitor::operator()(ast::Declaration& ast){}
 void StatementKnormVisitor::operator()(ast::For& /*ast*/) {

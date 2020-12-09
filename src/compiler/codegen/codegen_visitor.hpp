@@ -47,6 +47,7 @@ struct CodeGenVisitor {
   const funobjmap* funobj_map;
   bool isglobal;
   bool context_hasself;
+  minst::Function* recursivefn_ptr;
   llvm::Value* getDirFun(minst::Fcall& i);
   llvm::Value* getClsFun(minst::Fcall& i);
   llvm::Value* getExtFun(minst::Fcall& i);
@@ -62,7 +63,7 @@ struct CodeGenVisitor {
                                 const llvm::Twine& name);
   bool createStoreOw(std::string varname, llvm::Value* val_to_store);
   llvm::Value* createAddTaskFn(minst::Fcall& i, bool isclosure, bool isglobal);
-  void createIfBody(mir::blockptr& block, llvm::Value* ret_ptr);
+  llvm::Value* createIfBody(mir::blockptr& block);
   const static std::unordered_map<ast::OpId, std::string> opid_to_ffi;
 
   mir::valueptr instance_holder = nullptr;

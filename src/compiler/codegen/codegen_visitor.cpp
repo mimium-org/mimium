@@ -85,7 +85,10 @@ llvm::Value* CodeGenVisitor::getLlvmVal(mir::valueptr mirval) {
     auto iter = mirfv_to_llvm.find(mirval);
     if (iter != mirfv_to_llvm.end()) { return iter->second; }
   }
-  MMMASSERT(false, "failed to find llvm value for " + mir::getName(*mirval));
+#if MIMIUM_DEBUG_BUILD
+  auto asmessage = "failed to find llvm value for " + mir::getName(*mirval);
+  MMMASSERT(false, asmessage.c_str());
+#endif
   return nullptr;
 }
 
@@ -205,7 +208,7 @@ llvm::Value* CodeGenVisitor::operator()(minst::Function& i) {
   if (hasmemobj) { context_hasself = i.hasself; }
   auto* ft = createFunctionType(i, hascapture, hasmemobj);
   auto* f = createFunction(ft, i);
-
+  recursivefn_ptr = &i;
   G.curfunc = f;
   G.variable_map.emplace(f, std::make_shared<LLVMGenerator::namemaptype>());
   G.createNewBasicBlock("entry", f);
@@ -312,18 +315,39 @@ llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
   // }
 
   llvm::Value* fun = nullptr;
-  switch (i.ftype) {
-    case DIRECT: fun = getDirFun(i); break;
-    case CLOSURE:
-      fun = getClsFun(i);
-      {
-        auto* capptr = G.builder->CreateStructGEP(getLlvmVal(i.fname), 1);
-        auto* cap = G.builder->CreateLoad(capptr);
-        args.emplace_back(capptr);
-      }
-      break;
-    case EXTERNAL: fun = getExtFun(i); break;
-    default: break;
+  if (auto* fn_i = std::get_if<mir::Instructions>(i.fname.get())) {
+    // recursive function detection,,,todo:refactor
+    minst::Function* fnptr = nullptr;
+    bool isrecursive = false;
+    if (auto* fnptrraw = std::get_if<minst::Function>(fn_i)) {
+      fnptr = fnptrraw;
+      isrecursive = fnptrraw == recursivefn_ptr;
+    }
+    if (auto* clsptr = std::get_if<minst::MakeClosure>(fn_i)) {
+      auto* fnptr_cls = &mir::getInstRef<minst::Function>(clsptr->fname);
+      isrecursive = fnptr_cls == recursivefn_ptr;
+      fnptr = fnptr_cls;
+    }
+    if (isrecursive) {
+      fun = G.curfunc;
+    } else {
+      goto normalfn;
+    }
+  } else {
+  normalfn:
+    switch (i.ftype) {
+      case DIRECT: fun = getDirFun(i); break;
+      case CLOSURE:
+        fun = getClsFun(i);
+        {
+          auto* capptr = G.builder->CreateStructGEP(getLlvmVal(i.fname), 1);
+          auto* cap = G.builder->CreateLoad(capptr);
+          args.emplace_back(capptr);
+        }
+        break;
+      case EXTERNAL: fun = getExtFun(i); break;
+      default: break;
+    }
   }
 
   if (i.time) {  // if arguments is timed value, call addTask
@@ -450,20 +474,16 @@ llvm::Value* CodeGenVisitor::operator()(minst::Field& i) {
   return G.builder->CreateStructGEP(target, index, "tupleaccess");
 }
 
-void CodeGenVisitor::createIfBody(mir::blockptr& block, llvm::Value* ret_ptr) {
+llvm::Value* CodeGenVisitor::createIfBody(mir::blockptr& block) {
   auto& insts = block->instructions;
-  if (ret_ptr == nullptr) {
-    for (auto&& ti : insts) { visit(ti); }
-  } else {
-    if (!std::holds_alternative<minst::Return>(std::get<mir::Instructions>(*insts.back()))) {
-      throw std::logic_error("non-void block should have minst::Return for last line");
-    }
-    for (auto&& iter = std::begin(insts); iter != std::prev(std::end(insts)); iter++) {
-      visit(*iter);
-    }
-    auto& retinst = std::get<minst::Return>(std::get<mir::Instructions>(*insts.back()));
-    G.builder->CreateStore(getLlvmVal(retinst.val), ret_ptr);
+  if (!std::holds_alternative<minst::Return>(std::get<mir::Instructions>(*insts.back()))) {
+    throw std::logic_error("non-void block should have minst::Return for last line");
   }
+  for (auto&& iter = insts.cbegin(); iter != std::prev(insts.cend()); ++iter) {
+    G.visitInstructions(*iter, false);
+  }
+  auto retinst = mir::getInstRef<minst::Return>(insts.back());
+  return getLlvmVal(retinst.val);
 }
 
 llvm::Value* CodeGenVisitor::operator()(minst::If& i) {
@@ -472,21 +492,31 @@ llvm::Value* CodeGenVisitor::operator()(minst::If& i) {
   auto* cmp = G.builder->CreateFCmpOGT(cond, llvm::ConstantFP::get(G.ctx, llvm::APFloat(0.0)));
   auto* endbb = llvm::BasicBlock::Create(G.ctx, i.name + "_end", G.curfunc);
 
-  llvm::Value* retptr;  // TODO
-  auto* thenbb = llvm::BasicBlock::Create(G.ctx, i.name + "_then", G.curfunc);
+  auto* thenbb = llvm::BasicBlock::Create(G.ctx, i.name + "_then", G.curfunc, endbb);
   G.builder->SetInsertPoint(thenbb);
-  createIfBody(i.thenblock, retptr);
+  auto* thenret = createIfBody(i.thenblock);
+  auto* thenbb_last = G.builder->GetInsertBlock();
+
   G.builder->CreateBr(endbb);
-  auto* elsebb = llvm::BasicBlock::Create(G.ctx, i.name + "_else", G.curfunc);
+  auto* elsebb = llvm::BasicBlock::Create(G.ctx, i.name + "_else", G.curfunc, endbb);
   G.builder->SetInsertPoint(elsebb);
-  if (i.elseblock.has_value()) { createIfBody(i.elseblock.value(), retptr); }
+  llvm::Value* elseret = nullptr;
+  if (i.elseblock.has_value()) { elseret = createIfBody(i.elseblock.value()); }
+
+  auto* elsebb_last = G.builder->GetInsertBlock();
+
   G.builder->CreateBr(endbb);
   G.builder->SetInsertPoint(endbb);
   auto& ifrettype = i.type;
   bool isvoid = std::holds_alternative<types::Void>(ifrettype);
   llvm::Value* res = nullptr;
-  if (!isvoid) { res = G.builder->CreateLoad(retptr, i.name); }
+  if (!isvoid) {
+    auto* phinode = G.builder->CreatePHI(G.getType(i.type), 2);
+    phinode->addIncoming(thenret, thenbb_last);
+    phinode->addIncoming(elseret, elsebb_last);
 
+    res = phinode;
+  }
   G.builder->SetInsertPoint(thisbb);
   G.builder->CreateCondBr(cmp, thenbb, elsebb);
   G.builder->SetInsertPoint(endbb);

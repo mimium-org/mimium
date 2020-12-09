@@ -51,6 +51,7 @@ llvm::Type* LLVMGenerator::getClosureToFunType(types::Value& type) {
 void LLVMGenerator::switchToMainFun() {
   setBB(mainentry);
   currentblock = mainentry;
+  codegenvisitor->recursivefn_ptr=nullptr;
   curfunc = mainentry->getParent();
 }
 llvm::Function* LLVMGenerator::getForeignFunction(const std::string& name) {
