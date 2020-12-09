@@ -45,9 +45,19 @@ void CodeGenVisitor::registerLlvmVal(std::shared_ptr<mir::Argument> mirval, llvm
 void CodeGenVisitor::registerLlvmValforFreeVar(mir::valueptr mirval, llvm::Value* llvmval) {
   mirfv_to_llvm.emplace(mirval, llvmval);
 }
+llvm::Value* CodeGenVisitor::getConstant(const mir::Constants& val) {
+  return std::visit(overloaded{
+                        [&](int v) { return (llvm::Value*)G.getConstInt(v); },
+                        [&](double v) { return (llvm::Value*)G.getConstDouble(v); },
+                        // todo
+                        [](const std::string& v) { return (llvm::Value*)nullptr; },
+                    },
+                    val);
+}
 
 llvm::Value* CodeGenVisitor::getLlvmVal(mir::valueptr mirval) {
-  // search in order of argument -> local variable -> free variable
+  // search in order of constant->argument -> local variable -> free variable
+  if (auto* rawval = std::get_if<mir::Constants>(mirval.get())) { return getConstant(*rawval); }
 
   if (auto* arg = std::get_if<std::shared_ptr<mir::Argument>>(mirval.get())) {
     auto iter = mirarg_to_llvm.find(*arg);
@@ -424,9 +434,20 @@ llvm::Value* CodeGenVisitor::operator()(minst::Array& i) {}
 // }
 llvm::Value* CodeGenVisitor::operator()(minst::Field& i) {
   auto* target = getLlvmVal(i.target);
-  auto* index = getLlvmVal(i.index);
-  auto* tupleptrtype = llvm::PointerType::get(target->getType(), 0);
-  return G.builder->CreateInBoundsGEP(target, {index, G.getZero()}, "tupleaccess");
+  int index = 0;
+  // todo:refactor
+  if (auto* constant = std::get_if<mir::Constants>(i.index.get())) {
+    index =
+        std::visit(overloaded{[](std::string& str) {
+                                throw std::runtime_error("index of field access must be a number");
+                                return 0;
+                              },
+                              [](const auto& v) { return (int)v; }},
+                   *constant);
+  } else {
+    throw std::runtime_error("index of field access must be a Constant.");
+  }
+  return G.builder->CreateStructGEP(target, index, "tupleaccess");
 }
 
 void CodeGenVisitor::createIfBody(mir::blockptr& block, llvm::Value* ret_ptr) {

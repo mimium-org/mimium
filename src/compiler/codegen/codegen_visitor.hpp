@@ -66,7 +66,7 @@ struct CodeGenVisitor {
   const static std::unordered_map<ast::OpId, std::string> opid_to_ffi;
 
   mir::valueptr instance_holder = nullptr;
-
+  llvm::Value* getConstant(const mir::Constants& val);
   template <class T>
   mir::valueptr getValPtr(T* ptr) {
     assert(ptr = &mir::getInstRef<T>(instance_holder));

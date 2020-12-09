@@ -78,8 +78,10 @@ class LLVMGenerator {
   static void dumpvar(llvm::Value* v);
   static void dumpvar(llvm::Type* v);
   auto getConstInt(int v, const int bitsize = 64) {
-    return llvm::ConstantInt::get(builder->getInt64Ty(), llvm::APInt(bitsize, v));
+    return llvm::ConstantInt::get(llvm::IntegerType::get(ctx, bitsize), llvm::APInt(bitsize, v));
   }
+  auto getConstDouble(double v) { return llvm::ConstantFP::get(builder->getDoubleTy(), v); }
+
   auto getZero(const int bitsize = 64) { return getConstInt(0, bitsize); }
 };
 
