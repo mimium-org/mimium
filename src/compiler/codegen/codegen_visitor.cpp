@@ -71,8 +71,8 @@ llvm::Value* CodeGenVisitor::getLlvmVal(mir::valueptr mirval) {
     // fixme: nested if should be split into subroutine
     if (iter != mir_to_llvm.end()) {
       if (llvm::isa<llvm::Instruction>(iter->second)) {
-        if (llvm::cast<llvm::Instruction>(iter->second)->getParent() ==
-            G.builder->GetInsertBlock()) {
+        if (llvm::cast<llvm::Instruction>(iter->second)->getParent()->getParent() ==
+            G.builder->GetInsertBlock()->getParent()) {
           return iter->second;
         }
       } else {
