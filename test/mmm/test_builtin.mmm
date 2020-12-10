@@ -1,4 +1,4 @@
-print(100)
+println(100)
 println(255255255)
 
 println(sin(1.2))
