@@ -29,6 +29,11 @@ namespace fs = std::filesystem;
 
 REGRESSION(regression, "120")
 
+REGRESSION(typeident, R"(3
+3
+2
+)")
+
 REGRESSION(closure2, "20015\n")
 
 REGRESSION(tuple, "100\n")
@@ -36,6 +41,9 @@ REGRESSION(tuple, "100\n")
 REGRESSION(fibonacchi, "610\n")
 
 REGRESSION(ifexpr, "130\n")
+
+
+
 REGRESSION(builtin, \
 R"(100
 2.55255e+08

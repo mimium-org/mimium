@@ -21,16 +21,18 @@ bool ClosureConverter::isKnownFunction(mir::valueptr fn) {
 
 void ClosureConverter::moveFunToTop(mir::blockptr mir) {
   auto& tinsts = toplevel->instructions;
-  for (auto it = mir->instructions.begin(), end = mir->instructions.end(); it != end; ++it) {
+  std::list<decltype(mir->instructions)::iterator> inst_tobe_removed;
+  for (auto &&it = mir->instructions.begin(), end = mir->instructions.end(); it != end; ++it) {
     mir::valueptr cinst = *it;
     if (auto* f = std::get_if<minst::Function>(&std::get<mir::Instructions>(*cinst))) {
       moveFunToTop(f->body);  // recursive call
       if (this->toplevel != mir) {
         tinsts.insert(tinsts.begin(), cinst);  // move on toplevel
-        tinsts.erase(it);
+        inst_tobe_removed.emplace_back(it);
       }
     }
   }
+  for (auto& it : inst_tobe_removed) { mir->instructions.erase(it); }
 }
 
 mir::blockptr ClosureConverter::convert(mir::blockptr toplevel) {
@@ -174,17 +176,18 @@ void ClosureConverter::CCVisitor::operator()(minst::Function& i) {
   //                      types::Closure{types::Ref{types::Function{ftype}},
   //                      types::Alias{fvtype}}};
 
-  auto makecls = std::make_shared<mir::Value>(createClosureInst(fn_ptr, fvsetvec,fvtype, i.name));
+  auto makecls = std::make_shared<mir::Value>(createClosureInst(fn_ptr, fvsetvec, fvtype, i.name));
   cc.fn_to_cls.emplace(fn_ptr, makecls);
   i.parent->instructions.insert(std::next(position), makecls);
 }
 minst::MakeClosure ClosureConverter::CCVisitor::createClosureInst(
-    mir::valueptr fnptr , std::vector<mir::valueptr> const& fvs, types::Alias fvtype,
+    mir::valueptr fnptr, std::vector<mir::valueptr> const& fvs, types::Alias fvtype,
     std::string& lv_name) {
   auto clsname = lv_name + "_cls";
   auto ftype = mir::getType(*fnptr);
   rv::get<types::Function>(ftype).arg_types.emplace_back(types::Ref{fvtype});
-  types::Alias clstype{cc.makeClosureTypeName(), types::Closure{types::Ref{mir::getType(*fnptr)}, fvtype}};
+  types::Alias clstype{cc.makeClosureTypeName(),
+                       types::Closure{types::Ref{mir::getType(*fnptr)}, fvtype}};
   minst::MakeClosure makecls{{clsname, clstype}, fnptr, fvs};
   return makecls;
 }

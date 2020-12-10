@@ -225,8 +225,13 @@ llvm::Value* CodeGenVisitor::operator()(minst::Function& i) {
 }
 llvm::FunctionType* CodeGenVisitor::createFunctionType(minst::Function& i, bool hascapture,
                                                        bool hasmemobj) {
-  auto& mmmfntype = rv::get<types::Function>(i.type);
+  auto mmmfntype = rv::get<types::Function>(i.type);
   auto& argtypes = mmmfntype.arg_types;
+
+  // convert function type to function pointer type for high order function
+  for (auto& atype : argtypes) {
+    if (std::holds_alternative<types::rFunction>(atype)) { atype = types::Pointer{atype}; }
+  }
 
   if (hascapture || i.name == "dsp") {
     // std::vector<types::Value> captype_internal;
@@ -335,18 +340,24 @@ llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
     }
   } else {
   normalfn:
-    switch (i.ftype) {
-      case DIRECT: fun = getDirFun(i); break;
-      case CLOSURE:
-        fun = getClsFun(i);
-        {
-          auto* capptr = G.builder->CreateStructGEP(getLlvmVal(i.fname), 1);
-          auto* cap = G.builder->CreateLoad(capptr);
-          args.emplace_back(capptr);
-        }
-        break;
-      case EXTERNAL: fun = getExtFun(i); break;
-      default: break;
+    if (std::holds_alternative<std::shared_ptr<mir::Argument>>(*i.fname)) {
+      auto* llval = getLlvmVal(i.fname);
+      assert(llvm::cast<llvm::PointerType>(llval->getType())->getElementType()->isFunctionTy());
+      fun = llval;
+    } else {
+      switch (i.ftype) {
+        case DIRECT: fun = getDirFun(i); break;
+        case CLOSURE:
+          fun = getClsFun(i);
+          {
+            auto* capptr = G.builder->CreateStructGEP(getLlvmVal(i.fname), 1);
+            auto* cap = G.builder->CreateLoad(capptr);
+            args.emplace_back(capptr);
+          }
+          break;
+        case EXTERNAL: fun = getExtFun(i); break;
+        default: break;
+      }
     }
   }
 
@@ -372,15 +383,22 @@ llvm::Value* CodeGenVisitor::getDirFun(minst::Fcall& i) {
   return fun;
 }
 llvm::Value* CodeGenVisitor::getClsFun(minst::Fcall& i) {
-  MMMASSERT(
-      std::holds_alternative<mir::instruction::MakeClosure>(std::get<mir::Instructions>(*i.fname)),
-      "function is not a closure");
-  auto* llvar = getLlvmVal(i.fname);
-  auto* fptrptr = G.builder->CreateStructGEP(llvar, 0);
-  auto* fptr = G.builder->CreateLoad(fptrptr, mir::getName(*i.fname));
-  assert(llvm::cast<llvm::FunctionType>(
-             llvm::cast<llvm::PointerType>(fptr->getType())->getElementType()) != nullptr);
-  return fptr;
+  return std::visit(
+      overloaded{[&](mir::Instructions& f) -> llvm::Value* {
+                   assert(std::holds_alternative<mir::instruction::MakeClosure>(f));
+                   auto* llvar = getLlvmVal(i.fname);
+                   auto* fptrptr = G.builder->CreateStructGEP(llvar, 0);
+                   auto* fptr = G.builder->CreateLoad(fptrptr, mir::getName(f));
+                   assert(llvm::cast<llvm::FunctionType>(
+                              llvm::cast<llvm::PointerType>(fptr->getType())->getElementType()) !=
+                          nullptr);
+                   return fptr;
+                 },
+                 [](auto& v) {
+                   assert(false);
+                   return (llvm::Value*)nullptr;
+                 }},
+      *i.fname);
 }
 llvm::Value* CodeGenVisitor::getExtFun(minst::Fcall& i) {
   auto fun = std::get<mir::ExternalSymbol>(*i.fname);
