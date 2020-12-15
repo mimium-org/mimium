@@ -457,23 +457,12 @@ llvm::Value* CodeGenVisitor::operator()(minst::MakeClosure& i) {
   return closure_ptr;
 }
 llvm::Value* CodeGenVisitor::operator()(minst::Array& i) {}
-// void CodeGenVisitor::operator()(minst::ArrayAccess& i) {
-//   auto* v = G.tryfindValue(i.name);
-//   auto* indexfloat = G.tryfindValue(i.index);
-//   auto* dptrtype = llvm::PointerType::get(G.builder->getDoubleTy(), 0);
-//   auto* arraccessfun = G.module->getFunction("access_array_lin_interp");
-//   // auto indexint =
-//   // G.builder->CreateBitCast(indexfloat,G.builder->getInt64Ty());
-//   // const int bitsize = 64;
-//   // auto* zero = llvm::ConstantInt::get(G.builder->getInt64Ty(), llvm::APInt(bitsize, 0));
-//   // auto gep =
-//   // G.builder->CreateInBoundsGEP(dptrtype,v,{indexint,zero},"arrayaccess");
-//   // auto load = G.builder->CreateLoad(gep,"arraccessload");
-//   // G.setValuetoMap("ptr_"+i.lv_name, gep);
-//   // G.setValuetoMap(i.lv_name, load);
-//   auto* res = G.builder->CreateCall(arraccessfun, {v, indexfloat}, "arrayaccess");
-//   G.setValuetoMap(i.lv_name, res);
-// }
+llvm::Value* CodeGenVisitor::operator()(minst::ArrayAccess& i) {
+  auto* target = getLlvmVal(i.target);
+  auto* index = getLlvmVal(i.index);
+  auto* arraccessfun = G.module->getFunction("access_array_lin_interp");
+  return G.builder->CreateCall(arraccessfun, {target, index}, "arrayaccess");
+}
 llvm::Value* CodeGenVisitor::operator()(minst::Field& i) {
   auto* target = getLlvmVal(i.target);
   int index = 0;

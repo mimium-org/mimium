@@ -49,6 +49,7 @@ class MemoryObjsCollector {
     void operator()(minst::Fcall& i);
     void operator()(minst::MakeClosure& i);
     void operator()(minst::Array& i);
+    void operator()(minst::ArrayAccess& i);
     void operator()(minst::Field& i);
     void operator()(minst::If& i);
     void operator()(minst::Return& i);

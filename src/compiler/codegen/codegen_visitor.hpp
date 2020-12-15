@@ -13,7 +13,7 @@ struct FunObjTree;
 using funobjmap = std::unordered_map<std::string, std::shared_ptr<FunObjTree>>;
 struct CodeGenVisitor {
   friend LLVMGenerator;
-  CodeGenVisitor(LLVMGenerator& g,const funobjmap* funobj_map);
+  CodeGenVisitor(LLVMGenerator& g, const funobjmap* funobj_map);
   llvm::Value* operator()(minst::Number& i);
   llvm::Value* operator()(minst::String& i);
   llvm::Value* operator()(minst::Allocate& i);
@@ -27,6 +27,8 @@ struct CodeGenVisitor {
   llvm::Value* operator()(minst::Fcall& i);
   llvm::Value* operator()(minst::MakeClosure& i);
   llvm::Value* operator()(minst::Array& i);
+  llvm::Value* operator()(minst::ArrayAccess& i);
+
   llvm::Value* operator()(minst::Field& i);
   llvm::Value* operator()(minst::If& i);
   llvm::Value* operator()(minst::Return& i);

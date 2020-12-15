@@ -220,6 +220,12 @@ void ClosureConverter::CCVisitor::operator()(minst::MakeClosure& i) {
 void ClosureConverter::CCVisitor::operator()(minst::Array& i) {
   for (auto& a : i.args) { checkVariable(a); }
 }
+void ClosureConverter::CCVisitor::operator()(minst::ArrayAccess& i) {
+  checkFreeVar(i.target);
+  checkVariable(i.target);
+  checkVariable(i.index);
+}
+
 
 void ClosureConverter::CCVisitor::operator()(minst::Field& i) {
   checkFreeVar(i.target);

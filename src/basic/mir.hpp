@@ -33,11 +33,12 @@ struct Function;
 struct Fcall;
 struct MakeClosure;
 struct Array;
+struct ArrayAccess;
 struct Field;
 struct If;
 struct Return;
 using Instructions = std::variant<Number, String, Allocate, Ref, Load, Store, Op, Function, Fcall,
-                                  MakeClosure, Array, Field, If, Return>;
+                                  MakeClosure, Array, ArrayAccess, Field, If, Return>;
 }  // namespace instruction
 struct Argument;
 // todo: more specific value
@@ -143,6 +144,12 @@ struct Array : public Base {
   std::vector<valueptr> args;
 };
 std::string toString(Array const& i);
+
+struct ArrayAccess : public Base {
+  valueptr target;
+  valueptr index;
+};
+std::string toString(ArrayAccess const& i);
 
 struct Field : public Base {
   valueptr target;

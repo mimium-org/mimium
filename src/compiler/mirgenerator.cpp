@@ -200,14 +200,17 @@ mir::valueptr ExprKnormVisitor::operator()(ast::ArrayInit& ast) {
 mir::valueptr ExprKnormVisitor::operator()(ast::ArrayAccess& ast) {
   auto array = genInst(ast.array);
   types::Value rettype;
-  if (std::holds_alternative<types::rArray>(mir::getType(*array))) {
-    rettype = std::get<types::rArray>(mir::getType(*array)).getraw().elem_type;
+  auto type = mir::getType(*array);
+  if (std::holds_alternative<types::rArray>(type)) {
+    rettype = rv::get<types::Array>(type).elem_type;
+  } else if (std::holds_alternative<types::rPointer>(type)) {
+    rettype = rv::get<types::Pointer>(type).val;
   } else {
     throw std::runtime_error("[] operator cannot be used for other than array type");
   }
   auto newname = mirgen.makeNewName();
   auto index = genInst(ast.index);
-  return mirgen.emplace(minst::Field{{newname, rettype}, array, index});
+  return mirgen.emplace(minst::ArrayAccess{{newname, rettype}, array, index});
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::Tuple& ast) {
   auto lvname = mirgen.makeNewName();

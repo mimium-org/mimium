@@ -66,6 +66,7 @@ class ClosureConverter {
     void operator()(minst::Fcall& i);
     void operator()(minst::MakeClosure& i);
     void operator()(minst::Array& i);
+    void operator()(minst::ArrayAccess& i);
     void operator()(minst::Field& i);
     void operator()(minst::If& i);
     void operator()(minst::Return& i);
@@ -86,9 +87,8 @@ class ClosureConverter {
 
    private:
     void visitinsts(minst::Function& i, CCVisitor& ccvis);
-    minst::MakeClosure createClosureInst(mir::valueptr fnptr,
-                                         std::vector<mir::valueptr> const& fvs, types::Alias fvtype,
-                                         std::string& lv_name);
+    minst::MakeClosure createClosureInst(mir::valueptr fnptr, std::vector<mir::valueptr> const& fvs,
+                                         types::Alias fvtype, std::string& lv_name);
     void dump();
 
     // helper function to get pointer of actual instance in visitor function.

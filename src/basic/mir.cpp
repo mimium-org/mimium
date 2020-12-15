@@ -73,6 +73,11 @@ std::string instruction::toString(Fcall const& i) {
 std::string instruction::toString(Array const& i) {
   return i.name + " = array " + join(i.args, " , ");
 }
+std::string instruction::toString(ArrayAccess const& i) {
+  std::string res =
+      i.name + " = arrayaccess " + mir::getName(*i.target) + " " + mir::getName(*i.index);
+  return res;
+}
 
 std::string instruction::toString(Field const& i) {
   std::string res = i.name + " = field " + mir::getName(*i.target) + " " + mir::getName(*i.index);

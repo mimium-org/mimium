@@ -122,6 +122,10 @@ void MemoryObjsCollector::CollectMemVisitor::operator()(minst::Fcall& i) {
   void MemoryObjsCollector::CollectMemVisitor::operator()(minst::Array& i) {
     for (auto&& e : i.args) { checkHasSelf(e); }
   }
+void MemoryObjsCollector::CollectMemVisitor::operator()(minst::ArrayAccess& i) {
+  checkHasSelf(i.target);
+  checkHasSelf(i.index);
+}
   void MemoryObjsCollector::CollectMemVisitor::operator()(minst::Field& i) {
     checkHasSelf(i.target);
     checkHasSelf(i.index);
