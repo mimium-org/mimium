@@ -25,10 +25,11 @@ target_link_libraries(UnitTest
 
 add_test(Name UnitTest Command "ASAN_OPTIONS=detect_container_overflow=0 ${CMAKE_CURRENT_BINARY_DIR}/UnitTest")
 
-file(GLOB_RECURSE testsource LIST_DIRECTORIES true mmm/*.mmm)
+file(GLOB_RECURSE testsource LIST_DIRECTORIES true mmm/*.mmm )
+file(GLOB_RECURSE testassets LIST_DIRECTORIES true ${CMAKE_SOURCE_DIR}/assets/*.wav)
 
 
-file(COPY ${testsource} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY ${testsource} ${testassets} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 add_subdirectory(regression)
 

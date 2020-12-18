@@ -60,7 +60,10 @@ std::pair<optvalptr, mir::blockptr> MirGenerator::generateBlock(ast::Block& bloc
   return {ret, blockctx};
 }
 
-bool MirGenerator::isPassByValue(types::Value const& type) { return types::isPrimitive(type); }
+bool MirGenerator::isPassByValue(types::Value const& type) {
+  //todo: array handling
+  return !rv::holds_alternative<types::Tuple>(type);
+}
 
 mir::valueptr MirGenerator::genAllocate(std::string const& name, types::Value const& type) {
   if (!isPassByValue(type)) {
