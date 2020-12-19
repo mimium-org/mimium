@@ -56,6 +56,31 @@ llvm::Value* CodeGenVisitor::getConstant(const mir::Constants& val) {
 }
 
 llvm::Value* CodeGenVisitor::getLlvmVal(mir::valueptr mirval) {
+  std::visit(
+      overloaded{[&](mir::Constants& v) { return getConstant(v); },
+                 [&](mir::ExternalSymbol& v) {
+                   assert(false && "currently should be unreachable");
+                   return (llvm::Value*)nullptr;
+                 },
+                 [&](std::shared_ptr<mir::Argument> v) {
+                   auto iter = mirarg_to_llvm.find(v);
+                   return (iter != mirarg_to_llvm.end()) ? iter->second : nullptr;
+                 },
+                 [&](mir::Instructions& v) {
+                   auto iter = mir_to_llvm.find(mirval);
+                   if (iter != mir_to_llvm.end()) {
+                     if (!llvm::isa<llvm::Instruction>(iter->second)) { return iter->second; }
+                     if (llvm::cast<llvm::Instruction>(iter->second)->getParent()->getParent() ==
+                         G.builder->GetInsertBlock()->getParent()) {
+                       return iter->second;
+                     }
+                   }
+                   auto iterfv = mirfv_to_llvm.find(mirval);
+                   if (iterfv != mirfv_to_llvm.end()) { return iterfv->second; }
+                   return (llvm::Value*)nullptr;
+                 },
+                 [&](mir::Self v) { return (llvm::Value*)nullptr; }},
+      *mirval);
   // search in order of constant->argument -> local variable -> free variable
   if (auto* rawval = std::get_if<mir::Constants>(mirval.get())) { return getConstant(*rawval); }
 
@@ -276,7 +301,7 @@ void CodeGenVisitor::addArgstoMap(llvm::Function* f, minst::Function& i, bool ha
     auto name = i.name + ".mem";
     arg->setName(name);
     G.setValuetoMap(name, arg);
-    setMemObjsToMap(i, arg);
+    setMemObjsToMap(getValPtr(&i), arg);
   }
 }
 
@@ -286,15 +311,12 @@ void CodeGenVisitor::setMemObj(llvm::Value* memarg, std::string const& name, int
   llvm::Value* valload = G.builder->CreateLoad(gep, name);
   G.setValuetoMap(name, valload);
 }
-void CodeGenVisitor::setMemObjsToMap(minst::Function& i, llvm::Value* memarg) {
-  auto& fobjtree = funobj_map->at(i.name);
+void CodeGenVisitor::setMemObjsToMap(mir::valueptr fun, llvm::Value* memarg) {
+  auto fobjtree = funobj_map->at(fun);
   auto& memobjs = fobjtree->memobjs;
   int count = 0;
   // appending order matters! self should be put on last.
-  for (auto& o : memobjs) {
-    auto obj = o;
-    setMemObj(memarg, obj->fname + ".mem", count++);
-  }
+  for (auto& o : memobjs) { setMemObj(memarg, mir::toString(*o->fname) + ".mem", count++); }
   if (fobjtree->hasself) { setMemObj(memarg, "self", count++); }
 }
 

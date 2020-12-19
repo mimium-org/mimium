@@ -11,7 +11,7 @@ Compiler::Compiler()
       typeinferer(),
       mirgenerator(typeinferer.getTypeEnv()),
       closureconverter(std::make_shared<ClosureConverter>(typeinferer.getTypeEnv())),
-      memobjcollector(typeinferer.getTypeEnv()),
+      memobjcollector(),
       llvmgenerator(*llvmctx, typeinferer.getTypeEnv()) {}
 Compiler::Compiler(llvm::LLVMContext& ctx)
     : driver(),
@@ -19,7 +19,7 @@ Compiler::Compiler(llvm::LLVMContext& ctx)
       typeinferer(),
       mirgenerator(typeinferer.getTypeEnv()),
       closureconverter(std::make_shared<ClosureConverter>(typeinferer.getTypeEnv())),
-      memobjcollector(typeinferer.getTypeEnv()),
+      memobjcollector(),
       llvmgenerator(ctx, typeinferer.getTypeEnv()) {}
 Compiler::~Compiler() = default;
 void Compiler::setFilePath(std::string path) {
@@ -41,7 +41,7 @@ TypeEnv& Compiler::typeInfer(AstPtr ast) { return typeinferer.infer(*ast); }
 mir::blockptr Compiler::generateMir(AstPtr ast) { return mirgenerator.generate(*ast); }
 mir::blockptr Compiler::closureConvert(mir::blockptr mir) { return closureconverter->convert(mir); }
 
-funobjmap& Compiler::collectMemoryObjs(mir::blockptr mir) {
+funobjmap Compiler::collectMemoryObjs(mir::blockptr mir) {
   return memobjcollector.process(mir);
 }
 

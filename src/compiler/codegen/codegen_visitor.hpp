@@ -5,12 +5,10 @@
 #pragma once
 #include "basic/mir.hpp"
 #include "compiler/codegen/llvm_header.hpp"
-
+#include "compiler/collect_memoryobjs.hpp"
 namespace mimium {
 namespace minst = mir::instruction;
 class LLVMGenerator;
-struct FunObjTree;
-using funobjmap = std::unordered_map<std::string, std::shared_ptr<FunObjTree>>;
 struct CodeGenVisitor {
   friend LLVMGenerator;
   CodeGenVisitor(LLVMGenerator& g, const funobjmap* funobj_map);
@@ -59,7 +57,7 @@ struct CodeGenVisitor {
   void addArgstoMap(llvm::Function* f, minst::Function& i, bool hascapture, bool hasmemobj);
 
   void setFvsToMap(minst::Function& i, llvm::Value* clsarg);
-  void setMemObjsToMap(minst::Function& i, llvm::Value* memarg);
+  void setMemObjsToMap(mir::valueptr fun, llvm::Value* memarg);
   void setMemObj(llvm::Value* memarg, std::string const& name, int index);
   llvm::Value* createAllocation(bool isglobal, llvm::Type* type, llvm::Value* ArraySize,
                                 const llvm::Twine& name);

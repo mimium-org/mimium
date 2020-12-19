@@ -6,14 +6,13 @@
 
 #include "basic/mir.hpp"
 #include "compiler/codegen/llvm_header.hpp"
+#include "compiler/collect_memoryobjs.hpp"
 #include "compiler/ffi.hpp"
 
 namespace mimium {
 struct LLVMBuiltin;
 struct CodeGenVisitor;
 struct TypeConverter;
-struct FunObjTree;
-using funobjmap = std::unordered_map<std::string, std::shared_ptr<FunObjTree>>;
 class LLVMGenerator {
   friend struct CodeGenVisitor;
 

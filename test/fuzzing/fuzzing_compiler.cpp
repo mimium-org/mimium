@@ -18,7 +18,7 @@ extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, std::size_t size
       auto typeenv = compiler->typeInfer(ast_u);
       auto mir = compiler->generateMir(ast_u);
       auto mircc = compiler->closureConvert(mir);
-      auto& memobjs = compiler->collectMemoryObjs(mircc);
+      auto memobjs = compiler->collectMemoryObjs(mircc);
       auto& llvmir = compiler->generateLLVMIr(mircc,memobjs);
     }
   } catch (std::runtime_error& e) {
