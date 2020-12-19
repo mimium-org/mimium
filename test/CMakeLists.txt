@@ -2,11 +2,11 @@ cmake_minimum_required(VERSION 3.0)
 add_subdirectory(googletest)
 
 file(GLOB SRCS ./*.cpp)
-
 add_executable(UnitTest ${SRCS})
 target_compile_options(UnitTest PUBLIC -std=c++17)
-message(STATUS "Components mapped by llvm_config: ${test_llvm}")
-
+target_compile_definitions(UnitTest PRIVATE
+TEST_ROOT_DIR=\"${CMAKE_CURRENT_BINARY_DIR}\"
+)
 target_include_directories(UnitTest
     PRIVATE
     .
@@ -19,6 +19,7 @@ target_link_libraries(UnitTest
   PRIVATE
     gtest_main
     mimium_utils
+    mimium_preprocessor
     mimium_compiler
     LLVMCore
   )
