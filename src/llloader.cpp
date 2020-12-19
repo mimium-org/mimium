@@ -27,7 +27,7 @@ using Logger = mimium::Logger;
 #include "runtime/backend/rtaudio/driver_rtaudio.hpp"
 
 extern "C" {
-extern mimium::Runtime_LLVM* global_runtime;
+extern mimium::Runtime* global_runtime;
 }
 std::function<void(int)> shutdown_handler;
 void signalHandler(int signo) { shutdown_handler(signo); }
@@ -58,13 +58,14 @@ auto main(int argc, char** argv) -> int {
 #endif
     out << "\n";
   });
-  std::ifstream input(input_filename.c_str());
   fs::path filename = input_filename.c_str();
   auto abspath = fs::absolute(filename).string();
+  std::ifstream input(abspath.c_str());
   signal(SIGINT, signalHandler);
   Logger::current_report_level = Logger::INFO;
-  auto tmpfilename = fs::exists(filename) ? "" :abspath;  auto runtime = std::make_shared<mimium::Runtime_LLVM>(
-      tmpfilename, std::make_shared<mimium::AudioDriverRtAudio>());
+  auto tmpfilename = fs::exists(filename) ? "" : abspath;
+  std::unique_ptr<mimium::Runtime_LLVM> runtime;
+
   shutdown_handler = [&runtime](int /*signal*/) {
     runtime->getAudioDriver()->stop();
 
@@ -74,13 +75,17 @@ auto main(int argc, char** argv) -> int {
   global_runtime = runtime.get();
   llvm::SMDiagnostic errorreporter;
   if (!input.good()) {
-    Logger::debug_log("Specify file name, repl mode is not implemented yet", Logger::ERROR_);
+    Logger::debug_log("Failed to find file " + abspath, Logger::ERROR_);
     // filename is empty:enter repl mode
   } else {  // try to parse and exec input file
     try {
       Logger::debug_log("Opening " + abspath, Logger::INFO);
+      auto llvmcontext = std::make_unique<llvm::LLVMContext>();
+      auto m = llvm::parseIRFile(abspath, errorreporter, *llvmcontext);
 
-      auto m = llvm::parseIRFile(abspath, errorreporter, runtime->getLLVMContext());
+      runtime = std::make_unique<mimium::Runtime_LLVM>(
+          std::move(llvmcontext), tmpfilename, std::make_shared<mimium::AudioDriverRtAudio>());
+      m->setDataLayout(runtime->getJitEngine().getDataLayout());
       runtime->executeModule(std::move(m));
       runtime->start();  // start() blocks thread until scheduler stops
       returncode = 0;

@@ -7,11 +7,8 @@ extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, std::size_t size
   mimium::Logger::setoutput(dummy);
   src += "\0";
   try {
-    auto runtime = std::make_shared<mimium::Runtime_LLVM>();
-    auto compiler = std::make_unique<mimium::Compiler>(runtime->getLLVMContext());
-
+    auto compiler = std::make_unique<mimium::Compiler>();
     compiler->setFilePath("dummy.mmm");
-    compiler->setDataLayout(runtime->getJitEngine().getDataLayout());
     auto ast = compiler->loadSource(src);
     if (ast != nullptr && !ast->empty()) {
       auto ast_u = compiler->renameSymbols(std::move(ast));
@@ -21,6 +18,10 @@ extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, std::size_t size
       auto memobjs = compiler->collectMemoryObjs(mircc);
       auto& llvmir = compiler->generateLLVMIr(mircc,memobjs);
     }
+    auto module  = compiler->moveLLVMModule();
+    auto ctx = compiler->moveLLVMCtx();
+    auto runtime = std::make_unique<mimium::Runtime_LLVM>(std::move(ctx));
+    module->setDataLayout(runtime->getJitEngine().getDataLayout());
   } catch (std::runtime_error& e) {
     // std::cerr << e.what() << std::endl;
   }

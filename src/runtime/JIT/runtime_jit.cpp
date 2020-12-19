@@ -5,11 +5,12 @@
 #include "runtime/JIT/runtime_jit.hpp"
 
 extern "C" {
-mimium::Runtime_LLVM* global_runtime;
+mimium::Runtime* global_runtime;
 
 void setDspParams(void* dspfn, void* clsaddress, void* memobjaddress) {
   auto audiodriver = global_runtime->getAudioDriver();
-  audiodriver->setDspFnInfos(mimium::DspFnInfos{reinterpret_cast<mimium::DspFnPtr>(dspfn),clsaddress,memobjaddress});
+  audiodriver->setDspFnInfos(
+      mimium::DspFnInfos{reinterpret_cast<mimium::DspFnPtr>(dspfn), clsaddress, memobjaddress});
 }
 
 NO_SANITIZE void addTask(double time, void* addresstofn, double arg) {
@@ -33,13 +34,13 @@ void* mimium_malloc(size_t size) {
 }
 
 namespace mimium {
-Runtime_LLVM::Runtime_LLVM(std::string const& filename_i, std::shared_ptr<AudioDriver> a,
-                           bool isjit)
+Runtime_LLVM::Runtime_LLVM(std::unique_ptr<llvm::LLVMContext> ctx, std::string const& filename_i,
+                           std::shared_ptr<AudioDriver> a, bool isjit)
     : Runtime(filename_i, std::move(a)) {
   LLVMInitializeNativeTarget();
   LLVMInitializeNativeAsmPrinter();
   LLVMInitializeNativeAsmParser();
-  jitengine = std::make_unique<llvm::orc::MimiumJIT>();
+  jitengine = std::make_unique<llvm::orc::MimiumJIT>(std::move(ctx));
 }
 
 void Runtime_LLVM::executeModule(std::unique_ptr<llvm::Module> module) {
