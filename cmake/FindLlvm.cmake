@@ -23,7 +23,7 @@ find_path(LLVM_INCLUDE_DIRS NAMES llvm/IR/IRBuilder.h
 if(true)
 
 find_program(LLVM_CONFIG_EXE
-      NAMES llvm-config
+      NAMES llvm-config llvm-config-10 llvm-config10
       PATHS
       ${HOMEBREW_PATH}/bin
       ${HOMEBREW_PATH}/opt/llvm@9/bin
@@ -33,7 +33,6 @@ find_program(LLVM_CONFIG_EXE
       "/c/msys64/mingw64/bin"
       "C:/tools/msys64/mingw64/bin"
       "C:/Libraries/llvm-11.0.0/bin"
-      NO_DEFAULT_PATH
       )
 
   if ("${LLVM_CONFIG_EXE}" STREQUAL "LLVM_CONFIG_EXE-NOTFOUND")
@@ -64,16 +63,16 @@ find_program(LLVM_CONFIG_EXE
   NEED_TARGET("AMDGPU")
   NEED_TARGET("ARM")
 #   NEED_TARGET("AVR")
-  NEED_TARGET("BPF")
-  NEED_TARGET("Hexagon")
-  NEED_TARGET("Lanai")
-  NEED_TARGET("Mips")
-  NEED_TARGET("MSP430")
-  NEED_TARGET("NVPTX")
-  NEED_TARGET("PowerPC")
+  # NEED_TARGET("BPF")
+  # NEED_TARGET("Hexagon")
+  # NEED_TARGET("Lanai")
+  # NEED_TARGET("Mips")
+  # NEED_TARGET("MSP430")
+  # NEED_TARGET("NVPTX")
+  # NEED_TARGET("PowerPC")
   NEED_TARGET("RISCV")
-  NEED_TARGET("Sparc")
-  NEED_TARGET("SystemZ")
+  # NEED_TARGET("Sparc")
+  # NEED_TARGET("SystemZ")
   NEED_TARGET("WebAssembly")
   NEED_TARGET("X86")
   NEED_TARGET("XCore")
