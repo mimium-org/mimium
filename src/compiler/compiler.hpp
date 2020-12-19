@@ -36,7 +36,7 @@ class Compiler {
   funobjmap& collectMemoryObjs(mir::blockptr mir);
 
   llvm::Module& generateLLVMIr(mir::blockptr mir, funobjmap const& funobjs);
-  auto moveLLVMCtx(){return std::move(ctx);}
+  auto moveLLVMCtx(){return std::move(llvmctx);}
   auto moveLLVMModule() { return llvmgenerator.moveModule(); }
 
  private:
