@@ -84,5 +84,7 @@ jobs:
           cmake . -Bbuild -G Ninja -DCMAKE_BUILD_CONFIG=${{ matrix.config }} -DBUILD_TEST=ON
       - name: build
         run: cmake --build build -j
-      - name: test
+      - if: contains(matrix.os, 'macos')
+      # currently only on macos
+        name: test
         run: cd build && ctest --verbose
