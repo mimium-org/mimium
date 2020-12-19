@@ -9,7 +9,7 @@
 #include <utility>
 namespace mimium {
 
-Preprocessor::Preprocessor(fs::path cwd) : cwd(std::move(cwd)) { fs::current_path(cwd); }
+Preprocessor::Preprocessor(fs::path cwd) : cwd(std::move(cwd)) {}
 
 Source Preprocessor::loadFile(fs::path path) {
   FileReader filereader(cwd);
