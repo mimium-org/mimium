@@ -7,6 +7,7 @@ namespace mimium {
 
 std::unordered_set<mir::valueptr> MemoryObjsCollector::collectToplevelFuns(mir::blockptr toplevel) {
   std::unordered_set<mir::valueptr> res;
+  
   for (const auto& inst : toplevel->instructions) {
     if (mir::isInstA<minst::Function>(inst)) { res.emplace(inst); }
   }
@@ -28,7 +29,7 @@ std::shared_ptr<FunObjTree> MemoryObjsCollector::traverseFunTree(mir::valueptr f
   CollectMemVisitor visitor(*this);
   auto res = visitor.visitInsts(f.body);
   if (res.hasself) {
-    auto rettype = rv::get<types::Function>(f.type).ret_type;
+    const auto& rettype = rv::get<types::Function>(f.type).ret_type;
     auto& resulttype = CollectMemVisitor::getTupleFromAlias(res.objtype);
     resulttype.arg_types.emplace_back(rettype);
   }

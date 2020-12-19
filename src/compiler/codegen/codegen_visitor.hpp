@@ -49,7 +49,7 @@ struct CodeGenVisitor {
 
   std::unordered_map<std::shared_ptr<mir::Argument>, llvm::Value*> mirarg_to_llvm;
 
-  LLVMGenerator& G;
+  LLVMGenerator& G;//NOLINT
   const funobjmap* funobj_map;
   bool isglobal;
   bool context_hasself;
@@ -65,7 +65,7 @@ struct CodeGenVisitor {
   void setFvsToMap(minst::Function& i, llvm::Value* clsarg);
   void setMemObjsToMap(mir::valueptr fun, llvm::Value* memarg);
   void setMemObj(llvm::Value* memarg, std::string const& name, int index);
-  llvm::Value* createAllocation(bool isglobal, llvm::Type* type, llvm::Value* ArraySize,
+  llvm::Value* createAllocation(bool isglobal, llvm::Type* type, llvm::Value* array_size,
                                 const llvm::Twine& name);
   bool createStoreOw(std::string varname, llvm::Value* val_to_store);
   llvm::Value* createAddTaskFn(minst::Fcall& i, bool isclosure, bool isglobal);

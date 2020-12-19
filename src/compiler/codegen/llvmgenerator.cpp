@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #include "compiler/codegen/llvmgenerator.hpp"
-#include "compiler/codegen/typeconverter.hpp"
 #include "compiler/codegen/codegen_visitor.hpp"
+#include "compiler/codegen/typeconverter.hpp"
 
 namespace mimium {
 
@@ -16,8 +16,7 @@ LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv)
       currentblock(nullptr),
       curfunc(nullptr),
       typeenv(typeenv),
-      typeconverter(std::make_unique<TypeConverter>(*builder, *module))
-      {}
+      typeconverter(std::make_unique<TypeConverter>(*builder, *module)) {}
 void LLVMGenerator::init(std::string filename) {
   module->setSourceFileName(filename);
   module->setModuleIdentifier(filename);
@@ -51,7 +50,7 @@ llvm::Type* LLVMGenerator::getClosureToFunType(types::Value& type) {
 void LLVMGenerator::switchToMainFun() {
   setBB(mainentry);
   currentblock = mainentry;
-  codegenvisitor->recursivefn_ptr=nullptr;
+  codegenvisitor->recursivefn_ptr = nullptr;
   curfunc = mainentry->getParent();
 }
 llvm::Function* LLVMGenerator::getForeignFunction(const std::string& name) {
@@ -157,9 +156,11 @@ void LLVMGenerator::createRuntimeSetDspFn() {
     auto* memsetfn = module->getFunction("llvm.memset.p0i8.i64");
     auto* t = llvm::cast<llvm::PointerType>(dspmemobj->second->getType())->getElementType();
     auto size = module->getDataLayout().getTypeAllocSize(t);
-    auto* sizeinst = llvm::ConstantInt::get(ctx, llvm::APInt(64, size, false));
-    auto* zero = llvm::ConstantInt::get(ctx, llvm::APInt(8, 0, false));
-    auto* falsev = llvm::ConstantInt::get(ctx, llvm::APInt(1, 0, false));
+
+    auto* sizeinst = getConstInt(size);
+    constexpr int bitsize = 8;
+    auto* zero = getConstInt(0, bitsize);
+    auto* falsev = getConstInt(0, 1);
     builder->CreateCall(memsetfn, {dspmemobjaddress, zero, sizeinst, falsev});
 
   } else {
@@ -197,8 +198,8 @@ void LLVMGenerator::visitInstructions(mir::valueptr inst, bool isglobal) {
   }
 }
 
-void LLVMGenerator::generateCode(mir::blockptr mir,const funobjmap* funobjs) {
-  codegenvisitor = std::make_shared<CodeGenVisitor>(*this,funobjs);
+void LLVMGenerator::generateCode(mir::blockptr mir, const funobjmap* funobjs) {
+  codegenvisitor = std::make_shared<CodeGenVisitor>(*this, funobjs);
   preprocess();
 
   for (auto& inst : mir->instructions) { visitInstructions(inst, true); }

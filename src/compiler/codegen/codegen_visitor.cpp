@@ -20,7 +20,11 @@ const std::unordered_map<OpId, std::string> CodeGenVisitor::opid_to_ffi = {
 
 // Creates Allocation instruction or call malloc function depends on context
 CodeGenVisitor::CodeGenVisitor(LLVMGenerator& g, const funobjmap* funobj_map)
-    : G(g), isglobal(false), funobj_map(funobj_map) {}
+    : G(g),
+      isglobal(false),
+      funobj_map(funobj_map),
+      context_hasself(false),
+      recursivefn_ptr(nullptr) {}
 
 llvm::Value* CodeGenVisitor::visit(mir::valueptr val) {
   instance_holder = val;
@@ -91,7 +95,7 @@ llvm::Value* CodeGenVisitor::getLlvmVal(mir::valueptr mirval) {
 }
 
 llvm::Value* CodeGenVisitor::createAllocation(bool isglobal, llvm::Type* type,
-                                              llvm::Value* arraysize = nullptr,
+                                              llvm::Value* array_size = nullptr,
                                               const llvm::Twine& name = "") {
   if (isglobal) {
     llvm::Type* t = type;
@@ -104,7 +108,7 @@ llvm::Value* CodeGenVisitor::createAllocation(bool isglobal, llvm::Type* type,
     auto* res = G.builder->CreatePointerCast(rawres, llvm::PointerType::get(t, 0), "ptr_" + name);
     return res;
   }
-  return G.builder->CreateAlloca(type, arraysize, "ptr_" + name);
+  return G.builder->CreateAlloca(type, array_size, "ptr_" + name);
 };
 // Create StoreInst if storing to already allocated value
 bool CodeGenVisitor::createStoreOw(std::string varname, llvm::Value* val_to_store) {
@@ -404,9 +408,9 @@ llvm::Value* CodeGenVisitor::getClsFun(minst::Fcall& i) {
                           nullptr);
                    return fptr;
                  },
-                 [](auto& v) {
+                 [](auto& /*v*/) {
                    assert(false);
-                   return (llvm::Value*)nullptr;
+                   return static_cast<llvm::Value*>(nullptr);
                  }},
       *i.fname);
 }
