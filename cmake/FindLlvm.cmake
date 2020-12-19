@@ -20,65 +20,20 @@ find_path(LLVM_INCLUDE_DIRS NAMES llvm/IR/IRBuilder.h
     C:/tools/msys64/mingw64/include
 )
 
-if(ZIG_PREFER_CLANG_CPP_DYLIB)
-  find_library(LLVM_LIBRARIES
-    NAMES
-      LLVM-11.0
-      LLVM-11
-      LLVM-110
-      LLVM
-    PATHS
-      ${LLVM_LIBDIRS}
-      ${HOMEBREW_PATH}/lib
-      /usr/local/opt/llvm/lib
-      /mingw64/lib
-      C:/tools/msys64/mingw64/lib
-  )
+if(true)
 
-  find_program(LLVM_CONFIG_EXE
-      NAMES llvm-config-11 llvm-config-11.0 llvm-config110 llvm-config11 llvm-config
-      PATHS
-      ${HOMEBREW_PATH}/bin
-        /usr/local/opt/llvm/bin
-          "/mingw64/bin"
-          "/c/msys64/mingw64/bin"
-          "C:/tools/msys64/mingw64/bin"
-          "C:/Libraries/llvm-11.0.0/bin")
-
-  if ("${LLVM_CONFIG_EXE}" STREQUAL "LLVM_CONFIG_EXE-NOTFOUND")
-    message(FATAL_ERROR "unable to find llvm-config")
-  endif()
-
-  if ("${LLVM_CONFIG_EXE}" STREQUAL "LLVM_CONFIG_EXE-NOTFOUND")
-    message(FATAL_ERROR "unable to find llvm-config")
-  endif()
-
-  execute_process(
-    COMMAND ${LLVM_CONFIG_EXE} --version
-    OUTPUT_VARIABLE LLVM_CONFIG_VERSION
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-  if("${LLVM_CONFIG_VERSION}" VERSION_LESS 9)
-    message(FATAL_ERROR "expected LLVM 9.x~ but found ${LLVM_CONFIG_VERSION} using ${LLVM_CONFIG_EXE}")
-  endif()
-
-# elseif(("${ZIG_TARGET_TRIPLE}" STREQUAL "native") OR ZIG_PREFER_LLVM_CONFIG)
-elseif(true)
 find_program(LLVM_CONFIG_EXE
-      NAMES llvm-config-11 llvm-config-11.0 llvm-config110 llvm-config11 llvm-config
+      NAMES llvm-config llvm-config-10 llvm-config10
       PATHS
       ${HOMEBREW_PATH}/bin
       ${HOMEBREW_PATH}/opt/llvm@9/bin
       /usr/local/bin
       /usr/local/opt/llvm/bin
-          "/mingw64/bin"
-          "/c/msys64/mingw64/bin"
-          "C:/tools/msys64/mingw64/bin"
-          "C:/Libraries/llvm-11.0.0/bin")
-
-  if ("${LLVM_CONFIG_EXE}" STREQUAL "LLVM_CONFIG_EXE-NOTFOUND")
-    message(FATAL_ERROR "unable to find llvm-config")
-  endif()
+      "/mingw64/bin"
+      "/c/msys64/mingw64/bin"
+      "C:/tools/msys64/mingw64/bin"
+      "C:/Libraries/llvm-11.0.0/bin"
+      )
 
   if ("${LLVM_CONFIG_EXE}" STREQUAL "LLVM_CONFIG_EXE-NOTFOUND")
     message(FATAL_ERROR "unable to find llvm-config")
@@ -88,7 +43,7 @@ find_program(LLVM_CONFIG_EXE
     COMMAND ${LLVM_CONFIG_EXE} --version
     OUTPUT_VARIABLE LLVM_CONFIG_VERSION
     OUTPUT_STRIP_TRAILING_WHITESPACE)
-
+    message(STATUS "llvm-config:  ${LLVM_CONFIG_EXE} ${LLVM_CONFIG_VERSION}")
   if("${LLVM_CONFIG_VERSION}" VERSION_LESS 9)
     message(FATAL_ERROR "expected LLVM 9.x~ but found ${LLVM_CONFIG_VERSION} using ${LLVM_CONFIG_EXE}")
   endif()
@@ -108,16 +63,16 @@ find_program(LLVM_CONFIG_EXE
   NEED_TARGET("AMDGPU")
   NEED_TARGET("ARM")
 #   NEED_TARGET("AVR")
-  NEED_TARGET("BPF")
-  NEED_TARGET("Hexagon")
-  NEED_TARGET("Lanai")
-  NEED_TARGET("Mips")
-  NEED_TARGET("MSP430")
-  NEED_TARGET("NVPTX")
-  NEED_TARGET("PowerPC")
+  # NEED_TARGET("BPF")
+  # NEED_TARGET("Hexagon")
+  # NEED_TARGET("Lanai")
+  # NEED_TARGET("Mips")
+  # NEED_TARGET("MSP430")
+  # NEED_TARGET("NVPTX")
+  # NEED_TARGET("PowerPC")
   NEED_TARGET("RISCV")
-  NEED_TARGET("Sparc")
-  NEED_TARGET("SystemZ")
+  # NEED_TARGET("Sparc")
+  # NEED_TARGET("SystemZ")
   NEED_TARGET("WebAssembly")
   NEED_TARGET("X86")
   NEED_TARGET("XCore")
