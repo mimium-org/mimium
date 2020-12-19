@@ -10,27 +10,25 @@ namespace mimium {
 // base class of all error.
 
 struct Error : public std::runtime_error {
-  explicit Error(const char* what) : std::runtime_error(what){};
+  explicit Error(const std::string& what) : std::runtime_error(what){};
 };
 
 // related to compiler
 
 struct CompileError : public Error {
-  explicit CompileError(const char* what) : Error(what){};
+  explicit CompileError(const std::string& what) : Error(what){};
 };
 
 struct PreprocessorError : public CompileError {
-  explicit PreprocessorError(const char* what) : CompileError(what){};
+  explicit PreprocessorError(const std::string& what) : CompileError(what){};
 };
 
 struct FileNotFound : public PreprocessorError {
-  explicit FileNotFound(const char* what)
-      : PreprocessorError(("File not found: " + std::string(what)).c_str()){};
+  explicit FileNotFound(const std::string& what) : PreprocessorError("File not found: " + what){};
 };
 struct UnknownExtension : public PreprocessorError {
-  explicit UnknownExtension(const char* what)
-      : PreprocessorError(
-            ("Unknown File Extension. Use .mmm Instead: " + std::string(what)).c_str()){};
+  explicit UnknownExtension(const std::string& what)
+      : PreprocessorError("Unknown File Extension. Use .mmm Instead: " + what){};
 };
 
 // related to compiler
