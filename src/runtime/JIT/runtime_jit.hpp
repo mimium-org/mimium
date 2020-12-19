@@ -10,7 +10,8 @@ namespace mimium {
 
 class Runtime_LLVM : public Runtime, public std::enable_shared_from_this<Runtime_LLVM> {
  public:
-  explicit Runtime_LLVM(std::string const& filename = "untitled.mmm",
+  explicit Runtime_LLVM(std::unique_ptr<llvm::LLVMContext> ctx,
+                        std::string const& filename = "untitled.mmm",
                         std::shared_ptr<AudioDriver> a = nullptr, bool isjit = true);
 
   ~Runtime_LLVM() = default;

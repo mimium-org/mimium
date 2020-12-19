@@ -21,7 +21,7 @@ namespace mimium {
 class Compiler {
  public:
   Compiler();
-  explicit Compiler(llvm::LLVMContext& ctx);
+  explicit Compiler(std::unique_ptr<llvm::LLVMContext> ctx);
   ~Compiler();
   AstPtr loadSource(std::string source);
   AstPtr loadSourceFile(std::string filename);
@@ -36,6 +36,7 @@ class Compiler {
   funobjmap& collectMemoryObjs(mir::blockptr mir);
 
   llvm::Module& generateLLVMIr(mir::blockptr mir, funobjmap const& funobjs);
+  auto moveLLVMCtx(){return std::move(ctx);}
   auto moveLLVMModule() { return llvmgenerator.moveModule(); }
 
  private:
@@ -46,7 +47,7 @@ class Compiler {
   MirGenerator mirgenerator;
   std::shared_ptr<ClosureConverter> closureconverter;
   MemoryObjsCollector memobjcollector;
-  std::shared_ptr<llvm::LLVMContext> llvmctx;
+  std::unique_ptr<llvm::LLVMContext> llvmctx;
   LLVMGenerator llvmgenerator;
   std::string path;
 };
