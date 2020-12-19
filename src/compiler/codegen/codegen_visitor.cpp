@@ -56,7 +56,7 @@ llvm::Value* CodeGenVisitor::getConstant(const mir::Constants& val) {
 }
 
 llvm::Value* CodeGenVisitor::getLlvmVal(mir::valueptr mirval) {
-  std::visit(
+  auto* res = std::visit(
       overloaded{[&](mir::Constants& v) { return getConstant(v); },
                  [&](mir::ExternalSymbol& v) {
                    assert(false && "currently should be unreachable");
@@ -79,42 +79,15 @@ llvm::Value* CodeGenVisitor::getLlvmVal(mir::valueptr mirval) {
                    if (iterfv != mirfv_to_llvm.end()) { return iterfv->second; }
                    return (llvm::Value*)nullptr;
                  },
-                 [&](mir::Self v) { return (llvm::Value*)nullptr; }},
+                 [&](mir::Self v) {
+                   auto iter = fun_to_selfval.find(v.fn);
+                   if (iter != fun_to_selfval.end()) { return iter->second; }
+                   return (llvm::Value*)nullptr;
+                 }},
       *mirval);
-  // search in order of constant->argument -> local variable -> free variable
-  if (auto* rawval = std::get_if<mir::Constants>(mirval.get())) { return getConstant(*rawval); }
 
-  if (auto* arg = std::get_if<std::shared_ptr<mir::Argument>>(mirval.get())) {
-    auto iter = mirarg_to_llvm.find(*arg);
-    // maybe, value is not contained in mirarg_to_llvm because the value might points argument of
-    // outer function.
-    if (iter != mirarg_to_llvm.end()) { return iter->second; }
-  }
-
-  {
-    auto iter = mir_to_llvm.find(mirval);
-    // fixme: nested if should be split into subroutine
-    if (iter != mir_to_llvm.end()) {
-      if (llvm::isa<llvm::Instruction>(iter->second)) {
-        if (llvm::cast<llvm::Instruction>(iter->second)->getParent()->getParent() ==
-            G.builder->GetInsertBlock()->getParent()) {
-          return iter->second;
-        }
-      } else {
-        return iter->second;
-      }
-    }
-  }
-
-  {
-    auto iter = mirfv_to_llvm.find(mirval);
-    if (iter != mirfv_to_llvm.end()) { return iter->second; }
-  }
-#if MIMIUM_DEBUG_BUILD
-  auto asmessage = "failed to find llvm value for " + mir::getName(*mirval);
-  MMMASSERT(false, asmessage.c_str());
-#endif
-  return nullptr;
+  assert(res != nullptr && "failed to find llvm value from mir valueptr");
+  return res;
 }
 
 llvm::Value* CodeGenVisitor::createAllocation(bool isglobal, llvm::Type* type,
@@ -228,8 +201,12 @@ llvm::Value* CodeGenVisitor::createBinOp(minst::Op& i) {
 }
 llvm::Value* CodeGenVisitor::operator()(minst::Function& i) {
   mirfv_to_llvm.clear();
+  memobj_to_llvm.clear();
+
+  auto fobjtree = funobj_map->find(getValPtr(&i));
   bool hascapture = !i.freevariables.empty();
-  bool hasmemobj = !i.memory_objects.empty();
+
+  bool hasmemobj = fobjtree != funobj_map->end();
   if (hasmemobj) { context_hasself = i.hasself; }
   auto* ft = createFunctionType(i, hascapture, hasmemobj);
   auto* f = createFunction(ft, i);
@@ -259,16 +236,14 @@ llvm::FunctionType* CodeGenVisitor::createFunctionType(minst::Function& i, bool 
   }
 
   if (hascapture || i.name == "dsp") {
-    // std::vector<types::Value> captype_internal;
-    // for (auto& fv : i.freevariables) { captype_internal.emplace_back(mir::getType(*fv)); }
-    // argtypes.emplace_back(
-    //     types::Alias{i.name + "_cap", types::Ref{types::Tuple{std::move(captype_internal)}}});
-  }
-  if (hasmemobj || i.name == "dsp") {
     std::vector<types::Value> fvtype_internal;
     for (auto& fv : i.freevariables) { fvtype_internal.emplace_back(mir::getType(*fv)); }
     argtypes.emplace_back(
         types::Alias{i.name + "_fv", types::Ref{types::Tuple{std::move(fvtype_internal)}}});
+  }
+  if (hasmemobj || i.name == "dsp") {
+    auto fobjtree = funobj_map->at(getValPtr(&i));
+    argtypes.emplace_back(types::Alias{i.name + ".mem", types::Ref{fobjtree->objtype}});
   }
 
   return llvm::cast<llvm::FunctionType>((*G.typeconverter)(mmmfntype));
@@ -300,12 +275,12 @@ void CodeGenVisitor::addArgstoMap(llvm::Function* f, minst::Function& i, bool ha
   if (hasmemobj || i.name == "dsp") {
     auto name = i.name + ".mem";
     arg->setName(name);
-    G.setValuetoMap(name, arg);
     setMemObjsToMap(getValPtr(&i), arg);
   }
 }
 
 void CodeGenVisitor::setMemObj(llvm::Value* memarg, std::string const& name, int index) {
+  assert(false && "should nevert be used");
   auto* gep = G.builder->CreateStructGEP(memarg, index, "ptr_" + name);
   G.setValuetoMap("ptr_" + name, gep);
   llvm::Value* valload = G.builder->CreateLoad(gep, name);
@@ -316,8 +291,16 @@ void CodeGenVisitor::setMemObjsToMap(mir::valueptr fun, llvm::Value* memarg) {
   auto& memobjs = fobjtree->memobjs;
   int count = 0;
   // appending order matters! self should be put on last.
-  for (auto& o : memobjs) { setMemObj(memarg, mir::toString(*o->fname) + ".mem", count++); }
-  if (fobjtree->hasself) { setMemObj(memarg, "self", count++); }
+  for (auto& o : memobjs) {
+    auto* gep = G.builder->CreateStructGEP(memarg, count++, mir::getName(*o->fname) + ".mem");
+    memobj_to_llvm.emplace(o->fname, gep);
+  }
+  if (fobjtree->hasself) {
+    auto* gep = G.builder->CreateStructGEP(memarg, count++, "ptr_self");
+    fun_to_selfptr.emplace(fun, gep);
+    auto* selfval = G.builder->CreateLoad(gep, "self");
+    fun_to_selfval.emplace(fun, selfval);
+  }
 }
 
 void CodeGenVisitor::setFvsToMap(minst::Function& i, llvm::Value* clsarg) {
@@ -336,10 +319,15 @@ llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
   std::vector<llvm::Value*> args;
   for (auto& a : i.args) { args.emplace_back(getLlvmVal(a)); }
   // TODO: for closure
-
-  // if (f.memory_objects.size() > 0) {
-  //   // TODO: append memory address made by memobj collector
-  // }
+  auto fobjtree = funobj_map->find(i.fname);
+  if (fobjtree != funobj_map->end()) {
+    auto& memobjs = fobjtree->second->memobjs;
+    for (const auto& o : memobjs) {
+      auto res = memobj_to_llvm.find(i.fname);
+      assert(res != memobj_to_llvm.end());
+      args.emplace_back(res->second);
+    }
+  }
 
   llvm::Value* fun = nullptr;
   if (auto* fn_i = std::get_if<mir::Instructions>(i.fname.get())) {

@@ -40,7 +40,13 @@ struct CodeGenVisitor {
 
   llvm::Value* getLlvmVal(mir::valueptr mirval);
   std::unordered_map<mir::valueptr, llvm::Value*> mir_to_llvm;
+
   std::unordered_map<mir::valueptr, llvm::Value*> mirfv_to_llvm;
+  std::unordered_map<mir::valueptr, llvm::Value*> memobj_to_llvm;
+
+  std::unordered_map<mir::valueptr, llvm::Value*> fun_to_selfval;
+  std::unordered_map<mir::valueptr, llvm::Value*> fun_to_selfptr;
+
   std::unordered_map<std::shared_ptr<mir::Argument>, llvm::Value*> mirarg_to_llvm;
 
   LLVMGenerator& G;
