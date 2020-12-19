@@ -13,7 +13,7 @@ Preprocessor::Preprocessor(fs::path cwd) : cwd(std::move(cwd)) {}
 
 Source Preprocessor::loadFile(fs::path path) {
   FileReader filereader(cwd);
-  return filereader.loadFile(path);
+  return filereader.loadFile(path.string());
 }
 
 std::list<std::string> Preprocessor::splitSource(const std::string& str) {
@@ -35,7 +35,7 @@ void Preprocessor::replaceIncludeMacro(std::list<std::string>& src) {
       const auto& filename = matchres[3];
       fs::path newfilepath(filename.str());
       std::list<std::string> newsrclist;
-      if (files.count(newfilepath) == 0) {
+      if (files.find(newfilepath.string()) == files.end()) {
         auto new_src = this->loadFile(newfilepath);
         newsrclist = splitSource(new_src.source);
       }
