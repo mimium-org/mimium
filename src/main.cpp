@@ -130,8 +130,8 @@ auto main(int argc, char** argv) -> int {
         }
         runtime = std::make_unique<mimium::Runtime_LLVM>(
             compiler->moveLLVMCtx(), tmpfilename, std::make_shared<mimium::AudioDriverRtAudio>());
-        global_runtime = runtime.get();
         auto llvmmodule = compiler->moveLLVMModule();
+        global_runtime = runtime.get();
         llvmmodule->setDataLayout(runtime->getJitEngine().getDataLayout());
         runtime->executeModule(std::move(llvmmodule));
         runtime->start();  // start() blocks thread until scheduler stops

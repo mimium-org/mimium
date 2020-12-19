@@ -77,10 +77,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install libalsa-ocaml-dev libfl-dev libbison-dev libz-dev libsndfile-dev libopus-dev gcc-9 ninja-build
       - uses: actions/checkout@v2
+        with: 
+          submodules: "recursive"
       - name: configure
         run:
-          cmake . -Bbuild -G Ninja -DCMAKE_BUILD_CONFIG=${{ matrix.config }} 
+          cmake . -Bbuild -G Ninja -DCMAKE_BUILD_CONFIG=${{ matrix.config }} -DBUILD_TEST=ON
       - name: build
         run: cmake --build build -j
-      - name: test
-        run: cd build && ctest
+      - if: contains(matrix.os, 'macos')
+      # currently only on macos
+        name: test
+        run: cd build && ctest --verbose

@@ -1,0 +1,5 @@
+//willbe included from other file
+variable = 100;
+fn addone(var){
+    return var + 1
+}

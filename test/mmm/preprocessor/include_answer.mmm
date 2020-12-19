@@ -1,0 +1,8 @@
+//willbe included from other file
+variable = 100;
+fn addone(var){
+    return var + 1
+}
+
+//expect:101
+println(addone(variable))
