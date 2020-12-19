@@ -79,8 +79,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: configure
         run:
-          cmake . -Bbuild -G Ninja -DCMAKE_BUILD_CONFIG=${{ matrix.config }} 
+          cmake . -Bbuild -G Ninja -DCMAKE_BUILD_CONFIG=${{ matrix.config }} -DBUILD_TEST=ON
       - name: build
         run: cmake --build build -j
       - name: test
-        run: cd build && ctest
+        run: cd build && ctest --verbose
