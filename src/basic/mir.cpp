@@ -40,18 +40,15 @@ std::string instruction::toString(Store const& i) {
 
 std::string instruction::toString(Op const& i) {
   auto opstr = std::string(ast::op_str.find(i.op)->second);
-  return i.name + " = " + opstr + " " +
-         (i.lhs.has_value() ? mir::getName(*i.lhs.value()) : "") + " " + mir::getName(*i.rhs);
+  return i.name + " = " + opstr + " " + (i.lhs.has_value() ? mir::getName(*i.lhs.value()) : "") +
+         " " + mir::getName(*i.rhs);
 }
 
-std::string toString(Argument const& i) {
-  return i.name;
-}
+std::string toString(Argument const& i) { return i.name; }
 
 std::string instruction::toString(Function const& i) {
   std::stringstream ss;
-  ss << i.name << " = fun" << ((i.isrecursive) ? "[rec]" : "") << " "
-     << join(i.args, " , ");
+  ss << i.name << " = fun" << ((i.isrecursive) ? "[rec]" : "") << " " << join(i.args, " , ");
   if (!i.freevariables.empty()) { ss << " fv{" << join(i.freevariables, ",") << "}"; }
   ss << "\n" << toString(i.body);
   return ss.str();
@@ -59,15 +56,14 @@ std::string instruction::toString(Function const& i) {
 
 std::string instruction::toString(MakeClosure const& i) {
   std::stringstream ss;
-  ss << i.name << " = makeclosure " << mir::getName(*i.fname) << " "
-     << join(i.captures, ",");
+  ss << i.name << " = makeclosure " << mir::getName(*i.fname) << " " << join(i.captures, ",");
   return ss.str();
 }
 std::string instruction::toString(Fcall const& i) {
   std::string s;
   auto timestr = (i.time) ? "@" + mir::getName(*i.time.value()) : "";
-  return i.name + " = app" + fcalltype_str[i.ftype] + " " +
-         mir::getName(*i.fname) + " " + join(i.args, " , ") + timestr;
+  return i.name + " = app" + fcalltype_str[i.ftype] + " " + mir::getName(*i.fname) + " " +
+         join(i.args, " , ") + timestr;
 }
 
 std::string instruction::toString(Array const& i) {
