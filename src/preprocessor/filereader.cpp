@@ -21,10 +21,10 @@ Source FileReader::loadFile(std::string path) {
   std::error_code ec;
   auto status = fs::status(abspath, ec);
   if (status.type() == fs::file_type::none || status.type() == fs::file_type::not_found) {
-    throw FileNotFound(abspath.c_str());
+    throw FileNotFound(abspath.string());
   }
 
-  if (abspath.extension() == mimium_extensiton) { throw UnknownExtension(abspath.c_str()); }
+  if (abspath.extension() == mimium_extensiton) { throw UnknownExtension(abspath.string()); }
 
   std::ifstream ifs(abspath.string());
   assert(ifs && "ifs should not fail");
