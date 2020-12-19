@@ -1,0 +1,4 @@
+include "includee.mmm"
+
+//expect:101
+println(addone(variable))
