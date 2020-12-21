@@ -92,10 +92,9 @@ auto main(int argc, char** argv) -> int {
 
     } catch (std::exception& e) {
       mimium::Logger::debug_log(e.what(), mimium::Logger::ERROR_);
-      runtime->getAudioDriver()->stop();
-
       returncode = 1;
     }
+    if (runtime) { runtime->getAudioDriver()->stop(); }
   }
   llvm::errs() << "return code: " << returncode << "\n";
   return returncode;
