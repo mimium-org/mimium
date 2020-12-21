@@ -240,10 +240,10 @@ llvm::FunctionType* CodeGenVisitor::createFunctionType(minst::Function& i, bool 
   }
 
   if (hascapture || i.name == "dsp") {
-    std::vector<types::Value> fvtype_internal;
-    for (auto& fv : i.freevariables) { fvtype_internal.emplace_back(mir::getType(*fv)); }
-    argtypes.emplace_back(
-        types::Alias{i.name + "_fv", types::Ref{types::Tuple{std::move(fvtype_internal)}}});
+    // std::vector<types::Value> fvtype_internal;
+    // for (auto& fv : i.freevariables) { fvtype_internal.emplace_back(mir::getType(*fv)); }
+    // argtypes.emplace_back(
+    //     types::Alias{i.name + "_fv", types::Ref{types::Tuple{std::move(fvtype_internal)}}});
   }
   if (hasmemobj || i.name == "dsp") {
     auto fobjtree = funobj_map->at(getValPtr(&i));
@@ -271,8 +271,6 @@ void CodeGenVisitor::addArgstoMap(llvm::Function* f, minst::Function& i, bool ha
   if (hascapture || i.name == "dsp") {
     auto name = "ptr_" + i.name + ".cap";
     arg->setName(name);
-
-    G.setValuetoMap(name, arg);
     setFvsToMap(i, arg);
     std::advance(arg, 1);
   }
@@ -325,12 +323,9 @@ llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
   // TODO: for closure
   auto fobjtree = funobj_map->find(i.fname);
   if (fobjtree != funobj_map->end()) {
-    auto& memobjs = fobjtree->second->memobjs;
-    for (const auto& o : memobjs) {
-      auto res = memobj_to_llvm.find(i.fname);
-      assert(res != memobj_to_llvm.end());
-      args.emplace_back(res->second);
-    }
+    auto res = memobj_to_llvm.find(i.fname);
+    assert(res != memobj_to_llvm.end());
+    args.emplace_back(res->second);
   }
 
   llvm::Value* fun = nullptr;
