@@ -7,7 +7,7 @@ namespace mimium {
 
 std::unordered_set<mir::valueptr> MemoryObjsCollector::collectToplevelFuns(mir::blockptr toplevel) {
   std::unordered_set<mir::valueptr> res;
-  
+
   for (const auto& inst : toplevel->instructions) {
     if (mir::isInstA<minst::Function>(inst)) { res.emplace(inst); }
   }
@@ -71,12 +71,10 @@ void MemoryObjsCollector::dumpFunObjTree(FunObjTree const& tree, int indent) {
     auto& f = mir::getInstRef<minst::Function>(tree.fname);
     fname = f.name;
   }
-  std::cerr << indentHelper(indent)<< fname << "->\n";
+  std::cerr << indentHelper(indent) << fname << "->\n";
   int nextindent = indent + 4;
   if (tree.hasself) { std::cerr << indentHelper(nextindent) << "self\n"; }
-  for (const auto& o : tree.memobjs) {
-    dumpFunObjTree(*o, nextindent);
-  }
+  for (const auto& o : tree.memobjs) { dumpFunObjTree(*o, nextindent); }
   if (tree.memobjs.empty() && !tree.hasself) { std::cerr << "\n"; }
 }
 
@@ -150,8 +148,10 @@ ResultT MemoryObjsCollector::CollectMemVisitor::operator()(minst::Fcall& i) {
                             },
                             [&](const mir::ExternalSymbol& e) -> opt_objtreeptr {
                               if (e.name == "delay") {
-                                return std::make_shared<FunObjTree>(
+                                auto res = std::make_shared<FunObjTree>(
                                     FunObjTree{i.fname, false, {}, types::delaystruct});
+                                M.result_map.emplace(i.fname, res);
+                                return res;
                               }
                               return std::nullopt;
                             },
