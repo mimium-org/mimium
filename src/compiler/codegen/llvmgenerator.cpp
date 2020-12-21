@@ -16,7 +16,13 @@ LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv)
       currentblock(nullptr),
       curfunc(nullptr),
       typeenv(typeenv),
-      typeconverter(std::make_unique<TypeConverter>(*builder, *module)) {}
+      typeconverter(std::make_unique<TypeConverter>(*builder, *module)),
+      runtime_fun_names(
+          {{"mimium_getnow", llvm::FunctionType::get(getDoubleTy(), {}, false)},
+           {"access_array_lin_interp",
+            llvm::FunctionType::get(
+                getDoubleTy(), {llvm::PointerType::get(getDoubleTy(), 0), getDoubleTy()}, false)},
+           {"mimium_malloc", llvm::FunctionType::get(geti8PtrTy(), {geti64Ty()}, false)}}) {}
 void LLVMGenerator::init(std::string filename) {
   module->setSourceFileName(filename);
   module->setModuleIdentifier(filename);
@@ -68,27 +74,14 @@ llvm::Function* LLVMGenerator::getForeignFunction(const std::string& name) {
 void LLVMGenerator::setBB(llvm::BasicBlock* newblock) { builder->SetInsertPoint(newblock); }
 void LLVMGenerator::createMiscDeclarations() {
   // create malloc
-  auto* vo = builder->getVoidTy();
   auto* i8 = builder->getInt8Ty();
   auto* i8ptr = builder->getInt8PtrTy();
   auto* i64 = builder->getInt64Ty();
   auto* b = builder->getInt1Ty();
-  auto* d = builder->getDoubleTy();
-  auto* malloctype = llvm::FunctionType::get(i8ptr, {i64}, false);
-  auto* res = module->getOrInsertFunction("mimium_malloc", malloctype).getCallee();
-  setValuetoMap("mimium_malloc", res);
   // create llvm memset
-  auto* memsettype = llvm::FunctionType::get(vo, {i8ptr, i8, i64, b}, false);
+  auto* memsettype = llvm::FunctionType::get(builder->getVoidTy(), {i8ptr, i8, i64, b}, false);
   module->getOrInsertFunction("llvm.memset.p0i8.i64", memsettype).getCallee();
-
-  auto* getnowtype = llvm::FunctionType::get(d, {}, false);
-  auto* gnr = module->getOrInsertFunction("mimium_getnow", getnowtype).getCallee();
-  setValuetoMap("mimium_getnow", gnr);
-
-  auto* arrayaccesstype = llvm::FunctionType::get(d, {llvm::PointerType::get(d, 0), d}, false);
-  auto* arraccess =
-      module->getOrInsertFunction("access_array_lin_interp", arrayaccesstype).getCallee();
-  setValuetoMap("access_array_lin_interp", arraccess);
+  for (auto [name, type] : runtime_fun_names) { module->getOrInsertFunction(name, type); }
 }
 
 // Create mimium_main() function it returns address of closure object for dsp()

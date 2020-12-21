@@ -33,6 +33,7 @@ class LLVMGenerator {
   // search from typeenv
   llvm::Type* getType(const std::string& name);
   llvm::Type* getClosureToFunType(types::Value& type);
+  const std::unordered_map<std::string, llvm::Type*> runtime_fun_names;
 
   using namemaptype = std::unordered_map<std::string, llvm::Value*>;
   std::unordered_map<llvm::Function*, std::shared_ptr<namemaptype>> variable_map;
@@ -59,6 +60,9 @@ class LLVMGenerator {
   void visitInstructions(mir::valueptr inst, bool isglobal);
 
   void dropAllReferences();
+  auto getDoubleTy() { return llvm::Type::getDoubleTy(ctx); }
+  auto geti8PtrTy() { return builder->getInt8PtrTy(); }
+  auto geti64Ty() { return builder->getInt64Ty(); }
 
  public:
   LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv);

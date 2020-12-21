@@ -411,8 +411,9 @@ llvm::Value* CodeGenVisitor::getClsFun(minst::Fcall& i) {
 }
 llvm::Value* CodeGenVisitor::getExtFun(minst::Fcall& i) {
   auto fun = std::get<mir::ExternalSymbol>(*i.fname);
-  MMMASSERT(LLVMBuiltin::ftable.count(fun.name) > 0,
-            "failed to find external function in llvm conversion.");
+  assert(LLVMBuiltin::ftable.count(fun.name) > 0 ||
+         G.runtime_fun_names.count(fun.name) > 0 &&
+             "failed to find external function in llvm conversion.");
   return G.getForeignFunction(fun.name);
 }
 
