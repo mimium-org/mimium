@@ -81,7 +81,9 @@ void LLVMGenerator::createMiscDeclarations() {
   // create llvm memset
   auto* memsettype = llvm::FunctionType::get(builder->getVoidTy(), {i8ptr, i8, i64, b}, false);
   module->getOrInsertFunction("llvm.memset.p0i8.i64", memsettype).getCallee();
-  for (auto [name, type] : runtime_fun_names) { module->getOrInsertFunction(name, type); }
+  for (auto [name, type] : runtime_fun_names) {
+    module->getOrInsertFunction(name, llvm::cast<llvm::FunctionType>(type));
+  }
 }
 
 // Create mimium_main() function it returns address of closure object for dsp()
