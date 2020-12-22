@@ -28,7 +28,6 @@ class MemoryObjsCollector {
 #endif
  private:
   std::shared_ptr<FunObjTree> traverseFunTree(mir::valueptr fun);
-
   static std::string indentHelper(int indent);
   static std::unordered_set<mir::valueptr> collectToplevelFuns(mir::blockptr toplevel);
   static std::optional<mir::valueptr> tryFindFunByName(std::unordered_set<mir::valueptr> fnset,

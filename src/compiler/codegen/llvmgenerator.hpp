@@ -51,6 +51,9 @@ class LLVMGenerator {
   void setValuetoMap(std::string name, llvm::Value* val);
   void preprocess();
   llvm::Function* getForeignFunction(const std::string& name);
+  llvm::Function* getRuntimeFunction(const std::string& name);
+  llvm::Function* getFunction(const std::string& name, llvm::Type* type);
+
   void createMiscDeclarations();
   void createRuntimeSetDspFn();
   void createMainFun();

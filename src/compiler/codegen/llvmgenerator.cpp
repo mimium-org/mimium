@@ -64,8 +64,16 @@ llvm::Function* LLVMGenerator::getForeignFunction(const std::string& name) {
   if (name == "delay") {
     rv::get<types::Function>(type).arg_types.emplace_back(types::Ref{types::delaystruct});
   }
-  auto* funtype = llvm::cast<llvm::FunctionType>(getType(type));
-  auto fnc = module->getOrInsertFunction(targetname, funtype);
+  return getFunction(targetname, getType(type));
+}
+llvm::Function* LLVMGenerator::getRuntimeFunction(const std::string& name) {
+  const auto& type = runtime_fun_names.at(name);
+  return getFunction(name, type);
+}
+
+llvm::Function* LLVMGenerator::getFunction(const std::string& name, llvm::Type* type) {
+  auto* funtype = llvm::cast<llvm::FunctionType>(type);
+  auto fnc = module->getOrInsertFunction(name, funtype);
   auto* fn = llvm::cast<llvm::Function>(fnc.getCallee());
   fn->setCallingConv(llvm::CallingConv::C);
   return fn;
@@ -112,9 +120,9 @@ void LLVMGenerator::createTaskRegister(bool isclosure = false) {
   };
   std::string name = "addTask";
   if (isclosure) {
-    argtypes.push_back(builder->getInt8PtrTy());
+    argtypes.emplace_back(builder->getInt8PtrTy());  // address to closure args(instead of void* type)
     name = "addTask_cls";
-  }  // address to closure args(instead of void* type)
+  }
   auto* fntype = llvm::FunctionType::get(builder->getVoidTy(), argtypes, false);
   auto addtask = module->getOrInsertFunction(name, fntype);
   auto* addtaskfun = llvm::cast<llvm::Function>(addtask.getCallee());

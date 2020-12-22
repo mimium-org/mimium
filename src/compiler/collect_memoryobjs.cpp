@@ -25,7 +25,10 @@ std::optional<mir::valueptr> MemoryObjsCollector::tryFindFunByName(
 
 std::shared_ptr<FunObjTree> MemoryObjsCollector::traverseFunTree(mir::valueptr fun) {
   assert(mir::isInstA<minst::Function>(fun));
-  const auto& f = mir::getInstRef<minst::Function>(fun);
+
+  if (result_map.count(fun) > 0) { return result_map.at(fun); }
+
+  auto& f = mir::getInstRef<minst::Function>(fun);
   CollectMemVisitor visitor(*this);
   auto res = visitor.visitInsts(f.body);
   if (res.hasself) {
@@ -34,24 +37,36 @@ std::shared_ptr<FunObjTree> MemoryObjsCollector::traverseFunTree(mir::valueptr f
     resulttype.arg_types.emplace_back(rettype);
   }
   auto objptr = std::make_shared<FunObjTree>(FunObjTree{fun, res.hasself, res.objs, res.objtype});
-  result_map.emplace(fun, objptr);
+  if (res.hasself || !res.objs.empty()) {
+    result_map.emplace(fun, objptr);
+    auto& ftype = rv::get<types::Function>(f.type);
+    ftype.arg_types.emplace_back(types::Ref{objptr->objtype});
+  }
   return objptr;
 }
 
-funobjmap MemoryObjsCollector::process(mir::blockptr toplevel) {
-  auto toplevelfuns = collectToplevelFuns(toplevel);
-  auto dsp_fun = tryFindFunByName(toplevelfuns, "dsp");
-  if (dsp_fun.has_value()) {
-    auto res = traverseFunTree(dsp_fun.value());
-#ifdef MIMIUM_DEBUG_BUILD
-    dump_res = *res;
-#endif
 
-    auto& insts = toplevel->instructions;
-    auto dspmemtype = res->objtype;
-    auto alloca = minst::Allocate{{"dsp.mem", dspmemtype}, dspmemtype};
-    insts.insert(std::begin(insts), std::make_shared<mir::Value>(std::move(alloca)));
+funobjmap MemoryObjsCollector::process(mir::blockptr toplevel) {
+  auto& insts = toplevel->instructions;
+  std::shared_ptr<FunObjTree> res;
+  std::unordered_set<mir::valueptr> alloca_container;
+  for (auto&& inst : insts) {
+    if (mir::isInstA<minst::Function>(inst)) {
+      if (!std::holds_alternative<mir::ExternalSymbol>(*inst)) {
+        res = traverseFunTree(inst);
+        auto memtype = res->objtype;
+        if (!res->memobjs.empty() || res->hasself) {
+          alloca_container.emplace(std::make_shared<mir::Value>(
+              minst::Allocate{{mir::getName(*inst) + ".mem", memtype}, memtype}));
+        }
+      }
+    }
   }
+
+#ifdef MIMIUM_DEBUG_BUILD
+  if (res) { dump_res = *res; }
+#endif
+  for (auto&& ainst : alloca_container) { insts.insert(std::begin(insts), ainst); }
   return result_map;
 }
 
@@ -141,9 +156,17 @@ ResultT MemoryObjsCollector::CollectMemVisitor::operator()(minst::Fcall& i) {
   using opt_objtreeptr = std::optional<std::shared_ptr<FunObjTree>>;
   auto opt_tree =
       std::visit(overloaded{[&](const mir::Instructions& inst) -> opt_objtreeptr {
-                              assert(std::holds_alternative<minst::Function>(inst));
-                              auto ret = M.traverseFunTree(i.fname);
-                              if (!ret->memobjs.empty() || ret->hasself) { return ret; }
+                              mir::valueptr fun = nullptr;
+                              if (std::holds_alternative<minst::Function>(inst)) {
+                                fun = i.fname;
+                              } else if (const auto* cls = std::get_if<minst::MakeClosure>(&inst)) {
+                                fun = cls->fname;
+                              }
+                              assert(fun != nullptr);
+                              if (!mir::getInstRef<minst::Function>(fun).isrecursive) {
+                                auto ret = M.traverseFunTree(fun);
+                                if (!ret->memobjs.empty() || ret->hasself) { return ret; }
+                              }
                               return std::nullopt;
                             },
                             [&](const mir::ExternalSymbol& e) -> opt_objtreeptr {
@@ -191,6 +214,7 @@ ResultT MemoryObjsCollector::CollectMemVisitor::operator()(minst::If& i) {
     auto res2 = visitInsts(i.elseblock.value());
     mergeResultTs(res, res2);
   }
+  res.hasself |= hasself;
   return res;
 }
 ResultT MemoryObjsCollector::CollectMemVisitor::operator()(minst::Return& i) {

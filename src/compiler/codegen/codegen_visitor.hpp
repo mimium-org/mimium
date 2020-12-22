@@ -54,21 +54,20 @@ struct CodeGenVisitor {
   bool isglobal;
   bool context_hasself;
   minst::Function* recursivefn_ptr;
-  llvm::Value* getDirFun(minst::Fcall& i);
-  llvm::Value* getClsFun(minst::Fcall& i);
-  llvm::Value* getExtFun(minst::Fcall& i);
+  llvm::Function* getFunForFcall(minst::Fcall const& i);
+  llvm::Value* getDirFun(minst::Fcall const& i);
+  llvm::Value* getClsFun(minst::Fcall const& i);
+  llvm::Value* getExtFun(minst::Fcall const& i);
 
-  llvm::FunctionType* createFunctionType(minst::Function& i, bool hascapture, bool hasmemobj);
+  llvm::FunctionType* createFunctionType(minst::Function& i);
   llvm::Function* createFunction(llvm::FunctionType* type, minst::Function& i);
   void addArgstoMap(llvm::Function* f, minst::Function& i, bool hascapture, bool hasmemobj);
 
   void setFvsToMap(minst::Function& i, llvm::Value* clsarg);
   void setMemObjsToMap(mir::valueptr fun, llvm::Value* memarg);
-  void setMemObj(llvm::Value* memarg, std::string const& name, int index);
   llvm::Value* createAllocation(bool isglobal, llvm::Type* type, llvm::Value* array_size,
                                 const llvm::Twine& name);
   bool createStoreOw(std::string varname, llvm::Value* val_to_store);
-  llvm::Value* createAddTaskFn(minst::Fcall& i, bool isclosure, bool isglobal);
   llvm::Value* createIfBody(mir::blockptr& block);
   const static std::unordered_map<ast::OpId, std::string> opid_to_ffi;
 
