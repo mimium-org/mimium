@@ -97,11 +97,11 @@ void ClosureConverter::CCVisitor::checkFreeVar(const mir::blockptr block) {
 }
 
 void ClosureConverter::CCVisitor::checkVariable(mir::valueptr& val, bool ismemoryvalue) {
+  tryReplaceFntoCls(val);
   if (ismemoryvalue) {
     checkFreeVar(val);
   } else {
     checkFreeVarArg(val);
-    tryReplaceFntoCls(val);
   }
 }
 void ClosureConverter::CCVisitor::tryReplaceFntoCls(mir::valueptr& val) {
@@ -202,6 +202,7 @@ void ClosureConverter::CCVisitor::operator()(minst::Op& i) {
 }
 
 void ClosureConverter::CCVisitor::operator()(minst::Fcall& i) {
+  checkVariable(i.fname, true);
   checkVariable(i.fname);
   if (i.time.has_value()) { checkVariable(i.time.value()); }
   for (auto& a : i.args) { checkVariable(a); }
@@ -225,7 +226,6 @@ void ClosureConverter::CCVisitor::operator()(minst::ArrayAccess& i) {
   checkVariable(i.target);
   checkVariable(i.index);
 }
-
 
 void ClosureConverter::CCVisitor::operator()(minst::Field& i) {
   checkFreeVar(i.target);
