@@ -8,6 +8,7 @@
 #include "compiler/codegen/llvm_header.hpp"
 #include "compiler/collect_memoryobjs.hpp"
 #include "compiler/ffi.hpp"
+#include "runtime/runtime_defs.hpp"
 
 namespace mimium {
 struct LLVMBuiltin;
@@ -38,6 +39,11 @@ class LLVMGenerator {
   using namemaptype = std::unordered_map<std::string, llvm::Value*>;
   std::unordered_map<llvm::Function*, std::shared_ptr<namemaptype>> variable_map;
 
+  struct{
+    llvm::Value* capptr= nullptr;
+    llvm::Value* memobjptr= nullptr;
+  } runtime_dspfninfo;
+
   bool isVarOverWritten(std::string const& name) {
     return std::find(overwritten_vars.begin(), overwritten_vars.end(), name) !=
            overwritten_vars.end();
@@ -55,7 +61,7 @@ class LLVMGenerator {
   llvm::Function* getFunction(const std::string& name, llvm::Type* type);
 
   void createMiscDeclarations();
-  void createRuntimeSetDspFn();
+  void createRuntimeSetDspFn(llvm::Type* memobjtype);
   void createMainFun();
   void createTaskRegister(bool isclosure);
   void createNewBasicBlock(std::string name, llvm::Function* f);

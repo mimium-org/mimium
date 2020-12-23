@@ -12,8 +12,6 @@ fn fbdelay_mix(input,time,fb,mix:float){
     return fbdelay(input,time,fb)*mix+input*(1-mix)
 }
 
-
-
 fn seek(speed:float,size:float,reset:float){
     return if(reset>0) (self+speed)%size else  0
 }
@@ -31,10 +29,9 @@ fn loop(dur:float){
 loop(88200)@0
 println(seasize)
 fn dsp(time){
-    // input = phasor(0.002+sin(time*0.0001)*0.01)*0.2  * (sin(time*0.0001)>0)
-    
-    input = seawav[ seek(1,seasize,trigger) ]*0.3
-    // dtime=10000
+    seekpos = seek(1,seasize,trigger)
+    // println(seekpos)
+    input = seawav[ seekpos ]*0.3
     dtime = sin(time*0.0001)*3000+10000
     return fbdelay_mix(input,dtime,0.8,1.0)
 }

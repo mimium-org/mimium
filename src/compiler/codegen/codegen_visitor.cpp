@@ -222,7 +222,6 @@ llvm::Value* CodeGenVisitor::operator()(minst::Function& i) {
   G.curfunc = f;
   G.variable_map.emplace(f, std::make_shared<LLVMGenerator::namemaptype>());
   G.createNewBasicBlock("entry", f);
-
   addArgstoMap(f, i, hascapture, hasmemobj);
 
   for (auto& cinsts : i.body->instructions) { G.visitInstructions(cinsts, false); }
@@ -405,6 +404,9 @@ llvm::Value* CodeGenVisitor::operator()(minst::MakeClosure& i) {
     auto* gep = G.builder->CreateStructGEP(capture_ptr, idx++, "capture_" + mir::getName(*cap));
     G.builder->CreateStore(getLlvmVal(cap), gep);
   }
+
+  if (targetf->getName() == "dsp") { G.runtime_dspfninfo.capptr = capture_ptr; }
+
   return closure_ptr;
 }
 llvm::Value* CodeGenVisitor::operator()(minst::Array& i) {}

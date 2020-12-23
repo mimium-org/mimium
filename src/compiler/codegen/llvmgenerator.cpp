@@ -120,7 +120,8 @@ void LLVMGenerator::createTaskRegister(bool isclosure = false) {
   };
   std::string name = "addTask";
   if (isclosure) {
-    argtypes.emplace_back(builder->getInt8PtrTy());  // address to closure args(instead of void* type)
+    argtypes.emplace_back(
+        builder->getInt8PtrTy());  // address to closure args(instead of void* type)
     name = "addTask_cls";
   }
   auto* fntype = llvm::FunctionType::get(builder->getVoidTy(), argtypes, false);
@@ -141,31 +142,24 @@ void LLVMGenerator::createNewBasicBlock(std::string name, llvm::Function* f) {
   builder->SetInsertPoint(bb);
   currentblock = bb;
 }
-void LLVMGenerator::createRuntimeSetDspFn() {
+void LLVMGenerator::createRuntimeSetDspFn(llvm::Type* memobjtype) {
   auto* voidptrtype = builder->getInt8PtrTy();
   auto* dspfnaddress = builder->CreateBitCast(module->getFunction("dsp"), voidptrtype);
-  llvm::Value* dspclsaddress = nullptr;
-  auto dspcls_cap = variable_map[curfunc]->find("ptr_dsp.cap");
-  if (dspcls_cap != variable_map[curfunc]->end()) {
-    dspclsaddress = builder->CreateBitCast(dspcls_cap->second, voidptrtype);
-  } else {
-    dspclsaddress = llvm::ConstantPointerNull::get(voidptrtype);
-  }
+  auto* dspclsaddress = (runtime_dspfninfo.capptr != nullptr)
+                            ? builder->CreateBitCast(runtime_dspfninfo.capptr, voidptrtype)
+                            : llvm::ConstantPointerNull::get(voidptrtype);
   llvm::Value* dspmemobjaddress = nullptr;
-  auto dspmemobj = variable_map[curfunc]->find("ptr_dsp.mem");
-  if (dspmemobj != variable_map[curfunc]->end()) {
-    dspmemobjaddress = builder->CreateBitCast(dspmemobj->second, voidptrtype);
+  if (memobjtype != nullptr) {
+    auto* dspmemobjptr = codegenvisitor->createAllocation(true, memobjtype, nullptr, "dsp.mem");
+    dspmemobjaddress = builder->CreateBitCast(dspmemobjptr, voidptrtype);
+
     // insert 0 initialization of memobjs
     auto* memsetfn = module->getFunction("llvm.memset.p0i8.i64");
-    auto* t = llvm::cast<llvm::PointerType>(dspmemobj->second->getType())->getElementType();
+    auto* t = llvm::cast<llvm::PointerType>(dspmemobjptr->getType())->getElementType();
     auto size = module->getDataLayout().getTypeAllocSize(t);
-
-    auto* sizeinst = getConstInt(size);
     constexpr int bitsize = 8;
-    auto* zero = getConstInt(0, bitsize);
-    auto* falsev = getConstInt(0, 1);
-    builder->CreateCall(memsetfn, {dspmemobjaddress, zero, sizeinst, falsev});
-
+    builder->CreateCall(memsetfn,
+                        {dspmemobjaddress, getConstInt(0, bitsize), getConstInt(size), getConstInt(0, 1)});
   } else {
     dspmemobjaddress = llvm::ConstantPointerNull::get(voidptrtype);
   }
@@ -204,9 +198,15 @@ void LLVMGenerator::visitInstructions(mir::valueptr inst, bool isglobal) {
 void LLVMGenerator::generateCode(mir::blockptr mir, const funobjmap* funobjs) {
   codegenvisitor = std::make_shared<CodeGenVisitor>(*this, funobjs);
   preprocess();
-
-  for (auto& inst : mir->instructions) { visitInstructions(inst, true); }
-  if (module->getFunction("dsp") != nullptr) { createRuntimeSetDspFn(); }
+  llvm::Type* memobjtype = nullptr;
+  for (auto& inst : mir->instructions) {
+    visitInstructions(inst, true);
+    if (mir::getName(*inst) == "dsp") {
+      auto&& iter = funobjs->find(inst);
+      if (iter != funobjs->end()) { memobjtype = getType(iter->second->objtype); }
+    }
+  }
+  if (module->getFunction("dsp") != nullptr) { createRuntimeSetDspFn(memobjtype); }
   // main always return null for now;
   builder->CreateRet(llvm::ConstantPointerNull::get(builder->getInt8PtrTy()));
 }
