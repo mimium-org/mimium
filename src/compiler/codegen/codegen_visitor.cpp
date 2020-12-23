@@ -216,7 +216,7 @@ llvm::Value* CodeGenVisitor::operator()(minst::Function& i) {
     hasmemobj = !fobjtree->second->memobjs.empty() || context_hasself;
   }
 
-  auto* ft = createFunctionType(i);
+  auto* ft = (i.name != "dsp") ? createFunctionType(i) : createDspFnType(i, hascapture, hasmemobj);
   auto* f = createFunction(ft, i);
   recursivefn_ptr = &i;
   G.curfunc = f;
@@ -232,6 +232,23 @@ llvm::Value* CodeGenVisitor::operator()(minst::Function& i) {
   G.switchToMainFun();
   return f;
 }
+llvm::FunctionType* CodeGenVisitor::createDspFnType(minst::Function& i, bool hascapture,
+                                                    bool hasmemobj) {
+  // arguments of dsp function should be always (time, cls_ptr, memobj_ptr) regardless of existences
+  // of capture &memobj.
+  auto dummytype = types::Ref{types::Float{}};
+  auto mmmfntype = rv::get<types::Function>(i.type);
+  auto& argtypes = mmmfntype.arg_types;
+  if (!hascapture && !hasmemobj) {
+    argtypes.emplace_back(dummytype);
+    argtypes.emplace_back(dummytype);
+  }
+  if (!hasmemobj && hascapture) { argtypes.emplace_back(dummytype); }
+  if (hasmemobj && !hascapture) { argtypes.insert(std::prev(argtypes.end()), dummytype); }
+
+  return llvm::cast<llvm::FunctionType>((*G.typeconverter)(mmmfntype));
+}
+
 llvm::FunctionType* CodeGenVisitor::createFunctionType(minst::Function& i) {
   auto mmmfntype = rv::get<types::Function>(i.type);
   auto& argtypes = mmmfntype.arg_types;
@@ -258,13 +275,15 @@ void CodeGenVisitor::addArgstoMap(llvm::Function* f, minst::Function& i, bool ha
     registerLlvmVal(a, arg);
     std::advance(arg, 1);
   }
-  if (hascapture || i.name == "dsp") {
+  if (hascapture) {
     auto name = "ptr_" + i.name + ".cap";
     arg->setName(name);
     setFvsToMap(i, arg);
     std::advance(arg, 1);
+  } else if (i.name == "dsp") {
+    std::advance(arg, 1);
   }
-  if (hasmemobj || i.name == "dsp") {
+  if (hasmemobj) {
     auto name = i.name + ".mem";
     arg->setName(name);
     setMemObjsToMap(getValPtr(&i), arg);
@@ -299,11 +318,10 @@ void CodeGenVisitor::setFvsToMap(minst::Function& i, llvm::Value* clsarg) {
 }
 
 llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
-  auto fobjtree_iter = funobj_map->find(i.fname);
-  bool hasmemobj = fobjtree_iter != funobj_map->end();
-  bool isclosure = i.ftype == CLOSURE;
+  const bool isclosure = i.ftype == CLOSURE;
   bool isrecursive = false;
-
+  const bool isdsp = i.name == "dsp";
+  mir::valueptr mmmfn= i.fname;
   if (auto* fn_i = std::get_if<mir::Instructions>(i.fname.get())) {
     // recursive function detection with pointer comparison
     if (auto* fnptrraw = std::get_if<minst::Function>(fn_i)) {
@@ -312,8 +330,11 @@ llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
     if (auto* clsptr = std::get_if<minst::MakeClosure>(fn_i)) {
       auto* fnptr_cls = &mir::getInstRef<minst::Function>(clsptr->fname);
       isrecursive = fnptr_cls == this->recursivefn_ptr;
+      mmmfn = clsptr->fname;
     }
   }
+  auto fobjtree_iter = funobj_map->find(mmmfn);
+  const bool hasmemobj = fobjtree_iter != funobj_map->end();
 
   auto* fun = isrecursive ? G.curfunc : getFunForFcall(i);
   // prepare arguments
@@ -342,9 +363,9 @@ llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
     }
     args.emplace_back(capptr);
   }
-  auto fobjtree = funobj_map->find(i.fname);
-  if (fobjtree != funobj_map->end()) {
-    auto res = memobj_to_llvm.find(fobjtree->second->fname);
+
+  if (hasmemobj) {
+    auto res = memobj_to_llvm.find(fobjtree_iter->second->fname);
     if (res != memobj_to_llvm.end()) { args.emplace_back(res->second); }
   }
 
@@ -392,12 +413,14 @@ llvm::Value* CodeGenVisitor::operator()(minst::MakeClosure& i) {
   // auto& capturenames = G.cc.getCaptureNames(i.fname);
   assert(types::isClosure(i.type) && "closure type is invalid");
   auto* targetf = getLlvmVal(i.fname);
+  const bool isdsp = targetf->getName() == "dsp";
   auto* closuretype = G.getType(i.type);
   // // always heap allocation!
   auto* closure_ptr = createAllocation(true, closuretype, nullptr, i.name);
-
-  auto* fun_ptr = G.builder->CreateStructGEP(closure_ptr, 0, i.name + "_fun_ptr");
-  G.builder->CreateStore(targetf, fun_ptr);
+  if (!isdsp) {
+    auto* fun_ptr = G.builder->CreateStructGEP(closure_ptr, 0, i.name + "_fun_ptr");
+    G.builder->CreateStore(targetf, fun_ptr);
+  }
   auto* capture_ptr = G.builder->CreateStructGEP(closure_ptr, 1, i.name + "_capture_ptr");
   unsigned int idx = 0;
   for (auto& cap : i.captures) {
@@ -405,8 +428,7 @@ llvm::Value* CodeGenVisitor::operator()(minst::MakeClosure& i) {
     G.builder->CreateStore(getLlvmVal(cap), gep);
   }
 
-  if (targetf->getName() == "dsp") { G.runtime_dspfninfo.capptr = capture_ptr; }
-
+  if (isdsp) { G.runtime_dspfninfo.capptr = capture_ptr; }
   return closure_ptr;
 }
 llvm::Value* CodeGenVisitor::operator()(minst::Array& i) {}

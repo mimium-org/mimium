@@ -144,7 +144,8 @@ void LLVMGenerator::createNewBasicBlock(std::string name, llvm::Function* f) {
 }
 void LLVMGenerator::createRuntimeSetDspFn(llvm::Type* memobjtype) {
   auto* voidptrtype = builder->getInt8PtrTy();
-  auto* dspfnaddress = builder->CreateBitCast(module->getFunction("dsp"), voidptrtype);
+  auto* dspfn = module->getFunction("dsp");
+  auto* dspfnaddress = builder->CreateBitCast(dspfn, voidptrtype);
   auto* dspclsaddress = (runtime_dspfninfo.capptr != nullptr)
                             ? builder->CreateBitCast(runtime_dspfninfo.capptr, voidptrtype)
                             : llvm::ConstantPointerNull::get(voidptrtype);

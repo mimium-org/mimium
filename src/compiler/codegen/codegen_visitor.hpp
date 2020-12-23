@@ -60,6 +60,8 @@ struct CodeGenVisitor {
   llvm::Value* getExtFun(minst::Fcall const& i);
 
   llvm::FunctionType* createFunctionType(minst::Function& i);
+  llvm::FunctionType* createDspFnType(minst::Function& i,bool hascapture,bool hasmemobj);
+
   llvm::Function* createFunction(llvm::FunctionType* type, minst::Function& i);
   void addArgstoMap(llvm::Function* f, minst::Function& i, bool hascapture, bool hasmemobj);
 
