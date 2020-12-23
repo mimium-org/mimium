@@ -45,7 +45,6 @@ std::shared_ptr<FunObjTree> MemoryObjsCollector::traverseFunTree(mir::valueptr f
   return objptr;
 }
 
-
 funobjmap MemoryObjsCollector::process(mir::blockptr toplevel) {
   auto& insts = toplevel->instructions;
   std::shared_ptr<FunObjTree> res;
@@ -178,6 +177,9 @@ ResultT MemoryObjsCollector::CollectMemVisitor::operator()(minst::Fcall& i) {
                               }
                               return std::nullopt;
                             },
+                            [&](std::shared_ptr<mir::Argument> e)-> opt_objtreeptr {
+                              //TODO:cannot pass function with memobj like higher order function currently.
+                               return std::nullopt; },
                             [&](const auto& i) -> opt_objtreeptr {
                               assert(false);  // cannot call self or constant as function
                               return std::nullopt;

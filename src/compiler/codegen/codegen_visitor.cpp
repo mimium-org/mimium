@@ -321,7 +321,7 @@ llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
   const bool isclosure = i.ftype == CLOSURE;
   bool isrecursive = false;
   const bool isdsp = i.name == "dsp";
-  mir::valueptr mmmfn= i.fname;
+  mir::valueptr mmmfn = i.fname;
   if (auto* fn_i = std::get_if<mir::Instructions>(i.fname.get())) {
     // recursive function detection with pointer comparison
     if (auto* fnptrraw = std::get_if<minst::Function>(fn_i)) {
@@ -341,7 +341,7 @@ llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
   std::vector<llvm::Value*> args = {};
   if (i.time.has_value()) {
     auto* timeval = getLlvmVal(i.time.value());
-    llvm::Value* ptrtofn = llvm::ConstantExpr::getBitCast(fun, G.geti8PtrTy());
+    llvm::Value* ptrtofn = G.builder->CreateBitCast(fun, G.geti8PtrTy(), fun->getName() + "_i8");
     args = {timeval, ptrtofn};
     if (i.args.empty()) { args.emplace_back(llvm::ConstantFP::get(G.ctx, llvm::APFloat(0.0))); }
     if (i.args.size() > 1) {
@@ -368,22 +368,25 @@ llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
     auto res = memobj_to_llvm.find(fobjtree_iter->second->fname);
     if (res != memobj_to_llvm.end()) { args.emplace_back(res->second); }
   }
-
+  auto* funtype_raw = fun->getType();
+  if (funtype_raw->isPointerTy()) {
+    funtype_raw = llvm::cast<llvm::PointerType>(funtype_raw)->getPointerElementType();
+  }
+  assert(funtype_raw->isFunctionTy());
+  auto* ft = llvm::cast<llvm::FunctionType>(funtype_raw);
   // if return type is void, llvm cannot have return value and name
-  if (fun->getReturnType()->isVoidTy()) {
+  if (ft->getReturnType()->isVoidTy()) {
     G.builder->CreateCall(fun, args);
     return nullptr;
   }
   return G.builder->CreateCall(fun, args, i.name);
 }
-llvm::Function* CodeGenVisitor::getFunForFcall(minst::Fcall const& i) {
-  llvm::Value* res = nullptr;
+llvm::Value* CodeGenVisitor::getFunForFcall(minst::Fcall const& i) {
   switch (i.ftype) {
-    case DIRECT: res = getDirFun(i); break;
-    case CLOSURE: res = getClsFun(i); break;
-    case EXTERNAL: res = getExtFun(i); break;
+    case DIRECT: return getDirFun(i);
+    case CLOSURE: return getClsFun(i);
+    case EXTERNAL: return getExtFun(i);
   }
-  return llvm::cast<llvm::Function>(res);
 }
 
 llvm::Value* CodeGenVisitor::getDirFun(minst::Fcall const& i) { return getLlvmVal(i.fname); }
@@ -393,6 +396,9 @@ llvm::Value* CodeGenVisitor::getClsFun(minst::Fcall const& i) {
                                  auto& cls = std::get<mir::instruction::MakeClosure>(f);
                                  auto& realf = cls.fname;
                                  return getLlvmVal(realf);
+                               },
+                               [&](std::shared_ptr<mir::Argument> f) -> llvm::Value* {
+                                 return getLlvmVal(i.fname);
                                },
                                [](auto& /*v*/) {
                                  assert(false);

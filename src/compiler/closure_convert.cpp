@@ -206,7 +206,9 @@ void ClosureConverter::CCVisitor::operator()(minst::Fcall& i) {
   checkVariable(i.fname);
   if (i.time.has_value()) { checkVariable(i.time.value()); }
   for (auto& a : i.args) { checkVariable(a); }
-  if (cc.isKnownFunction(i.fname)) {
+  //currently higher order function is limited to direct call - no closure or memobj
+  const bool is_hof = std::holds_alternative<std::shared_ptr<mir::Argument>>(*i.fname);
+  if (cc.isKnownFunction(i.fname)||is_hof) {
     i.ftype = DIRECT;
   } else {
     if (i.ftype != EXTERNAL) { i.ftype = CLOSURE; }

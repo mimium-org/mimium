@@ -54,7 +54,7 @@ struct CodeGenVisitor {
   bool isglobal;
   bool context_hasself;
   minst::Function* recursivefn_ptr;
-  llvm::Function* getFunForFcall(minst::Fcall const& i);
+  llvm::Value* getFunForFcall(minst::Fcall const& i);
   llvm::Value* getDirFun(minst::Fcall const& i);
   llvm::Value* getClsFun(minst::Fcall const& i);
   llvm::Value* getExtFun(minst::Fcall const& i);
