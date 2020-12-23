@@ -226,7 +226,7 @@ llvm::Value* CodeGenVisitor::operator()(minst::Function& i) {
 
   for (auto& cinsts : i.body->instructions) { G.visitInstructions(cinsts, false); }
 
-  if (G.currentblock->getTerminator() == nullptr && ft->getReturnType()->isVoidTy()) {
+  if (G.builder->GetInsertBlock()->getTerminator() == nullptr && ft->getReturnType()->isVoidTy()) {
     G.builder->CreateRetVoid();
   }
   G.switchToMainFun();
