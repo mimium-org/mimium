@@ -39,7 +39,11 @@ An event scheduling for this mechanism is driven by a clock from an audio driver
 
 # Installation
 
-Installation via [Homebrew](https://brew.sh/) is recommended.
+You can download a built binary from [release](https://github.com/mimium-org/mimium/releases) section.
+
+mimium can run on macOS(x86), Linux(ALSA backend), Windows(WASAPI backend). WebAssemby backend will be supported for future.
+
+On macOS and Linux, installation via [Homebrew](https://brew.sh/) is recommended.
 
 Open your terminal application and type 
 
@@ -47,16 +51,12 @@ Open your terminal application and type
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)" 
 ```
 
-to install homebrew itself. After installation, you can install by entering
+to install homebrew itself. After installation, you can install with the commands below.
 
 ```sh
 brew tap mimium-org/mimium
 brew install mimium
 ```
-
-Also, you can download a built binary from [release](https://github.com/mimium-org/mimium/releases) section.
-
-Currently only macOS and Linux(ALSA backend) is supported. Windows, and web browser will be supported for future.
 
 # Build from Source
 
@@ -69,7 +69,7 @@ See also [GitHub Action Workflow](https://github.com/mimium-org/mimium/blob/dev/
 - cmake
 - bison >= 3.3
 - flex
-- llvm >= 9.0.0
+- llvm 9 ~ 10(not tested on 11 yet)
 
 ### build and runtime
 
@@ -90,7 +90,7 @@ cmake --build . --target install
 
 ### notes for linux build
 
-At Bionic, a version of bison from apt is 3.0.4, which will not work. Please install latest version manually.
+At Ubuntu 18.04(Bionic), bison from apt is version 3.0.4, which will not work. Please install latest version manually.
 
 # Author
 
