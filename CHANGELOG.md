@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v0.2.0 (2020-12-24)
+### Improvements
+
+- Windows build(on MSYS2) is ready. Check GitHub Actions workflow if you want to build.
+- `delay(input,delaytime)` primitive function has been added.
+  - maximum delay time is currently fixed to 44100 samples.
+- (experimental) a simple macro preprocessor has been added.
+  - you can now include other source files with `include "otherfile.mmm"` put on a global context.
+- Refactored Mid-Level internal representation.
+
 ## v0.1.5 (2020-09-28)
 
 ### Fixed bugs
