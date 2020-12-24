@@ -30,7 +30,7 @@ jobs:
           draft: false
           prerelease: false 
   build_and_upload:
-    name: "Build and Release"
+    name: "Build and Upload Binary"
     needs: create_release
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
@@ -38,63 +38,54 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          # - ubuntu-18.04
           - ubuntu-20.04
-          - macos-latest
-#           - windows-2016
-#           - windows-latest
-        llvm:
-          - 10
+          - macos-10.15
+          - windows-latest
         config:
           - Release
         include:
-            # - os: ubuntu-18.04
-            #   cc: /usr/bin/gcc-9
-            #   cxx: /usr/bin/g++-9
-            #   llvm_dir: /usr/lib/llvm-
             - os: ubuntu-20.04
-              cc: /usr/bin/gcc-9
               cxx: /usr/bin/g++-9
-              llvm_dir: /usr/lib/llvm
               zip_postfix: Linux
-            - os: macos-latest
-              cc: /usr/bin/clang
+              shell: bash
+            - os: macos-10.15
               cxx: /usr/bin/clang++
-              llvm_dir: /usr/local/opt/llvm@
               zip_postfix: Darwin
-#           - os: windows-2016
-#             cmake-generator: -G "Visual Studio 15 2017" -A x64
-#           - os: windows-latest
-#             cmake-generator: -G "Visual Studio 16 2019" -A x64
+              shell: bash
+            - os: windows-latest
+              cxx: g++
+              zip_postfix: Windows
+              shell: msys2 {0}
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
+    env:
+      CXX: ${{matrix.cxx}}
     steps:
-      - uses: actions/checkout@v2
-      - if: contains(matrix.os, 'ubuntu')
-        name: deps-ubuntu
-        run: |
-          sudo apt update
-          sudo apt upgrade
-          sudo apt-get install libalsa-ocaml-dev libfl-dev libbison-dev libz-dev libsndfile-dev libopus-dev llvm-${{matrix.llvm}}-dev clang-10 gcc-9 ninja-build
-          sudo mkdir /usr/lib/llvm && sudo ln -s /usr/lib/llvm-10** /usr/lib/llvm
-  
-      # - if: contains(matrix.os, 'ubuntu-18.04')
-      #   name: deps-bison-latest-for-bionic
-      #   run: |
-      #     wget http://ftp.gnu.org/gnu/bison/bison-3.6.tar.gz
-      #     tar -xzvf bison-3.6.tar.gz
-      #     pushd bison-3.6 && ./configure --prefix=/usr && make && sudo make install && popd
+      - if: contains(matrix.os, 'windows')
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          # update: true
+          install: git flex bison mingw-w64-x86_64-cmake mingw-w64-x86_64-gcc mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus mingw-w64-x86_64-ninja
+      - if: contains(matrix.os, 'windows')
+        run: pacman -U --noconfirm https://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-llvm-10.0.0-1-any.pkg.tar.xz
       - if: contains(matrix.os, 'macos')
-        name: deps-macos
         run: |
-          brew upgrade
-          brew install flex bison libsndfile llvm@${{matrix.llvm}} ninja
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install flex bison libsndfile llvm@9 ninja
+      - if: contains(matrix.os, 'ubuntu')
+        run: |
+          brew install llvm@9
+          sudo apt-get update
+          sudo apt-get install libalsa-ocaml-dev libfl-dev libbison-dev libz-dev libsndfile-dev libopus-dev gcc-9 ninja-build
+      - uses: actions/checkout@v2
+        with: 
+          submodules: "recursive"
       - name: configure
-        env:
-          LLVM_DIR: ${{ matrix.llvm_dir }}${{ matrix.llvm}}/lib/cmake
         run:
-          mkdir build && cd build && cmake ${{ matrix.cmake-generator }}-DCMAKE_BUILD_CONFIG=${{ matrix.config }} -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}  -DBUILD_TEST=OFF -G Ninja ..
-
+          cmake . -Bbuild -G Ninja -DCMAKE_BUILD_CONFIG=${{ matrix.config }}
       - name: build
-        run: cmake --build build --config ${{ matrix.config }}
+        run: cmake --build build -j --config ${{ matrix.config }}
 
       - name: pack
         run: cd build && cpack && cd ../
@@ -109,7 +100,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-
           upload_url: ${{ needs.create_release.outputs.upload_url }}
           asset_path: ./build/mimium-${{ steps.get_version.outputs.VERSION }}-${{ matrix.zip_postfix }}.zip
           asset_name: mimium-${{ steps.get_version.outputs.VERSION }}-${{ matrix.zip_postfix }}.zip
