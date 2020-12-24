@@ -12,7 +12,7 @@ Compiler::Compiler()
       mirgenerator(typeinferer.getTypeEnv()),
       closureconverter(std::make_shared<ClosureConverter>(typeinferer.getTypeEnv())),
       memobjcollector(),
-      llvmgenerator(*llvmctx, typeinferer.getTypeEnv()) {}
+      llvmgenerator(*llvmctx) {}
 Compiler::Compiler(std::unique_ptr<llvm::LLVMContext> ctx)
     : driver(),
       llvmctx(std::move(ctx)),
@@ -21,7 +21,7 @@ Compiler::Compiler(std::unique_ptr<llvm::LLVMContext> ctx)
       mirgenerator(typeinferer.getTypeEnv()),
       closureconverter(std::make_shared<ClosureConverter>(typeinferer.getTypeEnv())),
       memobjcollector(),
-      llvmgenerator(*ctx, typeinferer.getTypeEnv()) {}
+      llvmgenerator(*ctx) {}
 Compiler::~Compiler() = default;
 void Compiler::setFilePath(std::string path) {
   this->path = path;

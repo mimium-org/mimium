@@ -8,14 +8,13 @@
 
 namespace mimium {
 
-LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx, TypeEnv& typeenv)
+LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx)
     : ctx(ctx),
       module(std::make_unique<llvm::Module>("no_file_name.mmm", ctx)),
       builder(std::make_unique<llvm::IRBuilder<>>(ctx)),
       mainentry(nullptr),
       currentblock(nullptr),
       curfunc(nullptr),
-      typeenv(typeenv),
       typeconverter(std::make_unique<TypeConverter>(*builder, *module)),
       runtime_fun_names(
           {{"mimium_getnow", llvm::FunctionType::get(getDoubleTy(), {}, false)},
@@ -38,13 +37,11 @@ void LLVMGenerator::reset(std::string filename) {
 
 LLVMGenerator::~LLVMGenerator() { dropAllReferences(); }
 void LLVMGenerator::dropAllReferences() {
-  variable_map.clear();
   if (module != nullptr) { module->dropAllReferences(); }
 }
 
 llvm::Type* LLVMGenerator::getType(types::Value& type) { return std::visit(*typeconverter, type); }
 
-llvm::Type* LLVMGenerator::getType(const std::string& name) { return getType(typeenv.find(name)); }
 llvm::Type* LLVMGenerator::getClosureToFunType(types::Value& type) {
   auto aliasty = rv::get<types::Alias>(type);
   auto clsty = rv::get<types::Closure>(aliasty.target);
@@ -103,7 +100,6 @@ void LLVMGenerator::createMainFun() {
       llvm::Function::Create(fntype, llvm::Function::ExternalLinkage, "mimium_main", *module);
   mainfun->setCallingConv(llvm::CallingConv::C);
   curfunc = mainfun;
-  variable_map.emplace(curfunc, std::make_shared<namemaptype>());
   using Akind = llvm::Attribute;
   std::vector<Akind::AttrKind> attrs = {Akind::NoUnwind, Akind::NoInline, Akind::OptimizeNone};
   llvm::AttributeSet aset;
@@ -134,7 +130,6 @@ void LLVMGenerator::createTaskRegister(bool isclosure = false) {
   llvm::AttributeSet aset;
   for (auto& a : attrs) { aset = aset.addAttribute(ctx, a); }
   addtaskfun->addAttributes(llvm::AttributeList::FunctionIndex, aset);
-  setValuetoMap(name, addtask.getCallee());
 }
 
 void LLVMGenerator::createNewBasicBlock(std::string name, llvm::Function* f) {
@@ -159,8 +154,8 @@ void LLVMGenerator::createRuntimeSetDspFn(llvm::Type* memobjtype) {
     auto* t = llvm::cast<llvm::PointerType>(dspmemobjptr->getType())->getElementType();
     auto size = module->getDataLayout().getTypeAllocSize(t);
     constexpr int bitsize = 8;
-    builder->CreateCall(memsetfn,
-                        {dspmemobjaddress, getConstInt(0, bitsize), getConstInt(size), getConstInt(0, 1)});
+    builder->CreateCall(memsetfn, {dspmemobjaddress, getConstInt(0, bitsize), getConstInt(size),
+                                   getConstInt(0, 1)});
   } else {
     dspmemobjaddress = llvm::ConstantPointerNull::get(voidptrtype);
   }
@@ -168,16 +163,6 @@ void LLVMGenerator::createRuntimeSetDspFn(llvm::Type* memobjtype) {
       "setDspParams", llvm::FunctionType::get(builder->getVoidTy(),
                                               {voidptrtype, voidptrtype, voidptrtype}, false));
   builder->CreateCall(setdsp, {dspfnaddress, dspclsaddress, dspmemobjaddress});
-}
-
-llvm::Value* LLVMGenerator::getOrCreateFunctionPointer(llvm::Function* f) {
-  auto name = std::string(f->getName()) + "_ptr";
-  llvm::Value* funptr = module->getNamedGlobal(name);
-  if (funptr == nullptr) {
-    funptr = module->getOrInsertGlobal(name, llvm::PointerType::get(f->getType(), 0));
-    builder->CreateStore(f, funptr);
-  }
-  return funptr;
 }
 
 void LLVMGenerator::preprocess() {
@@ -212,31 +197,6 @@ void LLVMGenerator::generateCode(mir::blockptr mir, const funobjmap* funobjs) {
   builder->CreateRet(llvm::ConstantPointerNull::get(builder->getInt8PtrTy()));
 }
 
-llvm::Value* LLVMGenerator::tryfindValue(std::string name) {
-  auto map = variable_map[curfunc];
-  llvm::Value* res = nullptr;
-  auto iter = map->find(name);
-  if (iter != map->end()) { res = iter->second; }
-  if (isVarOverWritten(name)) {
-    auto* ptr = findValue("ptr_" + name);
-    res = builder->CreateLoad(ptr, name);
-  }
-  return res;
-}
-llvm::Value* LLVMGenerator::findValue(std::string name) {
-  auto* res = tryfindValue(name);
-  if (res == nullptr) {
-    throw std::runtime_error("variable " + name + " cannot be found in llvm conversion");
-  }
-
-  return res;
-}
-
-void LLVMGenerator::setValuetoMap(std::string name, llvm::Value* val) {
-  auto map = variable_map[curfunc];
-  map->try_emplace(name, val);
-}
-
 void LLVMGenerator::outputToStream(llvm::raw_ostream& stream) {
   module->print(stream, nullptr, false, true);
 }
@@ -249,12 +209,5 @@ void LLVMGenerator::dumpvar(llvm::Type* v) {
   v->print(llvm::errs(), true);
   llvm::errs() << "\n";
 }
-void LLVMGenerator::dumpvars() {
-  for (auto& [f, map] : variable_map) {
-    llvm::errs() << f->getName() << ":\n";
-    for (auto& [key, val] : *map) {
-      llvm::errs() << "   " << key << " :  " << val->getName() << "\n";
-    }
-  }
-}
+
 }  // namespace mimium

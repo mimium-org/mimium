@@ -111,19 +111,6 @@ llvm::Value* CodeGenVisitor::createAllocation(bool isglobal, llvm::Type* type,
   }
   return G.builder->CreateAlloca(type, array_size, "ptr_" + name);
 };
-// Create StoreInst if storing to already allocated value
-bool CodeGenVisitor::createStoreOw(std::string varname, llvm::Value* val_to_store) {
-  bool res = false;
-  auto ptrname = "ptr_" + varname;
-  auto& map = G.variable_map[G.curfunc];
-  auto it = map->find(varname);
-  auto it2 = map->find(ptrname);
-  if (it != map->cend() && it2 != map->cend()) {
-    G.builder->CreateStore(val_to_store, G.findValue(ptrname));
-    res = true;
-  }
-  return res;
-}
 
 llvm::Value* CodeGenVisitor::operator()(minst::Number& i) {
   return llvm::ConstantFP::get(G.ctx, llvm::APFloat(i.val));
@@ -135,8 +122,8 @@ llvm::Value* CodeGenVisitor::operator()(minst::String& i) {
       llvm::cast<llvm::GlobalVariable>(G.module->getOrInsertGlobal(i.val, cstr->getType()));
   gvalue->setInitializer(cstr);
   gvalue->setLinkage(llvm::GlobalValue::InternalLinkage);
-  gvalue->setName("str");
-  auto* bitcast = G.builder->CreateBitCast(gvalue, i8ptrty);
+  gvalue->setName(i.name);
+  auto* bitcast = G.builder->CreateBitCast(gvalue, i8ptrty, i.name + "_ptr");
   return bitcast;
 }
 llvm::Value* CodeGenVisitor::operator()(minst::Allocate& i) {
@@ -146,13 +133,8 @@ llvm::Value* CodeGenVisitor::operator()(minst::Allocate& i) {
 }
 llvm::Value* CodeGenVisitor::operator()(minst::Ref& i) {
   // temporarily unused
-  // auto ptrname = "ptr_" + i.lv_name;
-  // auto ptrptrname = "ptr_" + ptrname;
-  // auto* ptrtoptr = createAllocation(isglobal, G.getType(i.type), nullptr, ptrname);
-  // G.builder->CreateStore(G.findValue(ptrname), ptrtoptr);
-  // auto* ptr = G.builder->CreateLoad(ptrtoptr, ptrptrname);
-  // G.setValuetoMap(ptrname, ptr);
-  // G.setValuetoMap(ptrptrname, ptrtoptr);
+  assert(false);
+  return nullptr;
 }
 llvm::Value* CodeGenVisitor::operator()(minst::Load& i) {
   auto* target = getLlvmVal(i.target);
@@ -220,7 +202,6 @@ llvm::Value* CodeGenVisitor::operator()(minst::Function& i) {
   auto* f = createFunction(ft, i);
   recursivefn_ptr = &i;
   G.curfunc = f;
-  G.variable_map.emplace(f, std::make_shared<LLVMGenerator::namemaptype>());
   G.createNewBasicBlock("entry", f);
   addArgstoMap(f, i, hascapture, hasmemobj);
 
@@ -263,7 +244,6 @@ llvm::FunctionType* CodeGenVisitor::createFunctionType(minst::Function& i) {
 llvm::Function* CodeGenVisitor::createFunction(llvm::FunctionType* type, minst::Function& i) {
   auto link = llvm::Function::ExternalLinkage;
   auto* f = llvm::Function::Create(type, link, i.name, *G.module);
-  G.setValuetoMap(i.name, f);
   return f;
 }
 void CodeGenVisitor::addArgstoMap(llvm::Function* f, minst::Function& i, bool hascapture,
@@ -437,7 +417,10 @@ llvm::Value* CodeGenVisitor::operator()(minst::MakeClosure& i) {
   if (isdsp) { G.runtime_dspfninfo.capptr = capture_ptr; }
   return closure_ptr;
 }
-llvm::Value* CodeGenVisitor::operator()(minst::Array& i) {}
+llvm::Value* CodeGenVisitor::operator()(minst::Array& i) {
+  assert(false && "not implemented yet");
+  return nullptr;
+}
 llvm::Value* CodeGenVisitor::operator()(minst::ArrayAccess& i) {
   auto* target = getLlvmVal(i.target);
   auto* index = getLlvmVal(i.index);

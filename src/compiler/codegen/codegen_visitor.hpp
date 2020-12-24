@@ -69,7 +69,6 @@ struct CodeGenVisitor {
   void setMemObjsToMap(mir::valueptr fun, llvm::Value* memarg);
   llvm::Value* createAllocation(bool isglobal, llvm::Type* type, llvm::Value* array_size,
                                 const llvm::Twine& name);
-  bool createStoreOw(std::string varname, llvm::Value* val_to_store);
   llvm::Value* createIfBody(mir::blockptr& block);
   const static std::unordered_map<ast::OpId, std::string> opid_to_ffi;
 
