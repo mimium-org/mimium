@@ -9,4 +9,4 @@ fn fibonacchi(num){
         }
     }
 }
-main = fibonacchi(15)
+println(fibonacchi(15))

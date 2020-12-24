@@ -22,6 +22,8 @@ PARSER_TEST(pipeline)
 PARSER_TEST(fdef)
 PARSER_TEST(self)
 PARSER_TEST(array)
+PARSER_TEST(tuplelvar)
+PARSER_TEST(tuple)
 
 TEST(parser, ast_complete) {
   Driver driver{};

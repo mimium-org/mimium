@@ -5,22 +5,23 @@
 #include "compiler/compiler.hpp"
 namespace mimium {
 Compiler::Compiler()
-    : llvmctx(std::make_shared<llvm::LLVMContext>()),
+    : llvmctx(std::make_unique<llvm::LLVMContext>()),
       driver(),
       symbolrenamer(std::make_shared<RenameEnvironment>()),
       typeinferer(),
       mirgenerator(typeinferer.getTypeEnv()),
       closureconverter(std::make_shared<ClosureConverter>(typeinferer.getTypeEnv())),
-      memobjcollector(typeinferer.getTypeEnv()),
-      llvmgenerator(*llvmctx, typeinferer.getTypeEnv(), *closureconverter, memobjcollector) {}
-Compiler::Compiler(llvm::LLVMContext& ctx)
+      memobjcollector(),
+      llvmgenerator(*llvmctx) {}
+Compiler::Compiler(std::unique_ptr<llvm::LLVMContext> ctx)
     : driver(),
+      llvmctx(std::move(ctx)),
       symbolrenamer(std::make_shared<RenameEnvironment>()),
       typeinferer(),
       mirgenerator(typeinferer.getTypeEnv()),
       closureconverter(std::make_shared<ClosureConverter>(typeinferer.getTypeEnv())),
-      memobjcollector(typeinferer.getTypeEnv()),
-      llvmgenerator(ctx, typeinferer.getTypeEnv(), *closureconverter, memobjcollector) {}
+      memobjcollector(),
+      llvmgenerator(*ctx) {}
 Compiler::~Compiler() = default;
 void Compiler::setFilePath(std::string path) {
   this->path = path;
@@ -41,12 +42,10 @@ TypeEnv& Compiler::typeInfer(AstPtr ast) { return typeinferer.infer(*ast); }
 mir::blockptr Compiler::generateMir(AstPtr ast) { return mirgenerator.generate(*ast); }
 mir::blockptr Compiler::closureConvert(mir::blockptr mir) { return closureconverter->convert(mir); }
 
-mir::blockptr Compiler::collectMemoryObjs(mir::blockptr mir) {
-  return memobjcollector.process(mir);
-}
+funobjmap Compiler::collectMemoryObjs(mir::blockptr mir) { return memobjcollector.process(mir); }
 
-llvm::Module& Compiler::generateLLVMIr(mir::blockptr mir) {
-  llvmgenerator.generateCode(mir);
+llvm::Module& Compiler::generateLLVMIr(mir::blockptr mir, funobjmap const& funobjs) {
+  llvmgenerator.generateCode(mir, &funobjs);
   return llvmgenerator.getModule();
 }
 }  // namespace mimium

@@ -27,7 +27,7 @@ class SymbolRenamer {
     ast::ExprPtr operator()(ast::Op& ast);
     ast::ExprPtr operator()(ast::Number& ast);
     ast::ExprPtr operator()(ast::String& ast);
-    ast::ExprPtr operator()(ast::Rvar& ast);
+    ast::ExprPtr operator()(ast::Symbol& ast);
     ast::ExprPtr operator()(ast::Self& ast);
     ast::LambdaArgs renameLambdaArgs(ast::LambdaArgs& ast);
     ast::Lambda renameLambda(ast::Lambda& ast);
@@ -44,6 +44,15 @@ class SymbolRenamer {
 
     ast::ExprPtr operator()(ast::Block& ast);
     ast::ExprPtr rename(ast::ExprPtr ast) { return std::visit(*this, *ast); }
+  };
+  struct LvarRenameVisitor {
+    explicit LvarRenameVisitor(SymbolRenamer& parent) : renamer(parent){};
+    SymbolRenamer& renamer;
+    ast::Lvar operator()(ast::DeclVar& ast);
+    ast::Lvar operator()(ast::ArrayLvar& ast);
+    ast::Lvar operator()(ast::TupleLvar& ast);
+    ast::DeclVar renameDeclVar(ast::DeclVar& ast);
+    ast::Lvar rename(ast::Lvar& ast) { return std::visit(*this, ast); }
   };
   struct StatementRenameVisitor : public VisitorBase<StatementPtr> {
     explicit StatementRenameVisitor(SymbolRenamer& parent) : renamer(parent){};
@@ -62,6 +71,8 @@ class SymbolRenamer {
   };
   StatementPtr renameStatement(StatementPtr stmt) { return statement_renamevisitor.rename(stmt); }
   ast::ExprPtr renameExpr(ast::ExprPtr expr) { return expr_renamevisitor.rename(expr); }
+  ast::Lvar renameLvar(ast::Lvar& lvar) { return lvar_renamevisitor.rename(lvar); }
+
   ast::FcallArgs renameFcallArgs(ast::FcallArgs& ast);
 
   ast::Fcall renameFcall(ast::Fcall& ast);
@@ -71,6 +82,7 @@ class SymbolRenamer {
  private:
   ExprRenameVisitor expr_renamevisitor{*this};
   StatementRenameVisitor statement_renamevisitor{*this};
+  LvarRenameVisitor lvar_renamevisitor{*this};
   std::shared_ptr<RenameEnvironment> env;
   uint64_t namecount = 0;
   std::string getNewName(std::string const& name);

@@ -3,49 +3,35 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
+#define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
+
 #include <list>
 
 #include "basic/helper_functions.hpp"
 #include "runtime/runtime_defs.hpp"
+#include "runtime/scheduler.hpp"
 namespace mimium {
-class Scheduler;
 class AudioDriver;
-struct TaskType;
 
-template <typename TaskType>
 class Runtime {
  public:
-  Runtime(std::string filename_i = "untitled") : waitc() {}
+  explicit Runtime(std::string const& filename_i = "untitled",std::shared_ptr<AudioDriver> a=nullptr):audiodriver(std::move(a))  {}
 
-  ~Runtime(){
-    for(auto&& [address,size]:malloc_container){
-      free(address);
-    }
+  ~Runtime() {
+    for (auto&& [address, size] : malloc_container) { free(address); }
   };
 
-  virtual void addScheduler() = 0;
-
   virtual void start() = 0;
-  bool isrunning() { return running_status; };
-  void stop() { running_status = false; };
-
-  auto getScheduler() { return sch; };
-  virtual void addAudioDriver(std::shared_ptr<AudioDriver> a) = 0;
-  ;
-  virtual DspFnType getDspFn() = 0;
-  virtual void* getDspFnCls() = 0;
+  auto getAudioDriver() { return audiodriver; }
   bool hasDsp() { return hasdsp; }
   bool hasDspCls() { return hasdspcls; }
-  void push_malloc(void* address,size_t size){
-    malloc_container.emplace_back(address,size);
-  }
+  void push_malloc(void* address, size_t size) { malloc_container.emplace_back(address, size); }
+
  protected:
-  std::shared_ptr<Scheduler> sch;
-  bool running_status = false;
+  std::shared_ptr<AudioDriver> audiodriver;
   bool hasdsp = false;
   bool hasdspcls = false;
-  std::list<std::pair<void*,size_t>> malloc_container{};
-  WaitController waitc;
+  std::list<std::pair<void*, size_t>> malloc_container{};
 };
 
 }  // namespace mimium

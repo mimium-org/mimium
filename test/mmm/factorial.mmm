@@ -7,3 +7,4 @@ fn fact(num){
     }
 }
 main = fact(5)
+println(main)

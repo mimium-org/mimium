@@ -1,0 +1,37 @@
+seawave = "/Users/tomoya/Music/Chickens_mono.wav"
+seasize = loadwavsize(seawave)
+seawav = loadwav(seawave)
+
+
+// delay(input,delay time)
+
+fn fbdelay(input:float,time:float,fb:float){
+    return delay(input+self*fb,time) 
+}
+fn fbdelay_mix(input,time,fb,mix:float){
+    return fbdelay(input,time,fb)*mix+input*(1-mix)
+}
+
+fn seek(speed:float,size:float,reset:float){
+    return if(reset>0) (self+speed)%size else  0
+}
+
+trigger = 0
+fn setT(t){
+    trigger = t
+}
+fn loop(dur:float){
+    setT(0)@(now)
+    setT(1)@(now+dur/2)
+    println(1)
+    loop(dur)@(now+dur)
+}
+loop(88200)@0
+println(seasize)
+fn dsp(time){
+    seekpos = seek(1,seasize,trigger)
+    // println(seekpos)
+    input = seawav[ seekpos ]*0.3
+    dtime = sin(time*0.0001)*3000+10000
+    return fbdelay_mix(input,dtime,0.8,1.0)
+}

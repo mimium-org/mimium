@@ -18,19 +18,22 @@
 TEST(mirgen, basic) {
   PREP(test_localvar)
   auto mir = mirgenerator.generate(*newast);
-  std::string target =
-      "root:\n"
-      "  hoge0 = fun x1 , y2\n"
-      "  hoge0:\n"
-      "    alloca: localvar3 (float)\n"
-      "    localvar3 = 2.000000\n"
-      "    k3 = Mul x1 y2\n"
-      "    k2 = Add k3 localvar3\n"
-      "    return k2\n"
-      "\n"
-      "  k6 = 5.000000\n"
-      "  k7 = 7.000000\n"
-      "  alloca: main4 (float)\n"
-      "  main4 = appcls hoge0 k6 , k7\n";
+  std::string target = R"(root:
+  hoge0 = fun x1 , y2
+  hoge0:
+    allocate localvar3 : float
+    k0 = 2.000000
+    store k0 to localvar3
+    k2 = Mul x1 y2
+    k3 = load localvar3
+    k1 = Add k2 k3
+    return k1
+
+  allocate main4 : float
+  k6 = 5.000000
+  k7 = 7.000000
+  k5 = appcls hoge0 k6 , k7
+  store k5 to main4
+)";
   EXPECT_EQ(mir::toString(mir), target);
 }

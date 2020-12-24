@@ -104,13 +104,16 @@
 			"-background-index",
 			"-compile-commands-dir=build",
 			"-header-insertion=never",
-			"--query-driver=\"/usr/bin/clang++\""
+			"--query-driver=\"/usr/bin/clang++\"",
+			"-j=8"
 		],
 		"cmake.ctestArgs": [
 			"--verbose"
 		  ],
 		  "cmake.configureArgs": [
-			  "-DBUILD_TEST=ON"
-		  ]
+			  "-DBUILD_TEST=ON",
+			  "-DENABLE_LLD=ON"
+		  ],
+		  "cmake.generator": "Ninja"
 	}
 }

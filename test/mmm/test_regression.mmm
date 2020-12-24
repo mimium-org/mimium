@@ -1,0 +1,2 @@
+hoge = 100+20
+print(hoge)

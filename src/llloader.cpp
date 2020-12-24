@@ -7,14 +7,15 @@
 
 #include <unistd.h>
 #include <csignal>
+#include <filesystem>
 #include <fstream>
 #include <string>
+namespace fs = std::filesystem;
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Support/SourceMgr.h>
-
 
 #include "basic/helper_functions.hpp"
 // #include "cli_tools.cpp"
@@ -26,8 +27,7 @@ using Logger = mimium::Logger;
 #include "runtime/backend/rtaudio/driver_rtaudio.hpp"
 
 extern "C" {
-
-extern mimium::Scheduler* global_sch;
+extern mimium::Runtime* global_runtime;
 }
 std::function<void(int)> shutdown_handler;
 void signalHandler(int signo) { shutdown_handler(signo); }
@@ -58,39 +58,45 @@ auto main(int argc, char** argv) -> int {
 #endif
     out << "\n";
   });
-  std::ifstream input(input_filename.c_str());
+  fs::path filename = input_filename.c_str();
+  auto abspath = fs::absolute(filename).string();
+  std::ifstream input(abspath.c_str());
   signal(SIGINT, signalHandler);
   Logger::current_report_level = Logger::INFO;
-  auto runtime = std::make_shared<mimium::Runtime_LLVM>();
-  //   auto compiler = std::make_unique<mimium::Compiler>(runtime->getLLVMContext());
+  auto tmpfilename = fs::exists(filename) ? "" : abspath;
+  std::unique_ptr<mimium::Runtime_LLVM> runtime;
+
   shutdown_handler = [&runtime](int /*signal*/) {
-    if (runtime->isrunning()) { runtime->stop(); }
+    runtime->getAudioDriver()->stop();
+
     std::cerr << "Interuppted by key" << std::endl;
     exit(0);
   };
-  runtime->addScheduler();
-  global_sch = runtime->getScheduler().get();
-  runtime->addAudioDriver(std::make_shared<mimium::AudioDriverRtAudio>(runtime->getScheduler()));
 
   llvm::SMDiagnostic errorreporter;
   if (!input.good()) {
-    Logger::debug_log("Specify file name, repl mode is not implemented yet", Logger::ERROR);
+    Logger::debug_log("Failed to find file " + abspath, Logger::ERROR_);
     // filename is empty:enter repl mode
   } else {  // try to parse and exec input file
     try {
-      std::string filename = input_filename.c_str();
-      Logger::debug_log("Opening " + filename, Logger::INFO);
+      Logger::debug_log("Opening " + abspath, Logger::INFO);
+      auto llvmcontext = std::make_unique<llvm::LLVMContext>();
 
-      auto m = llvm::parseIRFile(filename, errorreporter, runtime->getLLVMContext());
+      auto m = llvm::parseIRFile(abspath, errorreporter, *llvmcontext);
+
+      runtime = std::make_unique<mimium::Runtime_LLVM>(
+          std::move(llvmcontext), tmpfilename, std::make_shared<mimium::AudioDriverRtAudio>());
+      global_runtime = runtime.get();
+      m->setDataLayout(runtime->getJitEngine().getDataLayout());
       runtime->executeModule(std::move(m));
       runtime->start();  // start() blocks thread until scheduler stops
       returncode = 0;
 
     } catch (std::exception& e) {
-      mimium::Logger::debug_log(e.what(), mimium::Logger::ERROR);
-      runtime->stop();
+      mimium::Logger::debug_log(e.what(), mimium::Logger::ERROR_);
       returncode = 1;
     }
+    if (runtime) { runtime->getAudioDriver()->stop(); }
   }
   llvm::errs() << "return code: " << returncode << "\n";
   return returncode;

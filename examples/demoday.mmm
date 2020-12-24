@@ -99,7 +99,7 @@ snarewav = loadwav(snare)
 kt=1
 st =1
 fn seek(speed,size,reset){
-    return if(reset>0) self+speed else  0
+    return if(reset>0 || self>=size) self+speed else  0
 }
 fn seek2(speed,size,reset){
     return seek(speed,size,reset)
@@ -123,12 +123,12 @@ fn strigger(duration)->void{
     strigger(duration)@(now+nextdur)
 }
 
-seawave = "/Users/tomoya/Music/Chickens.wav"
+seawave = "/Users/tomoya/Music/Chickens_mono.wav"
 
 seasize = loadwavsize(seawave)
 seawav = loadwav(seawave)
 fn seekloop(speed,size)->float{
-    pos = (self+speed)%size
+    pos = (self+speed)%(size-1)
     return pos
 }
 

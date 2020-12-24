@@ -1,4 +1,0 @@
-fn hoge(x,y){
-    return x+y
-}
-main = hoge(3,5)

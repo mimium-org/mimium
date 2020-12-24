@@ -59,13 +59,13 @@ class MimiumJIT {
   ThreadSafeContext Ctx;
 
  public:
-  MimiumJIT()
+  MimiumJIT(std::unique_ptr<LLVMContext> ctx)
       : lllazyjit(createEngine()),
         ES(lllazyjit->getExecutionSession()),
         DL(lllazyjit->getDataLayout()),
         MainJD(lllazyjit->getMainJITDylib()),
         Mangle(ES, this->DL),
-        Ctx(std::make_unique<LLVMContext>()) {
+        Ctx(std::move(ctx)) {
 #if LAZY_ENABLE
     lllazyjit->setLazyCompileTransform(optimizeModule);
 #endif

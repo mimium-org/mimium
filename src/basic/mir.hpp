@@ -19,111 +19,218 @@ namespace mir {
 
 class block;
 using blockptr = std::shared_ptr<block>;
-struct instruction {  // base class for MIR instruction
-  std::string lv_name;
+
+namespace instruction {
+
+struct Number;
+struct String;
+struct Allocate;
+struct Ref;
+struct Load;
+struct Store;
+struct Op;
+struct Function;
+struct Fcall;
+struct MakeClosure;
+struct Array;
+struct ArrayAccess;
+struct Field;
+struct If;
+struct Return;
+using Instructions = std::variant<Number, String, Allocate, Ref, Load, Store, Op, Function, Fcall,
+                                  MakeClosure, Array, ArrayAccess, Field, If, Return>;
+}  // namespace instruction
+struct Argument;
+// todo: more specific value
+struct ExternalSymbol {
+  std::string name;
+  types::Value type;
+};
+
+struct Self;
+using Constants = std::variant<int, double, std::string>;
+
+using Value = std::variant<instruction::Instructions, Constants, ExternalSymbol,
+                           std::shared_ptr<Argument>, Self>;
+
+using valueptr = std::shared_ptr<Value>;
+struct Self {
+  valueptr fn;
+  types::Value type;
+};
+struct Argument {
+  std::string name;
+  types::Value type;
+  valueptr parentfn;
+};
+std::string toString(Argument const& i);
+
+namespace instruction {
+struct Base {  // base class for MIR instruction
+  std::string name;
+  types::Value type;
   blockptr parent = nullptr;
 };
 
-struct NumberInst : public instruction {
+struct Number : public Base {
   double val = 0.0;
 };
-std::string toString(NumberInst& i);
+std::string toString(Number const& i);
 
-struct StringInst : public instruction {
+struct String : public Base {
   std::string val;
 };
-std::string toString(StringInst& i);
+std::string toString(String const& i);
 
-struct AllocaInst : public instruction {
+struct Allocate : public Base {
   types::Value type = types::None();
 };
-std::string toString(AllocaInst& i);
+std::string toString(Allocate const& i);
 
-struct RefInst : public instruction {
-  std::string val;
-  types::Value type = types::None();
+struct Ref : public Base {
+  valueptr target;
 };
-std::string toString(RefInst& i);
+std::string toString(Ref const& i);
 
-struct AssignInst : public instruction {
-  std::string val;
-
-  types::Value type = types::None();
+struct Load : public Base {
+  valueptr target;
 };
-std::string toString(AssignInst& i);
+std::string toString(Load const& i);
 
-struct OpInst : public instruction {
+// lv_name should be discarded for Store
+struct Store : public Base {
+  valueptr target;
+  valueptr value;
+};
+std::string toString(Store const& i);
+
+struct Op : public Base {
  public:
   ast::OpId op;
-  std::string lhs;
-  std::string rhs;
+  std::optional<valueptr> lhs;
+  valueptr rhs;
 };
-std::string toString(OpInst& i);
+std::string toString(Op const& i);
 
-struct FunInst : public instruction {
-  std::deque<std::string> args;
+struct Function : public Base {
+  std::vector<std::shared_ptr<Argument>> args;
   blockptr body;
   bool hasself = false;
   bool isrecursive = false;
   // introduced after closure conversion;
   // contains self & delay, and fcall which
   // has self&delay
-  std::vector<std::string> freevariables = {};
-  std::vector<std::string> memory_objects = {};
+  std::vector<valueptr> freevariables = {};
+  std::vector<valueptr> memory_objects = {};
   bool ccflag = false;  // utility for closure conversion
 };
-std::string toString(FunInst& i);
+std::string toString(Function const& i);
 
-struct FcallInst : public instruction {
-  std::string fname;
-  std::deque<std::string> args;
+struct Fcall : public Base {
+  valueptr fname;
+  std::vector<valueptr> args;
   FCALLTYPE ftype;
-  std::optional<std::string> time;
+  std::optional<valueptr> time;
 };
-std::string toString(FcallInst& i);
+std::string toString(Fcall const& i);
 
-struct MakeClosureInst : public instruction {
-  std::string fname;
-  std::vector<std::string> captures;
-  types::Value capturetype;
+struct MakeClosure : public Base {
+  valueptr fname;
+  std::vector<valueptr> captures;
 };
-std::string toString(MakeClosureInst& i);
+std::string toString(MakeClosure const& i);
 
-struct ArrayInst : public instruction {
-  std::deque<std::string> args;
+struct Array : public Base {
+  std::vector<valueptr> args;
 };
-std::string toString(ArrayInst& i);
+std::string toString(Array const& i);
 
-struct ArrayAccessInst : public instruction {
-  std::string name;
-  std::string index;
+struct ArrayAccess : public Base {
+  valueptr target;
+  valueptr index;
 };
-std::string toString(ArrayAccessInst& i);
+std::string toString(ArrayAccess const& i);
 
-struct IfInst : public instruction {
-  std::string cond;
+struct Field : public Base {
+  valueptr target;
+  valueptr index;
+};
+std::string toString(Field const& i);
+
+struct If : public Base {
+  valueptr cond;
   blockptr thenblock;
   std::optional<blockptr> elseblock;
 };
-std::string toString(IfInst& i);
+std::string toString(If const& i);
 
-struct ReturnInst : public instruction {
-  std::string val;
+struct Return : public Base {
+  valueptr val;
 };
-std::string toString(ReturnInst& i);
-using Instructions =
-    std::variant<NumberInst, StringInst, AllocaInst, RefInst, AssignInst, OpInst, FunInst,
-                 FcallInst, MakeClosureInst, ArrayInst, ArrayAccessInst, IfInst, ReturnInst>;
 
-inline std::string toString(Instructions& inst) {
-  return std::visit([](auto& i) -> std::string { return toString(i); }, inst);
+std::string toString(Return const& i);
+
+}  // namespace instruction
+
+using Instructions = instruction::Instructions;
+inline std::string toString(Instructions const& inst) {
+  return std::visit([](auto const& i) -> std::string { return instruction::toString(i); }, inst);
+}
+inline std::string toString(Constants const& inst) {
+  return std::visit(overloaded{[](std::string const& s) -> std::string { return s; },
+                               [](const auto i) { return std::to_string(i); }},
+                    inst);
+}
+inline std::string toString(Value const& inst) {
+  return std::visit(overloaded{[](Instructions const& i) { return toString(i); },
+                               [](Constants const& i) { return toString(i); },
+                               [](std::shared_ptr<Argument> i) { return toString(*i); },
+                               [](Self const & /*i*/) -> std::string { return "self"; },
+                               [](auto const& i) { return i.name; }},
+                    inst);
 }
 
+inline std::string getName(Instructions const& inst) {
+  return std::visit([](auto const& i) { return i.name; }, inst);
+}
+
+inline std::string getName(Value const& val) {
+  return std::visit(overloaded{[](Instructions const& i) { return getName(i); },
+                               [](Constants const& i) { return toString(i); },
+                               [](std::shared_ptr<Argument> const& i) { return toString(*i); },
+                               [](Self const & /*i*/) -> std::string { return "self"; },
+                               [](auto const& i) { return i.name; }},
+                    val);
+}
+
+inline std::string join(std::vector<std::shared_ptr<Argument>> const& vec,
+                        std::string const& delim) {
+  std::string res;
+  if (!vec.empty()) {
+    res = std::accumulate(std::next(vec.begin()), vec.end(), toString(**vec.begin()),
+                          [&](std::string const& a, std::shared_ptr<Argument> const& b) {
+                            return a + delim + toString(*b);
+                          });
+  }
+  return res;
+}
+
+template <typename T>
+inline std::string join(std::vector<std::shared_ptr<T>> const& vec, std::string const& delim) {
+  std::string res;
+  if (!vec.empty()) {
+    res = std::accumulate(
+        std::next(vec.begin()), vec.end(), getName(**vec.begin()),
+        [&](std::string const& a, std::shared_ptr<T> const& b) { return a + delim + getName(*b); });
+  }
+  return res;
+};
 class block : public std::enable_shared_from_this<block> {
  public:
+  std::optional<valueptr> parent = std::nullopt;
   std::string label;
-  std::list<Instructions> instructions;  // sequence of instructions
-  int indent_level = 0;                  // shared between instances
+  std::list<valueptr> instructions;  // sequence of instructions
+  int indent_level = 0;              // shared between instances
 };
 
 inline blockptr makeBlock(std::string const& label, int indent = 0) {
@@ -135,12 +242,50 @@ inline blockptr makeBlock(std::string const& label, int indent = 0) {
 
 std::string toString(blockptr block);
 
-inline Instructions& addInstToBlock(Instructions&& inst, blockptr block) {
-  std::visit([&](auto& i) { i.parent = block->shared_from_this(); }, inst);
-  return block->instructions.emplace_back(std::move(inst));
+inline auto addInstToBlock(Instructions&& inst, blockptr block) {
+  auto ptr = std::make_shared<Value>(std::move(inst));
+  std::visit([&](auto& i) mutable { i.parent = block; }, std::get<Instructions>(*ptr));
+  block->instructions.emplace_back(ptr);
+  return ptr;
 }
 
 inline void addIndentToBlock(blockptr block, int level = 0) { block->indent_level += level; }
+
+inline bool isConstant(Value const& v) { return std::holds_alternative<Constants>(v); }
+
+inline blockptr getParent(Instructions const& v) {
+  return std::visit([](auto const& i) { return i.parent; }, v);
+}
+
+inline types::Value getType(Constants const& v) {
+  return std::visit(
+      overloaded{[](std::string const & /*s*/) -> types::Value { return types::String{}; },
+                 [](const double /*i*/) -> types::Value { return types::Float{}; }},
+      v);
+}
+inline types::Value getType(Instructions const& v) {
+  return std::visit([](auto const& i) { return i.type; }, v);
+}
+inline types::Value getType(Value const& v) {
+  return std::visit(overloaded{[](Instructions const& i) { return getType(i); },
+                               [](Constants const& i) { return getType(i); },
+                               [](std::shared_ptr<Argument> i) { return i->type; },
+                               [](auto const& i) { return i.type; }},
+                    v);
+}
+
+template <class ITYPE>
+ITYPE& getInstRef(valueptr ptr) {
+  return std::get<ITYPE>(std::get<Instructions>(*ptr));
+}
+
+template <class ITYPE>
+bool isInstA(valueptr ptr) {
+  if (std::holds_alternative<Instructions>(*ptr)) {
+    return std::holds_alternative<ITYPE>(std::get<Instructions>(*ptr));
+  }
+  return false;
+}
 
 }  // namespace mir
 }  // namespace mimium

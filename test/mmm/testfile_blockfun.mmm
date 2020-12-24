@@ -1,3 +1,0 @@
-fn hoge(x,y){
-    return 1 
-}

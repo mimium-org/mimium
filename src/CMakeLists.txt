@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.8)
 set(MIMIUM_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 add_subdirectory(basic)
+add_subdirectory(preprocessor)
 add_subdirectory(compiler)
 add_subdirectory(runtime)
 
@@ -22,6 +23,9 @@ ${FLEX_INCLUDE_CACHE}
 ${PARSER_HEADER_DIR} 
 
 )
+
+#TODO: use ffi in mimium_llloader, mimium_builtinfn must be shared library.
+# currently, it fails link dynamically on Windows. 
 target_include_directories(mimium_llloader
 PRIVATE
 # ${CMAKE_SOURCE_DIR}/libs/rtmidi
@@ -29,18 +33,21 @@ PRIVATE
 ${FLEX_INCLUDE_CACHE}
 ${PARSER_HEADER_DIR} 
 )
-
+# target_compile_options(mimium
+# PUBLIC
+# -fvisibility=hidden
+# )
 target_link_libraries(mimium
-    LLVMCore
+    ${LLVM_LIBRARIES}
     mimium_compiler
-    mimium_scheduler
     mimium_runtime_jit
     mimium_backend_rtaudio
     mimium_builtinfn 
     )
 target_link_libraries(mimium_llloader
+${LLVM_LIBRARIES}
+
     mimium_compiler
-    mimium_scheduler
     mimium_runtime_jit
     mimium_backend_rtaudio
     mimium_builtinfn 

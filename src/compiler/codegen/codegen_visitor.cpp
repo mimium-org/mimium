@@ -3,6 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #include "compiler/codegen/codegen_visitor.hpp"
+#include "compiler/codegen/llvmgenerator.hpp"
+#include "compiler/codegen/typeconverter.hpp"
+#include "compiler/collect_memoryobjs.hpp"
 
 namespace mimium {
 using OpId = ast::OpId;
@@ -16,441 +19,488 @@ const std::unordered_map<OpId, std::string> CodeGenVisitor::opid_to_ffi = {
 };
 
 // Creates Allocation instruction or call malloc function depends on context
-CodeGenVisitor::CodeGenVisitor(LLVMGenerator& g) : G(g), isglobal(false) {}
+CodeGenVisitor::CodeGenVisitor(LLVMGenerator& g, const funobjmap* funobj_map)
+    : G(g),
+      isglobal(false),
+      funobj_map(funobj_map),
+      context_hasself(false),
+      recursivefn_ptr(nullptr) {}
+
+llvm::Value* CodeGenVisitor::visit(mir::valueptr val) {
+  instance_holder = val;
+  return std::visit(
+      overloaded{
+          [&](mir::Instructions& inst) { return std::visit(*this, inst); },
+          [](mir::Constants& c) -> llvm::Value* { return nullptr; },                 // TODO
+          [](std::shared_ptr<mir::Argument> a) -> llvm::Value* { return nullptr; },  // TODO
+          [](mir::ExternalSymbol& a) -> llvm::Value* { return nullptr; },            // TODO
+          [](mir::Self& a) -> llvm::Value* { return nullptr; },                      // TODO
+
+      },
+      *val);
+}
+
+void CodeGenVisitor::registerLlvmVal(mir::valueptr mirval, llvm::Value* llvmval) {
+  mir_to_llvm.emplace(mirval, llvmval);
+}
+void CodeGenVisitor::registerLlvmVal(std::shared_ptr<mir::Argument> mirval, llvm::Value* llvmval) {
+  mirarg_to_llvm.emplace(mirval, llvmval);
+}
+void CodeGenVisitor::registerLlvmValforFreeVar(mir::valueptr mirval, llvm::Value* llvmval) {
+  mirfv_to_llvm.emplace(mirval, llvmval);
+}
+llvm::Value* CodeGenVisitor::getConstant(const mir::Constants& val) {
+  return std::visit(overloaded{
+                        [&](int v) { return (llvm::Value*)G.getConstInt(v); },
+                        [&](double v) { return (llvm::Value*)G.getConstDouble(v); },
+                        // todo
+                        [](const std::string& v) { return (llvm::Value*)nullptr; },
+                    },
+                    val);
+}
+
+llvm::Value* CodeGenVisitor::getLlvmVal(mir::valueptr mirval) {
+  auto* res = std::visit(
+      overloaded{[&](mir::Constants& v) { return getConstant(v); },
+                 [&](mir::ExternalSymbol& v) {
+                   assert(false && "currently should be unreachable");
+                   return (llvm::Value*)nullptr;
+                 },
+                 [&](std::shared_ptr<mir::Argument> v) {
+                   auto iter = mirarg_to_llvm.find(v);
+                   return (iter != mirarg_to_llvm.end()) ? iter->second : nullptr;
+                 },
+                 [&](mir::Instructions& v) {
+                   auto iter = mir_to_llvm.find(mirval);
+                   if (iter != mir_to_llvm.end()) {
+                     const bool isinst = llvm::isa<llvm::Instruction>(iter->second);
+                     const llvm::Instruction* inst = nullptr;
+                     if (isinst) { inst = llvm::cast<llvm::Instruction>(iter->second); }
+                     auto* parentfn = G.builder->GetInsertBlock()->getParent();
+                     bool is_on_samefunc = isinst && inst->getParent()->getParent() == parentfn;
+                     if (is_on_samefunc || !isinst) { return iter->second; }
+                   }
+                   auto iterfv = mirfv_to_llvm.find(mirval);
+                   if (iterfv != mirfv_to_llvm.end()) { return iterfv->second; }
+                   return (llvm::Value*)nullptr;
+                 },
+                 [&](mir::Self v) {
+                   auto iter = fun_to_selfval.find(v.fn);
+                   if (iter != fun_to_selfval.end()) { return iter->second; }
+                   return (llvm::Value*)nullptr;
+                 }},
+      *mirval);
+
+  assert(res != nullptr && "failed to find llvm value from mir valueptr");
+  return res;
+}
 
 llvm::Value* CodeGenVisitor::createAllocation(bool isglobal, llvm::Type* type,
-                                              llvm::Value* arraysize = nullptr,
+                                              llvm::Value* array_size = nullptr,
                                               const llvm::Twine& name = "") {
-  llvm::Value* res = nullptr;
-  llvm::Type* t = type;
   if (isglobal) {
+    llvm::Type* t = type;
     auto rawname = "ptr_" + name.str() + "_raw";
     auto size = G.module->getDataLayout().getTypeAllocSize(t);
     const int bitsize = 64;
     auto* sizeinst = llvm::ConstantInt::get(G.ctx, llvm::APInt(bitsize, size, false));
-    auto* rawres = G.builder->CreateCall(G.module->getFunction("mimium_malloc"), {sizeinst}, rawname);
-    res = G.builder->CreatePointerCast(rawres, llvm::PointerType::get(t, 0), "ptr_" + name);
-    G.setValuetoMap(rawname, rawres);
-  } else {
-    res = G.builder->CreateAlloca(type, arraysize, "ptr_" + name);
+    auto* rawres =
+        G.builder->CreateCall(G.module->getFunction("mimium_malloc"), {sizeinst}, rawname);
+    auto* res = G.builder->CreatePointerCast(rawres, llvm::PointerType::get(t, 0), "ptr_" + name);
+    return res;
   }
-  return res;
+  return G.builder->CreateAlloca(type, array_size, "ptr_" + name);
 };
-// Create StoreInst if storing to already allocated value
-bool CodeGenVisitor::createStoreOw(std::string varname, llvm::Value* val_to_store) {
-  bool res = false;
-  auto ptrname = "ptr_" + varname;
-  auto& map = G.variable_map[G.curfunc];
-  auto it = map->find(varname);
-  auto it2 = map->find(ptrname);
-  if (it != map->cend() && it2 != map->cend()) {
-    G.builder->CreateStore(val_to_store, G.findValue(ptrname));
-    res = true;
-  }
-  return res;
-}
 
-void CodeGenVisitor::operator()(mir::NumberInst& i) {
-  auto* finst = llvm::ConstantFP::get(G.ctx, llvm::APFloat(i.val));
-  auto* ptr = G.tryfindValue("ptr_" + i.lv_name);
-  if (ptr != nullptr) {  // case of temporary value
-    G.builder->CreateStore(finst, ptr);
-    auto* res = G.builder->CreateLoad(ptr, i.lv_name);
-    G.setValuetoMap(i.lv_name, res);
-  } else {
-    G.setValuetoMap(i.lv_name, finst);
-  }
+llvm::Value* CodeGenVisitor::operator()(minst::Number& i) {
+  return llvm::ConstantFP::get(G.ctx, llvm::APFloat(i.val));
 }
-void CodeGenVisitor::operator()(mir::StringInst& i) {
+llvm::Value* CodeGenVisitor::operator()(minst::String& i) {
   auto* cstr = llvm::ConstantDataArray::getString(G.ctx, i.val);
   auto* i8ptrty = G.builder->getInt8PtrTy();
   auto* gvalue =
       llvm::cast<llvm::GlobalVariable>(G.module->getOrInsertGlobal(i.val, cstr->getType()));
   gvalue->setInitializer(cstr);
   gvalue->setLinkage(llvm::GlobalValue::InternalLinkage);
-  gvalue->setName("str");
-  auto* bitcast = G.builder->CreateBitCast(gvalue, i8ptrty);
-  // auto zero =
-  // llvm::ConstantInt::get(G.builder->getInt64Ty(), llvm::APInt(64, 0));
-  // auto strptr = G.builder->CreateInBoundsGEP(gvalue, {zero, zero}, "gep");
-  // auto strptr = G.builder->CreateLoad(gvalue,i.lv_name);
-  G.setValuetoMap(i.lv_name, bitcast);
+  gvalue->setName(i.name);
+  auto* bitcast = G.builder->CreateBitCast(gvalue, i8ptrty, i.name + "_ptr");
+  return bitcast;
 }
-void CodeGenVisitor::operator()(mir::AllocaInst& i) {
-  auto ptrname = "ptr_" + i.lv_name;
-  auto* type = G.getType(i.lv_name);
-  auto* ptr = createAllocation(isglobal, type, nullptr, i.lv_name);
-  G.setValuetoMap(ptrname, ptr);
+llvm::Value* CodeGenVisitor::operator()(minst::Allocate& i) {
+  auto* res = createAllocation(isglobal, G.getType(i.type), nullptr, i.name);
+  registerLlvmVal(getValPtr(&i), res);
+  return res;
 }
-void CodeGenVisitor::operator()(mir::RefInst& i) {  // temporarily unused
-  // auto ptrname = "ptr_" + i.lv_name;
-  // auto ptrptrname = "ptr_" + ptrname;
-  // auto* ptrtoptr =
-  //     createAllocation(isglobal, G.getType(i.type), nullptr, ptrname);
-  // G.builder->CreateStore(G.findValue(ptrname), ptrtoptr);
-  // auto* ptr = G.builder->CreateLoad(ptrtoptr, ptrptrname);
-  // G.setValuetoMap(ptrname, ptr);
-  // G.setValuetoMap(ptrptrname, ptrtoptr);
+llvm::Value* CodeGenVisitor::operator()(minst::Ref& i) {
+  // temporarily unused
+  assert(false);
+  return nullptr;
 }
-void CodeGenVisitor::operator()(mir::AssignInst& i) {
-  if (types::isPrimitive(i.type)) {
-    // copy assignment
-    auto* ptr = G.findValue("ptr_" + i.lv_name);
-    G.builder->CreateStore(G.findValue(i.val), ptr);
-    auto* newval = G.builder->CreateLoad(ptr, i.lv_name);
-    // G.setValuetoMap(i.lv_name, newval);
-    G.variable_map[G.curfunc]->insert_or_assign(i.lv_name,
-                                                newval);  // force overwrite
-    G.addOverWrittenVar(i.lv_name);
-  } else {
-  }
+llvm::Value* CodeGenVisitor::operator()(minst::Load& i) {
+  auto* target = getLlvmVal(i.target);
+  return G.builder->CreateLoad(target, i.name);
 }
 
-void CodeGenVisitor::operator()(mir::OpInst& i) {
-  if (i.lhs.empty()) {
-    createUniOp(i);
-  } else {
-    createBinOp(i);
-  }
+llvm::Value* CodeGenVisitor::operator()(minst::Store& i) {
+  auto* target = getLlvmVal(i.target);
+  auto* val = getLlvmVal(i.value);
+  return G.builder->CreateStore(val, target, false);
 }
 
-void CodeGenVisitor::createUniOp(mir::OpInst& i) {
+llvm::Value* CodeGenVisitor::operator()(minst::Op& i) {
+  if (!i.lhs.has_value()) { return createUniOp(i); }
+  return createBinOp(i);
+}
+
+llvm::Value* CodeGenVisitor::createUniOp(minst::Op& i) {
   llvm::Value* retvalue = nullptr;
-  auto* rhs = G.findValue(i.rhs);
+  auto* rhs = getLlvmVal(i.rhs);
   switch (i.op) {
     case ast::OpId::Sub:
-      retvalue = G.builder->CreateUnOp(llvm::Instruction::UnaryOps::FNeg, rhs, i.lv_name);
+      return G.builder->CreateUnOp(llvm::Instruction::UnaryOps::FNeg, rhs, i.name);
       break;
     case ast::OpId::Not:
-      retvalue = G.builder->CreateCall(G.getForeignFunction("not"), {rhs}, i.lv_name);
+      return G.builder->CreateCall(G.getForeignFunction("not"), {rhs}, i.name);
       break;
-    default: retvalue = G.builder->CreateUnreachable(); break;
+    default: return G.builder->CreateUnreachable(); break;
   }
-  G.setValuetoMap(i.lv_name, retvalue);
 }
 
-void CodeGenVisitor::createBinOp(mir::OpInst& i) {
+llvm::Value* CodeGenVisitor::createBinOp(minst::Op& i) {
   llvm::Value* retvalue = nullptr;
-  auto* lhs = G.findValue(i.lhs);
-  auto* rhs = G.findValue(i.rhs);
+  auto* lhs = getLlvmVal(i.lhs.value());
+  auto* rhs = getLlvmVal(i.rhs);
   switch (i.op) {
-    case ast::OpId::Add: retvalue = G.builder->CreateFAdd(lhs, rhs, i.lv_name); break;
-    case ast::OpId::Sub: retvalue = G.builder->CreateFSub(lhs, rhs, i.lv_name); break;
-    case ast::OpId::Mul: retvalue = G.builder->CreateFMul(lhs, rhs, i.lv_name); break;
-    case ast::OpId::Div: retvalue = G.builder->CreateFDiv(lhs, rhs, i.lv_name); break;
+    case ast::OpId::Add: return G.builder->CreateFAdd(lhs, rhs, i.name); break;
+    case ast::OpId::Sub: return G.builder->CreateFSub(lhs, rhs, i.name); break;
+    case ast::OpId::Mul: return G.builder->CreateFMul(lhs, rhs, i.name); break;
+    case ast::OpId::Div: return G.builder->CreateFDiv(lhs, rhs, i.name); break;
     default: {
       if (opid_to_ffi.count(i.op) > 0) {
         auto fname = opid_to_ffi.find(i.op)->second;
-        retvalue = G.builder->CreateCall(G.getForeignFunction(fname), {lhs, rhs}, i.lv_name);
-      } else {
-        retvalue = G.builder->CreateUnreachable();
+        return G.builder->CreateCall(G.getForeignFunction(fname), {lhs, rhs}, i.name);
       }
+
+      return G.builder->CreateUnreachable();
       break;
     }
   }
-  G.setValuetoMap(i.lv_name, retvalue);
 }
-void CodeGenVisitor::operator()(mir::FunInst& i) {
-  bool hascapture = G.cc.hasCapture(i.lv_name);
-  bool hasmemobj = G.memobjcoll.hasMemObj(i.lv_name);
-  auto* ft = createFunctionType(i, hascapture, hasmemobj);
+llvm::Value* CodeGenVisitor::operator()(minst::Function& i) {
+  mirfv_to_llvm.clear();
+  memobj_to_llvm.clear();
+  bool hascapture = !i.freevariables.empty();
+
+  auto fobjtree = funobj_map->find(getValPtr(&i));
+  bool hasmemobj = false;
+  if (fobjtree != funobj_map->end()) {
+    context_hasself = fobjtree->second->hasself;
+    hasmemobj = !fobjtree->second->memobjs.empty() || context_hasself;
+  }
+
+  auto* ft = (i.name != "dsp") ? createFunctionType(i) : createDspFnType(i, hascapture, hasmemobj);
   auto* f = createFunction(ft, i);
-
+  recursivefn_ptr = &i;
   G.curfunc = f;
-  G.variable_map.emplace(f, std::make_shared<LLVMGenerator::namemaptype>());
   G.createNewBasicBlock("entry", f);
-
   addArgstoMap(f, i, hascapture, hasmemobj);
 
-  context_hasself = (i.hasself) ? "ptr_" + i.lv_name + ".self.mem" : "";
-  if (i.isrecursive && hascapture) { G.setValuetoMap("ptr_" + i.lv_name + "_cls", f); }
   for (auto& cinsts : i.body->instructions) { G.visitInstructions(cinsts, false); }
 
-  if (G.currentblock->getTerminator() == nullptr && ft->getReturnType()->isVoidTy()) {
+  if (G.builder->GetInsertBlock()->getTerminator() == nullptr && ft->getReturnType()->isVoidTy()) {
     G.builder->CreateRetVoid();
   }
   G.switchToMainFun();
+  return f;
 }
-llvm::FunctionType* CodeGenVisitor::createFunctionType(mir::FunInst& i, bool hascapture,
-                                                       bool hasmemobj) {
-  auto mmmfntype = rv::get<types::Function>(G.typeenv.find(i.lv_name));
+llvm::FunctionType* CodeGenVisitor::createDspFnType(minst::Function& i, bool hascapture,
+                                                    bool hasmemobj) {
+  // arguments of dsp function should be always (time, cls_ptr, memobj_ptr) regardless of existences
+  // of capture &memobj.
+  auto dummytype = types::Ref{types::Float{}};
+  auto mmmfntype = rv::get<types::Function>(i.type);
+  auto& argtypes = mmmfntype.arg_types;
+  if (!hascapture && !hasmemobj) {
+    argtypes.emplace_back(dummytype);
+    argtypes.emplace_back(dummytype);
+  }
+  if (!hasmemobj && hascapture) { argtypes.emplace_back(dummytype); }
+  if (hasmemobj && !hascapture) { argtypes.insert(std::prev(argtypes.end()), dummytype); }
+
+  return llvm::cast<llvm::FunctionType>((*G.typeconverter)(mmmfntype));
+}
+
+llvm::FunctionType* CodeGenVisitor::createFunctionType(minst::Function& i) {
+  auto mmmfntype = rv::get<types::Function>(i.type);
   auto& argtypes = mmmfntype.arg_types;
 
-  if (hascapture) {
-    auto captype = types::Ref{G.cc.getCaptureType(i.lv_name)};
-    argtypes.emplace_back(std::move(captype));
-    // auto clsty = llvm::cast<llvm::StructType>(G.getType(captype));
+  // convert function type to function pointer type for high order function
+  for (auto& atype : argtypes) {
+    if (std::holds_alternative<types::rFunction>(atype)) { atype = types::Pointer{atype}; }
   }
-  if (hasmemobj) {
-    auto memobjtype = types::Ref{G.memobjcoll.getMemObjType(i.lv_name)};
-    argtypes.emplace_back(std::move(memobjtype));
-  }
-
-  return llvm::cast<llvm::FunctionType>(G.typeconverter(mmmfntype));
+  return llvm::cast<llvm::FunctionType>((*G.typeconverter)(mmmfntype));
 }
 
-llvm::Function* CodeGenVisitor::createFunction(llvm::FunctionType* type, mir::FunInst& i) {
+llvm::Function* CodeGenVisitor::createFunction(llvm::FunctionType* type, minst::Function& i) {
   auto link = llvm::Function::ExternalLinkage;
-  auto* f = llvm::Function::Create(type, link, i.lv_name, *G.module);
-  G.setValuetoMap(i.lv_name, f);
+  auto* f = llvm::Function::Create(type, link, i.name, *G.module);
   return f;
 }
-void CodeGenVisitor::addArgstoMap(llvm::Function* f, mir::FunInst& i, bool hascapture,
+void CodeGenVisitor::addArgstoMap(llvm::Function* f, minst::Function& i, bool hascapture,
                                   bool hasmemobj) {
   // arguments are [actual arguments], capture , memobjs
-  auto* f_it = std::begin(f->args());
+  auto* arg = std::begin(f->args());
   for (auto& a : i.args) {
-    f_it->setName(a);
-    G.setValuetoMap(a, f_it);
-    std::advance(f_it, 1);
-  }
-  auto* lastelem = std::prev(f->args().end());
-  if (hasmemobj) {
-    auto name = i.lv_name + ".mem";
-    lastelem->setName(name);
-    G.setValuetoMap(name, lastelem);
-    setMemObjsToMap(i, lastelem);
-    lastelem = std::prev(lastelem);
+    arg->setName(a->name);
+    registerLlvmVal(a, arg);
+    std::advance(arg, 1);
   }
   if (hascapture) {
-    auto name = "ptr_" + i.lv_name + ".cap";
-    lastelem->setName(name);
-    G.setValuetoMap(name, lastelem);
-    setFvsToMap(i, lastelem);
-
-    // if (i.isrecursive) {
-    //   G.setValuetoMap(i.lv_name + "_cls", f);
-    // }
+    auto name = "ptr_" + i.name + ".cap";
+    arg->setName(name);
+    setFvsToMap(i, arg);
+    std::advance(arg, 1);
+  } else if (i.name == "dsp") {
+    std::advance(arg, 1);
+  }
+  if (hasmemobj) {
+    auto name = i.name + ".mem";
+    arg->setName(name);
+    setMemObjsToMap(getValPtr(&i), arg);
   }
 }
-void CodeGenVisitor::setMemObjsToMap(mir::FunInst& i, llvm::Value* memarg) {
-  auto& memobjs = G.memobjcoll.getMemObjNames(i.lv_name);
+
+void CodeGenVisitor::setMemObjsToMap(mir::valueptr fun, llvm::Value* memarg) {
+  auto fobjtree = funobj_map->at(fun);
+  auto& memobjs = fobjtree->memobjs;
   int count = 0;
-  for (auto& obj : memobjs) {
-    std::string newname = obj + ".mem";
-    auto* gep = G.builder->CreateStructGEP(memarg, count++, "memobj");
-    G.setValuetoMap("ptr_" + newname, gep);
-    llvm::Value* valload = G.builder->CreateLoad(gep, newname);
-    G.setValuetoMap(newname, valload);
+  // appending order matters! self should be put on last.
+  for (auto& o : memobjs) {
+    auto* gep = G.builder->CreateStructGEP(memarg, count++, mir::getName(*o->fname) + ".mem");
+    memobj_to_llvm.emplace(o->fname, gep);
+  }
+  if (fobjtree->hasself) {
+    auto* gep = G.builder->CreateStructGEP(memarg, count++, "ptr_self");
+    fun_to_selfptr.emplace(fun, gep);
+    auto* selfval = G.builder->CreateLoad(gep, "self");
+    fun_to_selfval.emplace(fun, selfval);
   }
 }
-void CodeGenVisitor::setFvsToMap(mir::FunInst& i, llvm::Value* clsarg) {
-  auto& captures = G.cc.getCaptureNames(i.lv_name);
 
+void CodeGenVisitor::setFvsToMap(minst::Function& i, llvm::Value* clsarg) {
   int count = 0;
-  for (auto& cap : captures) {
-    auto capname = cap;
-    if (G.module->getFunction(cap) != nullptr) { capname = cap + "_cls"; }
-    auto* gep = G.builder->CreateStructGEP(clsarg, count++, "fv");
-    auto ptrname = "ptr_" + capname;
-    auto* ptrload = G.builder->CreateLoad(gep, ptrname);
-    G.setValuetoMap(ptrname, ptrload);
-    auto* ptype = llvm::cast<llvm::PointerType>(ptrload->getType());
-    if (ptype->getElementType()->isFirstClassType()) {
-      auto* valload = G.builder->CreateLoad(ptrload, capname);
-      G.setValuetoMap(capname, valload);
+  for (auto& fv : i.freevariables) {
+    auto* gep = G.builder->CreateStructGEP(clsarg, count++, mir::getName(*fv) + "_ptr");
+    // load variable from ptr(closure is reference capture mode)
+    auto* val = G.builder->CreateLoad(gep, mir::getName(*fv));
+    registerLlvmValforFreeVar(fv, val);
+  }
+}
+
+llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
+  const bool isclosure = i.ftype == CLOSURE;
+  bool isrecursive = false;
+  const bool isdsp = i.name == "dsp";
+  mir::valueptr mmmfn = i.fname;
+  if (auto* fn_i = std::get_if<mir::Instructions>(i.fname.get())) {
+    // recursive function detection with pointer comparison
+    if (auto* fnptrraw = std::get_if<minst::Function>(fn_i)) {
+      isrecursive = fnptrraw == this->recursivefn_ptr;
+    }
+    if (auto* clsptr = std::get_if<minst::MakeClosure>(fn_i)) {
+      auto* fnptr_cls = &mir::getInstRef<minst::Function>(clsptr->fname);
+      isrecursive = fnptr_cls == this->recursivefn_ptr;
+      mmmfn = clsptr->fname;
     }
   }
-}
+  auto fobjtree_iter = funobj_map->find(mmmfn);
+  const bool hasmemobj = fobjtree_iter != funobj_map->end();
 
-void CodeGenVisitor::operator()(mir::FcallInst& i) {
-  bool isclosure = i.ftype == CLOSURE;
-  std::vector<llvm::Value*> args;
-  auto m = G.variable_map[G.curfunc];
-  for (auto& a : i.args) {
-    auto* v = G.tryfindValue(a);
-    if (v == nullptr) { v = G.findValue("ptr_" + a); }
-    args.emplace_back(v);
-  }
-  if (G.cc.hasCapture(i.fname)) {
-    // append memory address made by MakeClosureInst
-    auto* cap = G.tryfindValue("ptr_" + i.fname + "_cls");
-    if (cap == nullptr) {  //, or inherited from argument
-      cap = G.tryfindValue("ptr_" + i.fname + ".cap");
+  auto* fun = isrecursive ? G.curfunc : getFunForFcall(i);
+  // prepare arguments
+  std::vector<llvm::Value*> args = {};
+  if (i.time.has_value()) {
+    auto* timeval = getLlvmVal(i.time.value());
+    llvm::Value* ptrtofn = G.builder->CreateBitCast(fun, G.geti8PtrTy(), fun->getName() + "_i8");
+    args = {timeval, ptrtofn};
+    if (i.args.empty()) { args.emplace_back(llvm::ConstantFP::get(G.ctx, llvm::APFloat(0.0))); }
+    if (i.args.size() > 1) {
+      throw std::runtime_error(
+          "currently function call with @ operator can accept only one argument with float type");
     }
-    args.emplace_back(cap);
-  }
-  if (G.memobjcoll.hasMemObj(i.fname)) {
-    args.emplace_back(G.findValue("ptr_" + i.fname + ".mem"));
+    // addTask should be declared in preprocess;
+    fun = G.module->getFunction(isclosure ? "addTask_cls" : "addTask");
   }
 
-  llvm::Value* fun = nullptr;
-  switch (i.ftype) {
-    case DIRECT: fun = getDirFun(i); break;
-    case CLOSURE: fun = getClsFun(i); break;
-    case EXTERNAL: fun = getExtFun(i); break;
-    default: break;
-  }
-
-  if (i.time) {  // if arguments is timed value, call addTask
-    createAddTaskFn(i, isclosure, isglobal);
-  } else {
-    if (std::holds_alternative<types::Void>(G.typeenv.find(i.lv_name))) {
-      G.builder->CreateCall(fun, args);
-    } else {
-      auto* res = G.builder->CreateCall(fun, args, i.lv_name);
-      G.setValuetoMap(i.lv_name, res);
-      auto* resptr = G.tryfindValue("ptr_" + i.lv_name);
-      if (resptr != nullptr) { G.builder->CreateStore(res, resptr); }
-    }
-  }
-}
-llvm::Value* CodeGenVisitor::getDirFun(mir::FcallInst& i) {
-  auto* fun = G.module->getFunction(i.fname);
-  fun->setLinkage(llvm::GlobalValue::InternalLinkage);
-  if (fun == nullptr) { throw std::runtime_error("function could not be referenced"); }
-  return fun;
-}
-llvm::Value* CodeGenVisitor::getClsFun(mir::FcallInst& i) { return getDirFun(i); }
-llvm::Value* CodeGenVisitor::getExtFun(mir::FcallInst& i) {
-  auto it = LLVMBuiltin::ftable.find(i.fname);
-  if (it == LLVMBuiltin::ftable.end()) {
-    throw std::runtime_error("could not find external function \"" + i.fname + "\"");
-  }
-  BuiltinFnInfo& fninfo = it->second;
-  auto* fntype = llvm::cast<llvm::FunctionType>(G.getType(fninfo.mmmtype));
-  if (i.fname == "mem") {
-    types::Value memtype =
-        types::Function{types::Float{}, {types::Float{}, types::Ref{types::Float{}}}};
-    fntype = llvm::cast<llvm::FunctionType>(G.getType(memtype));
-  }
-  auto fn = G.module->getOrInsertFunction(fninfo.target_fnname, fntype);
-  auto* f = llvm::cast<llvm::Function>(fn.getCallee());
-  f->setCallingConv(llvm::CallingConv::C);
-  return f;
-}
-
-void CodeGenVisitor::createAddTaskFn(mir::FcallInst& i, const bool isclosure,
-                                     const bool /*isglobal*/) {
-  auto* i8ptrty = G.builder->getInt8PtrTy();
-  auto* timeval = G.findValue(i.time.value());
-  auto* targetfn = G.module->getFunction(i.fname);
-  auto* ptrtofn = llvm::ConstantExpr::getBitCast(targetfn, i8ptrty);
-
-  std::vector<llvm::Value*> args = {timeval, ptrtofn};
-  for (auto& a : i.args) { args.emplace_back(G.findValue(a)); }
-  if (i.args.empty()) {
-    auto* zero = llvm::ConstantFP::get(G.ctx, llvm::APFloat(0.0));
-    args.emplace_back(zero);
-  }
-
-  llvm::Value* addtask_fn = nullptr;
-  auto globalspace = G.variable_map[G.mainentry->getParent()];
+  std::transform(i.args.begin(), i.args.end(), std::back_inserter(args),
+                 [&](mir::valueptr v) { return getLlvmVal(v); });
   if (isclosure) {
-    auto* capptr = G.tryfindValue("ptr_" + i.fname + ".cap");
-    // fixme
-    if (capptr == nullptr) { capptr = G.tryfindValue("ptr_" + i.fname + "_cls"); }
-    args.push_back(G.builder->CreateBitCast(capptr, i8ptrty));
-
-    addtask_fn = globalspace->find("addTask_cls")->second;
-  } else {
-    addtask_fn = globalspace->find("addTask")->second;
+    auto* capptr = isrecursive
+                       ? std::prev(G.curfunc->arg_end(), (hasmemobj) ? 2 : 1)
+                       : G.builder->CreateStructGEP(getLlvmVal(i.fname), 1, i.name + ".cap");
+    if (i.time.has_value()) {
+      capptr = G.builder->CreateBitCast(capptr, G.geti8PtrTy(), i.name + ".capi8");
+    }
+    args.emplace_back(capptr);
   }
-  auto* res = G.builder->CreateCall(addtask_fn, args);
-  G.setValuetoMap(i.lv_name, res);
+
+  if (hasmemobj) {
+    auto res = memobj_to_llvm.find(fobjtree_iter->second->fname);
+    if (res != memobj_to_llvm.end()) { args.emplace_back(res->second); }
+  }
+  auto* funtype_raw = fun->getType();
+  if (funtype_raw->isPointerTy()) {
+    funtype_raw = llvm::cast<llvm::PointerType>(funtype_raw)->getPointerElementType();
+  }
+  assert(funtype_raw->isFunctionTy());
+  auto* ft = llvm::cast<llvm::FunctionType>(funtype_raw);
+  // if return type is void, llvm cannot have return value and name
+  if (ft->getReturnType()->isVoidTy()) {
+    G.builder->CreateCall(fun, args);
+    return nullptr;
+  }
+  return G.builder->CreateCall(fun, args, i.name);
+}
+llvm::Value* CodeGenVisitor::getFunForFcall(minst::Fcall const& i) {
+  switch (i.ftype) {
+    case DIRECT: return getDirFun(i);
+    case CLOSURE: return getClsFun(i);
+    case EXTERNAL: return getExtFun(i);
+  }
 }
 
-void CodeGenVisitor::operator()(mir::MakeClosureInst& i) {  // store the capture address to memory
-  auto& capturenames = G.cc.getCaptureNames(i.fname);
-  auto* closuretype = G.getType(G.cc.getCaptureType(i.fname));
+llvm::Value* CodeGenVisitor::getDirFun(minst::Fcall const& i) { return getLlvmVal(i.fname); }
+llvm::Value* CodeGenVisitor::getClsFun(minst::Fcall const& i) {
+  return std::visit(overloaded{[&](mir::Instructions& f) -> llvm::Value* {
+                                 assert(std::holds_alternative<mir::instruction::MakeClosure>(f));
+                                 auto& cls = std::get<mir::instruction::MakeClosure>(f);
+                                 auto& realf = cls.fname;
+                                 return getLlvmVal(realf);
+                               },
+                               [&](std::shared_ptr<mir::Argument> f) -> llvm::Value* {
+                                 return getLlvmVal(i.fname);
+                               },
+                               [](auto& /*v*/) {
+                                 assert(false);
+                                 return static_cast<llvm::Value*>(nullptr);
+                               }},
+                    *i.fname);
+}
+llvm::Value* CodeGenVisitor::getExtFun(minst::Fcall const& i) {
+  auto fun = std::get<mir::ExternalSymbol>(*i.fname);
+  if (LLVMBuiltin::ftable.count(fun.name) > 0) { return G.getForeignFunction(fun.name); }
+  if (G.runtime_fun_names.count(fun.name) > 0) { return G.getRuntimeFunction(fun.name); }
+  assert(false);
+  return nullptr;
+}
 
-  auto* targetf = G.module->getFunction(i.fname);
-
-  auto captureptrname = "ptr_" + i.fname + ".cap";
-  // always heap allocation!
-  auto* capture_ptr = createAllocation(true, closuretype, nullptr, captureptrname);
-  // auto* fun_ptr =
-  //     G.builder->CreateStructGEP(closure_ptr, 0, i.lv_name + "_fun_ptr");
-  // G.builder->CreateStore(targetf, fun_ptr);
-  // auto* capture_ptr =
-  //     G.builder->CreateStructGEP(closure_ptr, 1, i.lv_name +
-  //     "_capture_ptr");
+// store the capture address to memory
+llvm::Value* CodeGenVisitor::operator()(minst::MakeClosure& i) {
+  // auto& capturenames = G.cc.getCaptureNames(i.fname);
+  assert(types::isClosure(i.type) && "closure type is invalid");
+  auto* targetf = getLlvmVal(i.fname);
+  const bool isdsp = targetf->getName() == "dsp";
+  auto* closuretype = G.getType(i.type);
+  // // always heap allocation!
+  auto* closure_ptr = createAllocation(true, closuretype, nullptr, i.name);
+  if (!isdsp) {
+    auto* fun_ptr = G.builder->CreateStructGEP(closure_ptr, 0, i.name + "_fun_ptr");
+    G.builder->CreateStore(targetf, fun_ptr);
+  }
+  auto* capture_ptr = G.builder->CreateStructGEP(closure_ptr, 1, i.name + "_capture_ptr");
   unsigned int idx = 0;
-  for (auto& cap : capturenames) {
-    llvm::Value* fv = G.tryfindValue("ptr_" + cap);
-    if (fv == nullptr) { fv = G.findValue("ptr_" + cap + ".cap"); }
-    auto* gep = G.builder->CreateStructGEP(capture_ptr, idx, "capture_" + cap);
-    G.builder->CreateStore(fv, gep);
-    idx += 1;
+  for (auto& cap : i.captures) {
+    auto* gep = G.builder->CreateStructGEP(capture_ptr, idx++, "capture_" + mir::getName(*cap));
+    G.builder->CreateStore(getLlvmVal(cap), gep);
   }
-  // G.setValuetoMap(i.lv_name + "_capture_ptr", capture_ptr);
-  G.setValuetoMap(captureptrname, capture_ptr);
-  // G.setValuetoMap("ptr_" + closureptrname, closure_ptr);
+
+  if (isdsp) { G.runtime_dspfninfo.capptr = capture_ptr; }
+  return closure_ptr;
 }
-void CodeGenVisitor::operator()(mir::ArrayInst& i) {}
-void CodeGenVisitor::operator()(mir::ArrayAccessInst& i) {
-  auto* v = G.tryfindValue(i.name);
-  auto* indexfloat = G.tryfindValue(i.index);
-  // auto indexint =
-  // G.builder->CreateBitCast(indexfloat,G.builder->getInt64Ty());
-  const int bitsize = 64;
-  auto* zero = llvm::ConstantInt::get(G.builder->getInt64Ty(), llvm::APInt(bitsize, 0));
-  auto* dptrtype = llvm::PointerType::get(G.builder->getDoubleTy(), 0);
+llvm::Value* CodeGenVisitor::operator()(minst::Array& i) {
+  assert(false && "not implemented yet");
+  return nullptr;
+}
+llvm::Value* CodeGenVisitor::operator()(minst::ArrayAccess& i) {
+  auto* target = getLlvmVal(i.target);
+  auto* index = getLlvmVal(i.index);
   auto* arraccessfun = G.module->getFunction("access_array_lin_interp");
-  // auto gep =
-  // G.builder->CreateInBoundsGEP(dptrtype,v,{indexint,zero},"arrayaccess");
-  // auto load = G.builder->CreateLoad(gep,"arraccessload");
-  // G.setValuetoMap("ptr_"+i.lv_name, gep);
-  // G.setValuetoMap(i.lv_name, load);
-  auto* res = G.builder->CreateCall(arraccessfun, {v, indexfloat}, "arrayaccess");
-  G.setValuetoMap(i.lv_name, res);
+  return G.builder->CreateCall(arraccessfun, {target, index}, "arrayaccess");
 }
-
-void CodeGenVisitor::createIfBody(mir::blockptr& block, llvm::Value* ret_ptr) {
-  auto& insts = block->instructions;
-  if (ret_ptr == nullptr) {
-    for (auto& ti : insts) { std::visit(*this, ti); }
+llvm::Value* CodeGenVisitor::operator()(minst::Field& i) {
+  auto* target = getLlvmVal(i.target);
+  int index = 0;
+  // todo:refactor
+  if (auto* constant = std::get_if<mir::Constants>(i.index.get())) {
+    index =
+        std::visit(overloaded{[](std::string& str) {
+                                throw std::runtime_error("index of field access must be a number");
+                                return 0;
+                              },
+                              [](const auto& v) { return (int)v; }},
+                   *constant);
   } else {
-    if (!std::holds_alternative<mir::ReturnInst>(insts.back())) {
-      throw std::logic_error("non-void block should have mir::ReturnInst for last line");
-    }
-    for (auto&& iter = std::begin(insts); iter != std::prev(std::end(insts)); iter++) {
-      std::visit(*this, *iter);
-    }
-    auto& retinst = std::get<mir::ReturnInst>(insts.back());
-    G.builder->CreateStore(G.findValue(retinst.val), ret_ptr);
+    throw std::runtime_error("index of field access must be a Constant.");
   }
+  return G.builder->CreateStructGEP(target, index, "tupleaccess");
 }
 
-void CodeGenVisitor::operator()(mir::IfInst& i) {
-  auto* thisbb = G.builder->GetInsertBlock();
-  auto* cond = G.findValue(i.cond);
-  auto* cmp = G.builder->CreateFCmpOGT(cond, llvm::ConstantFP::get(G.ctx, llvm::APFloat(0.0)));
-  auto* endbb = llvm::BasicBlock::Create(G.ctx, i.lv_name + "_end", G.curfunc);
-  llvm::Value* retptr = G.tryfindValue("ptr_" + i.lv_name);
+llvm::Value* CodeGenVisitor::createIfBody(mir::blockptr& block) {
+  auto& insts = block->instructions;
+  if (!std::holds_alternative<minst::Return>(std::get<mir::Instructions>(*insts.back()))) {
+    throw std::logic_error("non-void block should have minst::Return for last line");
+  }
+  for (auto&& iter = insts.cbegin(); iter != std::prev(insts.cend()); ++iter) {
+    G.visitInstructions(*iter, false);
+  }
+  auto retinst = mir::getInstRef<minst::Return>(insts.back());
+  return getLlvmVal(retinst.val);
+}
 
-  auto* thenbb = llvm::BasicBlock::Create(G.ctx, i.lv_name + "_then", G.curfunc);
+llvm::Value* CodeGenVisitor::operator()(minst::If& i) {
+  auto* thisbb = G.builder->GetInsertBlock();
+  auto* cond = getLlvmVal(i.cond);
+  auto* cmp = G.builder->CreateFCmpOGT(cond, llvm::ConstantFP::get(G.ctx, llvm::APFloat(0.0)));
+  auto* endbb = llvm::BasicBlock::Create(G.ctx, i.name + "_end", G.curfunc);
+
+  auto* thenbb = llvm::BasicBlock::Create(G.ctx, i.name + "_then", G.curfunc, endbb);
   G.builder->SetInsertPoint(thenbb);
-  createIfBody(i.thenblock, retptr);
+  auto* thenret = createIfBody(i.thenblock);
+  auto* thenbb_last = G.builder->GetInsertBlock();
+
   G.builder->CreateBr(endbb);
-  auto* elsebb = llvm::BasicBlock::Create(G.ctx, i.lv_name + "_else", G.curfunc);
+  auto* elsebb = llvm::BasicBlock::Create(G.ctx, i.name + "_else", G.curfunc, endbb);
   G.builder->SetInsertPoint(elsebb);
-  if (i.elseblock.has_value()) { createIfBody(i.elseblock.value(), retptr); }
+  llvm::Value* elseret = nullptr;
+  if (i.elseblock.has_value()) { elseret = createIfBody(i.elseblock.value()); }
+
+  auto* elsebb_last = G.builder->GetInsertBlock();
+
   G.builder->CreateBr(endbb);
   G.builder->SetInsertPoint(endbb);
-  auto& ifrettype = G.typeenv.find(i.lv_name);
+  auto& ifrettype = i.type;
   bool isvoid = std::holds_alternative<types::Void>(ifrettype);
+  llvm::Value* res = nullptr;
   if (!isvoid) {
-    auto* retval = G.builder->CreateLoad(retptr, i.lv_name);
-    G.setValuetoMap(i.lv_name, retval);
-  }
+    auto* phinode = G.builder->CreatePHI(G.getType(i.type), 2);
+    phinode->addIncoming(thenret, thenbb_last);
+    phinode->addIncoming(elseret, elsebb_last);
 
+    res = phinode;
+  }
   G.builder->SetInsertPoint(thisbb);
   G.builder->CreateCondBr(cmp, thenbb, elsebb);
   G.builder->SetInsertPoint(endbb);
+  return res;
 }
-void CodeGenVisitor::operator()(mir::ReturnInst& i) {
-  auto* res = G.tryfindValue(i.val);
-  if (res == nullptr) {
-    // case of returning function;
-    res = G.tryfindValue(i.val + "_cls");
-  }
-
+llvm::Value* CodeGenVisitor::operator()(minst::Return& i) {
+  auto* res = getLlvmVal(i.val);
   // store self value
-  if (!context_hasself.empty()) {
-    auto* selfv = G.tryfindValue(context_hasself);
-    if (selfv != nullptr) { G.builder->CreateStore(res, selfv); }
+  if (context_hasself) {
+    assert(fun_to_selfptr.count(i.parent->parent.value()) > 0);
+    auto* selfptr = fun_to_selfptr.at(i.parent->parent.value());
+    G.builder->CreateStore(res, selfptr);
   }
-  G.builder->CreateRet(res);
+  return G.builder->CreateRet(res);
 }
 }  // namespace mimium

@@ -18,7 +18,8 @@
 #include "basic/helper_functions.hpp"
 
 namespace mimium {
-// https://medium.com/@dennis.luxen/breaking-circular-dependencies-in-recursive-union-types-with-c-17-the-curious-case-of-4ab00cfda10d
+
+
 namespace types {
 enum class Kind { VOID, PRIMITIVE, POINTER, AGGREGATE, INTERMEDIATE };
 }
@@ -184,6 +185,10 @@ bool operator!=(T t1, T t2) {
   return !(t1 == t2);
 }
 
+constexpr size_t fixed_delaysize =44100;
+inline static auto delaystruct = types::Alias{"MmmRingBuf", types::Tuple{{types::Float{}, types::Float{},types::Array{types::Float{}, fixed_delaysize}}}};
+
+
 struct ToStringVisitor {
   bool verbose = false;
   [[nodiscard]] std::string join(const std::vector<types::Value>& vec, std::string delim) const {
@@ -233,6 +238,16 @@ void dump(const Value& v, bool verbose = false);
 inline bool isPrimitive(const Value& v) {
   return std::visit(
       [](auto& a) { return std::is_base_of_v<PrimitiveType, std::decay_t<decltype(a)>>; }, v);
+}
+
+inline bool isClosure(const Value&v){
+  if(std::holds_alternative<rClosure>(v)){
+    return true;
+  }
+  if(const auto* alias = std::get_if<Box<Alias>>(&v)){
+    return std::holds_alternative<rClosure>(alias->getraw().target);
+  }
+  return false;
 }
 
 }  // namespace types

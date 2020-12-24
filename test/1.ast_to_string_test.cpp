@@ -9,9 +9,9 @@ namespace mimium {
 TEST(asttostring, basic) {
   ast::DebugInfo dbg;
   auto statement = ast::makeStatement(ast::Assign{
-      dbg, {dbg, {"hoge"}, {std::optional(types::Float{})}}, ast::makeExpr(ast::Number{dbg, 1})});
+      dbg, ast::DeclVar{dbg, ast::Symbol{dbg,"hoge"}, std::optional(types::Float{})}, ast::makeExpr(ast::Number{dbg, 1})});
   std::ostringstream ss;
-  std::visit(StatementStringVisitor(ss), *statement);
+  ss << *statement;
   std::string target("(assign (lvar hoge float) 1)");
   EXPECT_STREQ(ss.str().c_str(), target.c_str());
 }

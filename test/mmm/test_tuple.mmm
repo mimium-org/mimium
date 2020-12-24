@@ -1,0 +1,3 @@
+test = (100,200,300)
+one,two,three = test
+println(one)

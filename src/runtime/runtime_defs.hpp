@@ -4,6 +4,12 @@
 
 #pragma once
 namespace mimium {
-using DspFnType = double (*)(double, void*, void*);
+using DspFnPtr = double (*)(double, void*, void*);
+
+struct DspFnInfos{
+    DspFnPtr fn;
+    void* cls_address;
+    void* memobj_address;
+};
 
 }

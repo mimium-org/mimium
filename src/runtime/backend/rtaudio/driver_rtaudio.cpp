@@ -5,13 +5,8 @@
 #include "runtime/backend/rtaudio/driver_rtaudio.hpp"
 
 namespace mimium {
-AudioDriverRtAudio::AudioDriverRtAudio(std::shared_ptr<Scheduler> sch, unsigned int sr,
-                                       unsigned int bs, unsigned int chs)
-    : AudioDriver(sch, sr, bs, chs),
-      callbackdata{sch, this->sch->getRuntime().getDspFn(), this->sch->getRuntime().getDspFnCls(),
-                   nullptr, 0} {
-  dspfn = this->sch->getRuntime().getDspFn();
-  dspfn_cls_address = this->sch->getRuntime().getDspFnCls();
+AudioDriverRtAudio::AudioDriverRtAudio(unsigned int bs, unsigned int sr, unsigned int chs)
+    : AudioDriver(bs, sr, chs) {
   try {
     rtaudio = std::make_unique<RtAudio>();
   } catch (RtAudioError& e) { e.printMessage(); }
@@ -24,46 +19,33 @@ AudioDriverRtAudio::AudioDriverRtAudio(std::shared_ptr<Scheduler> sch, unsigned 
 RtAudioCallback AudioDriverRtAudio::callback = [](void* output, void* input, unsigned int nFrames,
                                                   double time, RtAudioStreamStatus status,
                                                   void* userdata) -> int {
-  auto data = static_cast<CallbackData*>(userdata);
-  auto& [sch, dspfn, dspfn_cls, dspfn_memobj, timeelapsed] = *data;
-  bool isactive = data->scheduler->isactive;
-  if (isactive) {
-    auto* output_buffer_d = static_cast<double*>(output);
-    if (status) Logger::debug_log("Stream underflow detected!", Logger::WARNING);
-    // Write interleaved audio data.
-    for (int i = 0; i < nFrames; i++) {
-      auto shouldstop = sch->incrementTime();
-      if (shouldstop) {
-        sch->stop();
-        break;
-      }
-      if (dspfn != nullptr) {
-        // std::cerr << dspfn_memobj << "\n";
-        double res = dspfn((double)timeelapsed, dspfn_cls, dspfn_memobj);
-        output_buffer_d[i * 2] = res;
-        output_buffer_d[i * 2 + 1] = res;
-      }
-      ++data->timeelapsed;
-    }
+  auto* driver = static_cast<AudioDriverRtAudio*>(userdata);
+
+  auto* input_d = static_cast<double*>(input);
+  auto* output_d = static_cast<double*>(output);
+  if (status > 0) { Logger::debug_log("Stream underflow detected!", Logger::WARNING); }
+  // Write interleaved audio data.
+  for (int i = 0; i < nFrames; i++) {
+    double* output_pos = std::next(output_d, i * driver->channels);
+    double* input_pos = std::next(input_d, i * driver->channels);
+    driver->processSample(input_pos, output_pos);
   }
-  return 0;
+  return status;
 };
 
 bool AudioDriverRtAudio::start() {
   try {
-    callbackdata.dspfn_ptr = dspfn;
-    callbackdata.dspfncls_ptr = dspfn_cls_address;
-    callbackdata.dspfn_memobj_ptr = dspfn_memobj_address;
-
     sample_rate = rtaudio->getDeviceInfo(parameters.deviceId).preferredSampleRate;
     rtaudio->openStream(&parameters, nullptr, RTAUDIO_FLOAT64, sample_rate, &buffer_size,
-                        AudioDriverRtAudio::callback, &callbackdata);
+                        AudioDriverRtAudio::callback, this);
     std::string deviceinfo = "Audio Device : ";
     auto device = rtaudio->getDeviceInfo(rtaudio->getDefaultOutputDevice());
     deviceinfo += device.name;
     deviceinfo += ", Sampling Rate : " + std::to_string(rtaudio->getStreamSampleRate());
     deviceinfo += ", Output Channels : " + std::to_string(device.outputChannels);
     Logger::debug_log(deviceinfo, Logger::INFO);
+    bool hasdsp = dspfninfos.fn != nullptr;
+    sch.start(hasdsp);
     rtaudio->startStream();
   } catch (RtAudioError& e) {
     e.printMessage();
@@ -73,8 +55,11 @@ bool AudioDriverRtAudio::start() {
 }
 bool AudioDriverRtAudio::stop() {
   try {
-    rtaudio->stopStream();
-    if (rtaudio->isStreamOpen()) { rtaudio->closeStream(); }
+    sch.stop();
+    if (rtaudio->isStreamOpen()) {
+      rtaudio->stopStream();
+      rtaudio->closeStream();
+    }
   } catch (RtAudioError& e) {
     e.printMessage();
     return false;
