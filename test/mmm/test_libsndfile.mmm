@@ -1,14 +1,7 @@
-file = "/Users/tomoya/Music/Pro Sound Effects 2017 Hybrid Library/animals/ANIMAL_SHEEP_DORPER_GROUP_BAA11.wav"
+file = "test_mono.wav"
 size = loadwavsize(file)
 wav = loadwav(file)
 sample = wav[1024]
 println(size)
 println(sample)
 
-fn seek(speed:float){
-    return (self+speed)%(size-1)
-}
-
-fn dsp(time:float){
-    return wav[seek((sin(time/20000)+1.0)*3)]
-}

@@ -5,5 +5,4 @@ hoge = if (11) 100 +10 else 20*30
 
 fuga = if(neg) 100 else 20
 
-println(hoge)
-println(fuga)
+println(hoge+fuga)

@@ -1,13 +1,26 @@
 fn add(x,y){
     return x+y
 }
-fn add(x:float,y:float){
+fn increment(x){
+    return x+1
+}
+fn add2(x:float,y:float){
     return x+y
 }
-fn hof(x, y::Fn(Float)->float ){
+fn hof(x, y:(float)->float ){
     return y(x)
 }
-fn hof2(x,y::Fn(Float,Float)->float){
-    localvar = 1
-    return (x)->{ return y(x,localvar) }
-}
+// copy capture is like below is currently unavailable
+// fn hof2(x,y:(float,float)->float){
+//     localvar = x
+//     return |x|{ return y(x,localvar) }
+// }
+
+//expect:3
+println(add(1,2))
+//expect:3
+println(add2(1,2))
+//expect:2
+println(hof(1,increment))
+// //expect:5
+// println(hof2(3,add)(2))

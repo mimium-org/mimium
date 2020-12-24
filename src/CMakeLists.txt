@@ -23,6 +23,9 @@ ${FLEX_INCLUDE_CACHE}
 ${PARSER_HEADER_DIR} 
 
 )
+
+#TODO: use ffi in mimium_llloader, mimium_builtinfn must be shared library.
+# currently, it fails link dynamically on Windows. 
 target_include_directories(mimium_llloader
 PRIVATE
 # ${CMAKE_SOURCE_DIR}/libs/rtmidi

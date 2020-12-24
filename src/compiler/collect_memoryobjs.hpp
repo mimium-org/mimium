@@ -3,71 +3,88 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
+#include <unordered_set>
 #include "basic/mir.hpp"
 namespace mimium {
-
+namespace minst = mir::instruction;
 struct FunObjTree {
-  std::string fname;
+  mir::valueptr fname;
   bool hasself = false;
-  std::deque<Box<FunObjTree>> memobjs;
+  std::list<std::shared_ptr<FunObjTree>> memobjs;
   types::Value objtype;
 };
-using funmap = std::unordered_map<std::string, mir::FunInst*>;
-using funobjmap = std::unordered_map<std::string, std::shared_ptr<FunObjTree>>;
+
+using funobjmap = std::unordered_map<mir::valueptr, std::shared_ptr<FunObjTree>>;
 
 class MemoryObjsCollector {
  public:
-  explicit MemoryObjsCollector(TypeEnv& typeenv);
-  funobjmap& process(mir::blockptr toplevel);
+  MemoryObjsCollector() = default;
+  funobjmap process(mir::blockptr toplevel);
 
-  void dump();
-
- private:
-  TypeEnv& typeenv;
-  FunObjTree res;  // for dump;
-  static std::string indentHelper(int indent);
+#ifdef MIMIUM_DEBUG_BUILD
+  void dump() const;
   static void dumpFunObjTree(FunObjTree const& tree, int indent = 0);
+  FunObjTree dump_res;  // for dump;
+#endif
+ private:
+  std::shared_ptr<FunObjTree> traverseFunTree(mir::valueptr fun);
+  static std::string indentHelper(int indent);
+  static std::unordered_set<mir::valueptr> collectToplevelFuns(mir::blockptr toplevel);
+  static std::optional<mir::valueptr> tryFindFunByName(std::unordered_set<mir::valueptr> fnset,
+                                                       std::string const& name);
 
-  static funmap collectToplevelFuns(mir::blockptr toplevel);
-  funmap toplevel_funmap;
   funobjmap result_map;
-  FunObjTree& traverseFunTree(mir::FunInst const& f);
-  struct CollectMemVisitor {
-    explicit CollectMemVisitor(MemoryObjsCollector& m,mir::FunInst const& f) : M(m),fun(f){};
-    MemoryObjsCollector& M;
-    const mir::FunInst& fun;
-    std::deque<Box<FunObjTree>> obj = {};
-    bool res_hasself = false;
-    types::Tuple objtype;
 
-    void operator()(mir::RefInst& i);
-    void operator()(mir::AssignInst& i);
-    void operator()(mir::OpInst& i);
-    void operator()(mir::FcallInst& i);
-    void operator()(mir::MakeClosureInst& i);
-    void operator()(mir::ArrayInst& i);
-    void operator()(mir::ArrayAccessInst& i);
-    void operator()(mir::FieldInst& i);
-    void operator()(mir::IfInst& i);
-    void operator()(mir::ReturnInst& i);
+ public:
+  struct CollectMemVisitor {
+    explicit CollectMemVisitor(MemoryObjsCollector& m) : M(m){};
+
+    MemoryObjsCollector& M;
+    struct ResultT {
+      std::list<std::shared_ptr<FunObjTree>> objs = {};
+      types::Value objtype = types::Alias{"", types::Tuple{}};
+      bool hasself = false;
+    };
+
+    ResultT operator()(minst::Ref& i);
+    ResultT operator()(minst::Load& i);
+    ResultT operator()(minst::Store& i);
+    ResultT operator()(minst::Op& i);
+    ResultT operator()(minst::Fcall& i);
+    ResultT operator()(minst::MakeClosure& i);
+    ResultT operator()(minst::Array& i);
+    ResultT operator()(minst::ArrayAccess& i);
+    ResultT operator()(minst::Field& i);
+    ResultT operator()(minst::If& i);
+    ResultT operator()(minst::Return& i);
     template <typename T>
-    void operator()(T& /*i*/) {
-      constexpr bool isfun = std::is_same_v<mir::FunInst, std::decay_t<T>>;
+    ResultT operator()(T& /*i*/) {
+      constexpr bool isfun = std::is_same_v<minst::Function, std::decay_t<T>>;
       if constexpr (isfun) {
-        // Memobj collector reached to FunInst. maybe failed to Closure Conversion?
-        assert(!isfun);
+        assert(false && "Memobj collector reached to FunInst. maybe failed to Closure Conversion?");
       } else {
-        static_assert(std::is_base_of_v<mir::instruction, std::decay_t<T>>,
+        static_assert(std::is_base_of_v<mir::instruction::Base, std::decay_t<T>>,
                       "mir instruction unreachable");
+        // do nothing for primitive type
       }
+      return ResultT{};
     }
+    ResultT visit(mir::valueptr v) {
+      if (auto* instptr = std::get_if<mir::Instructions>(v.get())) {
+        return std::visit(*this, *instptr);
+      } else {
+        assert(false);
+      }
+      return ResultT{};
+    }
+    ResultT visitInsts(mir::blockptr block);
+    static types::Tuple& getTupleFromAlias(types::Value& t);
 
    private:
-    void insertAllocaInst(mir::FunInst& i, types::Alias& type) const;
-    void checkHasSelf(std::string const& name) {
-      res_hasself |= name == "self";
-    }
-    std::string cur_fun;
+    static bool isSelf(mir::valueptr val) { return std::holds_alternative<mir::Self>(*val); };
+    static bool isExternalFunMemobj(const mir::ExternalSymbol& s) { return s.name == "delay"; }
+    static ResultT makeResfromHasSelf(bool hasself);
+    static void mergeResultTs(ResultT& dest, ResultT& src);
   };
 };
 

@@ -2,6 +2,8 @@ include(AddFlexBisonDeps)
 
 find_package(SndFile REQUIRED)
 
+#TODO: use ffi in mimium_llloader, mimium_builtinfn must be shared library.
+# currently, it fails link dynamically on Windows. 
 add_library(mimium_builtinfn STATIC ffi.cpp)
 target_include_directories(mimium_builtinfn
 PUBLIC

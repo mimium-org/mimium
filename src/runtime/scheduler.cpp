@@ -13,8 +13,8 @@ bool Scheduler::Greater::operator()(const key_type& l, const key_type& r) const 
 // return value: shouldstop
 bool Scheduler::incrementTime() {
   bool hastask = !tasks.empty();
-  bool shouldstop = !hasdsp || !hastask;
-  if (shouldstop) { return true; }
+  bool shouldplay = hasdsp || hastask;
+  if (!shouldplay) { return true; }
 
   time += 1;
   if (hastask && time > tasks.top().first) { executeTask(tasks.top().second); }

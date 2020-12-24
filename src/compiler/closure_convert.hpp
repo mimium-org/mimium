@@ -3,12 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
+
+#include <set>
+
 #include "basic/mir.hpp"
 #include "basic/variant_visitor_helper.hpp"
 #include "compiler/ffi.hpp"
 namespace mimium {
 
-class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
+namespace minst = mir::instruction;
+
+class ClosureConverter {
  public:
   explicit ClosureConverter(TypeEnv& typeenv);
   ~ClosureConverter();
@@ -18,61 +23,81 @@ class ClosureConverter : public std::enable_shared_from_this<ClosureConverter> {
 
   auto& getCaptureNames(const std::string& fname) { return fvinfo[fname]; }
   auto& getCaptureType(const std::string& fname) { return clstypeenv[fname]; }
-  void dump();
-
+  // void dump();
  private:
   TypeEnv& typeenv;
   mir::blockptr toplevel;
   int capturecount;
   int closurecount;
-  std::unordered_map<std::string, int> known_functions;
+  std::set<mir::valueptr> known_functions;
   std::unordered_map<std::string, std::vector<std::string>> fvinfo;
   // fname: types::Tuple(...)
   std::unordered_map<std::string, types::Value> clstypeenv;
+  std::unordered_map<mir::valueptr, mir::valueptr> fn_to_cls;
 
   void moveFunToTop(mir::blockptr mir);
-  bool isKnownFunction(const std::string& name);
+  bool isKnownFunction(mir::valueptr fn);
   std::string makeCaptureName() { return "Capture." + std::to_string(capturecount++); }
   std::string makeClosureTypeName() { return "Closure." + std::to_string(closurecount++); }
 
   struct CCVisitor {
-    explicit CCVisitor(ClosureConverter& cc, std::vector<std::string>& fvlist,
-                       std::vector<std::string>& localvlist,
-                       std::list<mir::Instructions>::iterator& position)
-        : cc(cc), fvlist(fvlist), localvlist(localvlist), position(position) {}
+    explicit CCVisitor(ClosureConverter& cc, std::list<mir::valueptr>::iterator& position)
+        : cc(cc) {}
 
     ClosureConverter& cc;
-    std::vector<std::string>& fvlist;
-    std::vector<std::string>& localvlist;
-    std::list<mir::Instructions>::iterator position;
-    void updatepos() { ++position; }
-    void registerFv(std::string& name);
+    std::set<mir::valueptr> fvset;
+    mir::blockptr block_ctx;
 
-    void operator()(mir::RefInst& i);
-    void operator()(mir::AssignInst& i);
-    void operator()(mir::OpInst& i);
-    void operator()(mir::FunInst& i);
-    void operator()(mir::FcallInst& i);
-    void operator()(mir::MakeClosureInst& i);
-    void operator()(mir::ArrayInst& i);
-    void operator()(mir::ArrayAccessInst& i);
-    void operator()(mir::FieldInst& i);
-    void operator()(mir::IfInst& i);
-    void operator()(mir::ReturnInst& i);
+    std::list<mir::valueptr>::iterator position;
+
+    void checkFreeVar(mir::valueptr val);
+    void checkFreeVar(mir::blockptr block);
+    void checkFreeVarArg(mir::valueptr val);
+    void checkVariable(mir::valueptr& val, bool ismemoryvalue = false);
+    void tryReplaceFntoCls(mir::valueptr& val);
+
+    // void registerFv(std::string& name);
+    void operator()(minst::Ref& i);
+    void operator()(minst::Load& i);
+    void operator()(minst::Store& i);
+
+    void operator()(minst::Op& i);
+    void operator()(minst::Function& i);
+    void operator()(minst::Fcall& i);
+    void operator()(minst::MakeClosure& i);
+    void operator()(minst::Array& i);
+    void operator()(minst::ArrayAccess& i);
+    void operator()(minst::Field& i);
+    void operator()(minst::If& i);
+    void operator()(minst::Return& i);
+
+    // for primitive operations
     template <typename T>
     void operator()(T& i) {
-      if constexpr (std::is_base_of_v<mir::instruction, std::decay_t<T>>) {
-        localvlist.push_back(i.lv_name);
-      } else {
-        static_assert(true, "mir instruction unreachable");
-      }
+      constexpr bool isprimitive = std::is_base_of_v<mir::instruction::Base, std::decay_t<T>>;
+      static_assert(isprimitive, "mir instruction unreachable");
     }
     bool isFreeVar(const std::string& name);
+    void visit(mir::Value& i) {
+      if (auto* instptr = std::get_if<mir::Instructions>(&i)) { std::visit(*this, *instptr); }
+    }
+    void visit(mir::Instructions& i) { std::visit(*this, i); }
+
+    mir::valueptr instance_holder = nullptr;
 
    private:
-    static void visitinsts(mir::FunInst& i, CCVisitor& ccvis,
-                           std::list<mir::Instructions>::iterator pos);
-    mir::MakeClosureInst createClosureInst(types::Function ftype, types::Alias fvtype, std::string& lv_name);
+    void visitinsts(minst::Function& i, CCVisitor& ccvis);
+    minst::MakeClosure createClosureInst(mir::valueptr fnptr, std::vector<mir::valueptr> const& fvs,
+                                         types::Alias fvtype, std::string& lv_name);
+    void dump();
+
+    // helper function to get pointer of actual instance in visitor function.
+    // it validates raw pointer is really same before evaluation.
+    template <class T>
+    mir::valueptr getValPtr(T* i) {
+      assert(i == &mir::getInstRef<T>(instance_holder));
+      return instance_holder;
+    }
   };
   friend struct CCVisitor;
 };
