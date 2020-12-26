@@ -356,10 +356,10 @@ llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
   auto* ft = llvm::cast<llvm::FunctionType>(funtype_raw);
   // if return type is void, llvm cannot have return value and name
   if (ft->getReturnType()->isVoidTy()) {
-    G.builder->CreateCall(fun, args);
+    G.builder->CreateCall(ft,fun, args);
     return nullptr;
   }
-  return G.builder->CreateCall(fun, args, i.name);
+  return G.builder->CreateCall(ft,fun, args, i.name);
 }
 llvm::Value* CodeGenVisitor::getFunForFcall(minst::Fcall const& i) {
   switch (i.ftype) {
