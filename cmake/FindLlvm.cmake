@@ -14,7 +14,7 @@ endif()
 find_path(LLVM_INCLUDE_DIRS NAMES llvm/IR/IRBuilder.h
   PATHS
     ${HOMEBREW_PATH}/include
-    ${HOMEBREW_PATH}/opt/llvm@9/include
+    ${HOMEBREW_PATH}/opt/llvm/include
     /usr/local/opt/llvm/include
     /mingw64/include
     C:/tools/msys64/mingw64/include
@@ -26,7 +26,7 @@ find_program(LLVM_CONFIG_EXE
       NAMES llvm-config llvm-config-10 llvm-config10
       PATHS
       ${HOMEBREW_PATH}/bin
-      ${HOMEBREW_PATH}/opt/llvm@9/bin
+      ${HOMEBREW_PATH}/opt/llvm/bin
       /usr/local/bin
       /usr/local/opt/llvm/bin
       "/mingw64/bin"
@@ -56,11 +56,11 @@ find_program(LLVM_CONFIG_EXE
   function(NEED_TARGET TARGET_NAME)
       list (FIND LLVM_TARGETS_BUILT "${TARGET_NAME}" _index)
       if (${_index} EQUAL -1)
-          message(FATAL_ERROR "LLVM (according to ${LLVM_CONFIG_EXE}) is missing target ${TARGET_NAME}. Zig requires LLVM to be built with all default targets enabled.")
+          message(FATAL_ERROR "LLVM (according to ${LLVM_CONFIG_EXE}) is missing target ${TARGET_NAME}. mimium requires LLVM to be built with all default targets enabled.")
       endif()
   endfunction(NEED_TARGET)
-  NEED_TARGET("AArch64")
-  NEED_TARGET("AMDGPU")
+  # NEED_TARGET("AArch64")
+  # NEED_TARGET("AMDGPU")
   NEED_TARGET("ARM")
 #   NEED_TARGET("AVR")
   # NEED_TARGET("BPF")
@@ -70,12 +70,12 @@ find_program(LLVM_CONFIG_EXE
   # NEED_TARGET("MSP430")
   # NEED_TARGET("NVPTX")
   # NEED_TARGET("PowerPC")
-  NEED_TARGET("RISCV")
+  # NEED_TARGET("RISCV")
   # NEED_TARGET("Sparc")
   # NEED_TARGET("SystemZ")
   NEED_TARGET("WebAssembly")
   NEED_TARGET("X86")
-  NEED_TARGET("XCore")
+  # NEED_TARGET("XCore")
 
   if(ZIG_STATIC_LLVM)
     execute_process(
