@@ -86,7 +86,7 @@ class MimiumJIT {
     auto builder = LLJITBuilder();
 #endif
     auto jit = builder.create();
-    llvm::errs() << jit.takeError();
+    if (!jit) { llvm::errs() << jit.takeError() << "\n"; }
     return std::move(jit.get());
   }
   Error addModule(std::unique_ptr<Module> M) {
