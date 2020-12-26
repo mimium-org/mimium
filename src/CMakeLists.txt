@@ -1,60 +1,58 @@
 cmake_minimum_required(VERSION 3.8)
+# set_property(GLOBAL PROPERTY GLOBAL_DEPENDS_DEBUG_MODE 1)
+
 set(MIMIUM_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 add_subdirectory(basic)
 add_subdirectory(preprocessor)
 add_subdirectory(compiler)
 add_subdirectory(runtime)
 
-add_executable(mimium main.cpp)
-add_dependencies(default_build mimium)
-add_executable(mimium_llloader llloader.cpp)
-add_dependencies(default_build mimium_llloader)
-
+add_library(mimium STATIC libmain.cpp)
 target_compile_options(mimium PUBLIC -std=c++17)
-target_compile_options(mimium_llloader PUBLIC -std=c++17)
 target_compile_definitions(mimium PUBLIC MIMIUM_VERSION=\"v${CMAKE_PROJECT_VERSION}\")
-target_compile_definitions(mimium_llloader PUBLIC MIMIUM_VERSION=\"v${CMAKE_PROJECT_VERSION}\")
+target_include_directories(mimium PUBLIC
+${MIMIUM_SOURCE_DIR})
 
-target_include_directories(mimium
-PRIVATE
-# ${CMAKE_SOURCE_DIR}/libs/rtmidi
-# ${SNDFILE_INCLUDE_DIRS}
-${FLEX_INCLUDE_CACHE}
-${PARSER_HEADER_DIR} 
-
+target_compile_options(mimium PUBLIC
+# -fvisibility=hidden
 )
+target_link_options(mimium PUBLIC
+)
+
+add_executable(mimium_exe main.cpp)
+add_dependencies(default_build mimium)
+target_compile_options(mimium_exe PUBLIC -std=c++17)
+set_target_properties(mimium_exe PROPERTIES OUTPUT_NAME mimium)
 
 #TODO: use ffi in mimium_llloader, mimium_builtinfn must be shared library.
 # currently, it fails link dynamically on Windows. 
-target_include_directories(mimium_llloader
-PRIVATE
-# ${CMAKE_SOURCE_DIR}/libs/rtmidi
-# ${SNDFILE_INCLUDE_DIRS}
-${FLEX_INCLUDE_CACHE}
-${PARSER_HEADER_DIR} 
-)
-# target_compile_options(mimium
-# PUBLIC
+add_executable(mimium_llloader llloader.cpp)
+target_compile_options(mimium_llloader PUBLIC -std=c++17)
+add_dependencies(default_build mimium_llloader)
+
+
+
+
+
+
+target_compile_options(mimium_llloader
+PUBLIC
 # -fvisibility=hidden
-# )
+)
+
 target_link_libraries(mimium
-    ${LLVM_LIBRARIES}
+    PUBLIC
     mimium_compiler
     mimium_runtime_jit
     mimium_backend_rtaudio
     mimium_builtinfn 
     )
-target_link_libraries(mimium_llloader
-${LLVM_LIBRARIES}
-
-    mimium_compiler
-    mimium_runtime_jit
-    mimium_backend_rtaudio
-    mimium_builtinfn 
-    )
+    
+target_link_libraries(mimium_exe mimium)
+target_link_libraries(mimium_llloader mimium)
 
 
-install (TARGETS mimium mimium_llloader 
+install (TARGETS mimium_exe mimium_llloader 
         EXPORT  mimium-export
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib

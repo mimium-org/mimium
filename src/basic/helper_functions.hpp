@@ -3,9 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
-
+#include <algorithm>
 #include <condition_variable>
 #include <deque>
+#include <functional>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -19,24 +20,25 @@
 #include <variant>
 #include <vector>
 
-#include "llvm/Support/Error.h"
 #include "variant_visitor_helper.hpp"
 
 #ifdef _WIN32
 // SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 #endif
-#if (__has_feature(address_sanitizer) && defined(__clang__)) || defined(__SANITIZE_ADDRESS__)
-// code that builds only under AddressSanitizer
-#define NO_SANITIZE __attribute__((no_sanitize("address", "undefined")))
-#else
-#define NO_SANITIZE
+#if defined(__clang__)
+  #if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+  // code that builds only under AddressSanitizer
+    #define NO_SANITIZE __attribute__((no_sanitize("address", "undefined")))
+  #endif
+#endif
+#ifndef NO_SANITIZE
+  #define NO_SANITIZE
 #endif
 
 namespace mimium {
 
 #ifdef MIMIUM_DEBUG_BUILD
-#define MMMASSERT(cond, message) \
-  assert(cond && message);
+#define MMMASSERT(cond, message) assert(cond&& message);
 #else
 #define MMMASSERT(cond, message)
 #endif
@@ -157,17 +159,6 @@ class Logger {
     if (report_level <= Logger::current_report_level) {
       std::string content = report_str.at(report_level) + ": " + str + norm + "\n";
       *output << content;
-    }
-  }
-  static void debug_log(llvm::Error& err, REPORT_LEVEL report_level) {
-    if (bool(err) && report_level <= Logger::current_report_level) {
-      llvm::errs() << report_str.at(report_level) << ": " << err << norm << "\n";
-    }
-  }
-  template <typename T>
-  static void debug_log(llvm::Expected<T>& expected, REPORT_LEVEL report_level) {
-    if (auto err = expected.takeError() && report_level <= Logger::current_report_level) {
-      llvm::errs() << report_str.at(report_level) << ": " << err << norm << "\n";
     }
   }
 

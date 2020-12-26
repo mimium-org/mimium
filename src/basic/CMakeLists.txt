@@ -6,6 +6,5 @@ message("sanitizer activated")
 target_compile_options(mimium_utils PUBLIC -fsanitize=address -fno-omit-frame-pointer -O0)
 target_link_options(mimium_utils PUBLIC -fsanitize=address)
 endif()
-# target_compile_options(mimium_utils PUBLIC -std=c++17)
-target_link_libraries(mimium_utils PUBLIC)
+
 install(TARGETS mimium_utils DESTINATION lib)

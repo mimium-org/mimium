@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
-#define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
 
 #include <list>
 

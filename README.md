@@ -69,7 +69,7 @@ See also [GitHub Action Workflow](https://github.com/mimium-org/mimium/blob/dev/
 - cmake
 - bison >= 3.3
 - flex
-- llvm 9 ~ 10(not tested on 11 yet)
+- llvm 9 ~ 11
 
 ### build and runtime
 
