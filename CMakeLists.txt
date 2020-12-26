@@ -32,7 +32,7 @@ SET(CMAKE_FIND_PACKAGE_SORT_DIRECTION DEC)
 include(cmake/FindLlvm.cmake)
 message(STATUS "set llvm include dir to ${LLVM_INCLUDE_DIRS}, libdir to ${LLVM_LIBDIRS}")
 
-execute_process(COMMAND ${LLVM_CONFIG_EXE} --cxxflags
+execute_process(COMMAND ${LLVM_CONFIG_EXE} --cppflags
 OUTPUT_VARIABLE LLVM_CXX_FLAGS
 OUTPUT_STRIP_TRAILING_WHITESPACE)
 execute_process(COMMAND ${LLVM_CONFIG_EXE} --ldflags

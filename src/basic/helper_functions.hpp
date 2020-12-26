@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
-
+#include <algorithm>
 #include <condition_variable>
 #include <deque>
 #include <iostream>
@@ -18,13 +18,14 @@
 #include <utility>  //pair
 #include <variant>
 #include <vector>
+#include <functional>
 
 #include "variant_visitor_helper.hpp"
 
 #ifdef _WIN32
 // SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 #endif
-#if (__has_feature(address_sanitizer) && defined(__clang__)) || defined(__SANITIZE_ADDRESS__)
+#if (defined(__clang__) && __has_feature(address_sanitizer)) || defined(__SANITIZE_ADDRESS__)
 // code that builds only under AddressSanitizer
 #define NO_SANITIZE __attribute__((no_sanitize("address", "undefined")))
 #else
