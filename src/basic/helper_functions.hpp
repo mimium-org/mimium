@@ -19,7 +19,6 @@
 #include <variant>
 #include <vector>
 
-#include "llvm/Support/Error.h"
 #include "variant_visitor_helper.hpp"
 
 #ifdef _WIN32
@@ -157,17 +156,6 @@ class Logger {
     if (report_level <= Logger::current_report_level) {
       std::string content = report_str.at(report_level) + ": " + str + norm + "\n";
       *output << content;
-    }
-  }
-  static void debug_log(llvm::Error& err, REPORT_LEVEL report_level) {
-    if (bool(err) && report_level <= Logger::current_report_level) {
-      llvm::errs() << report_str.at(report_level) << ": " << err << norm << "\n";
-    }
-  }
-  template <typename T>
-  static void debug_log(llvm::Expected<T>& expected, REPORT_LEVEL report_level) {
-    if (auto err = expected.takeError() && report_level <= Logger::current_report_level) {
-      llvm::errs() << report_str.at(report_level) << ": " << err << norm << "\n";
     }
   }
 

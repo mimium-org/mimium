@@ -45,10 +45,11 @@ Runtime_LLVM::Runtime_LLVM(std::unique_ptr<llvm::LLVMContext> ctx, std::string c
 
 void Runtime_LLVM::executeModule(std::unique_ptr<llvm::Module> module) {
   llvm::Error err = jitengine->addModule(std::move(module));
-  Logger::debug_log(err, Logger::ERROR_);
+  llvm::errs() << err;
   auto mainfun = jitengine->lookup("mimium_main");
 
-  Logger::debug_log(mainfun, Logger::ERROR_);
+   llvm::errs() << mainfun.takeError();
+
   auto mimium_main_function = llvm::jitTargetAddressToPointer<void* (*)()>(mainfun->getAddress());
   //
   mimium_main_function();

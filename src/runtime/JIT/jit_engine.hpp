@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-
-
 #pragma once
 #include <iostream>
 #include <memory>
@@ -32,7 +30,7 @@
 #include "llvm/Transforms/Utils.h"
 #include "llvm/Transforms/Vectorize.h"
 
-#include "basic/helper_functions.hpp" //load NO_SANITIZE
+#include "basic/helper_functions.hpp"  //load NO_SANITIZE
 
 #define LAZY_ENABLE 0
 #if LAZY_ENABLE
@@ -78,17 +76,17 @@ class MimiumJIT {
         cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(DL.getGlobalPrefix())));
 #endif
   }
-//Creates LLJIT engine. Note that builder.create causes container overflow inside llvm library.
-// maybe in llvm::LLVMTargetMachine::initAsmInfo()?
+  // Creates LLJIT engine. Note that builder.create causes container overflow inside llvm library.
+  // maybe in llvm::LLVMTargetMachine::initAsmInfo()?
 
-NO_SANITIZE static std::unique_ptr<LLJITCLASS> createEngine() {
+  NO_SANITIZE static std::unique_ptr<LLJITCLASS> createEngine() {
 #if LAZY_ENABLE
     auto builder = LLLazyJITBuilder();
 #else
     auto builder = LLJITBuilder();
 #endif
     auto jit = builder.create();
-    llvm::logAllUnhandledErrors(jit.takeError(), llvm::errs());
+    llvm::errs() << jit.takeError();
     return std::move(jit.get());
   }
   Error addModule(std::unique_ptr<Module> M) {
