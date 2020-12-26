@@ -356,10 +356,10 @@ llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
   auto* ft = llvm::cast<llvm::FunctionType>(funtype_raw);
   // if return type is void, llvm cannot have return value and name
   if (ft->getReturnType()->isVoidTy()) {
-    G.builder->CreateCall(ft,fun, args);
+    G.builder->CreateCall(ft, fun, args);
     return nullptr;
   }
-  return G.builder->CreateCall(ft,fun, args, i.name);
+  return G.builder->CreateCall(ft, fun, args, i.name);
 }
 llvm::Value* CodeGenVisitor::getFunForFcall(minst::Fcall const& i) {
   switch (i.ftype) {
@@ -367,6 +367,8 @@ llvm::Value* CodeGenVisitor::getFunForFcall(minst::Fcall const& i) {
     case CLOSURE: return getClsFun(i);
     case EXTERNAL: return getExtFun(i);
   }
+  assert(false);
+  return nullptr;
 }
 
 llvm::Value* CodeGenVisitor::getDirFun(minst::Fcall const& i) { return getLlvmVal(i.fname); }
