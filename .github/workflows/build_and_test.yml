@@ -36,19 +36,16 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          # - ubuntu-18.04
           - ubuntu-20.04
-          - macos-latest
+          - macos-10.15
           - windows-latest
         config:
           - Release
         include:
-            # - os: ubuntu-18.04
-            #   cxx: /usr/bin/g++-9
             - os: ubuntu-20.04
               cxx: /usr/bin/g++-9
               shell: bash
-            - os: macos-latest
+            - os: macos-10.15
               cxx: /usr/bin/clang++
               shell: bash
             - os: windows-latest
