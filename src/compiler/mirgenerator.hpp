@@ -75,24 +75,8 @@ class MirGenerator {
   std::pair<optvalptr, mir::blockptr> generateBlock(ast::Block& block, std::string label,
                                                     optvalptr const& fnctx);
 
-  // bool isOverWrite(ast::Symbol const& symbol) {
-  //   auto iter = symbol_table.find(symbol.value);
-  //   return std::find(lvarlist.begin(), lvarlist.end(), symbol.value) != lvarlist.end();
-  // }
-
-  // bool isOverWrite(ast::Lvar& lvar) {
-  //   if (auto* declvar = std::get_if<ast::DeclVar>(&lvar)) { return isOverWrite(declvar->value); }
-  //   // other cases: array tuple
-  //   return !std::holds_alternative<ast::TupleLvar>(lvar);
-  //   // todo(tomoya):prevent redefinition of variable in tuple structural binding
-  // }
   auto emplace(mir::Instructions&& inst) {
     mir::valueptr val = mir::addInstToBlock(std::move(inst), block_ctx);
-    // if (auto* v = val.value_or(nullptr)) {
-    //   // todo: redundunt data store?
-    //   symbol_table.emplace(v->name, mir::Value{v->name, v->type});
-    //   typeenv.emplace(v->name, v->type);
-    // }
     return val;
   }
   // expect return value
