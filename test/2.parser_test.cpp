@@ -24,6 +24,8 @@ PARSER_TEST(self)
 PARSER_TEST(array)
 PARSER_TEST(tuplelvar)
 PARSER_TEST(tuple)
+PARSER_TEST(tupletype)
+
 
 TEST(parser, ast_complete) {
   Driver driver{};
