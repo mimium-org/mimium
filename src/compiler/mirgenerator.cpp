@@ -257,7 +257,7 @@ std::pair<optvalptr, mir::blockptr> MirGenerator::genIfBlock(ast::ExprPtr& block
   return generateBlock(realblock, label, this->fnctx);
 }
 
-optvalptr MirGenerator::genIfInst(ast::If& ast, bool is_expr) {
+optvalptr MirGenerator::genIfInst(ast::If& ast) {
   auto lvname = makeNewName();
   auto cond = genInst(ast.cond);
   auto [thenretval, thenblock] = genIfBlock(ast.then_stmts, lvname + "$then");
@@ -270,10 +270,10 @@ optvalptr MirGenerator::genIfInst(ast::If& ast, bool is_expr) {
 }
 
 mir::valueptr ExprKnormVisitor::operator()(ast::If& ast) {
-  return mirgen.require(mirgen.genIfInst(ast, true));
+  return mirgen.require(mirgen.genIfInst(ast));
 }
 
-void StatementKnormVisitor::operator()(ast::If& ast) { mirgen.genIfInst(ast, false); }
+void StatementKnormVisitor::operator()(ast::If& ast) { mirgen.genIfInst(ast); }
 void StatementKnormVisitor::operator()(ast::Fdef& ast) {
   auto funexpr = ast::makeExpr(ast.fun);
   AssignKnormVisitor(mirgen, funexpr)(ast.lvar);

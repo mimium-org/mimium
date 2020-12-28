@@ -89,7 +89,7 @@ class MirGenerator {
 
   mir::valueptr genFcallInst(ast::Fcall& fcall, optvalptr const& when = std::nullopt);
   std::pair<optvalptr, mir::blockptr> genIfBlock(ast::ExprPtr& block, std::string const& label);
-  optvalptr genIfInst(ast::If& ast, bool is_expr);
+  optvalptr genIfInst(ast::If& ast);
   mir::valueptr genInst(ast::ExprPtr expr) { return exprvisitor.genInst(expr); }
   void genInst(ast::Statement stmt) { return statementvisitor.genInst(stmt); }
   mir::valueptr genAllocate(std::string const& name, types::Value const& type);
