@@ -242,7 +242,7 @@ inline blockptr makeBlock(std::string const& label, int indent = 0) {
 
 std::string toString(blockptr block);
 
-inline auto addInstToBlock(Instructions&& inst, blockptr block) {
+inline std::shared_ptr<mir::Value> addInstToBlock(Instructions&& inst, blockptr block) {
   auto ptr = std::make_shared<Value>(std::move(inst));
   std::visit([&](auto& i) mutable { i.parent = block; }, std::get<Instructions>(*ptr));
   block->instructions.emplace_back(ptr);
