@@ -123,49 +123,78 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Self& ast) {
   return std::make_shared<mir::Value>(std::move(self));
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::Lambda& ast) {
+  auto argtypes = std::vector<types::Value>{};
+  auto args = std::vector<std::shared_ptr<mir::Argument>>{};
   auto label = lvar_holder.has_value() ? lvar_holder.value() : mirgen.makeNewName();
-  auto fun = minst::Function{
-      {label, types::None{}},
-      mirgen.transformArgs(ast.args.args, std::vector<std::shared_ptr<mir::Argument>>{},
-                           mirgen.make_arguments)};
+  auto fun = minst::Function{{label, types::None{}},
+                             mirgen.transformArgs(ast.args.args, args, mirgen.make_arguments)};
   auto resptr = emplace(std::move(fun));
-  auto [blockret, ctx] = mirgen.generateBlock(ast.body, label, resptr);
+  auto [blockret, body] = mirgen.generateBlock(ast.body, label, resptr);
   auto rettype = blockret ? getType(*blockret.value()) : types::Void{};
+
   auto& fref = mir::getInstRef<minst::Function>(resptr);
+  if (!isPassByValue(rettype) && !std::holds_alternative<types::Void>(rettype)) {
+    // convert function which returns aggregate type to void function with reference argument
+    auto retptrtype = types::Ref{rettype};
+    argtypes.emplace_back(retptrtype);
+    rettype = types::Void{};
+    auto& lastinst = *std::prev(body->instructions.end());
+    assert(mir::isInstA<minst::Return>(lastinst));
+    auto& retinst = mir::getInstRef<minst::Return>(lastinst);
+    body->instructions.pop_back();
+    auto ret_ptr = std::make_shared<mir::Argument>(
+        mir::Argument{retinst.name + "_ptr", types::Value{retptrtype}, resptr});
+    fref.args.insert(fref.args.begin(),ret_ptr);
+    auto storeinst = minst::Store{{"storereturn", types::Void{}},
+                                  std::make_shared<mir::Value>(std::move(ret_ptr)),
+                                  retinst.val};
+    mir::addInstToBlock(std::move(storeinst), body);
+  }
+
   for (auto& a : fref.args) { a->parentfn = resptr; }
-  auto* typeptr = mirgen.typeenv.tryFind(label);  // todo!!
-  fref.body = ctx;
-  fref.type = (typeptr != nullptr)
-                  ? *typeptr
-                  : types::Function{rettype, mirgen.transformArgs(
-                                                 ast.args.args, std::vector<types::Value>{},
-                                                 [&](ast::DeclVar& lvar) {
-                                                   return mirgen.typeenv.find(lvar.value.value);
-                                                 })};
+
+  fref.type = types::Function{
+      rettype, mirgen.transformArgs(ast.args.args, argtypes, [&](ast::DeclVar& lvar) {
+        return mirgen.typeenv.find(lvar.value.value);
+      })};
+  fref.body = body;
   return resptr;
 }
 mir::valueptr ExprKnormVisitor::genFcallInst(ast::Fcall& fcall, optvalptr const& when) {
   mir::valueptr fnptr = nullptr;
   bool is_fn_recursive = false;
   if (auto* fnlabel = std::get_if<ast::Symbol>(fcall.fn.get())) {
+    auto& name = fnlabel->value;
     if (fnctx.has_value()) {
       auto& cur_fn = mir::getInstRef<minst::Function>(fnctx.value());
-      cur_fn.isrecursive |= fnlabel->value == cur_fn.name;
+      cur_fn.isrecursive |= name == cur_fn.name;
       is_fn_recursive = cur_fn.isrecursive;
     }
-    fnptr = (is_fn_recursive)
-                ? this->fnctx.value()
-                : mirgen.getFunctionSymbol(fnlabel->value, mirgen.typeenv.find(fnlabel->value));
+    fnptr = is_fn_recursive ? this->fnctx.value()
+                            : mirgen.getFunctionSymbol(name, mirgen.typeenv.find(name));
   } else {
     fnptr = genInst(fcall.fn);
   }
-  types::Value rettype = mir::getType(*fnptr);
+  auto newname = mirgen.makeNewName();
   bool is_fn_ext = std::holds_alternative<mir::ExternalSymbol>(*fnptr);
   auto fnkind = is_fn_ext && !is_fn_recursive ? EXTERNAL : CLOSURE;
-  auto newname = mirgen.makeNewName();
-  auto newargs = mirgen.transformArgs(fcall.args.args, std::vector<mir::valueptr>{},
-                               [&](auto expr) { return genInst(expr); });
-  return emplace(minst::Fcall{{newname, rettype}, fnptr, newargs, fnkind, when});
+  std::vector<mir::valueptr> newargs{};
+
+  if (!is_fn_recursive) {
+    auto ftype = mir::getType(*fnptr);
+    auto& rettype = rv::get<types::Function>(ftype).ret_type;
+    if (!isPassByValue(rettype)) {
+      auto retptr = genAllocate(newname + "_ret", rettype);
+      newargs.emplace_back(retptr);
+      auto args = mirgen.transformArgs(fcall.args.args, std::move(newargs),
+                                       [&](auto expr) { return genInst(expr); });
+      emplace(minst::Fcall{{newname, types::None{}}, fnptr, args, fnkind, when});
+      return emplace(minst::Load{{newname, rettype}, retptr});
+    }
+  }
+  auto args = mirgen.transformArgs(fcall.args.args, std::move(newargs),
+                                   [&](auto expr) { return genInst(expr); });
+  return emplace(minst::Fcall{{newname, types::None{}}, fnptr, args, fnkind, when});
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::Fcall& ast) {
   return genFcallInst(ast, std::nullopt);
