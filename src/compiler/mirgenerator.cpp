@@ -70,11 +70,11 @@ mir::valueptr ExprKnormVisitor::emplace(mir::Instructions&& inst) {
 }
 
 mir::valueptr ExprKnormVisitor::genAllocate(std::string const& name, types::Value const& type) {
-  if (!isPassByValue(type)) {
-    auto reftype = types::Pointer{type};
-    return emplace(mir::instruction::Allocate{{name, reftype}, reftype});
-  }
-  return emplace(mir::instruction::Allocate{{name, type}, type});
+  // if (!isPassByValue(type)) {
+  //   auto reftype = types::Pointer{type};
+  //   return emplace(mir::instruction::Allocate{{name, reftype}, reftype});
+  // }
+  return emplace(mir::instruction::Allocate{{name, type}});
 }
 
 mir::valueptr ExprKnormVisitor::operator()(ast::Op& ast) {
@@ -217,7 +217,7 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Tuple& ast) {
     tupletypes.emplace_back(mir::getType(*arg));
   }
   types::Value rettype = types::Tuple{{tupletypes}};
-  mir::valueptr lvar = emplace(minst::Allocate{{lvname + "_ref", rettype}, rettype});
+  mir::valueptr lvar = genAllocate(lvname + "_ref", rettype);
   mirgen.symbol_table.emplace(lvname + "_ref", lvar);
 
   int count = 0;
@@ -228,9 +228,9 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Tuple& ast) {
     emplace(minst::Store{{newlvname, tupletypes[count]}, ptrtostore, elem});
     count++;
   }
-  mir::valueptr res = emplace(minst::Load{{lvname, rettype}, lvar});
+  // mir::valueptr res = emplace(minst::Load{{lvname, rettype}, lvar});
 
-  return res;
+  return lvar;
 }
 
 mir::valueptr ExprKnormVisitor::operator()(ast::Block& ast) {
@@ -288,6 +288,7 @@ void AssignKnormVisitor::operator()(ast::DeclVar& ast) {
   }
   mirgen.symbol_table.emplace(lvname + "_ptr", ptr);
   auto rvar = exprvisitor.genInst(expr);
+
   exprvisitor.emplace(minst::Store{{lvname, types::None{}}, ptr, rvar});
 }
 void AssignKnormVisitor::operator()(ast::ArrayLvar& ast) {
@@ -305,7 +306,7 @@ void AssignKnormVisitor::operator()(ast::TupleLvar& ast) {
   for (auto&& arg : ast.args) {
     auto& name = arg.value.value;
     auto& type = mirgen.typeenv.find(name);
-    mir::valueptr lvar = exprvisitor.emplace(minst::Allocate{{name + "_ptr", type}, type});
+    mir::valueptr lvar = exprvisitor.genAllocate(name + "_ptr", type);
     mirgen.symbol_table.emplace(name + "_ptr", lvar);
 
     mir::Constants index = count++;
@@ -322,9 +323,10 @@ void StatementKnormVisitor::operator()(ast::Assign& ast) {
 }
 void StatementKnormVisitor::operator()(ast::Return& ast) {
   auto val = exprvisitor.genInst(ast.value);
+  auto type = mir::getType(*val);
 
-  this->retvalue = exprvisitor.emplace(
-      minst::Return{{exprvisitor.mirgen.makeNewName(), mir::getType(*val)}, val});
+  this->retvalue =
+      exprvisitor.emplace(minst::Return{{exprvisitor.mirgen.makeNewName(), type}, val});
 }
 // Instructions StatementKnormVisitor::operator()(ast::Declaration& ast){}
 void StatementKnormVisitor::operator()(ast::For& /*ast*/) {

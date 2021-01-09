@@ -85,7 +85,6 @@ struct String : public Base {
 std::string toString(String const& i);
 
 struct Allocate : public Base {
-  types::Value type = types::None();
 };
 std::string toString(Allocate const& i);
 
