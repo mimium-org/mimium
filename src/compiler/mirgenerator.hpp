@@ -44,11 +44,11 @@ class MirGenerator {
     mir::valueptr genAllocate(std::string const& name, types::Value const& type);
     mir::valueptr genFcallInst(ast::Fcall& fcall, optvalptr const& when);
 
+    const std::optional<mir::valueptr>& fnctx;
    private:
     std::pair<optvalptr, mir::blockptr> genIfBlock(ast::ExprPtr& block, std::string const& label);
 
     mir::blockptr block;
-    const std::optional<mir::valueptr>& fnctx;
     std::optional<std::string> lvar_holder;
   };
   struct AssignKnormVisitor {
@@ -67,7 +67,8 @@ class MirGenerator {
   };
   struct StatementKnormVisitor {
     explicit StatementKnormVisitor(ExprKnormVisitor& evisitor)
-        : exprvisitor(evisitor), mirgen(evisitor.mirgen), retvalue(std::nullopt) {}
+        : exprvisitor(evisitor), mirgen(evisitor.mirgen), retvalue(std::nullopt),fnctx(exprvisitor.fnctx) {}
+        
     void operator()(ast::Assign& ast);
     void operator()(ast::Fdef& ast);
     void operator()(ast::Return& ast);
@@ -82,6 +83,7 @@ class MirGenerator {
    private:
     ExprKnormVisitor& exprvisitor;
     MirGenerator& mirgen;
+    const std::optional<mir::valueptr>& fnctx;
   };
   mir::blockptr generate(ast::Statements& topast);
 

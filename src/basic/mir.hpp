@@ -63,6 +63,8 @@ struct Argument {
   types::Value type;
   valueptr parentfn;
 };
+
+
 std::string toString(Argument const& i);
 
 namespace instruction {
@@ -113,7 +115,7 @@ struct Op : public Base {
 std::string toString(Op const& i);
 
 struct Function : public Base {
-  std::vector<std::shared_ptr<Argument>> args;
+  std::list<std::shared_ptr<Argument>> args;
   blockptr body;
   bool hasself = false;
   bool isrecursive = false;
@@ -128,7 +130,7 @@ std::string toString(Function const& i);
 
 struct Fcall : public Base {
   valueptr fname;
-  std::vector<valueptr> args;
+  std::list<valueptr> args;
   FCALLTYPE ftype;
   std::optional<valueptr> time;
 };
@@ -185,7 +187,7 @@ inline std::string toString(Value const& inst) {
   return std::visit(overloaded{[](Instructions const& i) { return toString(i); },
                                [](Constants const& i) { return toString(i); },
                                [](std::shared_ptr<Argument> i) { return toString(*i); },
-                               [](Self const & /*i*/) -> std::string { return "self"; },
+                               [](Self const& /*i*/) -> std::string { return "self"; },
                                [](auto const& i) { return i.name; }},
                     inst);
 }
@@ -193,38 +195,32 @@ inline std::string toString(Value const& inst) {
 inline std::string getName(Instructions const& inst) {
   return std::visit([](auto const& i) { return i.name; }, inst);
 }
+inline std::string getName(Argument const& i) {return toString(i);};
 
 inline std::string getName(Value const& val) {
   return std::visit(overloaded{[](Instructions const& i) { return getName(i); },
                                [](Constants const& i) { return toString(i); },
-                               [](std::shared_ptr<Argument> const& i) { return toString(*i); },
-                               [](Self const & /*i*/) -> std::string { return "self"; },
+                               [](std::shared_ptr<Argument> const& i) { return getName(*i); },
+                               [](Self const& /*i*/) -> std::string { return "self"; },
                                [](auto const& i) { return i.name; }},
                     val);
 }
 
-inline std::string join(std::vector<std::shared_ptr<Argument>> const& vec,
-                        std::string const& delim) {
-  std::string res;
-  if (!vec.empty()) {
-    res = std::accumulate(std::next(vec.begin()), vec.end(), toString(**vec.begin()),
-                          [&](std::string const& a, std::shared_ptr<Argument> const& b) {
-                            return a + delim + toString(*b);
-                          });
-  }
-  return res;
-}
 
 template <typename T>
-inline std::string join(std::vector<std::shared_ptr<T>> const& vec, std::string const& delim) {
+inline std::string join(T const& vec, std::string const& delim) {
+  using elemtype = std::decay_t<decltype(*vec.begin())>;
+  static_assert(std::is_same_v<elemtype,valueptr>||std::is_same_v<elemtype,std::shared_ptr<Argument>>
+   );
   std::string res;
   if (!vec.empty()) {
     res = std::accumulate(
         std::next(vec.begin()), vec.end(), getName(**vec.begin()),
-        [&](std::string const& a, std::shared_ptr<T> const& b) { return a + delim + getName(*b); });
+        [&](std::string const& a, elemtype const& b) { return a + delim + getName(*b); });
   }
   return res;
 };
+
 class block : public std::enable_shared_from_this<block> {
  public:
   std::optional<valueptr> parent = std::nullopt;
@@ -259,7 +255,7 @@ inline blockptr getParent(Instructions const& v) {
 
 inline types::Value getType(Constants const& v) {
   return std::visit(
-      overloaded{[](std::string const & /*s*/) -> types::Value { return types::String{}; },
+      overloaded{[](std::string const& /*s*/) -> types::Value { return types::String{}; },
                  [](const double /*i*/) -> types::Value { return types::Float{}; }},
       v);
 }

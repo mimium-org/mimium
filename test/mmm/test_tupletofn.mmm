@@ -1,0 +1,16 @@
+//これはまあなんとかなりそう
+fn panner(input:float,pan:float) ->(float,float){
+    return (input*pan,input*(1-pan))
+}
+//難しい例
+// fn panner2(input:float,pan:float)->(float,float){
+//     res = (0,0)
+//     left,right = res
+//     left = input*pan
+//     right = input * (1-pan)
+//     return res
+// }
+
+fn callpanner(input:float)->(float,float){
+    return panner(input,0.2)
+}
