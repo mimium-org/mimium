@@ -139,19 +139,13 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Lambda& ast) {
 
   auto retinst_iter = std::prev(fref.body->instructions.end());
   assert(mir::isInstA<minst::Return>(*retinst_iter));
-  auto& retval = mir::getInstRef<minst::Return>(*retinst_iter).val;
-  // if (auto* ptrtype = std::get_if<types::rPointer>(&rettype)) {
-  //   assert(rv::holds_alternative<types::Tuple>(ptrtype->getraw().val));
-  //   auto loadinstptr = minst::Load{{label + "_resptr", rettype}, retval};
-  //   retval = mir::addInstToBlock(std::move(loadinstptr), fref.body);
-  //   rettype = ptrtype->getraw().val;
-  // }
   auto* ptrtype = std::get_if<types::rPointer>(&rettype);
   if (!isPassByValue(rettype) || ptrtype != nullptr) {
     if (ptrtype != nullptr) {
       assert(rv::holds_alternative<types::Tuple>(ptrtype->getraw().val));
       rettype = ptrtype->getraw().val;
     }
+    auto& retval = mir::getInstRef<minst::Return>(*retinst_iter).val;
     auto loadinst = mir::addInstToBlock(minst::Load{{label + "_res", rettype}, retval}, fref.body);
     auto retptr = std::make_shared<mir::Argument>(
         mir::Argument{label + "_retptr", types::Pointer{rettype}, resptr});
@@ -327,7 +321,6 @@ void AssignKnormVisitor::operator()(ast::DeclVar& ast) {
   }
   mirgen.symbol_table.emplace(lvname + "_ptr", ptr);
   auto rvar = exprvisitor.genInst(expr);
-  auto rvartype = mir::getType(*rvar);
   exprvisitor.emplace(minst::Store{{lvname, types::None{}}, ptr, rvar});
 }
 void AssignKnormVisitor::operator()(ast::ArrayLvar& ast) {
