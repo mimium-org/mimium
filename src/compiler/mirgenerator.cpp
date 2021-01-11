@@ -70,10 +70,10 @@ mir::valueptr ExprKnormVisitor::emplace(mir::Instructions&& inst) {
 }
 
 mir::valueptr ExprKnormVisitor::genAllocate(std::string const& name, types::Value const& type) {
-  // if (!isPassByValue(type)) {
-  //   auto reftype = types::Pointer{type};
-  //   return emplace(mir::instruction::Allocate{{name, reftype}, reftype});
-  // }
+  if (!isPassByValue(type)) {
+    auto reftype = types::Pointer{type};
+    return emplace(mir::instruction::Allocate{{name, reftype}});
+  }
   return emplace(mir::instruction::Allocate{{name, type}});
 }
 
@@ -123,23 +123,52 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Self& ast) {
   return std::make_shared<mir::Value>(std::move(self));
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::Lambda& ast) {
-  auto argtypes = std::vector<types::Value>{};
   auto args = std::list<std::shared_ptr<mir::Argument>>{};
   auto label = lvar_holder.has_value() ? lvar_holder.value() : mirgen.makeNewName();
-  auto fun = minst::Function{{label, types::None{}},
-                             mirgen.transformArgs(ast.args.args, args, mirgen.make_arguments)};
+  auto fun = minst::Function{
+      {label, types::None{}},
+      mir::FnArgs{std::nullopt, mirgen.transformArgs(ast.args.args, args, mirgen.make_arguments)}};
   auto resptr = emplace(std::move(fun));
   auto [blockret, body] = mirgen.generateBlock(ast.body, label, resptr);
   auto rettype = blockret ? getType(*blockret.value()) : types::Void{};
   auto& fref = mir::getInstRef<minst::Function>(resptr);
 
-  for (auto& a : fref.args) { a->parentfn = resptr; }
+  for (auto& a : fref.args.args) { a->parentfn = resptr; }
 
-  fref.type = types::Function{
-      rettype, mirgen.transformArgs(ast.args.args, argtypes, [&](ast::DeclVar& lvar) {
-        return mirgen.typeenv.find(lvar.value.value);
-      })};
   fref.body = body;
+
+  auto retinst_iter = std::prev(fref.body->instructions.end());
+  assert(mir::isInstA<minst::Return>(*retinst_iter));
+  auto& retval = mir::getInstRef<minst::Return>(*retinst_iter).val;
+  // if (auto* ptrtype = std::get_if<types::rPointer>(&rettype)) {
+  //   assert(rv::holds_alternative<types::Tuple>(ptrtype->getraw().val));
+  //   auto loadinstptr = minst::Load{{label + "_resptr", rettype}, retval};
+  //   retval = mir::addInstToBlock(std::move(loadinstptr), fref.body);
+  //   rettype = ptrtype->getraw().val;
+  // }
+  auto* ptrtype = std::get_if<types::rPointer>(&rettype);
+  if (!isPassByValue(rettype) || ptrtype != nullptr) {
+    if (ptrtype != nullptr) {
+      assert(rv::holds_alternative<types::Tuple>(ptrtype->getraw().val));
+      rettype = ptrtype->getraw().val;
+    }
+    auto loadinst = mir::addInstToBlock(minst::Load{{label + "_res", rettype}, retval}, fref.body);
+    auto retptr = std::make_shared<mir::Argument>(
+        mir::Argument{label + "_retptr", types::Pointer{rettype}, resptr});
+    fref.args.ret_ptr = std::move(retptr);
+    fref.body->instructions.erase(retinst_iter);
+    mir::addInstToBlock(minst::Store{{"store", types::Void{}},
+                                     std::make_shared<mir::Value>(fref.args.ret_ptr.value()),
+                                     loadinst},
+                        fref.body);
+    rettype = types::Void{};
+  }
+  auto argtypes = std::vector<types::Value>{};
+  if (fref.args.ret_ptr) { argtypes.emplace_back(mir::getType(fref.args.ret_ptr.value())); }
+  mirgen.transformArgs(fref.args.args, argtypes,
+                       [&](std::shared_ptr<mir::Argument> a) { return a->type; });
+
+  fref.type = types::Function{rettype, std::move(argtypes)};
   return resptr;
 }
 mir::valueptr ExprKnormVisitor::genFcallInst(ast::Fcall& fcall, optvalptr const& when) {
@@ -166,6 +195,16 @@ mir::valueptr ExprKnormVisitor::genFcallInst(ast::Fcall& fcall, optvalptr const&
   if (!is_fn_recursive) {
     auto ftype = mir::getType(*fnptr);
     rettype = rv::get<types::Function>(ftype).ret_type;
+    if (mir::isInstA<minst::Function>(fnptr) &&
+        mir::getInstRef<minst::Function>(fnptr).args.ret_ptr) {
+      rettype = mir::getType(mir::getInstRef<minst::Function>(fnptr).args.ret_ptr.value());
+      assert(types::isPointer(rettype));
+      auto res_ptr =
+          emplace(minst::Allocate{{newname + "_res", rv::get<types::Pointer>(rettype).val}});
+      args.push_front(res_ptr);
+      emplace(minst::Fcall{{newname, types::Void{}}, fnptr, args, fnkind, when});
+      return res_ptr;
+    }
   }
 
   return emplace(minst::Fcall{{newname, rettype}, fnptr, args, fnkind, when});
@@ -217,7 +256,7 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Tuple& ast) {
     tupletypes.emplace_back(mir::getType(*arg));
   }
   types::Value rettype = types::Tuple{{tupletypes}};
-  mir::valueptr lvar = genAllocate(lvname + "_ref", rettype);
+  mir::valueptr lvar = emplace(minst::Allocate{{lvname + "_ref", rettype}});
   mirgen.symbol_table.emplace(lvname + "_ref", lvar);
 
   int count = 0;
@@ -288,7 +327,7 @@ void AssignKnormVisitor::operator()(ast::DeclVar& ast) {
   }
   mirgen.symbol_table.emplace(lvname + "_ptr", ptr);
   auto rvar = exprvisitor.genInst(expr);
-
+  auto rvartype = mir::getType(*rvar);
   exprvisitor.emplace(minst::Store{{lvname, types::None{}}, ptr, rvar});
 }
 void AssignKnormVisitor::operator()(ast::ArrayLvar& ast) {
@@ -324,7 +363,6 @@ void StatementKnormVisitor::operator()(ast::Assign& ast) {
 void StatementKnormVisitor::operator()(ast::Return& ast) {
   auto val = exprvisitor.genInst(ast.value);
   auto type = mir::getType(*val);
-
   this->retvalue =
       exprvisitor.emplace(minst::Return{{exprvisitor.mirgen.makeNewName(), type}, val});
 }

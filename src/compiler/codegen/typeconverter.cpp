@@ -25,9 +25,9 @@ llvm::Type* TypeConverter::operator()(types::Pointer& i) {
 }
 llvm::Type* TypeConverter::operator()(types::Function& i) {
   std::vector<llvm::Type*> ar;
-  for (auto& a : i.arg_types) { ar.push_back(std::visit(*this, a)); }
   llvm::Type* ret = std::visit(*this, i.ret_type);
   if (rv::holds_alternative<types::Function>(i.ret_type)) { ret = llvm::PointerType::get(ret, 0); }
+  for (auto& a : i.arg_types) { ar.push_back(std::visit(*this, a)); }
   return llvm::FunctionType::get(ret, ar, false);
 }
 llvm::Type* TypeConverter::operator()(types::Closure& i) {
@@ -37,10 +37,8 @@ llvm::Type* TypeConverter::operator()(types::Closure& i) {
   return llvm::StructType::create(builder.getContext(), {fty, capturetype}, name, false);
 }
 llvm::Type* TypeConverter::operator()(types::Array& i) {
-  if(i.size==0){
-    return llvm::PointerType::get(std::visit(*this, i.elem_type),0);
-  }
-  return   llvm::ArrayType::get(std::visit(*this, i.elem_type),i.size);
+  if (i.size == 0) { return llvm::PointerType::get(std::visit(*this, i.elem_type), 0); }
+  return llvm::ArrayType::get(std::visit(*this, i.elem_type), i.size);
 }
 llvm::Type* TypeConverter::operator()(types::Struct& i) {
   std::vector<llvm::Type*> ar;
