@@ -64,8 +64,12 @@ struct Argument {
   valueptr parentfn;
 };
 
-
 std::string toString(Argument const& i);
+
+struct FnArgs {
+  std::optional<std::shared_ptr<Argument>> ret_ptr;
+  std::list<std::shared_ptr<Argument>> args;
+};
 
 namespace instruction {
 struct Base {  // base class for MIR instruction
@@ -84,8 +88,7 @@ struct String : public Base {
 };
 std::string toString(String const& i);
 
-struct Allocate : public Base {
-};
+struct Allocate : public Base {};
 std::string toString(Allocate const& i);
 
 struct Ref : public Base {
@@ -114,7 +117,7 @@ struct Op : public Base {
 std::string toString(Op const& i);
 
 struct Function : public Base {
-  std::list<std::shared_ptr<Argument>> args;
+  FnArgs args;
   blockptr body;
   bool hasself = false;
   bool isrecursive = false;
@@ -194,7 +197,7 @@ inline std::string toString(Value const& inst) {
 inline std::string getName(Instructions const& inst) {
   return std::visit([](auto const& i) { return i.name; }, inst);
 }
-inline std::string getName(Argument const& i) {return toString(i);};
+inline std::string getName(Argument const& i) { return toString(i); };
 
 inline std::string getName(Value const& val) {
   return std::visit(overloaded{[](Instructions const& i) { return getName(i); },
@@ -205,12 +208,11 @@ inline std::string getName(Value const& val) {
                     val);
 }
 
-
 template <typename T>
 inline std::string join(T const& vec, std::string const& delim) {
   using elemtype = std::decay_t<decltype(*vec.begin())>;
-  static_assert(std::is_same_v<elemtype,valueptr>||std::is_same_v<elemtype,std::shared_ptr<Argument>>
-   );
+  static_assert(std::is_same_v<elemtype, valueptr> ||
+                std::is_same_v<elemtype, std::shared_ptr<Argument>>);
   std::string res;
   if (!vec.empty()) {
     res = std::accumulate(
