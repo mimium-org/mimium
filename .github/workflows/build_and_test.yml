@@ -62,15 +62,6 @@ jobs:
         with:
           msystem: MINGW64
           install: git flex bison mingw-w64-x86_64-cmake mingw-w64-x86_64-gcc mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus mingw-w64-x86_64-ninja mingw-w64-x86_64-llvm
-      - if: contains(matrix.os, 'windows')
-        run: |
-          ls /mingw64/lib
-          ls /mingw64/lib | grep LLVM
-          rm -f /mingw64/lib/libLLVM.dll.a
-          llvm-config --components
-          llvm-config --libs
-          llvm-config --libs all
-          llvm-config --libs orcjit core support
       - if: contains(matrix.os, 'macos')
         run: |
           HOMEBREW_NO_AUTO_UPDATE=1 brew install flex bison libsndfile llvm ninja
