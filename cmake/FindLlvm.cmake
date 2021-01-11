@@ -20,8 +20,6 @@ find_path(LLVM_INCLUDE_DIRS NAMES llvm/IR/IRBuilder.h
     C:/tools/msys64/mingw64/include
 )
 
-if(true)
-
 find_program(LLVM_CONFIG_EXE
       NAMES llvm-config llvm-config-10 llvm-config10
       PATHS
@@ -77,54 +75,29 @@ find_program(LLVM_CONFIG_EXE
   NEED_TARGET("X86")
   # NEED_TARGET("XCore")
 
-  if(ZIG_STATIC_LLVM)
-    execute_process(
-        COMMAND ${LLVM_CONFIG_EXE} --libfiles --link-static
-        OUTPUT_VARIABLE LLVM_LIBRARIES_SPACES
-        OUTPUT_STRIP_TRAILING_WHITESPACE)
-    string(REPLACE " " ";" LLVM_LIBRARIES "${LLVM_LIBRARIES_SPACES}")
-
-    execute_process(
-        COMMAND ${LLVM_CONFIG_EXE} --system-libs --link-static
-        OUTPUT_VARIABLE LLVM_SYSTEM_LIBS_SPACES
-        OUTPUT_STRIP_TRAILING_WHITESPACE)
-    string(REPLACE " " ";" LLVM_SYSTEM_LIBS "${LLVM_SYSTEM_LIBS_SPACES}")
-
-    execute_process(
-        COMMAND ${LLVM_CONFIG_EXE} --libdir --link-static
-        OUTPUT_VARIABLE LLVM_LIBDIRS_SPACES
-        OUTPUT_STRIP_TRAILING_WHITESPACE)
-    string(REPLACE " " ";" LLVM_LIBDIRS "${LLVM_LIBDIRS_SPACES}")
-  endif()
-  if(NOT LLVM_LIBRARIES)
-    execute_process(
-        COMMAND ${LLVM_CONFIG_EXE} --libs
-        OUTPUT_VARIABLE LLVM_LIBRARIES_SPACES
-        OUTPUT_STRIP_TRAILING_WHITESPACE)
-    string(REPLACE " " ";" LLVM_LIBRARIES "${LLVM_LIBRARIES_SPACES}")
-    
-    execute_process(
-        COMMAND ${LLVM_CONFIG_EXE} --system-libs
-        OUTPUT_VARIABLE LLVM_SYSTEM_LIBS_SPACES
-        OUTPUT_STRIP_TRAILING_WHITESPACE)
-        string(REPLACE " " ";" LLVM_SYSTEM_LIBS_TMP "${LLVM_SYSTEM_LIBS_SPACES}")
-        string(REPLACE "-llibxml2.tbd" "" LLVM_SYSTEM_LIBS "${LLVM_SYSTEM_LIBS_TMP}")
-    execute_process(
-        COMMAND ${LLVM_CONFIG_EXE} --libdir
-        OUTPUT_VARIABLE LLVM_LIBDIRS_SPACES
-        OUTPUT_STRIP_TRAILING_WHITESPACE)
-    string(REPLACE " " ";" LLVM_LIBDIRS "${LLVM_LIBDIRS_SPACES}")
-  endif()
+  execute_process(
+      COMMAND ${LLVM_CONFIG_EXE} --libs all
+      OUTPUT_VARIABLE LLVM_LIBRARIES_SPACES
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+  string(REPLACE " " ";" LLVM_LIBRARIES "${LLVM_LIBRARIES_SPACES}")
+  
+  execute_process(
+      COMMAND ${LLVM_CONFIG_EXE} --system-libs
+      OUTPUT_VARIABLE LLVM_SYSTEM_LIBS_SPACES
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+      string(REPLACE " " ";" LLVM_SYSTEM_LIBS_TMP "${LLVM_SYSTEM_LIBS_SPACES}")
+      string(REPLACE "-llibxml2.tbd" "" LLVM_SYSTEM_LIBS "${LLVM_SYSTEM_LIBS_TMP}")
+  execute_process(
+      COMMAND ${LLVM_CONFIG_EXE} --libdir
+      OUTPUT_VARIABLE LLVM_LIBDIRS_SPACES
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+  string(REPLACE " " ";" LLVM_LIBDIRS "${LLVM_LIBDIRS_SPACES}")
 
   set(LLVM_LIBRARIES ${LLVM_LIBRARIES} ${LLVM_SYSTEM_LIBS})
 
-  if(NOT LLVM_LIBRARIES)
-    find_library(LLVM_LIBRARIES NAMES LLVM LLVM-11 LLVM-11.0)
-  endif()
-
   link_directories("${CMAKE_PREFIX_PATH}/lib")
   link_directories("${LLVM_LIBDIRS}")
-else()
+if(NOT LLVM_LIBRARIES)
   # Here we assume that we're cross compiling with Zig, of course. No reason
   # to support more complicated setups.
 
