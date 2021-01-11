@@ -27,7 +27,10 @@ llvm::Type* TypeConverter::operator()(types::Function& i) {
   std::vector<llvm::Type*> ar;
   llvm::Type* ret = std::visit(*this, i.ret_type);
   if (rv::holds_alternative<types::Function>(i.ret_type)) { ret = llvm::PointerType::get(ret, 0); }
-  for (auto& a : i.arg_types) { ar.push_back(std::visit(*this, a)); }
+  for (auto a : i.arg_types) {
+    if (rv::holds_alternative<types::Tuple>(a)) { a = types::Pointer{a}; }
+    ar.push_back(std::visit(*this, a));
+  }
   return llvm::FunctionType::get(ret, ar, false);
 }
 llvm::Type* TypeConverter::operator()(types::Closure& i) {

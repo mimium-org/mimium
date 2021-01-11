@@ -14,6 +14,19 @@ fn panner2(input:float,pan:float)->(float,float){
 fn callpanner(input:float)->(float,float){
     return panner(input,0.2)
 }
+
+fn stereopanner(input:(float,float),panl:float,panr:float)->(float,float){
+    inl,inr = input
+    out1l,out1r = panner(inl,panl)
+    out2l,out2r = panner(inr,panr)
+    return (out1l+out2l,out1r+out2r)
+}
+
 lres,rres = callpanner(1.0)
 println(lres)
 println(rres)
+
+lres2,rres2 = stereopanner((1.0,2.0),0.2,0.2)
+
+println(lres2)
+println(rres2)
