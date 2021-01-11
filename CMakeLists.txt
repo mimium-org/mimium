@@ -71,7 +71,7 @@ if(MINGW OR MSYS)
 if(NOT CMAKE_COMPILER_IS_GNUCXX)
 message(WARNING "Currently, only g++ is allowed to build on mingw/msys to link standard library statically.")
 endif()
-set(CMAKE_CXX_STANDARD_LIBRARIES "-static -lstdc++ -lgcc -lwinpthread ${CMAKE_CXX_STANDARD_LIBRARIES}")
+set(CMAKE_CXX_STANDARD_LIBRARIES "-static -lstdc++ -lgcc -lz -lwinpthread ${CMAKE_CXX_STANDARD_LIBRARIES}")
 endif()
 
 
