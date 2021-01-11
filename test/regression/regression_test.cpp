@@ -73,3 +73,5 @@ REGRESSION(builtin,
 )")
 
 REGRESSION(libsndfile, "146640\n-0.0621338\n")
+
+REGRESSION(tupletofn, "0.2\n0.8\n")
