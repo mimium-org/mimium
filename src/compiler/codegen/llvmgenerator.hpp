@@ -67,6 +67,9 @@ class LLVMGenerator {
 
   void setBB(llvm::BasicBlock* newblock);
   void dropAllReferences();
+
+  llvm::Value* getRuntimeInstance();
+
   auto getDoubleTy() { return llvm::Type::getDoubleTy(ctx); }
   auto geti8PtrTy() { return builder->getInt8PtrTy(); }
   auto geti64Ty() { return builder->getInt64Ty(); }

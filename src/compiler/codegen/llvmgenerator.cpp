@@ -21,7 +21,8 @@ LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx)
            {"access_array_lin_interp",
             llvm::FunctionType::get(
                 getDoubleTy(), {llvm::PointerType::get(getDoubleTy(), 0), getDoubleTy()}, false)},
-           {"mimium_malloc", llvm::FunctionType::get(geti8PtrTy(), {geti64Ty()}, false)}}) {}
+           {"mimium_malloc",
+            llvm::FunctionType::get(geti8PtrTy(), {geti8PtrTy(), geti64Ty()}, false)}}) {}
 void LLVMGenerator::init(std::string filename) {
   module->setSourceFileName(filename);
   module->setModuleIdentifier(filename);
@@ -95,9 +96,10 @@ void LLVMGenerator::createMiscDeclarations() {
 // function if it exists.
 
 void LLVMGenerator::createMainFun() {
-  auto* fntype = llvm::FunctionType::get(builder->getInt8PtrTy(), false);
+  auto* fntype = llvm::FunctionType::get(builder->getInt8PtrTy(), {builder->getInt8PtrTy()}, false);
   auto* mainfun =
       llvm::Function::Create(fntype, llvm::Function::ExternalLinkage, "mimium_main", *module);
+  mainfun->args().begin()->setName("runtime_ptr");
   mainfun->setCallingConv(llvm::CallingConv::C);
   curfunc = mainfun;
   using Akind = llvm::Attribute;
@@ -110,6 +112,7 @@ void LLVMGenerator::createMainFun() {
 }
 void LLVMGenerator::createTaskRegister(bool isclosure = false) {
   std::vector<llvm::Type*> argtypes = {
+      builder->getInt8PtrTy(),  // address to runtime instance
       builder->getDoubleTy(),   // time
       builder->getInt8PtrTy(),  // address to function
       builder->getDoubleTy()    // argument(single)
@@ -163,6 +166,12 @@ void LLVMGenerator::createRuntimeSetDspFn(llvm::Type* memobjtype) {
       "setDspParams", llvm::FunctionType::get(builder->getVoidTy(),
                                               {voidptrtype, voidptrtype, voidptrtype}, false));
   builder->CreateCall(setdsp, {dspfnaddress, dspclsaddress, dspmemobjaddress});
+}
+
+llvm::Value* LLVMGenerator::getRuntimeInstance() {
+  auto* mainfun = module->getFunction("mimium_main");
+  assert(mainfun != nullptr);
+  return mainfun->args().begin();
 }
 
 void LLVMGenerator::preprocess() {

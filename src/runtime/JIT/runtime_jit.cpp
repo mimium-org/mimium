@@ -5,30 +5,34 @@
 #include "runtime/JIT/runtime_jit.hpp"
 
 extern "C" {
-mimium::Runtime* global_runtime;
-
-void setDspParams(void* dspfn, void* clsaddress, void* memobjaddress) {
-  auto audiodriver = global_runtime->getAudioDriver();
+void setDspParams(void* runtimeptr, void* dspfn, void* clsaddress, void* memobjaddress) {
+  auto* runtime = reinterpret_cast<mimium::Runtime*>(runtimeptr);
+  auto audiodriver = runtime->getAudioDriver();
   audiodriver->setDspFnInfos(
       mimium::DspFnInfos{reinterpret_cast<mimium::DspFnPtr>(dspfn), clsaddress, memobjaddress});
 }
 
-NO_SANITIZE void addTask(double time, void* addresstofn, double arg) {
-  mimium::Scheduler& sch = global_runtime->getAudioDriver()->getScheduler();
+NO_SANITIZE void addTask(void* runtimeptr, double time, void* addresstofn, double arg) {
+  auto* runtime = reinterpret_cast<mimium::Runtime*>(runtimeptr);
+  mimium::Scheduler& sch = runtime->getAudioDriver()->getScheduler();
   sch.addTask(time, addresstofn, arg, nullptr);
 }
-NO_SANITIZE void addTask_cls(double time, void* addresstofn, double arg, void* addresstocls) {
-  mimium::Scheduler& sch = global_runtime->getAudioDriver()->getScheduler();
+NO_SANITIZE void addTask_cls(void* runtimeptr, double time, void* addresstofn, double arg,
+                             void* addresstocls) {
+  auto* runtime = reinterpret_cast<mimium::Runtime*>(runtimeptr);
+  mimium::Scheduler& sch = runtime->getAudioDriver()->getScheduler();
   sch.addTask(time, addresstofn, arg, addresstocls);
 }
-double mimium_getnow() {
-  return (double)global_runtime->getAudioDriver()->getScheduler().getTime();
+double mimium_getnow(void* runtimeptr) {
+  auto* runtime = reinterpret_cast<mimium::Runtime*>(runtimeptr);
+  return (double)runtime->getAudioDriver()->getScheduler().getTime();
 }
 
 // TODO(tomoya) ideally we need to move this to base runtime library
-void* mimium_malloc(size_t size) {
+void* mimium_malloc(void* runtimeptr, size_t size) {
+  auto* runtime = reinterpret_cast<mimium::Runtime*>(runtimeptr);
   void* address = malloc(size);
-  global_runtime->push_malloc(address, size);
+  runtime->push_malloc(address, size);
   return address;
 }
 }
@@ -50,9 +54,9 @@ void Runtime_LLVM::executeModule(std::unique_ptr<llvm::Module> module) {
 
   if (!mainfun) { llvm::errs() << mainfun.takeError() << "\n"; }
 
-  auto mimium_main_function = llvm::jitTargetAddressToPointer<void* (*)()>(mainfun->getAddress());
+  auto mimium_main_function = llvm::jitTargetAddressToPointer<void* (*)(void*)>(mainfun->getAddress());
   //
-  mimium_main_function();
+  mimium_main_function(this);
   //
   if (auto symbolorerror = jitengine->lookup("dsp")) {
     auto address = (DspFnPtr)symbolorerror->getAddress();

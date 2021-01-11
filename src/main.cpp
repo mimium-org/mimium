@@ -24,9 +24,7 @@ using Logger = mimium::Logger;
 #include "runtime/JIT/runtime_jit.hpp"
 #include "runtime/backend/rtaudio/driver_rtaudio.hpp"
 
-extern "C" {
-extern mimium::Runtime* global_runtime;
-}
+
 std::function<void(int)> shutdown_handler;
 void signalHandler(int signo) { shutdown_handler(signo); }
 
@@ -131,7 +129,6 @@ auto main(int argc, char** argv) -> int {
         runtime = std::make_unique<mimium::Runtime_LLVM>(
             compiler->moveLLVMCtx(), tmpfilename, std::make_shared<mimium::AudioDriverRtAudio>());
         auto llvmmodule = compiler->moveLLVMModule();
-        global_runtime = runtime.get();
         llvmmodule->setDataLayout(runtime->getJitEngine().getDataLayout());
         runtime->executeModule(std::move(llvmmodule));
         runtime->start();  // start() blocks thread until scheduler stops

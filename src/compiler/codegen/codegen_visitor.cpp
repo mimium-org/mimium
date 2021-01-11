@@ -104,8 +104,8 @@ llvm::Value* CodeGenVisitor::createAllocation(bool isglobal, llvm::Type* type,
     auto size = G.module->getDataLayout().getTypeAllocSize(t);
     const int bitsize = 64;
     auto* sizeinst = llvm::ConstantInt::get(G.ctx, llvm::APInt(bitsize, size, false));
-    auto* rawres =
-        G.builder->CreateCall(G.module->getFunction("mimium_malloc"), {sizeinst}, rawname);
+    auto* rawres = G.builder->CreateCall(G.module->getFunction("mimium_malloc"),
+                                         {G.getRuntimeInstance(), sizeinst}, rawname);
     auto* res = G.builder->CreatePointerCast(rawres, llvm::PointerType::get(t, 0), "ptr_" + name);
     return res;
   }
@@ -324,10 +324,11 @@ llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
   auto* fun = isrecursive ? G.curfunc : getFunForFcall(i);
   // prepare arguments
   std::vector<llvm::Value*> args = {};
+  if (mir::getName(*i.fname) == "mimium_getnow") { args.push_back(G.getRuntimeInstance()); }
   if (i.time.has_value()) {
     auto* timeval = getLlvmVal(i.time.value());
     llvm::Value* ptrtofn = G.builder->CreateBitCast(fun, G.geti8PtrTy(), fun->getName() + "_i8");
-    args = {timeval, ptrtofn};
+    args = {G.getRuntimeInstance(), timeval, ptrtofn};
     if (i.args.empty()) { args.emplace_back(llvm::ConstantFP::get(G.ctx, llvm::APFloat(0.0))); }
     if (i.args.size() > 1) {
       throw std::runtime_error(
