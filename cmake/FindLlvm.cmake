@@ -76,7 +76,7 @@ find_program(LLVM_CONFIG_EXE
   # NEED_TARGET("XCore")
 
   execute_process(
-      COMMAND ${LLVM_CONFIG_EXE} --libs all
+      COMMAND ${LLVM_CONFIG_EXE} --libs all --link-static --ignore-libllvm
       OUTPUT_VARIABLE LLVM_LIBRARIES_SPACES
       OUTPUT_STRIP_TRAILING_WHITESPACE)
   string(REPLACE " " ";" LLVM_LIBRARIES "${LLVM_LIBRARIES_SPACES}")
