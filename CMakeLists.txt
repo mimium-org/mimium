@@ -74,7 +74,9 @@ endif()
 set(CMAKE_CXX_STANDARD_LIBRARIES "-static -lstdc++ -lgcc -lz -lwinpthread ${CMAKE_CXX_STANDARD_LIBRARIES}")
 endif()
 
-
+if(UNIX AND NOT(APPLE OR MINGW OR MSYS))
+set(CMAKE_CXX_STANDARD_LIBRARIES "-lz -ldl -ltinfo ${CMAKE_CXX_STANDARD_LIBRARIES}")
+endif()
 
 
 add_custom_target(default_build)
