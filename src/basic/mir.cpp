@@ -48,7 +48,9 @@ std::string toString(Argument const& i) { return i.name; }
 
 std::string instruction::toString(Function const& i) {
   std::stringstream ss;
-  ss << i.name << " = fun" << ((i.isrecursive) ? "[rec]" : "") << " " << join(i.args, " , ");
+  ss << i.name << " = fun" << ((i.isrecursive) ? "[rec]" : "") << " ";
+  if (i.args.ret_ptr) { ss << mir::getName(*i.args.ret_ptr.value()) << ", "; }
+  ss << join(i.args.args, " , ");
   if (!i.freevariables.empty()) { ss << " fv{" << join(i.freevariables, ",") << "}"; }
   ss << "\n" << toString(i.body);
   return ss.str();
@@ -61,9 +63,10 @@ std::string instruction::toString(MakeClosure const& i) {
 }
 std::string instruction::toString(Fcall const& i) {
   std::string s;
+  if (!std::holds_alternative<types::Void>(i.type)) { s = i.name + " = "; }
   auto timestr = (i.time) ? "@" + mir::getName(*i.time.value()) : "";
-  return i.name + " = app" + fcalltype_str[i.ftype] + " " + mir::getName(*i.fname) + " " +
-         join(i.args, " , ") + timestr;
+  s += "app" + fcalltype_str[i.ftype] + " " + mir::getName(*i.fname) + " " + join(i.args, " , ") + timestr;
+  return s;
 }
 
 std::string instruction::toString(Array const& i) {

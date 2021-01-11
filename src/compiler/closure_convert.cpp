@@ -154,7 +154,7 @@ void ClosureConverter::CCVisitor::operator()(minst::Function& i) {
   std::vector<types::Value> fvtype_inside;
   fvtype_inside.reserve(ccvis.fvset.size());
   auto it = std::begin(ccvis.fvset);
-  for (auto& fv : ccvis.fvset) {
+  for (const auto& fv : ccvis.fvset) {
     bool isrecurse = mir::toString(*fv) == i.name;
     if (!isrecurse) {
       auto ft = mir::getType(*fv);
@@ -168,9 +168,9 @@ void ClosureConverter::CCVisitor::operator()(minst::Function& i) {
   std::transform(ccvis.fvset.begin(), ccvis.fvset.end(), std::back_inserter(fvsetvec),
                  [](auto& i) { return i; });
   i.freevariables = fvsetvec;  // copy;
-
   // do not use auto here, move happens...
   types::Alias fvtype{cc.makeCaptureName(), types::Tuple{fvtype_inside}};
+
   types::Function ftype = rv::get<types::Function>(i.type);
   // types::Alias clstype{cc.makeClosureTypeName(),
   //                      types::Closure{types::Ref{types::Function{ftype}},
@@ -206,9 +206,9 @@ void ClosureConverter::CCVisitor::operator()(minst::Fcall& i) {
   checkVariable(i.fname);
   if (i.time.has_value()) { checkVariable(i.time.value()); }
   for (auto& a : i.args) { checkVariable(a); }
-  //currently higher order function is limited to direct call - no closure or memobj
+  // currently higher order function is limited to direct call - no closure or memobj
   const bool is_hof = std::holds_alternative<std::shared_ptr<mir::Argument>>(*i.fname);
-  if (cc.isKnownFunction(i.fname)||is_hof) {
+  if (cc.isKnownFunction(i.fname) || is_hof) {
     i.ftype = DIRECT;
   } else {
     if (i.ftype != EXTERNAL) { i.ftype = CLOSURE; }

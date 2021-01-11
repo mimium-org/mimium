@@ -250,7 +250,12 @@ void CodeGenVisitor::addArgstoMap(llvm::Function* f, minst::Function& i, bool ha
                                   bool hasmemobj) {
   // arguments are [actual arguments], capture , memobjs
   auto* arg = std::begin(f->args());
-  for (auto& a : i.args) {
+  if (auto a = i.args.ret_ptr) {
+    arg->setName(a.value()->name);
+    registerLlvmVal(a.value(), arg);
+    std::advance(arg, 1);
+  }
+  for (auto& a : i.args.args) {
     arg->setName(a->name);
     registerLlvmVal(a, arg);
     std::advance(arg, 1);

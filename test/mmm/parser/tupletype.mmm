@@ -1,0 +1,4 @@
+
+fn panner(input:float,pan:float) ->(float,float){
+    return (input*pan,input*(1-pan))
+}
