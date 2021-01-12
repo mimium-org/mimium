@@ -11,6 +11,7 @@ using DspFnPtr = void (*)(double*, const double*, void*, void*);
 // Information set by definition of dsp function.
 // number of in&out channels are determined by type of dsp function.
 struct DspFnInfos {
+  public:
   DspFnPtr fn = nullptr;
   void* cls_address = nullptr;
   void* memobj_address = nullptr;
@@ -22,6 +23,7 @@ struct DspFnInfos {
 // number of in&out channels are determined by logical number of device and may be different from
 // DspFnInfos.
 struct AudioDriverParams {
+  public:
   double samplerate = 0;
   int buffersize = 0;
   int in_numchs = 0;

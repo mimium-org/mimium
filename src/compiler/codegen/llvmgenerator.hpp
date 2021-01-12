@@ -48,6 +48,7 @@ class LLVMGenerator {
   const std::unordered_map<std::string, llvm::Type*> runtime_fun_names;
 
   struct {
+    public:
     llvm::Value* capptr = nullptr;
     llvm::Value* memobjptr = nullptr;
     int in_numchs =0;
