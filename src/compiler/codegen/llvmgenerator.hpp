@@ -50,6 +50,8 @@ class LLVMGenerator {
   struct {
     llvm::Value* capptr = nullptr;
     llvm::Value* memobjptr = nullptr;
+    int in_numchs;
+    int out_numchs;
   } runtime_dspfninfo;
 
   void switchToMainFun();
@@ -60,11 +62,12 @@ class LLVMGenerator {
 
   void createMiscDeclarations();
   void createRuntimeSetDspFn(llvm::Type* memobjtype);
+  void checkDspFunctionType(minst::Function const& i);
+  static std::optional<int> getDspFnChannelNumForType(types::Value const& t);
   void createMainFun();
   void createTaskRegister(bool isclosure);
   void createNewBasicBlock(std::string name, llvm::Function* f);
   void visitInstructions(mir::valueptr inst, bool isglobal);
-
   void setBB(llvm::BasicBlock* newblock);
   void dropAllReferences();
 
@@ -80,6 +83,7 @@ class LLVMGenerator {
   auto getConstDouble(double v) { return llvm::ConstantFP::get(builder->getDoubleTy(), v); }
 
   auto getZero(const int bitsize = 64) { return getConstInt(0, bitsize); }
+
 };
 
 }  // namespace mimium

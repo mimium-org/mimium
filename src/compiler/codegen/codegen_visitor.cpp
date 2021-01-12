@@ -197,8 +197,9 @@ llvm::Value* CodeGenVisitor::operator()(minst::Function& i) {
     context_hasself = fobjtree->second->hasself;
     hasmemobj = !fobjtree->second->memobjs.empty() || context_hasself;
   }
-
-  auto* ft = (i.name != "dsp") ? createFunctionType(i) : createDspFnType(i, hascapture, hasmemobj);
+  bool isdsp = i.name == "dsp";
+  if (isdsp) { G.checkDspFunctionType(i); }
+  auto* ft = !isdsp ? createFunctionType(i) : createDspFnType(i, hascapture, hasmemobj);
   auto* f = createFunction(ft, i);
   recursivefn_ptr = &i;
   G.curfunc = f;
@@ -224,6 +225,7 @@ llvm::FunctionType* CodeGenVisitor::createDspFnType(minst::Function& i, bool has
     argtypes.emplace_back(dummytype);
     argtypes.emplace_back(dummytype);
   }
+  if (i.args.args.empty()) { argtypes.emplace_back(dummytype); }
   if (!hasmemobj && hascapture) { argtypes.emplace_back(dummytype); }
   if (hasmemobj && !hascapture) { argtypes.insert(std::prev(argtypes.end()), dummytype); }
 
@@ -248,6 +250,7 @@ llvm::Function* CodeGenVisitor::createFunction(llvm::FunctionType* type, minst::
 }
 void CodeGenVisitor::addArgstoMap(llvm::Function* f, minst::Function& i, bool hascapture,
                                   bool hasmemobj) {
+  const bool isdsp = i.name == "dsp";
   // arguments are [actual arguments], capture , memobjs
   auto* arg = std::begin(f->args());
   if (auto a = i.args.ret_ptr) {
@@ -265,7 +268,7 @@ void CodeGenVisitor::addArgstoMap(llvm::Function* f, minst::Function& i, bool ha
     arg->setName(name);
     setFvsToMap(i, arg);
     std::advance(arg, 1);
-  } else if (i.name == "dsp") {
+  } else if (isdsp) {
     std::advance(arg, 1);
   }
   if (hasmemobj) {
