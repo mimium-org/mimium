@@ -64,7 +64,7 @@ void Runtime_LLVM::executeModule(std::unique_ptr<llvm::Module> module) {
 
   if (auto symbolorerror = jitengine->lookup("dsp")) {
     auto address = (DspFnPtr)symbolorerror->getAddress();
-    hasdsp = true;Ï
+    hasdsp = true;
   } else {
     auto err = symbolorerror.takeError();
     hasdsp = false;
