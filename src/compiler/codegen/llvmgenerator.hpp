@@ -50,8 +50,8 @@ class LLVMGenerator {
   struct {
     llvm::Value* capptr = nullptr;
     llvm::Value* memobjptr = nullptr;
-    int in_numchs;
-    int out_numchs;
+    int in_numchs =0;
+    int out_numchs =0;
   } runtime_dspfninfo;
 
   void switchToMainFun();
