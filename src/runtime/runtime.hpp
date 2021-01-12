@@ -14,20 +14,20 @@ class AudioDriver;
 
 class Runtime {
  public:
-  explicit Runtime(std::string const& filename_i = "untitled",std::shared_ptr<AudioDriver> a=nullptr):audiodriver(std::move(a))  {}
+  explicit Runtime(std::string const& filename_i = "untitled",std::unique_ptr<AudioDriver> a=nullptr):audiodriver(std::move(a))  {}
 
   ~Runtime() {
     for (auto&& [address, size] : malloc_container) { free(address); }
   };
 
   virtual void start() = 0;
-  auto getAudioDriver() { return audiodriver; }
+  auto& getAudioDriver() { return *audiodriver; }
   bool hasDsp() { return hasdsp; }
   bool hasDspCls() { return hasdspcls; }
   void push_malloc(void* address, size_t size) { malloc_container.emplace_back(address, size); }
 
  protected:
-  std::shared_ptr<AudioDriver> audiodriver;
+  std::unique_ptr<AudioDriver> audiodriver;
   bool hasdsp = false;
   bool hasdspcls = false;
   std::list<std::pair<void*, size_t>> malloc_container{};

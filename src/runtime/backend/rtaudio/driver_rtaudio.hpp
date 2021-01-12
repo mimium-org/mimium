@@ -11,12 +11,20 @@ class Scheduler;
 
 class AudioDriverRtAudio : public AudioDriver {
   std::unique_ptr<RtAudio> rtaudio;
-  RtAudio::StreamParameters parameters;
+  RtAudio::StreamParameters rtaudio_params_input;
+  RtAudio::StreamParameters rtaudio_params_output;
+  RtAudio::StreamOptions rtaudio_options;
   bool setCallback();
+  unsigned int bufsize_internal;
+  std::vector<std::unique_ptr<std::vector<double>>> in_buffer;
+  std::vector<std::unique_ptr<std::vector<double>>> out_buffer;
 
+  [[nodiscard]] unsigned int getPreferredSampleRate() const;
+  auto getInputDevice() const { return rtaudio->getDeviceInfo(rtaudio_params_input.deviceId); }
+  auto getOutputDevice() const { return rtaudio->getDeviceInfo(rtaudio_params_output.deviceId); }
+  void printStreamInfo()const;
  public:
-  explicit AudioDriverRtAudio(unsigned int bs = 256,
-                       unsigned int sr = 44100, unsigned int chs = 2);
+  explicit AudioDriverRtAudio(int buffer_size = 256);
   ~AudioDriverRtAudio() override = default;
   bool start() override;
   bool stop() override;

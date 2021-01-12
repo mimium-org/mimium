@@ -64,7 +64,7 @@ auto main(int argc, char** argv) -> int {
   std::unique_ptr<mimium::Runtime_LLVM> runtime;
 
   shutdown_handler = [&runtime](int /*signal*/) {
-    runtime->getAudioDriver()->stop();
+    runtime->getAudioDriver().stop();
 
     std::cerr << "Interuppted by key" << std::endl;
     exit(0);
@@ -82,7 +82,7 @@ auto main(int argc, char** argv) -> int {
       auto m = llvm::parseIRFile(abspath, errorreporter, *llvmcontext);
 
       runtime = std::make_unique<mimium::Runtime_LLVM>(
-          std::move(llvmcontext), tmpfilename, std::make_shared<mimium::AudioDriverRtAudio>());
+          std::move(llvmcontext), tmpfilename, std::make_unique<mimium::AudioDriverRtAudio>());
       m->setDataLayout(runtime->getJitEngine().getDataLayout());
       runtime->executeModule(std::move(m));
       runtime->start();  // start() blocks thread until scheduler stops
@@ -92,7 +92,7 @@ auto main(int argc, char** argv) -> int {
       mimium::Logger::debug_log(e.what(), mimium::Logger::ERROR_);
       returncode = 1;
     }
-    if (runtime) { runtime->getAudioDriver()->stop(); }
+    if (runtime) { runtime->getAudioDriver().stop(); }
   }
   llvm::errs() << "return code: " << returncode << "\n";
   return returncode;
