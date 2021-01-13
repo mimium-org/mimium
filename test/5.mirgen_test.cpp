@@ -8,7 +8,7 @@
 
 #define PREP(FILENAME)                                        \
   Driver driver{};                                            \
-  ast::Statements& ast = *driver.parseFile(#FILENAME ".mmm"); \
+  ast::Statements& ast = *driver.parseFile(TEST_ROOT_DIR "/" #FILENAME ".mmm"); \
   SymbolRenamer renamer;                                      \
   auto newast = renamer.rename(ast);                          \
   TypeInferer inferer;                                        \

@@ -8,7 +8,7 @@ namespace mimium {
 #define PARSER_TEST(FILENAME)                                             \
   TEST(parser, FILENAME) {                                                \
     Driver driver{};                                                      \
-    ast::Statements& ast = *driver.parseFile("parser/" #FILENAME ".mmm"); \
+    ast::Statements& ast = *driver.parseFile( TEST_ROOT_DIR "/parser/" #FILENAME ".mmm"); \
   }
 
 PARSER_TEST(operators)
@@ -29,7 +29,7 @@ PARSER_TEST(tupletype)
 
 TEST(parser, ast_complete) {
   Driver driver{};
-  auto ast = driver.parseFile("ast_complete.mmm");
+  auto ast = driver.parseFile( TEST_ROOT_DIR "/ast_complete.mmm");
   // std::cerr << ast << "\n";
 }
 

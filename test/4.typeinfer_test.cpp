@@ -5,11 +5,11 @@
 #include "gtest/gtest.h"
 #include "gtest/internal/gtest-port.h"
 
-#define PREP(FILENAME)                                                         \
-  Driver driver{};                                                             \
-  ast::Statements& ast = *driver.parseFile("typeinference/" #FILENAME ".mmm"); \
-  SymbolRenamer renamer;                                                       \
-  auto newast = renamer.rename(ast);                                           \
+#define PREP(FILENAME)                                                                        \
+  Driver driver{};                                                                            \
+  ast::Statements& ast = *driver.parseFile(TEST_ROOT_DIR "/typeinference/" #FILENAME ".mmm"); \
+  SymbolRenamer renamer;                                                                      \
+  auto newast = renamer.rename(ast);                                                          \
   TypeInferer inferer;
 namespace mimium {
 TEST(typeinfer, float_success) {
