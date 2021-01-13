@@ -57,7 +57,6 @@ mir::blockptr ClosureConverter::convert(mir::blockptr toplevel) {
   moveFunToTop(this->toplevel);
   if (!(clstypeenv.count("dsp") > 0)) {
     types::Value dummycapture = types::Alias{makeCaptureName(), types::Tuple{{}}};
-    auto ctypename = makeClosureTypeName();
     clstypeenv.emplace("dsp", dummycapture);
   }
   return this->toplevel;
