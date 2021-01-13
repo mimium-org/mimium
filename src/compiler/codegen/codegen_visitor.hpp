@@ -76,7 +76,7 @@ struct CodeGenVisitor {
   llvm::Value* getConstant(const mir::Constants& val);
   template <class T>
   mir::valueptr getValPtr(T* ptr) {
-    assert(ptr = &mir::getInstRef<T>(instance_holder));
+    assert(ptr == &mir::getInstRef<T>(instance_holder));
     return instance_holder;
   }
 };
