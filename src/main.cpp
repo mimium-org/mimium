@@ -24,9 +24,7 @@ using Logger = mimium::Logger;
 #include "runtime/JIT/runtime_jit.hpp"
 #include "runtime/backend/rtaudio/driver_rtaudio.hpp"
 
-extern "C" {
-extern mimium::Runtime* global_runtime;
-}
+
 std::function<void(int)> shutdown_handler;
 void signalHandler(int signo) { shutdown_handler(signo); }
 
@@ -83,7 +81,7 @@ auto main(int argc, char** argv) -> int {
   auto compiler = std::make_unique<mimium::Compiler>();
   std::unique_ptr<mimium::Runtime_LLVM> runtime;
   shutdown_handler = [&runtime](int /*signal*/) {
-    runtime->getAudioDriver()->stop();
+    runtime->getAudioDriver().stop();
     std::cerr << "Interuppted by key" << std::endl;
     exit(0);
   };
@@ -129,9 +127,8 @@ auto main(int argc, char** argv) -> int {
           break;
         }
         runtime = std::make_unique<mimium::Runtime_LLVM>(
-            compiler->moveLLVMCtx(), tmpfilename, std::make_shared<mimium::AudioDriverRtAudio>());
+            compiler->moveLLVMCtx(), tmpfilename, std::make_unique<mimium::AudioDriverRtAudio>());
         auto llvmmodule = compiler->moveLLVMModule();
-        global_runtime = runtime.get();
         llvmmodule->setDataLayout(runtime->getJitEngine().getDataLayout());
         runtime->executeModule(std::move(llvmmodule));
         runtime->start();  // start() blocks thread until scheduler stops
@@ -144,7 +141,7 @@ auto main(int argc, char** argv) -> int {
 
       returncode = 1;
     }
-    if (runtime) { runtime->getAudioDriver()->stop(); }
+    if (runtime) { runtime->getAudioDriver().stop(); }
   }
   std::cerr << "return code: " << returncode << std::endl;
   return returncode;

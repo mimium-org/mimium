@@ -12,7 +12,7 @@ class Runtime_LLVM : public Runtime, public std::enable_shared_from_this<Runtime
  public:
   explicit Runtime_LLVM(std::unique_ptr<llvm::LLVMContext> ctx,
                         std::string const& filename = "untitled.mmm",
-                        std::shared_ptr<AudioDriver> a = nullptr, bool isjit = true);
+                        std::unique_ptr<AudioDriver> a = nullptr, bool isjit = true);
 
   ~Runtime_LLVM() = default;
   void start() override;
@@ -26,11 +26,12 @@ class Runtime_LLVM : public Runtime, public std::enable_shared_from_this<Runtime
 };
 
 extern "C" {
-void setDspParams(void* dspfn, void* clsaddress, void* memobjaddress);
-void addTask(double time, void* addresstofn, double arg);
-void addTask_cls(double time, void* addresstofn, double arg, void* addresstocls);
-double mimium_getnow();
-void* mimium_malloc(size_t size);
+void setDspParams(void* runtimeptr, void* dspfn, void* clsaddress, void* memobjaddress,
+                  int in_numchs, int out_numchs);
+void addTask(void* runtimeptr, double time, void* addresstofn, double arg);
+void addTask_cls(void* runtimeptr, double time, void* addresstofn, double arg, void* addresstocls);
+double mimium_getnow(void* runtimeptr);
+void* mimium_malloc(void* runtimeptr, size_t size);
 }
 
 }  // namespace mimium

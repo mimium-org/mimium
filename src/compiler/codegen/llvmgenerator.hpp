@@ -48,8 +48,11 @@ class LLVMGenerator {
   const std::unordered_map<std::string, llvm::Type*> runtime_fun_names;
 
   struct {
+    public:
     llvm::Value* capptr = nullptr;
     llvm::Value* memobjptr = nullptr;
+    int in_numchs =0;
+    int out_numchs =0;
   } runtime_dspfninfo;
 
   void switchToMainFun();
@@ -60,13 +63,17 @@ class LLVMGenerator {
 
   void createMiscDeclarations();
   void createRuntimeSetDspFn(llvm::Type* memobjtype);
+  void checkDspFunctionType(minst::Function const& i);
+  static std::optional<int> getDspFnChannelNumForType(types::Value const& t);
   void createMainFun();
   void createTaskRegister(bool isclosure);
   void createNewBasicBlock(std::string name, llvm::Function* f);
   void visitInstructions(mir::valueptr inst, bool isglobal);
-
   void setBB(llvm::BasicBlock* newblock);
   void dropAllReferences();
+
+  llvm::Value* getRuntimeInstance();
+
   auto getDoubleTy() { return llvm::Type::getDoubleTy(ctx); }
   auto geti8PtrTy() { return builder->getInt8PtrTy(); }
   auto geti64Ty() { return builder->getInt64Ty(); }
@@ -77,6 +84,7 @@ class LLVMGenerator {
   auto getConstDouble(double v) { return llvm::ConstantFP::get(builder->getDoubleTy(), v); }
 
   auto getZero(const int bitsize = 64) { return getConstInt(0, bitsize); }
+
 };
 
 }  // namespace mimium

@@ -4,12 +4,30 @@
 
 #pragma once
 namespace mimium {
-using DspFnPtr = double (*)(double, void*, void*);
 
-struct DspFnInfos{
-    DspFnPtr fn;
-    void* cls_address;
-    void* memobj_address;
+// outputresult,input, clsaddress,memobjaddress
+using DspFnPtr = void (*)(double*, const double*, void*, void*);
+
+// Information set by definition of dsp function.
+// number of in&out channels are determined by type of dsp function.
+struct DspFnInfos {
+  public:
+  DspFnPtr fn = nullptr;
+  void* cls_address = nullptr;
+  void* memobj_address = nullptr;
+  int in_numchs = 0;
+  int out_numchs = 0;
 };
 
-}
+// Information of AudioDriver(e.g. Hardware Device).
+// number of in&out channels are determined by logical number of device and may be different from
+// DspFnInfos.
+struct AudioDriverParams {
+  public:
+  double samplerate = 0;
+  int buffersize = 0;
+  int in_numchs = 0;
+  int out_numchs = 0;
+};
+
+}  // namespace mimium
