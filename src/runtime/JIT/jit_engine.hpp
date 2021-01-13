@@ -34,21 +34,16 @@
 
 #define LAZY_ENABLE 0
 #if LAZY_ENABLE
-#define LLJITCLASS LLLazyJIT
+  #define LLJITCLASS LLLazyJIT
 #else
-#define LLJITCLASS LLJIT
+  #define LLJITCLASS LLJIT
 #endif
 
-namespace llvm {
-namespace orc {
-
+namespace llvm::orc {
 class MimiumJIT {
  private:
-#if LAZY_ENABLE
   std::unique_ptr<LLJITCLASS> lllazyjit;
-#else
-  std::unique_ptr<LLJIT> lllazyjit;
-#endif
+
   ExecutionSession& ES;
   const DataLayout& DL;
   JITDylib& MainJD;
@@ -57,16 +52,23 @@ class MimiumJIT {
   ThreadSafeContext Ctx;
 
  public:
-  MimiumJIT(std::unique_ptr<LLVMContext> ctx)
+  enum OptimizeLevel { NO = 0, NORMAL = 1 } optimize_level;
+  explicit MimiumJIT(std::unique_ptr<LLVMContext> ctx,
+                     OptimizeLevel optimizelevel = OptimizeLevel::NO)
       : lllazyjit(createEngine()),
         ES(lllazyjit->getExecutionSession()),
         DL(lllazyjit->getDataLayout()),
         MainJD(lllazyjit->getMainJITDylib()),
         Mangle(ES, this->DL),
-        Ctx(std::move(ctx)) {
+        Ctx(std::move(ctx)),
+        optimize_level(optimizelevel) {
+    if (optimize_level == OptimizeLevel::NORMAL) {
 #if LAZY_ENABLE
-    lllazyjit->setLazyCompileTransform(optimizeModule);
+      lllazyjit->setLazyCompileTransform(optimizeModule);
+#else
+      lllazyjit->getIRTransformLayer().setTransform(optimizeModule);
 #endif
+    }
 // MainJD.getExecutionSession()
 #if LLVM_VERSION_MAJOR >= 10
     MainJD.addGenerator(
@@ -122,13 +124,14 @@ class MimiumJIT {
     auto FPM = std::make_unique<legacy::FunctionPassManager>(M.getModule());
 #endif
     // Add some optimizations.
-    // FPM->add(createPromoteMemoryToRegisterPass());//mem2reg
-    // FPM->add(createDeadStoreEliminationPass());
-    // FPM->add(createInstructionCombiningPass());
-    // FPM->add(createReassociatePass());
-    // FPM->add(createGVNPass());
-    // FPM->add(createCFGSimplificationPass());
-    // FPM->add(createLoopVectorizePass());
+    FPM->add(createPromoteMemoryToRegisterPass());  // mem2reg
+    FPM->add(createDeadStoreEliminationPass());
+    FPM->add(createInstructionCombiningPass());
+    FPM->add(createReassociatePass());
+    FPM->add(createGVNPass());
+    FPM->add(createCFGSimplificationPass());
+    FPM->add(createLoopInterchangePass());
+    FPM->add(createLoopVectorizePass());
     FPM->doInitialization();
 
 // Run the optimizations over all functions in the module being added to
@@ -144,5 +147,4 @@ class MimiumJIT {
   [[nodiscard]] const DataLayout& getDataLayout() const { return DL; }
   LLVMContext& getContext() { return *Ctx.getContext(); }
 };
-}  // namespace orc
 }  // namespace llvm
