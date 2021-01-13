@@ -16,7 +16,7 @@ struct Source {
 class FileReader {
  public:
   explicit FileReader(fs::path cwd);
-  Source loadFile(std::string path);
+  Source loadFile(std::string const& path);
 private:
 fs::path cwd;
   inline const static std::string_view mimium_extensiton = ".mmm";
