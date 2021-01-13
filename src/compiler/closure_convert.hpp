@@ -23,7 +23,6 @@ class ClosureConverter {
 
   auto& getCaptureNames(const std::string& fname) { return fvinfo[fname]; }
   auto& getCaptureType(const std::string& fname) { return clstypeenv[fname]; }
-  // void dump();
  private:
   TypeEnv& typeenv;
   mir::blockptr toplevel;
@@ -86,7 +85,7 @@ class ClosureConverter {
     mir::valueptr instance_holder = nullptr;
 
    private:
-    void visitinsts(minst::Function& i, CCVisitor& ccvis);
+    static void visitinsts(minst::Function& i, CCVisitor& ccvis);
     minst::MakeClosure createClosureInst(mir::valueptr fnptr, std::vector<mir::valueptr> const& fvs,
                                          types::Alias fvtype, std::string& lv_name);
     void dump();
