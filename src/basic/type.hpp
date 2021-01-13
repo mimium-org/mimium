@@ -191,7 +191,7 @@ inline static auto delaystruct = types::Alias{"MmmRingBuf", types::Tuple{{types:
 
 struct ToStringVisitor {
   bool verbose = false;
-  [[nodiscard]] std::string join(const std::vector<types::Value>& vec, std::string delim) const {
+  [[nodiscard]] std::string join(const std::vector<types::Value>& vec, std::string const& delim) const {
     std::string res;
     if (!vec.empty()) {
       res = std::accumulate(std::next(vec.begin()), vec.end(), std::visit(*this, *vec.begin()),
@@ -275,7 +275,7 @@ class TypeEnv {
     types::Value* res = (it == env.end()) ? nullptr : &it->second;
     return res;
   }
-  types::Value& find(std::string key) {
+  types::Value& find(std::string const& key) {
     auto* res = tryFind(key);
     if (res == nullptr) {
       throw std::runtime_error("Could not find type for variable \"" + key + "\"");

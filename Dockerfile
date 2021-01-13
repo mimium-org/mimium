@@ -7,11 +7,13 @@ RUN mkdir /mimium
 WORKDIR /mimium
 COPY . /mimium
 
-RUN apt-get update && apt-get install -y git cmake
-RUN apt-get install -y build-essential llvm libbison-dev libfl-dev libclalsadrv-dev libz-dev libsndfile-dev libopus-dev libgtest-dev
+RUN apt-get update && apt-get install --no-install-recommends -y git cmake build-essential llvm libbison-dev libfl-dev libclalsadrv-dev libz-dev libsndfile-dev libopus-dev libgtest-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir build && cd build && cmake .. 
-RUN cd /mimium/build && make -j && make install && make clean
+RUN cmake -Bbuild
+RUN cmake --build build -j
+RUN cmake --build build --target install
 RUN apt purge -y build-essential llvm libbison-dev libfl-dev  && apt autoremove -y
 
 ENTRYPOINT [ "/usr/local/bin/mimium" ]

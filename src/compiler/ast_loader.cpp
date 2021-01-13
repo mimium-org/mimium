@@ -22,7 +22,6 @@ AstPtr Driver::parse(std::istream& is) {
   }
   if(res>0){
     throw std::runtime_error("parse error.");
-    ast_top = std::make_shared<ast::Statements>();
   }
   return ast_top;
 }

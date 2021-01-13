@@ -2,7 +2,7 @@
 
 a programming language as an infrastructure for sound and music
 
-stable: [![build status(master)](https://github.com/mimium-org/mimium/workflows/build%20&%20test/badge.svg?branch=master)](https://github.com/mimium-org/mimium/actions) dev: [![build status(dev)](https://github.com/mimium-org/mimium/workflows/build%20&%20test/badge.svg?branch=dev)](https://github.com/mimium-org/mimium/actions) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/de5190beb61f4ea9a337becdb21f8328)](https://www.codacy.com/manual/tomoyanonymous/mimium?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=tomoyanonymous/mimium&amp;utm_campaign=Badge_Grade) 
+stable: [![build status(master)](https://github.com/mimium-org/mimium/workflows/build%20&%20test/badge.svg?branch=master)](https://github.com/mimium-org/mimium/actions) dev: [![build status(dev)](https://github.com/mimium-org/mimium/workflows/build%20&%20test/badge.svg?branch=dev)](https://github.com/mimium-org/mimium/actions) [![Codacy Badge](https://app.codacy.com/project/badge/Grade/a7171f079d2b4439971513b6358c5a35)](https://www.codacy.com/gh/mimium-org/mimium/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=mimium-org/mimium&amp;utm_campaign=Badge_Grade)
 
 [![website badge](https://img.shields.io/badge/mimium.org-Website-d6eff7)](https://mimium.org) [![Gitter](https://badges.gitter.im/mimium-dev/community.svg)](https://gitter.im/mimium-dev/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) [![License Badge-MPL2.0](https://img.shields.io/badge/LICENSE-MPLv2.0-blue)](./LICENSE.md)
 

@@ -72,12 +72,12 @@ double libsndfile_loadwavsize(char* filename) {
 
 double* libsndfile_loadwav(char* filename) {
   SF_INFO sfinfo;
-  auto sfile = sf_open(filename, SFM_READ, &sfinfo);
+  auto* sfile = sf_open(filename, SFM_READ, &sfinfo);
   if (sfile == nullptr) { std::cerr << sf_strerror(sfile) << "\n"; }
 
   const int bufsize = sfinfo.frames * sfinfo.channels;
   double* buffer =  new double[bufsize];
-  auto size = sf_readf_double(sfile, buffer, bufsize);
+  sf_readf_double(sfile, buffer, bufsize);
   // sf_close(sfile);
   // std::cerr<< filename << "(" << size << ") is succecfully loaded";
   return buffer;

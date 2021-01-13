@@ -82,7 +82,7 @@ types::Value ExprTypeVisitor::operator()(ast::ArrayInit& ast) {
   return types::Array{std::move(atype), static_cast<int>(ast.args.size())};
 }
 types::Value ExprTypeVisitor::operator()(ast::ArrayAccess& ast) {
-  auto indextype = inferer.unify(std::visit(*this, *ast.index), types::Value(types::Float{}));
+  inferer.unify(std::visit(*this, *ast.index), types::Value(types::Float{}));
   auto tv = inferer.typeenv.createNewTypeVar();
   auto arraytype =
       inferer.unify(std::visit(*this, *ast.array), types::Value(types::Array{*std::move(tv)}));
@@ -140,7 +140,7 @@ void LvarTypeVisitor::operator()(ast::TupleLvar& ast) {
   }
 }
 void LvarTypeVisitor::operator()(ast::ArrayLvar& ast) {
-  auto indextype = inferer.unify(inferer.inferExpr(ast.index), types::Value(types::Float{}));
+  inferer.unify(inferer.inferExpr(ast.index), types::Value(types::Float{}));
   auto tv = inferer.typeenv.createNewTypeVar();
   auto arraytype =
       inferer.unify(inferer.inferExpr(ast.array), types::Value(types::Array{*std::move(tv)}));

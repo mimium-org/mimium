@@ -7,7 +7,7 @@
 namespace mimium {
 TEST(symbolrename, astcomplete) {
   Driver driver{};
-  auto ast = driver.parseFile("ast_complete.mmm");
+  auto ast = driver.parseFile(TEST_ROOT_DIR "/ast_complete.mmm");
   SymbolRenamer renamer;
   auto newast = renamer.rename(*ast);
   std::ostringstream ss;

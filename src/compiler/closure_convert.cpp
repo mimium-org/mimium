@@ -9,7 +9,6 @@ ClosureConverter::ClosureConverter(TypeEnv& typeenv)
     : typeenv(typeenv),
       capturecount(0),
       closurecount(0)
-// ,typereplacer(*this)
 {}
 
 void ClosureConverter::reset() { capturecount = 0; }
@@ -58,20 +57,14 @@ mir::blockptr ClosureConverter::convert(mir::blockptr toplevel) {
   moveFunToTop(this->toplevel);
   if (!(clstypeenv.count("dsp") > 0)) {
     types::Value dummycapture = types::Alias{makeCaptureName(), types::Tuple{{}}};
-    auto ctypename = makeClosureTypeName();
-    auto dummytype = types::Alias{
-        ctypename, types::Closure{types::Ref{types::Function{
-                                      types::Float{}, {types::Float{}, types::Ref{dummycapture}}}},
-                                  dummycapture}};
     clstypeenv.emplace("dsp", dummycapture);
-    // typeenv.emplace("dsp_cls", std::move(dummytype));
   }
   return this->toplevel;
 };  // namespace mimium
 
 void ClosureConverter::CCVisitor::dump() {
   std::cerr << "----------fvset-----------\n";
-  for (auto& v : fvset) { std::cerr << mir::getName(*v) << "\n"; }
+  for (const auto& v : fvset) { std::cerr << mir::getName(*v) << "\n"; }
   std::flush(std::cerr);
 }
 
@@ -108,14 +101,6 @@ void ClosureConverter::CCVisitor::tryReplaceFntoCls(mir::valueptr& val) {
   auto iter = cc.fn_to_cls.find(val);
   if (iter != cc.fn_to_cls.end()) { val = cc.fn_to_cls[val]; }
 }
-// void ClosureConverter::CCVisitor::registerFv(std::string& name) {
-//   auto isself = name == "self";
-//   auto islocal = has(localvlist, name);
-//   bool isext = LLVMBuiltin::isBuiltin(name);
-//   auto alreadycheked = has(fvset, name);
-//   bool isfreevar = !(islocal || isext || alreadycheked || isself);
-//   if (isfreevar) { fvset.push_back(name); }
-// };
 
 void ClosureConverter::CCVisitor::visitinsts(minst::Function& i, CCVisitor& ccvis) {
   for (auto it = i.body->instructions.begin(), end = i.body->instructions.end(); it != end; ++it) {

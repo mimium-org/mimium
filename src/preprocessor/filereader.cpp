@@ -10,9 +10,9 @@
 namespace mimium {
 
 FileReader::FileReader(fs::path cwd) : cwd(std::move(cwd)) {}
-Source FileReader::loadFile(std::string path) {
+Source FileReader::loadFile(std::string const& path) {
   fs::current_path(cwd);
-  Source res;
+  Source res{path, ""};
   auto abspath = fs::absolute(res.filepath);
   res.filepath = abspath;
 
@@ -24,7 +24,7 @@ Source FileReader::loadFile(std::string path) {
     throw FileNotFound(abspath.string());
   }
 
-  if (abspath.extension() == mimium_extensiton) { throw UnknownExtension(abspath.string()); }
+  if (abspath.extension() != mimium_extensiton) { throw UnknownExtension(abspath.string()); }
 
   std::ifstream ifs(abspath.string());
   assert(ifs && "ifs should not fail");
