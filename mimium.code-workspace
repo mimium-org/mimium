@@ -22,7 +22,7 @@
 					"name": "CMake Target Debug",
 					"program": "${command:cmake.launchTargetPath}",
 					"args": [],
-					"cwd": "${workspaceFolder}"
+					"cwd": "${workspaceFolder}/build"
 				},
 				{
 					"name": "Launch with arg(edit this config)", 
