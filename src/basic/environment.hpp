@@ -21,7 +21,7 @@ class Environment : public std::enable_shared_from_this<Environment<T>> {
   std::unordered_map<std::string, T> variables;
 
  public:
-  Environment() : name(""), parent(nullptr) {}
+  Environment() : name(), parent(nullptr) {}
   Environment(std::string name_i, std::shared_ptr<Environment<T>> parent_i)
       : name(std::move(name_i)), parent(parent_i) {}
   virtual ~Environment() = default;
@@ -39,28 +39,24 @@ class Environment : public std::enable_shared_from_this<Environment<T>> {
   };
   std::pair<bool, bool> isFreeVariable(std::string key) {
     // return value: [isvarset , isfv]
-    std::pair<bool, bool> res;
-    if (variables.count(key) > 0) {  // search dictionary
-      res = std::pair(true, false);  // return false if var is local variable
-    } else if (parent != nullptr) {
-      auto [isvarset, isisfv] = parent->isFreeVariable(key);
-      res = std::pair(isvarset, true);  // search recursively
-    } else {
-      throw std::runtime_error("Variable " + key + " not found");
-      res = std::pair(false, false);
+    std::pair<bool, bool> res = std::pair(false, false);
+    if (variables.count(key) > 0) {   // search dictionary
+      return std::pair(true, false);  // return false if var is local variable
     }
-    return res;
+    if (parent != nullptr) {
+      auto [isvarset, isisfv] = parent->isFreeVariable(key);
+      return std::pair(isvarset, true);  // search recursively
+    }
+    throw std::runtime_error("Variable " + key + " not found");
   };
   bool isVariableSet(std::string key) {
-    bool res;
     if (variables.count(key) > 0) {  // search dictionary
-      res = true;
-    } else if (parent != nullptr) {
-      res = parent->isVariableSet(key);  // search recursively
-    } else {
-      res = false;
+      return true;
     }
-    return res;
+    if (parent != nullptr) {
+      return parent->isVariableSet(key);  // search recursively
+    }
+    return false;
   }
   virtual void setVariable(std::string key, T val) {
     if (!variables.empty() && variables.count(key) > 0) {  // search dictionary
