@@ -13,6 +13,6 @@ docs/api
 
 externals
 
-.vscode/
+.vscode/*
 
 Testing/*
