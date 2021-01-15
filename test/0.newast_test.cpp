@@ -20,10 +20,9 @@ TEST(newast, basic) {
 }
 TEST(newast, statement) {
   ast::DebugInfo dbg;
-  auto statement =
-      ast::makeStatement(ast::Assign{dbg,
-                                     ast::DeclVar{dbg, ast::Symbol{dbg,"leftvar"}, std::optional(types::Float{})},
-                                     ast::makeExpr(ast::Number{dbg, 1})});
+  auto statement = ast::makeStatement(
+      ast::Assign{dbg, ast::DeclVar{dbg, ast::Symbol{dbg, "leftvar"}, types::Float{}},
+                  ast::makeExpr(ast::Number{dbg, 1})});
   EXPECT_TRUE(std::holds_alternative<ast::Assign>(*statement));
   // EXPECT_EQ(std::get<ast::Assign>(*statement).lvar.type.value() ,types::Value(types::Float{}));
 }
