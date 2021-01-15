@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.4)
 option(BUILD_DOCS "build a documentation")
 option(BUILD_TEST "build a test" OFF)
 option(ENABLE_LLD "use lld for linker" OFF)
+option(ENABLE_COVERAGE "Generate code coverage data for gcov" OFF)
 
 #set(CMAKE_CXX_COMPILER /usr/local/opt/llvm/bin/clang++)
 #set(CMAKE_C_COMPILER /usr/local/opt/llvm/bin/clang) 
@@ -23,6 +24,11 @@ if(NOT(APPLE)  AND  ${ENABLE_LLD} AND (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang"
 set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=lld)
 set(CMAKE_MODULE_LINKER_FLAGS ${CMAKE_MODULE_LINKER_FLAGS} -fuse-ld=lld)
 set(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS} -fuse-ld=lld)
+endif()
+
+if(ENABLE_COVERAGE)
+  set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} --coverage)
+  set(CMAKE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} --coverage)
 endif()
 
 set(CMAKE_FIND_PACKAGE_SORT_ORDER NATURAL)
