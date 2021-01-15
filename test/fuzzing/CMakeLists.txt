@@ -5,7 +5,6 @@ add_dependencies(fuzzing_compiler mimium_builtinfn)
 target_include_directories(fuzzing_compiler
     PRIVATE
     .
-    ${SNDFILE_INCLUDE_DIRS}
     ${FLEX_INCLUDE_CACHE}
     ${PARSER_HEADER_DIR}
     )

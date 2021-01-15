@@ -4,10 +4,10 @@ find_package(SndFile REQUIRED)
 
 #TODO: use ffi in mimium_llloader, mimium_builtinfn must be shared library.
 # currently, it fails link dynamically on Windows. 
-add_library(mimium_builtinfn STATIC ffi.cpp)
+add_library(mimium_builtinfn SHARED ffi.cpp)
 target_compile_features(mimium_builtinfn PRIVATE cxx_std_17)
 target_include_directories(mimium_builtinfn
-PUBLIC
+PRIVATE
 ${SNDFILE_INCLUDE_DIRS}
 )
 
@@ -19,7 +19,6 @@ mimium_utils )
 
 
 add_subdirectory(codegen)
-
 add_library(mimium_parser STATIC
 ${FLEX_MyScanner_OUTPUTS} 
 ${BISON_MyParser_OUTPUTS} 
@@ -30,9 +29,10 @@ set(PARSER_HEADER_DIR ${CMAKE_CURRENT_BINARY_DIR} CACHE PATH "for mimium_parser.
 set(FLEX_INCLUDE_CACHE ${FLEX_INCLUDE_DIRS} CACHE PATH "to build test")
 target_include_directories(mimium_parser
 PUBLIC
-${MIMIUM_SOURCE_DIR}
 ${FLEX_INCLUDE_CACHE}
 ${PARSER_HEADER_DIR} 
+PRIVATE
+${MIMIUM_SOURCE_DIR}
 )
 
 add_library(mimium_compiler STATIC 
