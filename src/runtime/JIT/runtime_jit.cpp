@@ -33,7 +33,7 @@ double mimium_getnow(void* runtimeptr) {
 // TODO(tomoya) ideally we need to move this to base runtime library
 void* mimium_malloc(void* runtimeptr, size_t size) {
   auto* runtime = static_cast<mimium::Runtime*>(runtimeptr);
-  void* address = malloc(size);
+  void* address = malloc(size);  // NOLINT
   runtime->push_malloc(address, size);
   return address;
 }
@@ -41,12 +41,14 @@ void* mimium_malloc(void* runtimeptr, size_t size) {
 
 namespace mimium {
 Runtime_LLVM::Runtime_LLVM(std::unique_ptr<llvm::LLVMContext> ctx, std::string const& filename_i,
-                           std::unique_ptr<AudioDriver> a, bool isjit)
+                           std::unique_ptr<AudioDriver> a, bool optimize)
     : Runtime(filename_i, std::move(a)) {
   LLVMInitializeNativeTarget();
   LLVMInitializeNativeAsmPrinter();
   LLVMInitializeNativeAsmParser();
-  jitengine = std::make_unique<llvm::orc::MimiumJIT>(std::move(ctx));
+  using optlevel = llvm::orc::MimiumJIT::OptimizeLevel;
+  auto opt = optimize ? optlevel::NORMAL : optlevel::NO;
+  jitengine = std::make_unique<llvm::orc::MimiumJIT>(std::move(ctx), opt);
 }
 
 void Runtime_LLVM::executeModule(std::unique_ptr<llvm::Module> module) {
@@ -61,12 +63,11 @@ void Runtime_LLVM::executeModule(std::unique_ptr<llvm::Module> module) {
   //
   mimium_main_function(static_cast<Runtime*>(this));
   //
-
-  if (auto symbolorerror = jitengine->lookup("dsp")) {
-    auto address = (DspFnPtr)symbolorerror->getAddress();
+  auto symbol_or_error = jitengine->lookup("dsp");
+  if (symbol_or_error) {
     hasdsp = true;
   } else {
-    auto err = symbolorerror.takeError();
+    auto err = symbol_or_error.takeError();
     hasdsp = false;
     Logger::debug_log("dsp function not found", Logger::INFO);
     llvm::consumeError(std::move(err));

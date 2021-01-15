@@ -12,7 +12,7 @@ class Runtime_LLVM : public Runtime, public std::enable_shared_from_this<Runtime
  public:
   explicit Runtime_LLVM(std::unique_ptr<llvm::LLVMContext> ctx,
                         std::string const& filename = "untitled.mmm",
-                        std::unique_ptr<AudioDriver> a = nullptr, bool isjit = true);
+                        std::unique_ptr<AudioDriver> a = nullptr, bool optimize = true);
 
   ~Runtime_LLVM() = default;
   void start() override;
