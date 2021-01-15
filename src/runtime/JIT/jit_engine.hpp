@@ -6,7 +6,6 @@
 #include <iostream>
 #include <memory>
 
-#include "llvm-c/ExecutionEngine.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ExecutionEngine/JITSymbol.h"
 #include "llvm/ExecutionEngine/Orc/CompileUtils.h"
@@ -23,7 +22,10 @@
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/LegacyPassManager.h"
+
 #include "llvm/Support/Error.h"
+#include "llvm/Support/TargetSelect.h"
+
 #include "llvm/Transforms/InstCombine/InstCombine.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Scalar/GVN.h"

@@ -43,9 +43,10 @@ namespace mimium {
 Runtime_LLVM::Runtime_LLVM(std::unique_ptr<llvm::LLVMContext> ctx, std::string const& filename_i,
                            std::unique_ptr<AudioDriver> a, bool optimize)
     : Runtime(filename_i, std::move(a)) {
-  LLVMInitializeNativeTarget();
-  LLVMInitializeNativeAsmPrinter();
-  LLVMInitializeNativeAsmParser();
+  bool res = llvm::InitializeNativeTarget();
+  res &= llvm::InitializeNativeTargetAsmPrinter();
+  res &= llvm::InitializeNativeTargetAsmParser();
+  assert(res);
   using optlevel = llvm::orc::MimiumJIT::OptimizeLevel;
   auto opt = optimize ? optlevel::NORMAL : optlevel::NO;
   jitengine = std::make_unique<llvm::orc::MimiumJIT>(std::move(ctx), opt);

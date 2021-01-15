@@ -26,7 +26,7 @@ LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx)
 void LLVMGenerator::init(std::string filename) {
   module->setSourceFileName(filename);
   module->setModuleIdentifier(filename);
-  module->setTargetTriple(LLVMGetDefaultTargetTriple());
+  module->setTargetTriple(llvm::sys::getDefaultTargetTriple());
 }
 
 void LLVMGenerator::setDataLayout(const llvm::DataLayout& dl) { module->setDataLayout(dl); }
