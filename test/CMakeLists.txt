@@ -1,4 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
+
+
+
 add_subdirectory(googletest)
 
 file(GLOB SRCS ./*.cpp)
@@ -14,7 +17,18 @@ target_include_directories(UnitTest
     ${FLEX_INCLUDE_CACHE}
     ${PARSER_HEADER_DIR}
     )
-
+if(ENABLE_COVERAGE)
+  add_custom_target(Lcov
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  COMMAND lcov -c -d . -o lcov.info
+  COMMAND lcov -r lcov.info "*/googletest/*" "*/c++/*" "/usr/local/*" -o lcov.info
+  BYPRODUCTS ${CMAKE_BINARY_DIR}/lcov.info
+  )
+  add_custom_target(LcovResetCounter
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  COMMAND lcov --zerocounters -d .
+  )
+endif()
 target_link_libraries(UnitTest
   PRIVATE
     gtest_main
