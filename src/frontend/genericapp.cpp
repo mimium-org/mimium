@@ -75,7 +75,7 @@ void GenericApp::handleSignal(int signal) { GenericApp::signal_status = signal; 
 bool GenericApp::compileMainLoop(Compiler& compiler, const CompileOption& option,
                                  const fs::path& input_path, FileType  /*inputtype*/,
                                  std::optional<fs::path>& output_path) {
-  compiler.setFilePath(input_path);
+  compiler.setFilePath(input_path.string());
   std::ostream* out = nullptr;
   if (output_path) {
     std::ofstream fout;
@@ -88,7 +88,7 @@ bool GenericApp::compileMainLoop(Compiler& compiler, const CompileOption& option
 
   auto stage = option.stage;
 
-  auto ast = compiler.loadSourceFile(fs::absolute(input_path));
+  auto ast = compiler.loadSourceFile(fs::absolute(input_path).string());
   if (stage == CompileStage::Parse) {
     *out << *ast << std::endl;
     return false;
