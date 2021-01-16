@@ -10,18 +10,22 @@ namespace mimium {
 
 class Runtime_LLVM : public Runtime, public std::enable_shared_from_this<Runtime_LLVM> {
  public:
-  explicit Runtime_LLVM(std::unique_ptr<llvm::LLVMContext> ctx,
+  explicit Runtime_LLVM(std::unique_ptr<llvm::LLVMContext> ctx, std::unique_ptr<llvm::Module>,
                         std::string const& filename = "untitled.mmm",
                         std::unique_ptr<AudioDriver> a = nullptr, bool optimize = true);
-
+  explicit Runtime_LLVM(std::string const& filepath, std::unique_ptr<AudioDriver> a = nullptr,
+                        bool optimize = true);
   ~Runtime_LLVM() = default;
   void start() override;
-
-  void executeModule(std::unique_ptr<llvm::Module> module);
+  void runMainFun() override;
+  
   auto& getJitEngine() { return *jitengine; }
   llvm::LLVMContext& getLLVMContext() { return jitengine->getContext(); }
 
  private:
+ //called by constructor.
+  void init(std::unique_ptr<llvm::LLVMContext> ctx, bool optimize);
+  std::unique_ptr<llvm::Module> module;
   std::unique_ptr<llvm::orc::MimiumJIT> jitengine;
 };
 

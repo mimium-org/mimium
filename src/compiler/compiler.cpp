@@ -48,4 +48,12 @@ llvm::Module& Compiler::generateLLVMIr(mir::blockptr mir, funobjmap const& funob
   llvmgenerator.generateCode(mir, &funobjs);
   return llvmgenerator.getModule();
 }
+  void Compiler::dumpLLVMModule(std::ostream& out){
+    std::string str;
+    llvm::raw_string_ostream tmpout(str);
+    llvmgenerator.getModule().print(tmpout, nullptr);
+    out << str;
+  }
+
+
 }  // namespace mimium
