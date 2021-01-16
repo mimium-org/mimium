@@ -38,6 +38,7 @@ bool isArgPaired(ArgKind arg) {
     case ak::Verbose: return false;
     default: return true;
   }
+  return true;
 }
 
 std::ostream& CliApp::printHelp(std::ostream& out) const {
