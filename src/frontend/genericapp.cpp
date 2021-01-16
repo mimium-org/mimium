@@ -134,7 +134,7 @@ int GenericApp::runtimeMainLoop(const RuntimeOption& option, const fs::path& inp
       switch (inputtype) {
         case FileType::MimiumSource:
           runtime = std::make_unique<Runtime_LLVM>(
-              compiler->moveLLVMCtx(), compiler->moveLLVMModule(), fs::absolute(input_path.string()),
+              compiler->moveLLVMCtx(), compiler->moveLLVMModule(), fs::absolute(input_path).string(),
               std::move(backend), optimize);
           break;
         case FileType::LLVMIR:
