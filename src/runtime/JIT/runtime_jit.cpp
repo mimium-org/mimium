@@ -4,6 +4,8 @@
 
 #include "runtime/JIT/runtime_jit.hpp"
 
+#include <llvm/IRReader/IRReader.h>
+
 extern "C" {
 void setDspParams(void* runtimeptr, void* dspfn, void* clsaddress, void* memobjaddress,
                   int in_numchs, int out_numchs) {
@@ -40,9 +42,22 @@ void* mimium_malloc(void* runtimeptr, size_t size) {
 }
 
 namespace mimium {
-Runtime_LLVM::Runtime_LLVM(std::unique_ptr<llvm::LLVMContext> ctx, std::string const& filename_i,
+Runtime_LLVM::Runtime_LLVM(std::unique_ptr<llvm::LLVMContext> ctx,
+                           std::unique_ptr<llvm::Module> module, std::string const& filename_i,
                            std::unique_ptr<AudioDriver> a, bool optimize)
-    : Runtime(filename_i, std::move(a)) {
+    : Runtime(filename_i, std::move(a)), module(std::move(module)) {
+  init(std::move(ctx), optimize);
+}
+
+Runtime_LLVM::Runtime_LLVM(std::string const& filepath, std::unique_ptr<AudioDriver> a,
+                           bool optimize)
+    : Runtime(filepath, std::move(a)) {
+  auto ctx = std::make_unique<llvm::LLVMContext>();
+  llvm::SMDiagnostic errorreporter;
+  module = llvm::parseIRFile(filepath, errorreporter, *ctx);
+  init(std::move(ctx), optimize);
+}
+void Runtime_LLVM::init(std::unique_ptr<llvm::LLVMContext> ctx, bool optimize) {
   llvm::InitializeNativeTarget();
   llvm::InitializeNativeTargetAsmPrinter();
   llvm::InitializeNativeTargetAsmParser();
@@ -51,9 +66,9 @@ Runtime_LLVM::Runtime_LLVM(std::unique_ptr<llvm::LLVMContext> ctx, std::string c
   auto opt = optimize ? optlevel::NORMAL : optlevel::NO;
   jitengine = std::make_unique<llvm::orc::MimiumJIT>(std::move(ctx), opt);
 }
-
-void Runtime_LLVM::executeModule(std::unique_ptr<llvm::Module> module) {
-  llvm::Error err = jitengine->addModule(std::move(module));
+void Runtime_LLVM::runMainFun() {
+  assert(module != nullptr);
+  llvm::Error err = jitengine->addModule(std::move(this->module));
   if (err) { llvm::errs() << err << "\n"; };
   auto mainfun = jitengine->lookup("mimium_main");
 

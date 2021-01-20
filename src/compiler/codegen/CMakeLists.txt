@@ -6,7 +6,6 @@ target_compile_features(mimium_llvm_codegen PUBLIC cxx_std_17)
 
 target_include_directories(mimium_llvm_codegen 
 PUBLIC
-${MIMIUM_SOURCE_DIR}
 ${LLVM_INCLUDE_DIRS}
 )
 target_link_libraries(mimium_llvm_codegen 

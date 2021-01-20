@@ -1,7 +1,7 @@
 add_library(mimium_scheduler STATIC scheduler.cpp)
 target_compile_features(mimium_scheduler PUBLIC cxx_std_17)
 target_include_directories(mimium_scheduler 
-PUBLIC
+PRIVATE
 ${MIMIUM_SOURCE_DIR}
 )
 

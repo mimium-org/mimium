@@ -16,10 +16,11 @@ class Runtime {
  public:
   explicit Runtime(std::string const& filename_i = "untitled",std::unique_ptr<AudioDriver> a=nullptr):audiodriver(std::move(a))  {}
 
-  ~Runtime() {
+  virtual ~Runtime() {
     for (auto&& [address, size] : malloc_container) { free(address); }
   };
-
+  
+  virtual void runMainFun()=0;
   virtual void start() = 0;
   auto& getAudioDriver() { return *audiodriver; }
   bool hasDsp() { return hasdsp; }

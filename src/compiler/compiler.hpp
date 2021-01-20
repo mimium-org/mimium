@@ -23,8 +23,10 @@ class Compiler {
   Compiler();
   explicit Compiler(std::unique_ptr<llvm::LLVMContext> ctx);
   ~Compiler();
-  AstPtr loadSource(std::string source);
-  AstPtr loadSourceFile(std::string filename);
+
+  AstPtr loadSource(std::istream& source);
+  AstPtr loadSource(const std::string& source);
+  AstPtr loadSourceFile(const std::string& filename);
   void setFilePath(std::string path);
   void setDataLayout(const llvm::DataLayout& dl);
   void setDataLayout();
@@ -36,6 +38,7 @@ class Compiler {
   funobjmap collectMemoryObjs(mir::blockptr mir);
 
   llvm::Module& generateLLVMIr(mir::blockptr mir, funobjmap const& funobjs);
+  void dumpLLVMModule(std::ostream& out);
   auto moveLLVMCtx(){return std::move(llvmctx);}
   auto moveLLVMModule() { return llvmgenerator.moveModule(); }
 

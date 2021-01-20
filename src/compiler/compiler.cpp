@@ -28,11 +28,16 @@ void Compiler::setFilePath(std::string path) {
   llvmgenerator.init(path);
 }
 void Compiler::setDataLayout(const llvm::DataLayout& dl) { llvmgenerator.setDataLayout(dl); }
-AstPtr Compiler::loadSource(std::string source) {
+
+AstPtr Compiler::loadSource(std::istream& source) {
+  return driver.parse(source);
+}
+
+AstPtr Compiler::loadSource(const std::string& source) {
   AstPtr ast = driver.parseString(source);
   return ast;
 }
-AstPtr Compiler::loadSourceFile(std::string filename) {
+AstPtr Compiler::loadSourceFile(const std::string& filename) {
   AstPtr ast = driver.parseFile(filename);
   return ast;
 }
@@ -48,4 +53,12 @@ llvm::Module& Compiler::generateLLVMIr(mir::blockptr mir, funobjmap const& funob
   llvmgenerator.generateCode(mir, &funobjs);
   return llvmgenerator.getModule();
 }
+  void Compiler::dumpLLVMModule(std::ostream& out){
+    std::string str;
+    llvm::raw_string_ostream tmpout(str);
+    llvmgenerator.getModule().print(tmpout, nullptr);
+    out << str;
+  }
+
+
 }  // namespace mimium

@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include "compiler/ffi.hpp"
+#include "sndfile.h"
 
 
 extern "C" {
