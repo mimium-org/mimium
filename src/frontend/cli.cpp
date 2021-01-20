@@ -109,6 +109,8 @@ bool CliApp::OptionParser::isArgOption(std::string_view str) {
   return str.substr(0, 2) == "--" || str.substr(0, 1) == "-";
 }
 
+CliApp::OptionParser::OptionParser() : result(), res_mode(CliAppMode::Run){};
+
 std::pair<AppOption, CliAppMode> CliApp::OptionParser::operator()(int argc, char** argv) {
   auto args = initRawArgs(argc, argv);
   auto iter = args.cbegin();
@@ -133,9 +135,9 @@ std::pair<AppOption, CliAppMode> CliApp::OptionParser::operator()(int argc, char
 }
 
 CliApp::CliApp(int argc, char** argv) : app(nullptr) {
-  auto [option, mode] = OptionParser()(argc, argv);
+  auto [option, climode] = OptionParser()(argc, argv);
   this->app = std::make_unique<GenericApp>(std::make_unique<AppOption>(std::move(option)));
-  this->mode = mode;
+  this->mode = climode;
 }
 
 int CliApp::run() {

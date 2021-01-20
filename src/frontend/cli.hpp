@@ -34,6 +34,7 @@ class CliApp {
  public:
   class OptionParser {
    public:
+    OptionParser();
     std::pair<AppOption,CliAppMode> operator()(int argc, char** argv);
 
    private:
