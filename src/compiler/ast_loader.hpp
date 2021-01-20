@@ -27,7 +27,7 @@ class Driver {
  public:
   AstPtr parse(std::istream& is);
   AstPtr parseString(const std::string& source);
-  [[deprecated]] AstPtr parseFile(const std::string& filename);
+  AstPtr parseFile(const std::string& filename);
   void setTopAst(AstPtr top);
 
  private:
