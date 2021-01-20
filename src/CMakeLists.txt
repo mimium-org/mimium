@@ -25,6 +25,7 @@ target_link_libraries(mimium
     mimium_runtime_jit
     mimium_backend_rtaudio
     mimium_builtinfn 
+    mimium_filereader
     )
 
 add_subdirectory(frontend)

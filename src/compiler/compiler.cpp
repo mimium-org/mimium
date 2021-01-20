@@ -28,11 +28,16 @@ void Compiler::setFilePath(std::string path) {
   llvmgenerator.init(path);
 }
 void Compiler::setDataLayout(const llvm::DataLayout& dl) { llvmgenerator.setDataLayout(dl); }
-AstPtr Compiler::loadSource(std::string source) {
+
+AstPtr Compiler::loadSource(std::istream& source) {
+  return driver.parse(source);
+}
+
+AstPtr Compiler::loadSource(const std::string& source) {
   AstPtr ast = driver.parseString(source);
   return ast;
 }
-AstPtr Compiler::loadSourceFile(std::string filename) {
+AstPtr Compiler::loadSourceFile(const std::string& filename) {
   AstPtr ast = driver.parseFile(filename);
   return ast;
 }

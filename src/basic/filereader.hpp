@@ -4,22 +4,35 @@
 
 #pragma once
 #include <filesystem>
-
+#include <fstream>
 namespace mimium {
 namespace fs = std::filesystem;
 
+constexpr std::string_view mmm_ext = ".mmm";
+constexpr std::string_view ll_ext = ".ll";
+constexpr std::string_view bc_ext = ".bc";
+
+enum class FileType {
+  Invalid = -1,
+  MimiumSource = 0,
+  MimiumMir,  // currently not used
+  LLVMIR,
+};
 struct Source {
   fs::path filepath;
+  FileType filetype;
   std::string source;
 };
+FileType getFileTypeByExt(std::string_view ext);
+std::pair<fs::path, FileType> getFilePath(std::string_view val);
 
 class FileReader {
  public:
   explicit FileReader(fs::path cwd);
   Source loadFile(std::string const& path);
-private:
-fs::path cwd;
-  inline const static std::string_view mimium_extensiton = ".mmm";
 
+ private:
+  fs::path cwd;
+  inline const static std::string_view mimium_extensiton = ".mmm";
 };
 }  // namespace mimium

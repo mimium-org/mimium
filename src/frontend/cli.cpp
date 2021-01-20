@@ -35,6 +35,11 @@ bool isArgPaired(ArgKind arg) {
   switch (arg) {
     case ak::ShowHelp:
     case ak::ShowVersion:
+    case ak::EmitAst:
+    case ak::EmitAstUniqueSymbol:
+    case ak::EmitMir:
+    case ak::EmitMirClosureCoverted:
+    case ak::EmitLLVMIR:
     case ak::Verbose: return false;
     default: return true;
   }
@@ -100,12 +105,13 @@ void CliApp::OptionParser::processArgs(ArgKind arg, std::string_view val) {
   }
 }
 
-bool CliApp::OptionParser::isArgOption(std::string_view str) { return str.substr(0, 2) == "--"; }
+bool CliApp::OptionParser::isArgOption(std::string_view str) {
+  return str.substr(0, 2) == "--" || str.substr(0, 1) == "-";
+}
 
 std::pair<AppOption, CliAppMode> CliApp::OptionParser::operator()(int argc, char** argv) {
   auto args = initRawArgs(argc, argv);
   auto iter = args.cbegin();
-
   std::advance(iter, 1);  // skip application name;
   while (iter != args.cend()) {
     const auto& a = *iter;
@@ -118,17 +124,17 @@ std::pair<AppOption, CliAppMode> CliApp::OptionParser::operator()(int argc, char
       processArgs(kind, *iter);
     } else {
       auto [path, type] = getFilePath(a);
-      this->result.input_path = path;
-      this->result.input_type = type;
+      this->result.input = Source{path, type, ""};
     }
     iter++;
   }
-  return std::pair(this->result, res_mode);
+
+  return std::make_pair(std::move(this->result), this->res_mode);
 }
 
 CliApp::CliApp(int argc, char** argv) : app(nullptr) {
   auto [option, mode] = OptionParser()(argc, argv);
-  this->app = std::make_unique<GenericApp>(option);
+  this->app = std::make_unique<GenericApp>(std::make_unique<AppOption>(std::move(option)));
   this->mode = mode;
 }
 

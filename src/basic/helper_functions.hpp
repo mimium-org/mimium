@@ -43,6 +43,14 @@ namespace mimium {
 #define MMMASSERT(cond, message)
 #endif
 
+template <typename ENUMTYPE>
+auto getEnumByStr(const std::unordered_map<std::string_view, ENUMTYPE>& map, std::string_view val) {
+  static_assert(static_cast<int>(ENUMTYPE::Invalid) == -1);
+  auto iter = map.find(val);
+  if (iter != map.cend()) { return iter->second; }
+  return ENUMTYPE::Invalid;
+}
+
 // meta function to check if it is smart pointer or not(used in ast_to_string);
 template <typename T, typename Enable = void>
 struct is_smart_pointer {
