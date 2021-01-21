@@ -422,7 +422,12 @@ llvm::Value* CodeGenVisitor::operator()(minst::MakeClosure& i) {
   unsigned int idx = 0;
   for (auto& cap : i.captures) {
     auto* gep = G.builder->CreateStructGEP(capture_ptr, idx++, "capture_" + mir::getName(*cap));
-    G.builder->CreateStore(getLlvmVal(cap), gep);
+    auto* gepelemty = llvm::cast<llvm::PointerType>(gep->getType())->getContainedType(0);
+    auto* capval =getLlvmVal(cap);
+    if(gepelemty!=capval->getType()){
+      capval = G.builder->CreateBitCast(capval, gepelemty);
+    }
+    G.builder->CreateStore(capval, gep);
   }
 
   if (isdsp) { G.runtime_dspfninfo.capptr = capture_ptr; }
