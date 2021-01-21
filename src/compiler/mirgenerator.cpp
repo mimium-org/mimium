@@ -138,7 +138,8 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Lambda& ast) {
   fref.body = body;
 
   auto retinst_iter = std::prev(fref.body->instructions.end());
-  assert(mir::isInstA<minst::Return>(*retinst_iter));
+  assert(std::holds_alternative<types::Void>(rettype) ||
+         mir::isInstA<minst::Return>(*retinst_iter));
   auto* ptrtype = std::get_if<types::rPointer>(&rettype);
   if (!isPassByValue(rettype) || ptrtype != nullptr) {
     if (ptrtype != nullptr) {
