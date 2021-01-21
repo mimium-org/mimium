@@ -6,10 +6,7 @@
 
 namespace mimium {
 ClosureConverter::ClosureConverter(TypeEnv& typeenv)
-    : typeenv(typeenv),
-      capturecount(0),
-      closurecount(0)
-{}
+    : typeenv(typeenv), capturecount(0), closurecount(0) {}
 
 void ClosureConverter::reset() { capturecount = 0; }
 ClosureConverter::~ClosureConverter() = default;
