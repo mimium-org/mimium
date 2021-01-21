@@ -41,7 +41,12 @@ void LLVMGenerator::dropAllReferences() {
   if (module != nullptr) { module->dropAllReferences(); }
 }
 
-llvm::Type* LLVMGenerator::getType(types::Value& type) { return std::visit(*typeconverter, type); }
+llvm::Type* LLVMGenerator::getType(types::Value const& type) { return std::visit(*typeconverter, type); }
+llvm::ArrayType* LLVMGenerator::getArrayType(types::Value const& type){
+  assert(rv::holds_alternative<types::Array>(type));
+  const auto& atype = rv::get<types::Array>(type);
+  return llvm::ArrayType::get(std::visit(*typeconverter, atype.elem_type), atype.size);
+}
 
 llvm::Type* LLVMGenerator::getClosureToFunType(types::Value& type) {
   auto aliasty = rv::get<types::Alias>(type);
