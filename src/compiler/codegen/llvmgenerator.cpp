@@ -64,10 +64,15 @@ void LLVMGenerator::switchToMainFun() {
 }
 llvm::Function* LLVMGenerator::getForeignFunction(const std::string& name) {
   auto& [type, targetname] = LLVMBuiltin::ftable.find(name)->second;
+  auto ftype = rv::get<types::Function>(type);
   if (name == "delay") {
-    rv::get<types::Function>(type).arg_types.emplace_back(types::Ref{types::delaystruct});
+    ftype.arg_types.emplace_back(types::Ref{types::delaystruct});
   }
-  return getFunction(targetname, getType(type));
+  if(!types::isPrimitive(ftype.ret_type)){
+    //for loadwavfile
+    ftype.ret_type = types::Ref{ftype.ret_type};
+  }
+  return getFunction(targetname, getType(ftype));
 }
 llvm::Function* LLVMGenerator::getRuntimeFunction(const std::string& name) {
   const auto& type = runtime_fun_names.at(name);

@@ -141,7 +141,7 @@ std::unordered_map<std::string, BuiltinFnInfo> LLVMBuiltin::ftable = {
     {"delay", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_delayprim")},
 
     {"loadwavsize", initBI(Function{Float{}, {String{}}}, "libsndfile_loadwavsize")},
-    {"loadwav", initBI(Function{Array{Float{}}, {String{}}}, "libsndfile_loadwav")},
+    {"loadwav", initBI(Function{Array{Float{},0}, {String{}}}, "libsndfile_loadwav")},
 
 
     {"access_array_lin_interp",
