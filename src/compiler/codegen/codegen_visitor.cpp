@@ -429,8 +429,17 @@ llvm::Value* CodeGenVisitor::operator()(minst::MakeClosure& i) {
   return closure_ptr;
 }
 llvm::Value* CodeGenVisitor::operator()(minst::Array& i) {
-  assert(false && "not implemented yet");
-  return nullptr;
+  auto* atype = llvm::cast<llvm::ArrayType>(G.getType(i.type));
+  auto* gvalue = llvm::cast<llvm::GlobalVariable>(G.module->getOrInsertGlobal(i.name, atype));
+
+  std::vector<llvm::Constant*> values = {};
+  std::transform(i.args.cbegin(), i.args.cend(), std::back_inserter(values),
+                 [&](mir::valueptr v) { return llvm::cast<llvm::Constant>(getLlvmVal(v)); });
+  auto* constantarray = llvm::ConstantArray::get(atype, values);
+  gvalue->setInitializer(constantarray);
+  // auto* ptrval = G.builder->CreateBitCast(
+  //     gvalue, llvm::PointerType::get(atype->getElementType(), 0), i.name + "_ptr");
+  return gvalue;
 }
 llvm::Value* CodeGenVisitor::operator()(minst::ArrayAccess& i) {
   auto* target = getLlvmVal(i.target);
