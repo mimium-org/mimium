@@ -200,7 +200,6 @@ mir::valueptr ExprKnormVisitor::genFcallInst(ast::Fcall& fcall, optvalptr const&
       return res_ptr;
     }
   }
-
   return emplace(minst::Fcall{{newname, rettype}, fnptr, args, fnkind, when});
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::Fcall& ast) {
@@ -278,6 +277,7 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Block& ast) {
   for (auto& s : ast.stmts) { svisitor.genInst(*s); }
   if (ast.expr.has_value()) {
     auto val = genInst(ast.expr.value());
+    if (std::holds_alternative<types::Void>(mir::getType(*val))) { return nullptr; }
     return emplace(minst::Return{{mirgen.makeNewName(), mir::getType(*val)}, val});
   }
   return svisitor.retvalue.value_or(nullptr);
