@@ -61,8 +61,7 @@ std::pair<optvalptr, mir::blockptr> MirGenerator::generateBlock(ast::Block& bloc
 }
 
 bool MirGenerator::isPassByValue(types::Value const& type) {
-  // todo: array handling
-  return !rv::holds_alternative<types::Tuple>(type);
+  return !(rv::holds_alternative<types::Tuple>(type) || rv::holds_alternative<types::Array>(type));
 }
 
 mir::valueptr ExprKnormVisitor::emplace(mir::Instructions&& inst) {
@@ -217,13 +216,20 @@ mir::valueptr ExprKnormVisitor::operator()(ast::StructAccess& /*ast*/) {
   return nullptr;
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::ArrayInit& ast) {
+  auto lvname = mirgen.makeNewName();
+
   std::vector<mir::valueptr> newelems;
   types::Value lasttype;
   std::transform(ast.args.begin(), ast.args.end(), std::back_inserter(newelems),
                  [&](ast::ExprPtr e) { return genInst(e); });
   auto newname = mirgen.makeNewName();
+
   auto type = types::Array{mir::getType(*newelems[0]), static_cast<int>(newelems.size())};
-  return emplace(minst::Array{{newname, type}, newelems});
+  mir::valueptr lvar = emplace(minst::Allocate{{lvname + "_ref", type}});
+  mirgen.symbol_table.emplace(lvname + "_ref", lvar);
+  auto arr = emplace(minst::Array{{newname, type}, newelems});
+  emplace(minst::Store{{"", types::Void{}}, lvar, arr});
+  return lvar;
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::ArrayAccess& ast) {
   auto array = genInst(ast.array);
