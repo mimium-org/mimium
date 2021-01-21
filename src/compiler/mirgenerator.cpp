@@ -221,7 +221,7 @@ mir::valueptr ExprKnormVisitor::operator()(ast::ArrayInit& ast) {
   std::transform(ast.args.begin(), ast.args.end(), std::back_inserter(newelems),
                  [&](ast::ExprPtr e) { return genInst(e); });
   auto newname = mirgen.makeNewName();
-  auto type = types::Array{mir::getType(*newelems[0])};
+  auto type = types::Array{mir::getType(*newelems[0]), static_cast<int>(newelems.size())};
   return emplace(minst::Array{{newname, type}, newelems});
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::ArrayAccess& ast) {
