@@ -137,7 +137,7 @@ std::vector<llvm::Value*> CodeGenVisitor::makeFcallArgs(llvm::Type* ft,
     res.emplace_back(llval);
     std::advance(ft_iter, 1);
   }
-  return std::move(res);
+  return res;
 }
 llvm::Value* CodeGenVisitor::createAllocation(bool isglobal, llvm::Type* type,
                                               llvm::Value* array_size = nullptr,
@@ -171,7 +171,6 @@ llvm::Value* CodeGenVisitor::operator()(minst::String& i) {
   return bitcast;
 }
 llvm::Value* CodeGenVisitor::operator()(minst::Allocate& i) {
-  auto ptrty = i.type;
   assert(types::isPointer(i.type));
   auto* res =
       createAllocation(isglobal, G.getType(rv::get<types::Pointer>(i.type).val), nullptr, i.name);
@@ -200,7 +199,6 @@ llvm::Value* CodeGenVisitor::operator()(minst::Op& i) {
 }
 
 llvm::Value* CodeGenVisitor::createUniOp(minst::Op& i) {
-  llvm::Value* retvalue = nullptr;
   auto* rhs = getLlvmVal(i.rhs);
   switch (i.op) {
     case ast::OpId::Sub:
@@ -214,7 +212,6 @@ llvm::Value* CodeGenVisitor::createUniOp(minst::Op& i) {
 }
 
 llvm::Value* CodeGenVisitor::createBinOp(minst::Op& i) {
-  llvm::Value* retvalue = nullptr;
   auto* lhs = getLlvmVal(i.lhs.value());
   auto* rhs = getLlvmVal(i.rhs);
   switch (i.op) {
@@ -363,7 +360,6 @@ void CodeGenVisitor::setFvsToMap(minst::Function& i, llvm::Value* clsarg) {
 llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
   const bool isclosure = i.ftype == CLOSURE;
   bool isrecursive = false;
-  const bool isdsp = i.name == "dsp";
   mir::valueptr mmmfn = i.fname;
   if (auto* fn_i = std::get_if<mir::Instructions>(i.fname.get())) {
     // recursive function detection with pointer comparison
