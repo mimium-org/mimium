@@ -72,7 +72,7 @@ REGRESSION(builtin,
 200
 )")
 
-REGRESSION(libsndfile, "146640\n-0.0621338\n")
+REGRESSION(libsndfile, "146640\n-0.0803833\n")
 
 
 REGRESSION(tuple_capture, "100\n200\n300\n")
