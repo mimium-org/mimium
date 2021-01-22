@@ -19,7 +19,6 @@
 
 namespace mimium {
 
-
 namespace types {
 enum class Kind { VOID, PRIMITIVE, POINTER, AGGREGATE, INTERMEDIATE };
 }
@@ -113,6 +112,19 @@ struct Pointer {
   Value val;
 };
 inline bool operator==(const Pointer& t1, const Pointer& t2) { return t1.val == t2.val; }
+//Helper function to make pointer to pointer type
+//Because nested aggregate initialization like Pointer{Pointer{Float}} interpreted as copy construction.
+inline auto makePointer(types::Value&& t) {
+  types::Pointer res;
+  res.val = std::forward<types::Value>(t);
+  return std::forward<types::Value>(res);
+}
+inline auto makePointer(types::Value const& t) {
+  types::Pointer res;
+  res.val = t;
+  return std::move(res);
+}
+
 
 struct Function {
   Value ret_type;
@@ -185,13 +197,15 @@ bool operator!=(T t1, T t2) {
   return !(t1 == t2);
 }
 
-constexpr size_t fixed_delaysize =44100;
-inline static auto delaystruct = types::Alias{"MmmRingBuf", types::Tuple{{types::Float{}, types::Float{},types::Array{types::Float{}, fixed_delaysize}}}};
-
+constexpr size_t fixed_delaysize = 44100;
+inline static auto delaystruct = types::Alias{
+    "MmmRingBuf",
+    types::Tuple{{types::Float{}, types::Float{}, types::Array{types::Float{}, fixed_delaysize}}}};
 
 struct ToStringVisitor {
   bool verbose = false;
-  [[nodiscard]] std::string join(const std::vector<types::Value>& vec, std::string const& delim) const {
+  [[nodiscard]] std::string join(const std::vector<types::Value>& vec,
+                                 std::string const& delim) const {
     std::string res;
     if (!vec.empty()) {
       res = std::accumulate(std::next(vec.begin()), vec.end(), std::visit(*this, *vec.begin()),
@@ -240,11 +254,9 @@ inline bool isPrimitive(const Value& v) {
       [](auto& a) { return std::is_base_of_v<PrimitiveType, std::decay_t<decltype(a)>>; }, v);
 }
 
-inline bool isClosure(const Value&v){
-  if(std::holds_alternative<rClosure>(v)){
-    return true;
-  }
-  if(const auto* alias = std::get_if<Box<Alias>>(&v)){
+inline bool isClosure(const Value& v) {
+  if (std::holds_alternative<rClosure>(v)) { return true; }
+  if (const auto* alias = std::get_if<Box<Alias>>(&v)) {
     return std::holds_alternative<rClosure>(alias->getraw().target);
   }
   return false;
