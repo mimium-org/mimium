@@ -140,7 +140,7 @@ void ClosureConverter::CCVisitor::operator()(minst::Function& i) {
     bool isrecurse = mir::toString(*fv) == i.name;
     if (!isrecurse) {
       auto ft = mir::getType(*fv);
-      fvtype_inside.emplace_back(types::Ref{ft});
+      fvtype_inside.emplace_back(ft);
     } else {
       ccvis.fvset.erase(it);
     }
