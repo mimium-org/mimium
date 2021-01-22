@@ -127,7 +127,11 @@ std::vector<llvm::Value*> CodeGenVisitor::makeFcallArgs(llvm::Type* ft,
       auto etype = rv::get<types::Pointer>(callargtype).val;
       if (rv::holds_alternative<types::Array>(etype)) {
         auto* targetetype = llvm::cast<llvm::PointerType>(targettype)->getElementType();
-        if (!targetetype->isArrayTy()) { llval = G.builder->CreateBitCast(llval, targettype); }
+        assert(targetetype->isArrayTy());
+        auto* arrtype = llvm::cast<llvm::ArrayType>(targetetype);
+        if (arrtype->getArrayNumElements() == 0) {
+          llval = G.builder->CreateBitCast(llval, targettype);
+        }
       }
     }
     res.emplace_back(llval);
@@ -504,20 +508,22 @@ llvm::Value* CodeGenVisitor::operator()(minst::ArrayAccess& i) {
 }
 llvm::Value* CodeGenVisitor::operator()(minst::Field& i) {
   auto* target = getLlvmVal(i.target);
-  int index = 0;
-  // todo:refactor
   if (auto* constant = std::get_if<mir::Constants>(i.index.get())) {
-    index =
+    int index =
         std::visit(overloaded{[](std::string& str) {
                                 throw std::runtime_error("index of field access must be a number");
                                 return 0;
                               },
                               [](const auto& v) { return (int)v; }},
                    *constant);
-  } else {
-    throw std::runtime_error("index of field access must be a Constant.");
+    return G.builder->CreateStructGEP(target, index, "tupleaccess");
   }
-  return G.builder->CreateStructGEP(target, index, "tupleaccess");
+  if (std::holds_alternative<types::Float>(mir::getType(*i.index))) {
+    auto* index_ll = getLlvmVal(i.index);
+    auto* intindex = G.builder->CreateFPToSI(index_ll, G.builder->getInt32Ty());
+    return G.builder->CreateInBoundsGEP(target, {G.getZero(), intindex}, "arrayassignptr");
+  }
+  throw std::runtime_error("index of field access must be a number.");
 }
 
 llvm::Value* CodeGenVisitor::createIfBody(mir::blockptr& block) {
