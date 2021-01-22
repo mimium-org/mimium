@@ -142,11 +142,13 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Lambda& ast) {
   assert(std::holds_alternative<types::Void>(rettype) ||
          mir::isInstA<minst::Return>(*retinst_iter));
   auto* ptrtype = std::get_if<types::rPointer>(&rettype);
+
   if (!isPassByValue(rettype) || ptrtype != nullptr) {
     if (ptrtype != nullptr) {
-      assert(rv::holds_alternative<types::Tuple>(ptrtype->getraw().val));
+      assert(!isPassByValue(ptrtype->getraw().val));
       rettype = ptrtype->getraw().val;
     }
+
     auto& retval = mir::getInstRef<minst::Return>(*retinst_iter).val;
     auto loadinst = mir::addInstToBlock(minst::Load{{label + "_res", rettype}, retval}, fref.body);
     auto retptr = std::make_shared<mir::Argument>(

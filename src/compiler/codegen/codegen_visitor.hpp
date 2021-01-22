@@ -40,6 +40,7 @@ struct CodeGenVisitor {
 
   llvm::Value* getLlvmVal(mir::valueptr mirval);
   llvm::Value* getLlvmValForFcallArgs(mir::valueptr mirval);
+  std::vector<llvm::Value*> makeFcallArgs(llvm::Type* ft,std::list<mir::valueptr>const& args);
 
   std::unordered_map<mir::valueptr, llvm::Value*> mir_to_llvm;
 

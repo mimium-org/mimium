@@ -96,17 +96,45 @@ llvm::Value* CodeGenVisitor::getLlvmVal(mir::valueptr mirval) {
 }
 
 llvm::Value* CodeGenVisitor::getLlvmValForFcallArgs(mir::valueptr mirval) {
-  auto* val = getLlvmVal(mirval);
-  if (val->getType()->isPointerTy()) {
-    auto* ptrty = llvm::cast<llvm::PointerType>(val->getType());
-    if (ptrty->getElementType()->isArrayTy()) {
-      auto* arrty = llvm::cast<llvm::ArrayType>(ptrty->getElementType());
-      return G.builder->CreateBitCast(val, llvm::PointerType::get(arrty->getElementType(), 0));
+  auto atype = mir::getType(*mirval);
+  bool is_variablesize_array = false;
+  if (rv::holds_alternative<types::Pointer>(atype)) {
+    auto etype = rv::get<types::Pointer>(atype).val;
+    if (rv::holds_alternative<types::Array>(etype)) {
+      is_variablesize_array = types::isArraySizeVariable(rv::get<types::Array>(etype));
     }
+  }
+  auto* val = getLlvmVal(mirval);
+  if (is_variablesize_array) {
+    auto* ptrty = llvm::cast<llvm::PointerType>(val->getType());
+    auto* arrty = llvm::cast<llvm::ArrayType>(ptrty->getElementType());
+    return G.builder->CreateBitCast(val, llvm::PointerType::get(arrty->getElementType(), 0));
   }
   return val;
 }
 
+std::vector<llvm::Value*> CodeGenVisitor::makeFcallArgs(llvm::Type* ft,
+                                                        std::list<mir::valueptr> const& args) {
+  auto* functiontype = llvm::cast<llvm::FunctionType>(
+      ft->isPointerTy() ? llvm::cast<llvm::PointerType>(ft)->getElementType() : ft);
+  std::vector<llvm::Value*> res;
+  const auto* ft_iter = functiontype->params().begin();
+  for (const auto& a : args) {
+    auto* targettype = *ft_iter;
+    auto callargtype = mir::getType(*a);
+    auto* llval = getLlvmVal(a);
+    if (rv::holds_alternative<types::Pointer>(callargtype)) {
+      auto etype = rv::get<types::Pointer>(callargtype).val;
+      if (rv::holds_alternative<types::Array>(etype)) {
+        auto* targetetype = llvm::cast<llvm::PointerType>(targettype)->getElementType();
+        if (!targetetype->isArrayTy()) { llval = G.builder->CreateBitCast(llval, targettype); }
+      }
+    }
+    res.emplace_back(llval);
+    std::advance(ft_iter, 1);
+  }
+  return std::move(res);
+}
 llvm::Value* CodeGenVisitor::createAllocation(bool isglobal, llvm::Type* type,
                                               llvm::Value* array_size = nullptr,
                                               const llvm::Twine& name = "") {
@@ -231,8 +259,8 @@ llvm::Value* CodeGenVisitor::operator()(minst::Function& i) {
 }
 llvm::FunctionType* CodeGenVisitor::createDspFnType(minst::Function& i, bool hascapture,
                                                     bool hasmemobj) {
-  // arguments of dsp function should be always (time, cls_ptr, memobj_ptr) regardless of existences
-  // of capture &memobj.
+  // arguments of dsp function should be always (time, cls_ptr, memobj_ptr) regardless of
+  // existences of capture &memobj.
   auto dummytype = types::Ref{types::Void{}};
   auto mmmfntype = rv::get<types::Function>(i.type);
   auto& argtypes = mmmfntype.arg_types;
@@ -363,9 +391,7 @@ llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
     // addTask should be declared in preprocess;
     fun = G.module->getFunction(isclosure ? "addTask_cls" : "addTask");
   }
-
-  std::transform(i.args.begin(), i.args.end(), std::back_inserter(args),
-                 [&](mir::valueptr v) { return getLlvmValForFcallArgs(v); });
+  args = makeFcallArgs(fun->getType(), i.args);
   if (isclosure) {
     auto* capptr = isrecursive
                        ? std::prev(G.curfunc->arg_end(), (hasmemobj) ? 2 : 1)
