@@ -58,8 +58,6 @@ endif()
 #include ccache
 include(cmake/EnableCcache.cmake)
 
-add_compile_options("$<$<CONFIG:DEBUG>:-DMIMIUM_DEBUG_BUILD>")
-
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
