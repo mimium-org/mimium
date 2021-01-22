@@ -77,3 +77,5 @@ REGRESSION(libsndfile, "146640\n-0.0803833\n")
 
 REGRESSION(tuple_capture, "100\n200\n300\n")
 REGRESSION(tupletofn, "0.2\n0.8\n0.6\n2.4\n")
+
+REGRESSION(array, "100\n200\n300\n400\n500\n")
