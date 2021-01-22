@@ -47,7 +47,7 @@ struct MmmRingBuf {
   // int64_t size=5000;
   int64_t readi = 0;
   int64_t writei = 0;
-  double buf[mimium::types::fixed_delaysize];
+  double buf[mimium::types::fixed_delaysize]{};
 };
 double mimium_delayprim(double in, double time, MmmRingBuf* rbuf) {
   auto size = sizeof(rbuf->buf) / sizeof(double);
@@ -82,9 +82,9 @@ double* libsndfile_loadwav(char* filename) {
 }
 
 namespace mimium {
-using namespace types;
+using namespace types;//NOLINT
 using FI = BuiltinFnInfo;
-std::unordered_map<std::string, BuiltinFnInfo> LLVMBuiltin::ftable = {
+const std::unordered_map<std::string, BuiltinFnInfo> LLVMBuiltin::ftable = {
     {"print", initBI(Function{Void{}, {Float{}}}, "printdouble")},
     {"println", initBI(Function{Void{}, {Float{}}}, "printlndouble")},
     {"printlnstr", initBI(Function{Void{}, {String{}}}, "printlnstr")},

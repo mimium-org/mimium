@@ -4,18 +4,8 @@
 
 #pragma once
 #include <csignal>
-#include <functional>
-#include <iostream>
-#include <memory>
 #include "../libmain.hpp"
 #include "basic/filereader.hpp"
-
-#include <csignal>
-#include <filesystem>
-#include <fstream>
-#include <string>
-namespace fs = std::filesystem;
-
 namespace mimium::app {
 
 

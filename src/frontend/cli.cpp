@@ -80,7 +80,7 @@ Debug Informations (if no output file specified, emit to stdout.)
 std::vector<std::string_view> CliApp::OptionParser::initRawArgs(int argc, char** argv) {
   std::vector<std::string_view> args;
   args.resize(argc);
-  for (int idx = 0; idx < argc; idx++) { args[idx] = argv[idx]; }
+  for (int idx = 0; idx < argc; idx++) { args[idx] = argv[idx]; }//NOLINT
   return args;
 }
 

@@ -43,14 +43,13 @@ class Compiler {
   auto moveLLVMModule() { return llvmgenerator.moveModule(); }
 
  private:
+  std::unique_ptr<llvm::LLVMContext> llvmctx;
   Driver driver;
-  // AlphaConvertVisitor alphavisitor;
   SymbolRenamer symbolrenamer;
   TypeInferer typeinferer;
   MirGenerator mirgenerator;
   std::shared_ptr<ClosureConverter> closureconverter;
   MemoryObjsCollector memobjcollector;
-  std::unique_ptr<llvm::LLVMContext> llvmctx;
   LLVMGenerator llvmgenerator;
   std::string path;
 };

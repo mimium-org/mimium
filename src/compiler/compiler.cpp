@@ -14,8 +14,8 @@ Compiler::Compiler()
       memobjcollector(),
       llvmgenerator(*llvmctx) {}
 Compiler::Compiler(std::unique_ptr<llvm::LLVMContext> ctx)
-    : driver(),
-      llvmctx(std::move(ctx)),
+    : llvmctx(std::move(ctx)),
+      driver(),
       symbolrenamer(std::make_shared<RenameEnvironment>()),
       typeinferer(),
       mirgenerator(typeinferer.getTypeEnv()),
@@ -29,9 +29,7 @@ void Compiler::setFilePath(std::string path) {
 }
 void Compiler::setDataLayout(const llvm::DataLayout& dl) { llvmgenerator.setDataLayout(dl); }
 
-AstPtr Compiler::loadSource(std::istream& source) {
-  return driver.parse(source);
-}
+AstPtr Compiler::loadSource(std::istream& source) { return driver.parse(source); }
 
 AstPtr Compiler::loadSource(const std::string& source) {
   AstPtr ast = driver.parseString(source);
@@ -53,12 +51,11 @@ llvm::Module& Compiler::generateLLVMIr(mir::blockptr mir, funobjmap const& funob
   llvmgenerator.generateCode(mir, &funobjs);
   return llvmgenerator.getModule();
 }
-  void Compiler::dumpLLVMModule(std::ostream& out){
-    std::string str;
-    llvm::raw_string_ostream tmpout(str);
-    llvmgenerator.getModule().print(tmpout, nullptr);
-    out << str;
-  }
-
+void Compiler::dumpLLVMModule(std::ostream& out) {
+  std::string str;
+  llvm::raw_string_ostream tmpout(str);
+  llvmgenerator.getModule().print(tmpout, nullptr);
+  out << str;
+}
 
 }  // namespace mimium

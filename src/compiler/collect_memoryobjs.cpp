@@ -171,7 +171,7 @@ ResultT MemoryObjsCollector::CollectMemVisitor::operator()(minst::Fcall& i) {
                             [&](const mir::ExternalSymbol& e) -> opt_objtreeptr {
                               if (e.name == "delay") {
                                 auto res = std::make_shared<FunObjTree>(
-                                    FunObjTree{i.fname, false, {}, types::delaystruct});
+                                    FunObjTree{i.fname, false, {}, types::getDelayStruct()});
                                 M.result_map.emplace(i.fname, res);
                                 return res;
                               }

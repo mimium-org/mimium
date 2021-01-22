@@ -5,8 +5,6 @@
 #include "basic/ast_to_string.hpp"
 #include "basic/filereader.hpp"
 
-namespace fs = std::filesystem;
-
 namespace mimium {
 
 AstPtr Driver::parse(std::istream& is) {

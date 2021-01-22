@@ -49,7 +49,6 @@ mir::blockptr ClosureConverter::convert(mir::blockptr toplevel) {
     ccvis.instance_holder = cinst;
     ccvis.visit(*cinst);
   }
-  // std::visit(typereplacer, cinst);
 
   moveFunToTop(this->toplevel);
   if (!(clstypeenv.count("dsp") > 0)) {
@@ -116,7 +115,6 @@ void ClosureConverter::CCVisitor::operator()(minst::Function& i) {
   auto fn_ptr = getValPtr(&i);
   auto stored_fn_iter = cc.known_functions.insert(cc.known_functions.end(), fn_ptr);
   ccvis.block_ctx = i.body;
-  bool checked = false;
   // first, try assuming the function is not a closure.
   visitinsts(i, ccvis);
   // when the function was really not a closure, end.
@@ -126,12 +124,8 @@ void ClosureConverter::CCVisitor::operator()(minst::Function& i) {
 
   cc.known_functions.erase(stored_fn_iter);
   ccvis.fvset.clear();
-  // cc.known_functions = know_function_tmp;//reset state
-
   visitinsts(i, ccvis);
-  // if (i.isrecursive) {//to replace recursive call to appcls
-  //   visitinsts(i, ccvis,pos);
-  // }
+
   // make closure
   std::vector<types::Value> fvtype_inside;
   fvtype_inside.reserve(ccvis.fvset.size());
@@ -154,9 +148,6 @@ void ClosureConverter::CCVisitor::operator()(minst::Function& i) {
   types::Alias fvtype{cc.makeCaptureName(), types::Tuple{fvtype_inside}};
 
   types::Function ftype = rv::get<types::Function>(i.type);
-  // types::Alias clstype{cc.makeClosureTypeName(),
-  //                      types::Closure{types::Ref{types::Function{ftype}},
-  //                      types::Alias{fvtype}}};
 
   auto makecls = std::make_shared<mir::Value>(createClosureInst(fn_ptr, fvsetvec, fvtype, i.name));
   cc.fn_to_cls.emplace(fn_ptr, makecls);

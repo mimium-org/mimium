@@ -9,7 +9,7 @@ namespace mimium {
 // new knormalizer(mir generator)
 
 mir::blockptr MirGenerator::generate(ast::Statements& topast) {
-  auto topblock = ast::Block{ast::DebugInfo{}, topast, std::nullopt};
+  auto topblock = ast::Block{{ast::DebugInfo{}}, topast, std::nullopt};
   auto [optvalptr, ctx] = generateBlock(topblock, "root", std::nullopt);
   return ctx;
 }
@@ -117,7 +117,7 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Symbol& ast) {
   }
   throw std::runtime_error("symbol " + ast.value + " not found");
 }  // namespace mimium
-mir::valueptr ExprKnormVisitor::operator()(ast::Self& ast) {
+mir::valueptr ExprKnormVisitor::operator()(ast::Self&  /*ast*/) {
   // todo: create special type for self
   MMMASSERT(fnctx.has_value(), "Self cannot used in global context");
   auto self = mir::Self{fnctx.value(), types::Float{}};
@@ -257,11 +257,11 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Tuple& ast) {
     tupletypes.emplace_back(mir::getType(*arg));
   }
   types::Value rettype = types::Tuple{{tupletypes}};
-  mir::valueptr lvar = emplace(minst::Allocate{lvname + "_ref", types::Pointer{rettype}});
+  mir::valueptr lvar = emplace(minst::Allocate{{lvname + "_ref", types::Pointer{rettype}}});
   int count = 0;
   for (auto& elem : newelems) {
     auto newlvname = mirgen.makeNewName();
-    auto index = std::make_shared<mir::Value>(mir::Constants{(double)count});
+    auto index = std::make_shared<mir::Value>(mir::Constants{static_cast<double>(count)});
     auto ptrtostore = emplace(minst::Field{{newlvname, tupletypes[count]}, lvar, std::move(index)});
     emplace(minst::Store{{newlvname, tupletypes[count]}, ptrtostore, elem});
     count++;
@@ -286,7 +286,7 @@ std::pair<optvalptr, mir::blockptr> ExprKnormVisitor::genIfBlock(ast::ExprPtr& b
                                                                  std::string const& label) {
   auto realblock = rv::holds_alternative<ast::Block>(*block)
                        ? rv::get<ast::Block>(*block)
-                       : ast::Block{ast::DebugInfo{}, {}, block};
+                       : ast::Block{{ast::DebugInfo{}}, {}, block};
   return mirgen.generateBlock(realblock, label, this->fnctx);
 }
 

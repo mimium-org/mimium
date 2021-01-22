@@ -24,7 +24,7 @@ struct ToStringVisitor {
 
  private:
   Mode mode;
-  bool is_prettry;
+  // bool is_prettry;
 };
 
 struct AstStringifier : public ToStringVisitor {

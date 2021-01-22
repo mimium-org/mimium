@@ -149,4 +149,4 @@ class MimiumJIT {
   [[nodiscard]] const DataLayout& getDataLayout() const { return DL; }
   LLVMContext& getContext() { return *Ctx.getContext(); }
 };
-}  // namespace llvm
+}  // namespace llvm::orc

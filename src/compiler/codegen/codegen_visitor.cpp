@@ -21,8 +21,8 @@ const std::unordered_map<OpId, std::string> CodeGenVisitor::opid_to_ffi = {
 // Creates Allocation instruction or call malloc function depends on context
 CodeGenVisitor::CodeGenVisitor(LLVMGenerator& g, const funobjmap* funobj_map)
     : G(g),
-      isglobal(false),
       funobj_map(funobj_map),
+      isglobal(false),
       context_hasself(false),
       recursivefn_ptr(nullptr) {}
 
@@ -483,15 +483,11 @@ llvm::Value* CodeGenVisitor::operator()(minst::MakeClosure& i) {
 llvm::Value* CodeGenVisitor::operator()(minst::Array& i) {
   auto* atype = G.getArrayType(i.type);
   auto* gvalue = llvm::cast<llvm::GlobalVariable>(G.module->getOrInsertGlobal(i.name, atype));
-
   std::vector<llvm::Constant*> values = {};
   std::transform(i.args.cbegin(), i.args.cend(), std::back_inserter(values),
                  [&](mir::valueptr v) { return llvm::cast<llvm::Constant>(getLlvmVal(v)); });
   auto* constantarray = llvm::ConstantArray::get(atype, values);
   gvalue->setInitializer(constantarray);
-  auto* first_element = G.builder->CreateInBoundsGEP(gvalue, {G.getZero()}, i.name + "firstelem");
-  auto* ptrval = G.builder->CreateBitCast(
-      first_element, llvm::PointerType::get(atype->getElementType(), 0), i.name + "_ptr");
   return gvalue;
 }
 llvm::Value* CodeGenVisitor::operator()(minst::ArrayAccess& i) {
