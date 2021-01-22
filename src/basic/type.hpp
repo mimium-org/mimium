@@ -152,6 +152,11 @@ struct Array {
 inline bool operator==(const Array& t1, const Array& t2) {
   return (t1.elem_type == t2.elem_type) && (t1.size == t2.size);
 }
+
+inline bool isArraySizeVariable(const Array& arr){
+  return arr.size==0;
+}
+
 struct Tuple {
   std::vector<Value> arg_types;
 };
