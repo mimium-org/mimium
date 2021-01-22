@@ -61,8 +61,7 @@ std::pair<optvalptr, mir::blockptr> MirGenerator::generateBlock(ast::Block& bloc
 }
 
 bool MirGenerator::isPassByValue(types::Value const& type) {
-  // todo: array handling
-  return !rv::holds_alternative<types::Tuple>(type);
+  return !(rv::holds_alternative<types::Tuple>(type) || rv::holds_alternative<types::Array>(type));
 }
 
 mir::valueptr ExprKnormVisitor::emplace(mir::Instructions&& inst) {
@@ -70,11 +69,11 @@ mir::valueptr ExprKnormVisitor::emplace(mir::Instructions&& inst) {
 }
 
 mir::valueptr ExprKnormVisitor::genAllocate(std::string const& name, types::Value const& type) {
+  auto ptrty = types::makePointer(type);
   if (!isPassByValue(type)) {
-    auto reftype = types::Pointer{type};
-    return emplace(mir::instruction::Allocate{{name, reftype}});
+    return emplace(mir::instruction::Allocate{{name, types::makePointer(std::move(ptrty))}});
   }
-  return emplace(mir::instruction::Allocate{{name, type}});
+  return emplace(mir::instruction::Allocate{{name, std::move(ptrty)}});
 }
 
 mir::valueptr ExprKnormVisitor::operator()(ast::Op& ast) {
@@ -99,8 +98,10 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Symbol& ast) {
   }
 
   if (auto ptrtoload = mirgen.tryGetInternalSymbol(ast.value + "_ptr")) {
-    return emplace(
-        minst::Load{{mirgen.makeNewName(), mir::getType(*ptrtoload.value())}, ptrtoload.value()});
+    auto type = mir::getType(*ptrtoload.value());
+    assert(types::isPointer(type));
+    auto vtype = rv::get<types::Pointer>(type).val;
+    return emplace(minst::Load{{mirgen.makeNewName(), vtype}, ptrtoload.value()});
   }
   if (auto arg = mirgen.tryGetInternalSymbol(ast.value)) {
     bool is_argument = std::holds_alternative<std::shared_ptr<mir::Argument>>(*arg.value());
@@ -138,13 +139,16 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Lambda& ast) {
   fref.body = body;
 
   auto retinst_iter = std::prev(fref.body->instructions.end());
-  assert(mir::isInstA<minst::Return>(*retinst_iter));
+  assert(std::holds_alternative<types::Void>(rettype) ||
+         mir::isInstA<minst::Return>(*retinst_iter));
   auto* ptrtype = std::get_if<types::rPointer>(&rettype);
+
   if (!isPassByValue(rettype) || ptrtype != nullptr) {
     if (ptrtype != nullptr) {
-      assert(rv::holds_alternative<types::Tuple>(ptrtype->getraw().val));
+      assert(!isPassByValue(ptrtype->getraw().val));
       rettype = ptrtype->getraw().val;
     }
+
     auto& retval = mir::getInstRef<minst::Return>(*retinst_iter).val;
     auto loadinst = mir::addInstToBlock(minst::Load{{label + "_res", rettype}, retval}, fref.body);
     auto retptr = std::make_shared<mir::Argument>(
@@ -193,14 +197,12 @@ mir::valueptr ExprKnormVisitor::genFcallInst(ast::Fcall& fcall, optvalptr const&
         mir::getInstRef<minst::Function>(fnptr).args.ret_ptr) {
       rettype = mir::getType(mir::getInstRef<minst::Function>(fnptr).args.ret_ptr.value());
       assert(types::isPointer(rettype));
-      auto res_ptr =
-          emplace(minst::Allocate{{newname + "_res", rv::get<types::Pointer>(rettype).val}});
+      auto res_ptr = emplace(minst::Allocate{{newname + "_res", rettype}});
       args.push_front(res_ptr);
       emplace(minst::Fcall{{newname, types::Void{}}, fnptr, args, fnkind, when});
       return res_ptr;
     }
   }
-
   return emplace(minst::Fcall{{newname, rettype}, fnptr, args, fnkind, when});
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::Fcall& ast) {
@@ -216,22 +218,27 @@ mir::valueptr ExprKnormVisitor::operator()(ast::StructAccess& /*ast*/) {
   return nullptr;
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::ArrayInit& ast) {
+  auto lvname = mirgen.makeNewName();
+
   std::vector<mir::valueptr> newelems;
   types::Value lasttype;
   std::transform(ast.args.begin(), ast.args.end(), std::back_inserter(newelems),
                  [&](ast::ExprPtr e) { return genInst(e); });
   auto newname = mirgen.makeNewName();
-  auto type = types::Array{mir::getType(*newelems[0])};
+  auto type = types::Array{mir::getType(*newelems[0]), static_cast<int>(newelems.size())};
+
   return emplace(minst::Array{{newname, type}, newelems});
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::ArrayAccess& ast) {
   auto array = genInst(ast.array);
   types::Value rettype;
   auto type = mir::getType(*array);
-  if (std::holds_alternative<types::rArray>(type)) {
-    rettype = rv::get<types::Array>(type).elem_type;
-  } else if (std::holds_alternative<types::rPointer>(type)) {
-    rettype = rv::get<types::Pointer>(type).val;
+  assert(std::holds_alternative<types::rPointer>(type));
+  auto vtype = rv::get<types::Pointer>(type).val;
+  if (std::holds_alternative<types::rArray>(vtype)) {
+    rettype = rv::get<types::Array>(vtype).elem_type;
+  } else if (std::holds_alternative<types::Float>(vtype)) {
+    rettype = vtype;
   } else {
     throw std::runtime_error("[] operator cannot be used for other than array type");
   }
@@ -250,9 +257,7 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Tuple& ast) {
     tupletypes.emplace_back(mir::getType(*arg));
   }
   types::Value rettype = types::Tuple{{tupletypes}};
-  mir::valueptr lvar = emplace(minst::Allocate{{lvname + "_ref", rettype}});
-  mirgen.symbol_table.emplace(lvname + "_ref", lvar);
-
+  mir::valueptr lvar = emplace(minst::Allocate{lvname + "_ref", types::Pointer{rettype}});
   int count = 0;
   for (auto& elem : newelems) {
     auto newlvname = mirgen.makeNewName();
@@ -271,6 +276,7 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Block& ast) {
   for (auto& s : ast.stmts) { svisitor.genInst(*s); }
   if (ast.expr.has_value()) {
     auto val = genInst(ast.expr.value());
+    if (std::holds_alternative<types::Void>(mir::getType(*val))) { return nullptr; }
     return emplace(minst::Return{{mirgen.makeNewName(), mir::getType(*val)}, val});
   }
   return svisitor.retvalue.value_or(nullptr);
@@ -314,7 +320,8 @@ void AssignKnormVisitor::operator()(ast::DeclVar& ast) {
     return;
   }
   if (lvarptr.has_value()) {
-    MMMASSERT(type == mir::getType(*require(lvarptr)), "lvar type are different")
+    auto lvarptrtype = mir::getType(*require(lvarptr));
+    assert(types::isPointer(lvarptrtype) && rv::get<types::Pointer>(lvarptrtype).val == type);
     ptr = lvarptr.value();
   } else {
     ptr = exprvisitor.genAllocate(lvname, type);

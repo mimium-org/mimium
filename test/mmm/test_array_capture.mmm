@@ -1,0 +1,11 @@
+arr = [500,400,300,200,100]
+
+fn capfn(index)->float{
+    return arr[index]
+}
+
+println(capfn(4))
+println(capfn(3))
+println(capfn(2))
+println(capfn(1))
+println(capfn(0))

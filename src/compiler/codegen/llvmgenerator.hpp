@@ -42,7 +42,9 @@ class LLVMGenerator {
   std::unique_ptr<TypeConverter> typeconverter;
   std::shared_ptr<CodeGenVisitor> codegenvisitor;
 
-  llvm::Type* getType(types::Value& type);
+  llvm::Type* getType(types::Value const& type);
+  //Used for getting Arraytype which is not pointer of elementtype
+  llvm::ArrayType* getArrayType(types::Value const& type);
 
   llvm::Type* getClosureToFunType(types::Value& type);
   const std::unordered_map<std::string, llvm::Type*> runtime_fun_names;

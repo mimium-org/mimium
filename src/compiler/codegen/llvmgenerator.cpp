@@ -41,7 +41,14 @@ void LLVMGenerator::dropAllReferences() {
   if (module != nullptr) { module->dropAllReferences(); }
 }
 
-llvm::Type* LLVMGenerator::getType(types::Value& type) { return std::visit(*typeconverter, type); }
+llvm::Type* LLVMGenerator::getType(types::Value const& type) {
+  return std::visit(*typeconverter, type);
+}
+llvm::ArrayType* LLVMGenerator::getArrayType(types::Value const& type) {
+  assert(rv::holds_alternative<types::Array>(type));
+  const auto& atype = rv::get<types::Array>(type);
+  return llvm::ArrayType::get(std::visit(*typeconverter, atype.elem_type), atype.size);
+}
 
 llvm::Type* LLVMGenerator::getClosureToFunType(types::Value& type) {
   auto aliasty = rv::get<types::Alias>(type);
@@ -59,10 +66,13 @@ void LLVMGenerator::switchToMainFun() {
 }
 llvm::Function* LLVMGenerator::getForeignFunction(const std::string& name) {
   auto& [type, targetname] = LLVMBuiltin::ftable.find(name)->second;
-  if (name == "delay") {
-    rv::get<types::Function>(type).arg_types.emplace_back(types::Ref{types::delaystruct});
+  auto ftype = rv::get<types::Function>(type);
+  if (name == "delay") { ftype.arg_types.emplace_back(types::Ref{types::delaystruct}); }
+  if (!types::isPrimitive(ftype.ret_type)) {
+    // for loadwavfile
+    ftype.ret_type = types::Ref{ftype.ret_type};
   }
-  return getFunction(targetname, getType(type));
+  return getFunction(targetname, getType(ftype));
 }
 llvm::Function* LLVMGenerator::getRuntimeFunction(const std::string& name) {
   const auto& type = runtime_fun_names.at(name);

@@ -6,24 +6,26 @@
 
 namespace mimium {
 
-llvm::Type* TypeConverter::operator()(types::None& /*i*/) {
+llvm::Type* TypeConverter::operator()(types::None const& /*i*/) {
   error();
   return nullptr;
 }
-llvm::Type* TypeConverter::operator()(types::TypeVar& /*i*/) {
+llvm::Type* TypeConverter::operator()(types::TypeVar const& /*i*/) {
   throw std::runtime_error("Type inference failed");
   return nullptr;
 }
-llvm::Type* TypeConverter::operator()(types::Void& /*i*/) { return builder.getVoidTy(); }
-llvm::Type* TypeConverter::operator()(types::Float& /*i*/) { return builder.getDoubleTy(); }
-llvm::Type* TypeConverter::operator()(types::String& /*i*/) { return builder.getInt8PtrTy(); }
-llvm::Type* TypeConverter::operator()(types::Ref& i) {
+llvm::Type* TypeConverter::operator()(types::Void const& /*i*/) { return builder.getVoidTy(); }
+llvm::Type* TypeConverter::operator()(types::Float const& /*i*/) { return builder.getDoubleTy(); }
+llvm::Type* TypeConverter::operator()(types::String const& /*i*/) { return builder.getInt8PtrTy(); }
+llvm::Type* TypeConverter::operator()(types::Ref const& i) {
+  auto* elemty = std::visit(*this, i.val);
+  if (elemty->isVoidTy()) { elemty = builder.getInt8Ty(); }
+  return llvm::PointerType::get(elemty, 0);
+}
+llvm::Type* TypeConverter::operator()(types::Pointer const& i) {
   return llvm::PointerType::get(std::visit(*this, i.val), 0);
 }
-llvm::Type* TypeConverter::operator()(types::Pointer& i) {
-  return llvm::PointerType::get(std::visit(*this, i.val), 0);
-}
-llvm::Type* TypeConverter::operator()(types::Function& i) {
+llvm::Type* TypeConverter::operator()(types::Function const& i) {
   std::vector<llvm::Type*> ar;
   llvm::Type* ret = std::visit(*this, i.ret_type);
   if (rv::holds_alternative<types::Function>(i.ret_type)) { ret = llvm::PointerType::get(ret, 0); }
@@ -33,17 +35,17 @@ llvm::Type* TypeConverter::operator()(types::Function& i) {
   }
   return llvm::FunctionType::get(ret, ar, false);
 }
-llvm::Type* TypeConverter::operator()(types::Closure& i) {
+llvm::Type* TypeConverter::operator()(types::Closure const& i) {
   auto name = consumeAlias();
   auto* capturetype = std::visit(*this, i.captures);
   auto* fty = (*this)(i.fun);
   return llvm::StructType::create(builder.getContext(), {fty, capturetype}, name, false);
 }
-llvm::Type* TypeConverter::operator()(types::Array& i) {
-  if (i.size == 0) { return llvm::PointerType::get(std::visit(*this, i.elem_type), 0); }
+llvm::Type* TypeConverter::operator()(types::Array const& i) {
+  //note that zero-sized array can be automatically interpreted as variable-sized array
   return llvm::ArrayType::get(std::visit(*this, i.elem_type), i.size);
 }
-llvm::Type* TypeConverter::operator()(types::Struct& i) {
+llvm::Type* TypeConverter::operator()(types::Struct const& i) {
   std::vector<llvm::Type*> ar;
   llvm::Type* res = nullptr;
   for (auto&& a : i.arg_types) { ar.push_back(std::visit(*this, a.val)); }
@@ -56,7 +58,7 @@ llvm::Type* TypeConverter::operator()(types::Struct& i) {
   }
   return res;
 }
-llvm::Type* TypeConverter::operator()(types::Tuple& i) {
+llvm::Type* TypeConverter::operator()(types::Tuple const& i) {
   std::vector<llvm::Type*> ar;
   llvm::Type* res = nullptr;
   for (auto& a : i.arg_types) { ar.push_back(std::visit(*this, a)); }
@@ -69,7 +71,7 @@ llvm::Type* TypeConverter::operator()(types::Tuple& i) {
   }
   return res;
 }
-// llvm::Type* TypeConverter::operator()(types::Time& i) {
+// llvm::Type* TypeConverter::operator()(types::Time const& i) {
 //   llvm::Type* res;
 //   if (tmpname.empty()) {
 //     res = llvm::StructType::get(
@@ -86,7 +88,7 @@ llvm::Type* TypeConverter::operator()(types::Tuple& i) {
 //   }
 //   return res;
 // }
-llvm::Type* TypeConverter::operator()(types::Alias& i) {
+llvm::Type* TypeConverter::operator()(types::Alias const& i) {
   auto it = aliasmap.find(i.name);
   llvm::Type* res = nullptr;
   if (it == aliasmap.end()) {

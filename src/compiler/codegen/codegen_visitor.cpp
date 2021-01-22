@@ -95,6 +95,50 @@ llvm::Value* CodeGenVisitor::getLlvmVal(mir::valueptr mirval) {
   return res;
 }
 
+llvm::Value* CodeGenVisitor::getLlvmValForFcallArgs(mir::valueptr mirval) {
+  auto atype = mir::getType(*mirval);
+  bool is_variablesize_array = false;
+  if (rv::holds_alternative<types::Pointer>(atype)) {
+    auto etype = rv::get<types::Pointer>(atype).val;
+    if (rv::holds_alternative<types::Array>(etype)) {
+      is_variablesize_array = types::isArraySizeVariable(rv::get<types::Array>(etype));
+    }
+  }
+  auto* val = getLlvmVal(mirval);
+  if (is_variablesize_array) {
+    auto* ptrty = llvm::cast<llvm::PointerType>(val->getType());
+    auto* arrty = llvm::cast<llvm::ArrayType>(ptrty->getElementType());
+    return G.builder->CreateBitCast(val, llvm::PointerType::get(arrty->getElementType(), 0));
+  }
+  return val;
+}
+
+std::vector<llvm::Value*> CodeGenVisitor::makeFcallArgs(llvm::Type* ft,
+                                                        std::list<mir::valueptr> const& args) {
+  auto* functiontype = llvm::cast<llvm::FunctionType>(
+      ft->isPointerTy() ? llvm::cast<llvm::PointerType>(ft)->getElementType() : ft);
+  std::vector<llvm::Value*> res;
+  const auto* ft_iter = functiontype->params().begin();
+  for (const auto& a : args) {
+    auto* targettype = *ft_iter;
+    auto callargtype = mir::getType(*a);
+    auto* llval = getLlvmVal(a);
+    if (rv::holds_alternative<types::Pointer>(callargtype)) {
+      auto etype = rv::get<types::Pointer>(callargtype).val;
+      if (rv::holds_alternative<types::Array>(etype)) {
+        auto* targetetype = llvm::cast<llvm::PointerType>(targettype)->getElementType();
+        assert(targetetype->isArrayTy());
+        auto* arrtype = llvm::cast<llvm::ArrayType>(targetetype);
+        if (arrtype->getArrayNumElements() == 0) {
+          llval = G.builder->CreateBitCast(llval, targettype);
+        }
+      }
+    }
+    res.emplace_back(llval);
+    std::advance(ft_iter, 1);
+  }
+  return res;
+}
 llvm::Value* CodeGenVisitor::createAllocation(bool isglobal, llvm::Type* type,
                                               llvm::Value* array_size = nullptr,
                                               const llvm::Twine& name = "") {
@@ -127,7 +171,9 @@ llvm::Value* CodeGenVisitor::operator()(minst::String& i) {
   return bitcast;
 }
 llvm::Value* CodeGenVisitor::operator()(minst::Allocate& i) {
-  auto* res = createAllocation(isglobal, G.getType(i.type), nullptr, i.name);
+  assert(types::isPointer(i.type));
+  auto* res =
+      createAllocation(isglobal, G.getType(rv::get<types::Pointer>(i.type).val), nullptr, i.name);
   registerLlvmVal(getValPtr(&i), res);
   return res;
 }
@@ -153,7 +199,6 @@ llvm::Value* CodeGenVisitor::operator()(minst::Op& i) {
 }
 
 llvm::Value* CodeGenVisitor::createUniOp(minst::Op& i) {
-  llvm::Value* retvalue = nullptr;
   auto* rhs = getLlvmVal(i.rhs);
   switch (i.op) {
     case ast::OpId::Sub:
@@ -167,7 +212,6 @@ llvm::Value* CodeGenVisitor::createUniOp(minst::Op& i) {
 }
 
 llvm::Value* CodeGenVisitor::createBinOp(minst::Op& i) {
-  llvm::Value* retvalue = nullptr;
   auto* lhs = getLlvmVal(i.lhs.value());
   auto* rhs = getLlvmVal(i.rhs);
   switch (i.op) {
@@ -216,16 +260,20 @@ llvm::Value* CodeGenVisitor::operator()(minst::Function& i) {
 }
 llvm::FunctionType* CodeGenVisitor::createDspFnType(minst::Function& i, bool hascapture,
                                                     bool hasmemobj) {
-  // arguments of dsp function should be always (time, cls_ptr, memobj_ptr) regardless of existences
-  // of capture &memobj.
-  auto dummytype = types::Ref{types::Float{}};
+  // arguments of dsp function should be always (time, cls_ptr, memobj_ptr) regardless of
+  // existences of capture &memobj.
+  auto dummytype = types::Ref{types::Void{}};
   auto mmmfntype = rv::get<types::Function>(i.type);
   auto& argtypes = mmmfntype.arg_types;
+  auto insertpoint = std::next(argtypes.begin());
+  if (!std::holds_alternative<types::Void>(mmmfntype.ret_type)) {
+    insertpoint = std::next(insertpoint);
+  }
+  if (i.args.args.empty()) { argtypes.insert(insertpoint, dummytype); }
   if (!hascapture && !hasmemobj) {
     argtypes.emplace_back(dummytype);
     argtypes.emplace_back(dummytype);
   }
-  if (i.args.args.empty()) { argtypes.emplace_back(dummytype); }
   if (!hasmemobj && hascapture) { argtypes.emplace_back(dummytype); }
   if (hasmemobj && !hascapture) { argtypes.insert(std::prev(argtypes.end()), dummytype); }
 
@@ -261,6 +309,10 @@ void CodeGenVisitor::addArgstoMap(llvm::Function* f, minst::Function& i, bool ha
   for (auto& a : i.args.args) {
     arg->setName(a->name);
     registerLlvmVal(a, arg);
+    std::advance(arg, 1);
+  }
+  if (i.args.args.empty() && isdsp) {
+    arg->setName("input");
     std::advance(arg, 1);
   }
   if (hascapture) {
@@ -308,7 +360,6 @@ void CodeGenVisitor::setFvsToMap(minst::Function& i, llvm::Value* clsarg) {
 llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
   const bool isclosure = i.ftype == CLOSURE;
   bool isrecursive = false;
-  const bool isdsp = i.name == "dsp";
   mir::valueptr mmmfn = i.fname;
   if (auto* fn_i = std::get_if<mir::Instructions>(i.fname.get())) {
     // recursive function detection with pointer comparison
@@ -340,9 +391,7 @@ llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
     // addTask should be declared in preprocess;
     fun = G.module->getFunction(isclosure ? "addTask_cls" : "addTask");
   }
-
-  std::transform(i.args.begin(), i.args.end(), std::back_inserter(args),
-                 [&](mir::valueptr v) { return getLlvmVal(v); });
+  args = makeFcallArgs(fun->getType(), i.args);
   if (isclosure) {
     auto* capptr = isrecursive
                        ? std::prev(G.curfunc->arg_end(), (hasmemobj) ? 2 : 1)
@@ -422,38 +471,55 @@ llvm::Value* CodeGenVisitor::operator()(minst::MakeClosure& i) {
   unsigned int idx = 0;
   for (auto& cap : i.captures) {
     auto* gep = G.builder->CreateStructGEP(capture_ptr, idx++, "capture_" + mir::getName(*cap));
-    G.builder->CreateStore(getLlvmVal(cap), gep);
+    auto* gepelemty = llvm::cast<llvm::PointerType>(gep->getType())->getContainedType(0);
+    auto* capval = getLlvmVal(cap);
+    if (gepelemty != capval->getType()) { capval = G.builder->CreateBitCast(capval, gepelemty); }
+    G.builder->CreateStore(capval, gep);
   }
 
   if (isdsp) { G.runtime_dspfninfo.capptr = capture_ptr; }
   return closure_ptr;
 }
 llvm::Value* CodeGenVisitor::operator()(minst::Array& i) {
-  assert(false && "not implemented yet");
-  return nullptr;
+  auto* atype = G.getArrayType(i.type);
+  auto* gvalue = llvm::cast<llvm::GlobalVariable>(G.module->getOrInsertGlobal(i.name, atype));
+
+  std::vector<llvm::Constant*> values = {};
+  std::transform(i.args.cbegin(), i.args.cend(), std::back_inserter(values),
+                 [&](mir::valueptr v) { return llvm::cast<llvm::Constant>(getLlvmVal(v)); });
+  auto* constantarray = llvm::ConstantArray::get(atype, values);
+  gvalue->setInitializer(constantarray);
+  auto* first_element = G.builder->CreateInBoundsGEP(gvalue, {G.getZero()}, i.name + "firstelem");
+  auto* ptrval = G.builder->CreateBitCast(
+      first_element, llvm::PointerType::get(atype->getElementType(), 0), i.name + "_ptr");
+  return gvalue;
 }
 llvm::Value* CodeGenVisitor::operator()(minst::ArrayAccess& i) {
   auto* target = getLlvmVal(i.target);
   auto* index = getLlvmVal(i.index);
   auto* arraccessfun = G.module->getFunction("access_array_lin_interp");
+  auto* dptrty = arraccessfun->getArg(0)->getType();
+  if (target->getType() != dptrty) { target = G.builder->CreateBitCast(target, dptrty); }
   return G.builder->CreateCall(arraccessfun, {target, index}, "arrayaccess");
 }
 llvm::Value* CodeGenVisitor::operator()(minst::Field& i) {
   auto* target = getLlvmVal(i.target);
-  int index = 0;
-  // todo:refactor
   if (auto* constant = std::get_if<mir::Constants>(i.index.get())) {
-    index =
+    int index =
         std::visit(overloaded{[](std::string& str) {
                                 throw std::runtime_error("index of field access must be a number");
                                 return 0;
                               },
                               [](const auto& v) { return (int)v; }},
                    *constant);
-  } else {
-    throw std::runtime_error("index of field access must be a Constant.");
+    return G.builder->CreateStructGEP(target, index, "tupleaccess");
   }
-  return G.builder->CreateStructGEP(target, index, "tupleaccess");
+  if (std::holds_alternative<types::Float>(mir::getType(*i.index))) {
+    auto* index_ll = getLlvmVal(i.index);
+    auto* intindex = G.builder->CreateFPToSI(index_ll, G.builder->getInt32Ty());
+    return G.builder->CreateInBoundsGEP(target, {G.getZero(), intindex}, "arrayassignptr");
+  }
+  throw std::runtime_error("index of field access must be a number.");
 }
 
 llvm::Value* CodeGenVisitor::createIfBody(mir::blockptr& block) {

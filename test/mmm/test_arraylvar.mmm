@@ -1,0 +1,15 @@
+arr = [500,400,300,200,100]
+arr[0] = 600
+println(arr[0])
+
+fn capfn(){
+    arr[1] = 700
+    println(arr[1])
+}
+capfn()
+
+fn arrarfn(a,idx){
+    a[idx] = 800
+    println(a[idx])
+}
+arrarfn(arr,2)

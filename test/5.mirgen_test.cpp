@@ -21,7 +21,7 @@ TEST(mirgen, basic) {
   std::string target = R"(root:
   hoge0 = fun x1 , y2
   hoge0:
-    allocate localvar3 : float
+    allocate localvar3 : float*
     k0 = 2.000000
     store k0 to localvar3
     k2 = Mul x1 y2
@@ -29,7 +29,7 @@ TEST(mirgen, basic) {
     k1 = Add k2 k3
     return k1
 
-  allocate main4 : float
+  allocate main4 : float*
   k6 = 5.000000
   k7 = 7.000000
   k5 = appcls hoge0 k6 , k7

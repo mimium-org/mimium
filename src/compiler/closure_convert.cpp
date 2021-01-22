@@ -6,10 +6,7 @@
 
 namespace mimium {
 ClosureConverter::ClosureConverter(TypeEnv& typeenv)
-    : typeenv(typeenv),
-      capturecount(0),
-      closurecount(0)
-{}
+    : typeenv(typeenv), capturecount(0), closurecount(0) {}
 
 void ClosureConverter::reset() { capturecount = 0; }
 ClosureConverter::~ClosureConverter() = default;
@@ -143,7 +140,7 @@ void ClosureConverter::CCVisitor::operator()(minst::Function& i) {
     bool isrecurse = mir::toString(*fv) == i.name;
     if (!isrecurse) {
       auto ft = mir::getType(*fv);
-      fvtype_inside.emplace_back(types::Ref{ft});
+      fvtype_inside.emplace_back(ft);
     } else {
       ccvis.fvset.erase(it);
     }

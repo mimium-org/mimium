@@ -1,0 +1,10 @@
+fn getarr(){
+    arr = [500,400,300,200,100]
+    return arr
+}
+
+println(getarr()[4])
+println(getarr()[3])
+println(getarr()[2])
+println(getarr()[1])
+println(getarr()[0])

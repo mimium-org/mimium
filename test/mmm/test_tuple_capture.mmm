@@ -1,0 +1,10 @@
+tupvar = (100,200,300)
+
+fn printtup(){
+    a,b,c = tupvar
+    println(a)
+    println(b)
+    println(c)
+}
+
+printtup()
