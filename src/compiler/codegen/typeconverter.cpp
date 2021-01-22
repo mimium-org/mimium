@@ -18,7 +18,9 @@ llvm::Type* TypeConverter::operator()(types::Void const& /*i*/) { return builder
 llvm::Type* TypeConverter::operator()(types::Float const& /*i*/) { return builder.getDoubleTy(); }
 llvm::Type* TypeConverter::operator()(types::String const& /*i*/) { return builder.getInt8PtrTy(); }
 llvm::Type* TypeConverter::operator()(types::Ref const& i) {
-  return llvm::PointerType::get(std::visit(*this, i.val), 0);
+  auto* elemty = std::visit(*this, i.val);
+  if (elemty->isVoidTy()) { elemty = builder.getInt8Ty(); }
+  return llvm::PointerType::get(elemty, 0);
 }
 llvm::Type* TypeConverter::operator()(types::Pointer const& i) {
   return llvm::PointerType::get(std::visit(*this, i.val), 0);

@@ -222,13 +222,9 @@ mir::valueptr ExprKnormVisitor::operator()(ast::ArrayInit& ast) {
   std::transform(ast.args.begin(), ast.args.end(), std::back_inserter(newelems),
                  [&](ast::ExprPtr e) { return genInst(e); });
   auto newname = mirgen.makeNewName();
-
   auto type = types::Array{mir::getType(*newelems[0]), static_cast<int>(newelems.size())};
-  mir::valueptr lvar = emplace(minst::Allocate{{lvname + "_ref", type}});
-  mirgen.symbol_table.emplace(lvname + "_ref", lvar);
-  auto arr = emplace(minst::Array{{newname, type}, newelems});
-  emplace(minst::Store{{"", types::Void{}}, lvar, arr});
-  return lvar;
+
+  return emplace(minst::Array{{newname, type}, newelems});
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::ArrayAccess& ast) {
   auto array = genInst(ast.array);

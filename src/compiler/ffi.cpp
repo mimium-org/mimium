@@ -2,10 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#include <cmath>
 #include "compiler/ffi.hpp"
+#include <cmath>
 #include "sndfile.h"
-
 
 extern "C" {
 void dumpaddress(void* a) { std::cerr << a << "\n"; }
@@ -38,29 +37,26 @@ double mimium_rshift(double d1, double d2) {
   return static_cast<double>(mimium_dtoi(d1) >> mimium_dtoi(d2));
 }
 
-
-
-
 double access_array_lin_interp(double* array, double index_d) {
   double fract = fmod(index_d, 1.000);
   size_t index = floor(index_d);
-  return array[index] * fract + array[index + 1] * (1 - fract);
+  if (fract == 0) { return array[index]; }
+  return array[index] * (1 - fract) + array[index + 1] * fract;
 }
-struct MmmRingBuf{
+struct MmmRingBuf {
   // int64_t size=5000;
-  int64_t readi=0;
-  int64_t writei=0;
+  int64_t readi = 0;
+  int64_t writei = 0;
   double buf[mimium::types::fixed_delaysize];
 };
-double mimium_delayprim(double in, double time,MmmRingBuf* rbuf) {
-  auto size = sizeof(rbuf->buf)/sizeof(double);
-  rbuf->writei = (rbuf->writei+1)%size;
-  double readi = fmod((size+rbuf->writei-time),size);
+double mimium_delayprim(double in, double time, MmmRingBuf* rbuf) {
+  auto size = sizeof(rbuf->buf) / sizeof(double);
+  rbuf->writei = (rbuf->writei + 1) % size;
+  double readi = fmod((size + rbuf->writei - time), size);
   rbuf->readi = (int64_t)readi;
-  rbuf->buf[rbuf->writei]=in;
-  return access_array_lin_interp(rbuf->buf,readi);
+  rbuf->buf[rbuf->writei] = in;
+  return access_array_lin_interp(rbuf->buf, readi);
 }
-
 
 double libsndfile_loadwavsize(char* filename) {
   SF_INFO sfinfo;
@@ -77,7 +73,7 @@ double* libsndfile_loadwav(char* filename) {
   if (sfile == nullptr) { std::cerr << sf_strerror(sfile) << "\n"; }
 
   const int bufsize = sfinfo.frames * sfinfo.channels;
-  double* buffer =  new double[bufsize];
+  double* buffer = new double[bufsize];
   sf_readf_double(sfile, buffer, bufsize);
   // sf_close(sfile);
   // std::cerr<< filename << "(" << size << ") is succecfully loaded";
@@ -141,8 +137,7 @@ std::unordered_map<std::string, BuiltinFnInfo> LLVMBuiltin::ftable = {
     {"delay", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_delayprim")},
 
     {"loadwavsize", initBI(Function{Float{}, {String{}}}, "libsndfile_loadwavsize")},
-    {"loadwav", initBI(Function{Array{Float{},0}, {String{}}}, "libsndfile_loadwav")},
-
+    {"loadwav", initBI(Function{Array{Float{}, 0}, {String{}}}, "libsndfile_loadwav")},
 
     {"access_array_lin_interp",
      initBI(Function{Float{}, {Float{}, Float{}}}, "access_array_lin_interp")}

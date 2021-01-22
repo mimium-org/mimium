@@ -218,14 +218,18 @@ llvm::FunctionType* CodeGenVisitor::createDspFnType(minst::Function& i, bool has
                                                     bool hasmemobj) {
   // arguments of dsp function should be always (time, cls_ptr, memobj_ptr) regardless of existences
   // of capture &memobj.
-  auto dummytype = types::Ref{types::Float{}};
+  auto dummytype = types::Ref{types::Void{}};
   auto mmmfntype = rv::get<types::Function>(i.type);
   auto& argtypes = mmmfntype.arg_types;
+  auto insertpoint = std::next(argtypes.begin());
+  if (!std::holds_alternative<types::Void>(mmmfntype.ret_type)) {
+    insertpoint = std::next(insertpoint);
+  }
+  if (i.args.args.empty()) { argtypes.insert(insertpoint, dummytype); }
   if (!hascapture && !hasmemobj) {
     argtypes.emplace_back(dummytype);
     argtypes.emplace_back(dummytype);
   }
-  if (i.args.args.empty()) { argtypes.emplace_back(dummytype); }
   if (!hasmemobj && hascapture) { argtypes.emplace_back(dummytype); }
   if (hasmemobj && !hascapture) { argtypes.insert(std::prev(argtypes.end()), dummytype); }
 
@@ -261,6 +265,10 @@ void CodeGenVisitor::addArgstoMap(llvm::Function* f, minst::Function& i, bool ha
   for (auto& a : i.args.args) {
     arg->setName(a->name);
     registerLlvmVal(a, arg);
+    std::advance(arg, 1);
+  }
+  if (i.args.args.empty() && isdsp) {
+    arg->setName("input");
     std::advance(arg, 1);
   }
   if (hascapture) {
@@ -423,10 +431,8 @@ llvm::Value* CodeGenVisitor::operator()(minst::MakeClosure& i) {
   for (auto& cap : i.captures) {
     auto* gep = G.builder->CreateStructGEP(capture_ptr, idx++, "capture_" + mir::getName(*cap));
     auto* gepelemty = llvm::cast<llvm::PointerType>(gep->getType())->getContainedType(0);
-    auto* capval =getLlvmVal(cap);
-    if(gepelemty!=capval->getType()){
-      capval = G.builder->CreateBitCast(capval, gepelemty);
-    }
+    auto* capval = getLlvmVal(cap);
+    if (gepelemty != capval->getType()) { capval = G.builder->CreateBitCast(capval, gepelemty); }
     G.builder->CreateStore(capval, gep);
   }
 
@@ -451,6 +457,8 @@ llvm::Value* CodeGenVisitor::operator()(minst::ArrayAccess& i) {
   auto* target = getLlvmVal(i.target);
   auto* index = getLlvmVal(i.index);
   auto* arraccessfun = G.module->getFunction("access_array_lin_interp");
+  auto* dptrty = arraccessfun->getArg(0)->getType();
+  if (target->getType() != dptrty) { target = G.builder->CreateBitCast(target, dptrty); }
   return G.builder->CreateCall(arraccessfun, {target, index}, "arrayaccess");
 }
 llvm::Value* CodeGenVisitor::operator()(minst::Field& i) {
