@@ -12,9 +12,9 @@ namespace fs = std::filesystem;
 #ifndef TEST_BIN_DIR
 #define TEST_BIN_DIR ""
 #endif
-
+// NOLINTNEXTLINE
 #define REGRESSION(filename, expect)                                                          \
-  TEST(regression, filename) {                                                                \
+  TEST(regression, filename) { /*NOLINT*/                                                     \
     testing::internal::CaptureStdout();                                                       \
     fs::path testbinpath(TEST_BIN_DIR);                                                       \
     fs::current_path(testbinpath);                                                            \
@@ -73,7 +73,6 @@ REGRESSION(builtin,
 )")
 
 REGRESSION(libsndfile, "146640\n-0.0803833\n")
-
 
 REGRESSION(tuple_capture, "100\n200\n300\n")
 REGRESSION(tupletofn, "0.2\n0.8\n0.6\n2.4\n")

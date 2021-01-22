@@ -6,10 +6,12 @@
 #include "gtest/internal/gtest-port.h"
 namespace mimium {
 
-TEST(asttostring, basic) {
+TEST(asttostring, basic) {//NOLINT
   ast::DebugInfo dbg;
   auto statement = ast::makeStatement(ast::Assign{
-      dbg, ast::DeclVar{dbg, ast::Symbol{dbg,"hoge"}, std::optional(types::Float{})}, ast::makeExpr(ast::Number{dbg, 1})});
+      {{dbg}},
+      ast::DeclVar{{{dbg}}, ast::Symbol{{{dbg}}, "hoge"}, std::optional(types::Float{})},
+      ast::makeExpr(ast::Number{{{dbg}}, 1})});
   std::ostringstream ss;
   ss << *statement;
   std::string target("(assign (lvar hoge float) 1)");
