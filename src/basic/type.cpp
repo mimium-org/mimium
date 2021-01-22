@@ -4,6 +4,10 @@
 
 #include "basic/type.hpp"
 
+namespace{
+  mimium::types::ToStringVisitor tostrvisitor;//FIXWARNING
+}
+
 namespace mimium {
 namespace types {
 

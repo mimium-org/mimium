@@ -6,7 +6,9 @@
 namespace mimium {
 
 ToStringVisitor::ToStringVisitor(std::ostream& output, Mode mode)
-    : output(output), is_prettry(true) {
+    : output(output)
+// ,is_prettry(true)
+{
   this->mode = mode;
   switch (mode) {
     case Mode::Lisp: format = {"(", ")", "(", ")", " ", "\n"}; break;
@@ -143,9 +145,7 @@ void AstStringifier::toString(const ast::Lvar& ast) { std::visit(*this, ast); }
 void AstStringifier::toString(const ast::Expr& ast) { std::visit(*this, ast); }
 void AstStringifier::toString(ast::ExprPtr ast) { std::visit(*this, *ast); }
 
-void AstStringifier::toString(const ast::Statement& ast) {
-  std::visit(*this, ast);
-}
+void AstStringifier::toString(const ast::Statement& ast) { std::visit(*this, ast); }
 void AstStringifier::toString(const ast::Statements& ast) {
   for (auto&& stmt : ast) {
     toString(*stmt);

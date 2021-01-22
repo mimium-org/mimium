@@ -167,7 +167,6 @@ int GenericApp::run() {
     int res = 0;
     if (should_run) {
       auto backend = std::make_unique<AudioDriverRtAudio>();
-      bool optimize = option->runtime_option.optimize_level == OptimizeLevel::ON;
       res = runtimeMainLoop(option->runtime_option, option->input.value().filepath,
                             option->input.value().filetype, option->output_path);
     }

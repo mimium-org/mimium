@@ -26,13 +26,13 @@ void Scheduler::addTask(double time, void* addresstofn, double arg, void* addres
 
 void Scheduler::executeTask(const TaskType& task) {
   // todo
-  auto& [addresstofn, arg, addresstocls] = task;
+  const auto& [addresstofn, arg, addresstocls] = task;
 
   if (addresstocls == nullptr) {
-    auto fn = reinterpret_cast<void (*)(double)>(addresstofn);
+    auto fn = reinterpret_cast<void (*)(double)>(addresstofn);//NOLINT
     fn(arg);
   } else {
-    auto fn = reinterpret_cast<void (*)(double, void*)>(addresstofn);
+    auto fn = reinterpret_cast<void (*)(double, void*)>(addresstofn);//NOLINT
     fn(arg, addresstocls);
   }
   tasks.pop();
@@ -44,7 +44,7 @@ void Scheduler::executeTask(const TaskType& task) {
   }
 }
 
-void Scheduler::start(bool _hasdsp) { hasdsp = _hasdsp; }
+void Scheduler::start(bool hasdsp) { this->hasdsp = hasdsp; }
 
 void Scheduler::stop() {
   {

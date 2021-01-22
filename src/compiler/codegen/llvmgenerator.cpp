@@ -10,11 +10,11 @@ namespace mimium {
 
 LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx)
     : ctx(ctx),
+      curfunc(nullptr),
       module(std::make_unique<llvm::Module>("no_file_name.mmm", ctx)),
       builder(std::make_unique<llvm::IRBuilder<>>(ctx)),
       mainentry(nullptr),
       currentblock(nullptr),
-      curfunc(nullptr),
       typeconverter(std::make_unique<TypeConverter>(*builder, *module)),
       runtime_fun_names(
           {{"mimium_getnow", llvm::FunctionType::get(getDoubleTy(), {geti8PtrTy()}, false)},
@@ -65,9 +65,9 @@ void LLVMGenerator::switchToMainFun() {
   curfunc = mainentry->getParent();
 }
 llvm::Function* LLVMGenerator::getForeignFunction(const std::string& name) {
-  auto& [type, targetname] = LLVMBuiltin::ftable.find(name)->second;
+  const auto& [type, targetname] = LLVMBuiltin::ftable.find(name)->second;
   auto ftype = rv::get<types::Function>(type);
-  if (name == "delay") { ftype.arg_types.emplace_back(types::Ref{types::delaystruct}); }
+  if (name == "delay") { ftype.arg_types.emplace_back(types::Ref{types::getDelayStruct()}); }
   if (!types::isPrimitive(ftype.ret_type)) {
     // for loadwavfile
     ftype.ret_type = types::Ref{ftype.ret_type};
@@ -232,8 +232,9 @@ void LLVMGenerator::createRuntimeSetDspFn(llvm::Type* memobjtype) {
       llvm::FunctionType::get(
           builder->getVoidTy(),
           {voidptrtype, voidptrtype, voidptrtype, voidptrtype, int32ty, int32ty}, false));
-  auto* inchs_const = getConstInt(runtime_dspfninfo.in_numchs, 32);
-  auto* outchs_const = getConstInt(runtime_dspfninfo.out_numchs, 32);
+  constexpr int bitsize = 32;
+  auto* inchs_const = getConstInt(runtime_dspfninfo.in_numchs, bitsize);
+  auto* outchs_const = getConstInt(runtime_dspfninfo.out_numchs, bitsize);
 
   builder->CreateCall(setdsp, {getRuntimeInstance(), dspfnaddress, dspclsaddress, dspmemobjaddress,
                                inchs_const, outchs_const});

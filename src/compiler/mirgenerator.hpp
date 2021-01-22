@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
+#include <utility>
+
 #include "basic/mir.hpp"
 #include "compiler/ffi.hpp"
 #include "compiler/type_infer_visitor.hpp"
@@ -16,7 +18,7 @@ class MirGenerator {
   struct ExprKnormVisitor : public VisitorBase<mir::valueptr&> {
     explicit ExprKnormVisitor(MirGenerator& parent, mir::blockptr block,
                               const std::optional<mir::valueptr>& fnctx)
-        : mirgen(parent), block(block), fnctx(fnctx) {}
+        : mirgen(parent), fnctx(fnctx), block(std::move(block)) {}
     mir::valueptr operator()(ast::Op& ast);
     mir::valueptr operator()(ast::Number& ast);
     mir::valueptr operator()(ast::String& ast);
@@ -68,9 +70,9 @@ class MirGenerator {
   };
   struct StatementKnormVisitor {
     explicit StatementKnormVisitor(ExprKnormVisitor& evisitor)
-        : exprvisitor(evisitor),
+        : retvalue(std::nullopt),
+          exprvisitor(evisitor),
           mirgen(evisitor.mirgen),
-          retvalue(std::nullopt),
           fnctx(exprvisitor.fnctx) {}
 
     void operator()(ast::Assign& ast);

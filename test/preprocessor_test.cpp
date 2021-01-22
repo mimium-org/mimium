@@ -7,7 +7,7 @@ namespace fs = std::filesystem;
 #define TEST_ROOT_DIR "\"\""
 #endif
 
-TEST(preprocessor, include) {
+TEST(preprocessor, include) {//NOLINT
   fs::path root = TEST_ROOT_DIR;
   fs::path pptest_path = root / "preprocessor";
   fs::path includer = pptest_path / "includer.mmm";

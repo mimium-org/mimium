@@ -15,8 +15,8 @@ types::Value ExprTypeVisitor::operator()(ast::Op& ast) {
   return ast.lhs.has_value() ? inferer.unify(infer(ast.lhs.value()), infer(ast.rhs))
                              : infer(ast.rhs);
 }
-types::Value ExprTypeVisitor::operator()(ast::Number& ast) { return types::Float{}; }
-types::Value ExprTypeVisitor::operator()(ast::String& ast) { return types::String{}; }
+types::Value ExprTypeVisitor::operator()(ast::Number&  /*ast*/) { return types::Float{}; }
+types::Value ExprTypeVisitor::operator()(ast::String&  /*ast*/) { return types::String{}; }
 types::Value ExprTypeVisitor::operator()(ast::Symbol& ast) {
   return inferer.typeenv.find(ast.value);
 }
@@ -178,7 +178,7 @@ types::Value StatementTypeVisitor::operator()(ast::Time& ast) {
 
 types::Value TypeInferer::addDeclVar(ast::DeclVar& lvar) {
   auto res = lvar.type.value_or(*typeenv.createNewTypeVar());
-  auto [iter, was_newvar] = typeenv.emplace(lvar.value.value, res);
+  typeenv.emplace(lvar.value.value, res);
   return res;
 }
 
@@ -237,9 +237,10 @@ types::Value TypeUnifyVisitor::unify(types::rStruct s1, types::rStruct s2) {
   // TODO(tomoya)
   return s1;
 }
-types::Value TypeUnifyVisitor::unify(types::rTuple f1, types::rTuple f2) {
-  // TODO(tomoya)
-  return f1;
+types::Value TypeUnifyVisitor::unify(types::rTuple t1, types::rTuple t2) {
+  auto lhs = t1.getraw();
+  auto rhs = t2.getraw();
+  return types::Tuple{unifyArgs(lhs.arg_types, rhs.arg_types)};
 }
 std::vector<types::Value> TypeUnifyVisitor::unifyArgs(std::vector<types::Value>& v1,
                                                       std::vector<types::Value>& v2) {
@@ -268,7 +269,7 @@ TypeEnv& TypeInferer::infer(ast::Statements& topast) {
 }
 void TypeInferer::substituteTypeVars() {
   for (auto&& [key, t] : typeenv.env) {
-    auto [iter, replaced] = typeenv.env.insert_or_assign(key, std::visit(substitutevisitor, t));
+    typeenv.env.insert_or_assign(key, std::visit(substitutevisitor, t));
   }
 }
 

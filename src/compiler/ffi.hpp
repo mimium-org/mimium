@@ -22,7 +22,7 @@ inline BuiltinFnInfo initBI(types::Function&& f, std::string&& s) {
 }
 
 struct LLVMBuiltin {
-  static std::unordered_map<std::string, BuiltinFnInfo> ftable;
+  const static std::unordered_map<std::string, BuiltinFnInfo> ftable;
   static bool isBuiltin(std::string fname) { return LLVMBuiltin::ftable.count(fname) > 0; }
 };
 

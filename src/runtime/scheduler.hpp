@@ -20,10 +20,10 @@ struct TaskType {
 
 class Scheduler {  // scheduler interface
  public:
-  explicit Scheduler() : wc(), time(0) {}
+  explicit Scheduler() : wc() {}
 
   virtual ~Scheduler() = default;
-  virtual void start(bool _hasdsp);
+  virtual void start(bool hasdsp);
   virtual void stop();
 
   bool hasTask() { return !tasks.empty(); }
@@ -34,7 +34,7 @@ class Scheduler {  // scheduler interface
   // time,address to fun, arg(double), addresstoclosure,
   void addTask(double time, void* addresstofn, double arg, void* addresstocls);
 
-  //if dsp function exists
+  // if dsp function exists
   bool hasdsp = false;
   [[nodiscard]] auto getTime() const { return time; }
   auto& getWaitController() { return wc; }

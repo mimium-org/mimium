@@ -12,7 +12,7 @@ void setDspParams(void* runtimeptr, void* dspfn, void* clsaddress, void* memobja
   auto* runtime = static_cast<mimium::Runtime*>(runtimeptr);
   auto& audiodriver = runtime->getAudioDriver();
   auto p = std::make_unique<mimium::DspFnInfos>(mimium::DspFnInfos{
-      reinterpret_cast<mimium::DspFnPtr>(dspfn), clsaddress, memobjaddress, in_numchs, out_numchs});
+      reinterpret_cast<mimium::DspFnPtr>(dspfn), clsaddress, memobjaddress, in_numchs, out_numchs});//NOLINT
   audiodriver.setDspFnInfos(std::move(p));
 }
 
@@ -43,15 +43,15 @@ void* mimium_malloc(void* runtimeptr, size_t size) {
 
 namespace mimium {
 Runtime_LLVM::Runtime_LLVM(std::unique_ptr<llvm::LLVMContext> ctx,
-                           std::unique_ptr<llvm::Module> module, std::string const& filename_i,
+                           std::unique_ptr<llvm::Module> module, std::string const&  /*filename_i*/,
                            std::unique_ptr<AudioDriver> a, bool optimize)
-    : Runtime(filename_i, std::move(a)), module(std::move(module)) {
+    : Runtime(std::move(a)), module(std::move(module)) {
   init(std::move(ctx), optimize);
 }
 
 Runtime_LLVM::Runtime_LLVM(std::string const& filepath, std::unique_ptr<AudioDriver> a,
                            bool optimize)
-    : Runtime(filepath, std::move(a)) {
+    : Runtime(std::move(a)) {
   auto ctx = std::make_unique<llvm::LLVMContext>();
   llvm::SMDiagnostic errorreporter;
   module = llvm::parseIRFile(filepath, errorreporter, *ctx);

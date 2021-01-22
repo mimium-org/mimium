@@ -112,8 +112,9 @@ struct Pointer {
   Value val;
 };
 inline bool operator==(const Pointer& t1, const Pointer& t2) { return t1.val == t2.val; }
-//Helper function to make pointer to pointer type
-//Because nested aggregate initialization like Pointer{Pointer{Float}} interpreted as copy construction.
+// Helper function to make pointer to pointer type
+// Because nested aggregate initialization like Pointer{Pointer{Float}} interpreted as copy
+// construction.
 inline auto makePointer(types::Value&& t) {
   types::Pointer res;
   res.val = std::forward<types::Value>(t);
@@ -122,9 +123,8 @@ inline auto makePointer(types::Value&& t) {
 inline auto makePointer(types::Value const& t) {
   types::Pointer res;
   res.val = t;
-  return std::move(res);
+  return res;
 }
-
 
 struct Function {
   Value ret_type;
@@ -153,9 +153,7 @@ inline bool operator==(const Array& t1, const Array& t2) {
   return (t1.elem_type == t2.elem_type) && (t1.size == t2.size);
 }
 
-inline bool isArraySizeVariable(const Array& arr){
-  return arr.size==0;
-}
+inline bool isArraySizeVariable(const Array& arr) { return arr.size == 0; }
 
 struct Tuple {
   std::vector<Value> arg_types;
@@ -203,9 +201,10 @@ bool operator!=(T t1, T t2) {
 }
 
 constexpr size_t fixed_delaysize = 44100;
-inline static auto delaystruct = types::Alias{
-    "MmmRingBuf",
-    types::Tuple{{types::Float{}, types::Float{}, types::Array{types::Float{}, fixed_delaysize}}}};
+inline auto getDelayStruct(){
+  return types::Alias{"MmmRingBuf", types::Tuple{{types::Float{}, types::Float{},
+                                                  types::Array{types::Float{}, fixed_delaysize}}}};
+};
 
 struct ToStringVisitor {
   bool verbose = false;
@@ -220,11 +219,11 @@ struct ToStringVisitor {
     }
     return res;
   }
-  std::string operator()(None) const { return "none"; }
+  std::string operator()(None /*unused*/) const { return "none"; }
   std::string operator()(const TypeVar& v) const { return "TypeVar" + std::to_string(v.index); }
-  std::string operator()(Void) const { return "void"; }
-  std::string operator()(Float) const { return "float"; }
-  std::string operator()(String) const { return "string"; }
+  std::string operator()(Void /*unused*/) const { return "void"; }
+  std::string operator()(Float /*unused*/) const { return "float"; }
+  std::string operator()(String /*unused*/) const { return "string"; }
   std::string operator()(const Ref& r) const { return std::visit(*this, r.val) + "&"; }
   std::string operator()(const Pointer& r) const { return std::visit(*this, r.val) + "*"; }
   std::string operator()(const Function& f) const {
@@ -238,7 +237,9 @@ struct ToStringVisitor {
   }
   std::string operator()(const Struct& s) const {
     std::string str = "{";
-    for (auto& arg : s.arg_types) { str += arg.field + ":" + std::visit(*this, arg.val) + ","; }
+    for (const auto& arg : s.arg_types) {
+      str += arg.field + ":" + std::visit(*this, arg.val) + ",";
+    }
     return str.substr(0, str.size() - 1) + "}";
   }
   std::string operator()(const Tuple& t) const { return "(" + join(t.arg_types, ",") + ")"; }
@@ -250,7 +251,6 @@ struct ToStringVisitor {
   }
 };
 
-static ToStringVisitor tostrvisitor;
 std::string toString(const Value& v, bool verbose = false);
 void dump(const Value& v, bool verbose = false);
 
@@ -280,7 +280,7 @@ class TypeEnv {
   std::deque<types::Value> tv_container;
   std::shared_ptr<types::TypeVar> createNewTypeVar() {
     auto res = std::make_shared<types::TypeVar>(typeid_count++);
-    tv_container.push_back(*res);
+    tv_container.emplace_back(*res);
     return res;
   }
   types::Value& findTypeVar(int tindex) { return tv_container[tindex]; }

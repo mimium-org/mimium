@@ -55,4 +55,4 @@ class CliApp {
   CliAppMode mode = CliAppMode::Run;
 };
 
-}  // namespace mimium::cl
+}  // namespace mimium::app::cli

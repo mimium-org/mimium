@@ -5,7 +5,7 @@
 #include "gtest/internal/gtest-port.h"
 
 namespace mimium {
-TEST(symbolrename, astcomplete) {
+TEST(symbolrename, astcomplete) {//NOLINT
   Driver driver{};
   auto ast = driver.parseFile(TEST_ROOT_DIR "/ast_complete.mmm");
   SymbolRenamer renamer;

@@ -15,7 +15,7 @@
   auto& env = inferer.infer(*newast);                         \
   MirGenerator mirgenerator(env);
 
-TEST(mirgen, basic) {
+TEST(mirgen, basic) {//NOLINT
   PREP(test_localvar)
   auto mir = mirgenerator.generate(*newast);
   std::string target = R"(root:
