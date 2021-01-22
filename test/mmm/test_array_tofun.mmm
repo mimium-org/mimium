@@ -1,0 +1,10 @@
+arr = [500,400,300,200,100]
+
+fn getelem(a,idx){
+    return a[idx]
+}
+println(getelem(arr,4))
+println(getelem(arr,3))
+println(getelem(arr,2))
+println(getelem(arr,1))
+println(getelem(arr,0))

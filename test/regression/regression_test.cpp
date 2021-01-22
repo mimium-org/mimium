@@ -80,3 +80,4 @@ REGRESSION(tupletofn, "0.2\n0.8\n0.6\n2.4\n")
 
 REGRESSION(array, "100\n200\n300\n400\n500\n")
 REGRESSION(array_capture, "100\n200\n300\n400\n500\n")
+REGRESSION(array_tofun, "100\n200\n300\n400\n500\n")

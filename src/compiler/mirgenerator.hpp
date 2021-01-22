@@ -45,6 +45,7 @@ class MirGenerator {
     mir::valueptr genFcallInst(ast::Fcall& fcall, optvalptr const& when);
 
     const std::optional<mir::valueptr>& fnctx;
+
    private:
     std::pair<optvalptr, mir::blockptr> genIfBlock(ast::ExprPtr& block, std::string const& label);
 
@@ -67,8 +68,11 @@ class MirGenerator {
   };
   struct StatementKnormVisitor {
     explicit StatementKnormVisitor(ExprKnormVisitor& evisitor)
-        : exprvisitor(evisitor), mirgen(evisitor.mirgen), retvalue(std::nullopt),fnctx(exprvisitor.fnctx) {}
-        
+        : exprvisitor(evisitor),
+          mirgen(evisitor.mirgen),
+          retvalue(std::nullopt),
+          fnctx(exprvisitor.fnctx) {}
+
     void operator()(ast::Assign& ast);
     void operator()(ast::Fdef& ast);
     void operator()(ast::Return& ast);
@@ -123,7 +127,8 @@ class MirGenerator {
   std::function<std::shared_ptr<mir::Argument>(ast::DeclVar&)> make_arguments =
       [&](ast::DeclVar& lvar) {
         auto& name = lvar.value.value;
-        auto& type = typeenv.find(name);
+        auto type = typeenv.find(name);
+        if (!isPassByValue(type)) { type = types::makePointer(type); }
         auto res = std::make_shared<mir::Argument>(mir::Argument{name, type});
         symbol_table.emplace(name, std::make_shared<mir::Value>(res));
         return res;

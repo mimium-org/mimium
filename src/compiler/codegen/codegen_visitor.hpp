@@ -39,6 +39,8 @@ struct CodeGenVisitor {
   void registerLlvmVal(std::shared_ptr<mir::Argument> mirval, llvm::Value* llvmval);
 
   llvm::Value* getLlvmVal(mir::valueptr mirval);
+  llvm::Value* getLlvmValForFcallArgs(mir::valueptr mirval);
+
   std::unordered_map<mir::valueptr, llvm::Value*> mir_to_llvm;
 
   std::unordered_map<mir::valueptr, llvm::Value*> mirfv_to_llvm;

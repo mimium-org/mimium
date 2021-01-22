@@ -95,6 +95,18 @@ llvm::Value* CodeGenVisitor::getLlvmVal(mir::valueptr mirval) {
   return res;
 }
 
+llvm::Value* CodeGenVisitor::getLlvmValForFcallArgs(mir::valueptr mirval) {
+  auto* val = getLlvmVal(mirval);
+  if (val->getType()->isPointerTy()) {
+    auto* ptrty = llvm::cast<llvm::PointerType>(val->getType());
+    if (ptrty->getElementType()->isArrayTy()) {
+      auto* arrty = llvm::cast<llvm::ArrayType>(ptrty->getElementType());
+      return G.builder->CreateBitCast(val, llvm::PointerType::get(arrty->getElementType(), 0));
+    }
+  }
+  return val;
+}
+
 llvm::Value* CodeGenVisitor::createAllocation(bool isglobal, llvm::Type* type,
                                               llvm::Value* array_size = nullptr,
                                               const llvm::Twine& name = "") {
@@ -353,7 +365,7 @@ llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
   }
 
   std::transform(i.args.begin(), i.args.end(), std::back_inserter(args),
-                 [&](mir::valueptr v) { return getLlvmVal(v); });
+                 [&](mir::valueptr v) { return getLlvmValForFcallArgs(v); });
   if (isclosure) {
     auto* capptr = isrecursive
                        ? std::prev(G.curfunc->arg_end(), (hasmemobj) ? 2 : 1)
