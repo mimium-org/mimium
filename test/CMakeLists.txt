@@ -32,10 +32,9 @@ endif()
 target_link_libraries(UnitTest
   PRIVATE
     gtest_main
-    mimium_utils
+    mimium
     mimium_preprocessor
-    mimium_compiler
-    LLVMCore
+    mimium_cli
   )
 
 add_test(Name UnitTest Command "ASAN_OPTIONS=detect_container_overflow=0 ${CMAKE_CURRENT_BINARY_DIR}/UnitTest")
