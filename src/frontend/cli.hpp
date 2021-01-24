@@ -35,10 +35,10 @@ class CliApp {
   class OptionParser {
    public:
     OptionParser();
-    std::pair<AppOption,CliAppMode> operator()(int argc, char** argv);
+    std::pair<AppOption,CliAppMode> operator()(int argc, const char** argv);
 
    private:
-    static std::vector<std::string_view> initRawArgs(int argc, char** argv);
+    static std::vector<std::string_view> initRawArgs(int argc, const char** argv);
     void processArgs(ArgKind arg, std::string_view val);
     static bool isArgOption(std::string_view str);
     const std::vector<std::string_view> args;
@@ -46,7 +46,7 @@ class CliApp {
     CliAppMode res_mode;
   };
 
-  explicit CliApp(int argc, char** argv);
+  explicit CliApp(int argc, const char** argv);
   int run();
   std::ostream& printHelp(std::ostream& out = std::cerr) const;
 
