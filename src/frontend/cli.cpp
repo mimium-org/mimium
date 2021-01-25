@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
+#include "./errors.hpp"
 #include "cli.hpp"
 
 namespace {
@@ -80,7 +80,7 @@ Debug Informations (if no output file specified, emit to stdout.)
 std::vector<std::string_view> CliApp::OptionParser::initRawArgs(int argc, const char** argv) {
   std::vector<std::string_view> args;
   args.resize(argc);
-  for (int idx = 0; idx < argc; idx++) { args[idx] = argv[idx]; }//NOLINT
+  for (int idx = 0; idx < argc; idx++) { args[idx] = argv[idx]; }  // NOLINT
   return args;
 }
 
@@ -122,7 +122,13 @@ std::pair<AppOption, CliAppMode> CliApp::OptionParser::operator()(int argc, cons
       if (kind == ArgKind::Invalid) {
         Logger::debug_log("Unknown Argument Type: " + std::string(a), Logger::WARNING);
       }
-      if (isArgPaired(kind)) { iter++; }
+      if (isArgPaired(kind)) {
+        iter++;
+        if (iter == args.cend()) {
+          throw CliAppError("An argument to option " + std::string(a) +
+                                   "was not specified.");
+        }
+      }
       processArgs(kind, *iter);
     } else {
       auto [path, type] = getFilePath(a);
