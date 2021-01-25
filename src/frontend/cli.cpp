@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
+#include "./errors.hpp"
 #include "cli.hpp"
 
 namespace {
@@ -77,10 +77,10 @@ Debug Informations (if no output file specified, emit to stdout.)
   return out;
 }
 
-std::vector<std::string_view> CliApp::OptionParser::initRawArgs(int argc, char** argv) {
+std::vector<std::string_view> CliApp::OptionParser::initRawArgs(int argc, const char** argv) {
   std::vector<std::string_view> args;
   args.resize(argc);
-  for (int idx = 0; idx < argc; idx++) { args[idx] = argv[idx]; }//NOLINT
+  for (int idx = 0; idx < argc; idx++) { args[idx] = argv[idx]; }  // NOLINT
   return args;
 }
 
@@ -111,7 +111,7 @@ bool CliApp::OptionParser::isArgOption(std::string_view str) {
 
 CliApp::OptionParser::OptionParser() : result(), res_mode(CliAppMode::Run){};
 
-std::pair<AppOption, CliAppMode> CliApp::OptionParser::operator()(int argc, char** argv) {
+std::pair<AppOption, CliAppMode> CliApp::OptionParser::operator()(int argc, const char** argv) {
   auto args = initRawArgs(argc, argv);
   auto iter = args.cbegin();
   std::advance(iter, 1);  // skip application name;
@@ -122,7 +122,13 @@ std::pair<AppOption, CliAppMode> CliApp::OptionParser::operator()(int argc, char
       if (kind == ArgKind::Invalid) {
         Logger::debug_log("Unknown Argument Type: " + std::string(a), Logger::WARNING);
       }
-      if (isArgPaired(kind)) { iter++; }
+      if (isArgPaired(kind)) {
+        iter++;
+        if (iter == args.cend()) {
+          throw CliAppError("An argument to option " + std::string(a) +
+                                   "was not specified.");
+        }
+      }
       processArgs(kind, *iter);
     } else {
       auto [path, type] = getFilePath(a);
@@ -134,7 +140,7 @@ std::pair<AppOption, CliAppMode> CliApp::OptionParser::operator()(int argc, char
   return std::make_pair(std::move(this->result), this->res_mode);
 }
 
-CliApp::CliApp(int argc, char** argv) : app(nullptr) {
+CliApp::CliApp(int argc, const char** argv) : app(nullptr) {
   auto [option, climode] = OptionParser()(argc, argv);
   this->app = std::make_unique<GenericApp>(std::make_unique<AppOption>(std::move(option)));
   this->mode = climode;
