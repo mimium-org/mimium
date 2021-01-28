@@ -3,13 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
+#include "export.hpp"
 #include "RtAudio.h"
 #include "runtime/backend/audiodriver.hpp"
 
 namespace mimium {
 class Scheduler;
 
-class AudioDriverRtAudio : public AudioDriver {
+class MIMIUM_DLL_PUBLIC AudioDriverRtAudio : public AudioDriver {
   std::unique_ptr<RtAudio> rtaudio;
   RtAudio::StreamParameters rtaudio_params_input;
   RtAudio::StreamParameters rtaudio_params_output;

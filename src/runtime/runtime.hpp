@@ -5,16 +5,18 @@
 #pragma once
 
 #include <list>
+#include "export.hpp"
 
 #include "basic/helper_functions.hpp"
 #include "runtime/runtime_defs.hpp"
 #include "runtime/scheduler.hpp"
+
 namespace mimium {
 class AudioDriver;
 
-class Runtime {
+class MIMIUM_DLL_PUBLIC Runtime {
  public:
-  explicit Runtime(std::unique_ptr<AudioDriver> a=nullptr):audiodriver(std::move(a))  {}
+   explicit Runtime(std::unique_ptr<AudioDriver> a=nullptr):audiodriver(std::move(a))  {}
 
   virtual ~Runtime() {
     for (auto&& [address, size] : malloc_container) { free(address); }

@@ -20,7 +20,7 @@ ToStringVisitor::ToStringVisitor(std::ostream& output, Mode mode)
 void AstStringifier::operator()(const ast::Number& ast) { output << ast.value; }
 void AstStringifier::operator()(const ast::String& ast) { output << ast.value; }
 void AstStringifier::operator()(const ast::Op& ast) {
-  output << format.lpar << ast::op_str.at(ast.op);
+  output << format.lpar << ast::getOpString(ast.op);
   if (ast.lhs.has_value()) {
     output << format.delim;
     toString(ast.lhs.value());

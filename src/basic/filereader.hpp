@@ -5,6 +5,7 @@
 #pragma once
 #include <filesystem>
 #include <fstream>
+#include "export.hpp"
 namespace mimium {
 namespace fs = std::filesystem;
 
@@ -26,7 +27,7 @@ struct Source {
 FileType getFileTypeByExt(std::string_view ext);
 std::pair<fs::path, FileType> getFilePath(std::string_view val);
 
-class FileReader {
+class MIMIUM_DLL_PUBLIC FileReader {
  public:
   explicit FileReader(fs::path cwd);
   Source loadFile(std::string const& path);

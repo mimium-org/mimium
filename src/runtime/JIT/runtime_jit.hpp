@@ -3,12 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
+#include "export.hpp"
 #include "runtime/JIT/jit_engine.hpp"
 #include "runtime/backend/audiodriver.hpp"
 
 namespace mimium {
 
-class Runtime_LLVM : public Runtime, public std::enable_shared_from_this<Runtime_LLVM> {
+class MIMIUM_DLL_PUBLIC Runtime_LLVM : public Runtime, public std::enable_shared_from_this<Runtime_LLVM> {
  public:
   explicit Runtime_LLVM(std::unique_ptr<llvm::LLVMContext> ctx, std::unique_ptr<llvm::Module>,
                         std::string const& filename = "untitled.mmm",
@@ -29,7 +30,7 @@ class Runtime_LLVM : public Runtime, public std::enable_shared_from_this<Runtime
   std::unique_ptr<llvm::orc::MimiumJIT> jitengine;
 };
 
-extern "C" {
+MIMIUM_DLL_PUBLIC extern "C" {
 void setDspParams(void* runtimeptr, void* dspfn, void* clsaddress, void* memobjaddress,
                   int in_numchs, int out_numchs);
 void addTask(void* runtimeptr, double time, void* addresstofn, double arg);

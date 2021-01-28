@@ -4,6 +4,7 @@
 
 #pragma once
 #define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
+#include "export.hpp"
 #include <initializer_list>
 #include <unordered_map>
 
@@ -21,7 +22,7 @@ inline BuiltinFnInfo initBI(types::Function&& f, std::string&& s) {
   return BuiltinFnInfo{std::move(f), std::move(s)};
 }
 
-struct LLVMBuiltin {
+struct MIMIUM_DLL_PUBLIC LLVMBuiltin {
   const static std::unordered_map<std::string, BuiltinFnInfo> ftable;
   static bool isBuiltin(std::string fname) { return LLVMBuiltin::ftable.count(fname) > 0; }
 };

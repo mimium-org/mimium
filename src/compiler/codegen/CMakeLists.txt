@@ -11,5 +11,4 @@ ${LLVM_INCLUDE_DIRS}
 target_link_libraries(mimium_llvm_codegen 
 PRIVATE 
 mimium_utils mimium_builtinfn 
-PUBLIC
 ${LLVM_LIBRARIES})

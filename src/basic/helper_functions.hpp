@@ -19,7 +19,7 @@
 #include <utility>  //pair
 #include <variant>
 #include <vector>
-
+#include "export.hpp"
 #include "variant_visitor_helper.hpp"
 
 #ifdef _WIN32
@@ -150,7 +150,7 @@ size_t getAddressfromFun(std::function<T(U...)> f) {
   return (size_t)*fnPointer;
 }
 
-class Logger {
+class MIMIUM_DLL_PUBLIC Logger {
  public:
   Logger() {
     setoutput(std::cerr);

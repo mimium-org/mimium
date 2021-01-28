@@ -8,7 +8,7 @@
 
 namespace mimium {
 
-class AudioDriver {
+class MIMIUM_DLL_PUBLIC AudioDriver {
  protected:
   std::unique_ptr<AudioDriverParams> params;
   std::unique_ptr<DspFnInfos> dspfninfos;

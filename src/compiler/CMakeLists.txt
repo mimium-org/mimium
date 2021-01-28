@@ -4,7 +4,7 @@ find_package(SndFile REQUIRED)
 
 #TODO: use ffi in mimium_llloader, mimium_builtinfn must be shared library.
 # currently, it fails link dynamically on Windows. 
-add_library(mimium_builtinfn STATIC ffi.cpp)
+add_library(mimium_builtinfn SHARED ffi.cpp)
 target_compile_features(mimium_builtinfn PRIVATE cxx_std_17)
 target_include_directories(mimium_builtinfn
 PRIVATE
@@ -35,7 +35,7 @@ PRIVATE
 ${MIMIUM_SOURCE_DIR}
 )
 
-add_library(mimium_compiler STATIC 
+add_library(mimium_compiler SHARED
 symbolrenamer.cpp 
 mirgenerator.cpp 
 type_infer_visitor.cpp 
@@ -54,6 +54,7 @@ target_link_libraries(mimium_compiler PUBLIC
 mimium_parser
 mimium_llvm_codegen 
 mimium_utils
+mimium_filereader
 mimium_builtinfn)
 
 install(TARGETS mimium_compiler mimium_builtinfn DESTINATION lib)

@@ -3,6 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
+
+#include "export.hpp"
+
 #include "basic/ast.hpp"
 #include "basic/helper_functions.hpp"
 #include "basic/mir.hpp"
@@ -18,7 +21,7 @@
 
 namespace mimium {
 // compiler class  that load source code,analyze, and emit llvm IR.
-class Compiler {
+class MIMIUM_DLL_PUBLIC Compiler {
  public:
   Compiler();
   explicit Compiler(std::unique_ptr<llvm::LLVMContext> ctx);

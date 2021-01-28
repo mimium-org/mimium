@@ -6,7 +6,7 @@
 
 #include <queue>
 #include <utility>
-
+#include "export.hpp"
 #include "basic/helper_functions.hpp"
 // #include "sndfile.h"
 
@@ -18,7 +18,7 @@ struct TaskType {
   void* addresstocls;
 };
 
-class Scheduler {  // scheduler interface
+class MIMIUM_DLL_PUBLIC Scheduler {  // scheduler interface
  public:
   explicit Scheduler() : wc() {}
 
