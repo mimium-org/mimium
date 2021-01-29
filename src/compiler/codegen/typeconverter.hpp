@@ -4,13 +4,17 @@
 
 #pragma once
 #include "basic/type.hpp"
-#include "compiler/codegen/llvm_header.hpp"
-
+namespace llvm{
+  class Type;
+  class Module;
+  class IRBuilderBase;
+}
 namespace mimium {
+
 struct TypeConverter {
-  explicit TypeConverter(llvm::IRBuilder<>& b, llvm::Module& m)
+  explicit TypeConverter(llvm::IRBuilderBase& b, llvm::Module& m)
       : builder(b), module(m), tmpname(""){};
-  llvm::IRBuilder<>& builder;
+  llvm::IRBuilderBase& builder;
   llvm::Module& module;
   std::string tmpname;
   std::unordered_map<std::string, llvm::Type*> aliasmap;

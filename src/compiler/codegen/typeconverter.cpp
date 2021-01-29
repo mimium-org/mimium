@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #include "compiler/codegen/typeconverter.hpp"
+#include "compiler/codegen/llvm_header.hpp"
 
 namespace mimium {
 
