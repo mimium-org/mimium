@@ -4,52 +4,14 @@
 
 #pragma once
 #include <csignal>
-#include "basic/filereader.hpp"
 #include "libmain.hpp"
+#include "appoptions.hpp"
 namespace mimium::app {
 
 
-enum class CompileStage {
-  Parse = 0,
-  SymbolRename,
-  TypeInference,
-  MirEmit,
-  ClosureConvert,
-  MemobjCollect,
-  Codegen,
-  Run
-};
-
-enum class ExecutionEngine {
-  Invalid = -1,
-  LLVM = 0,
-  // not implemented
-  Interpreter,
-  WebAssembly
-};
 ExecutionEngine getExecutionEngine(std::string_view val);
 
-enum class BackEnd { Invalid = -1, API, Test, RtAudio };
 BackEnd getBackEnd(std::string_view val);
-
-enum class OptimizeLevel { ON, OFF };
-
-struct CompileOption {
-  CompileStage stage = CompileStage::Run;
-};
-
-struct RuntimeOption {
-  ExecutionEngine engine = ExecutionEngine::LLVM;
-  BackEnd backend = BackEnd::RtAudio;
-  OptimizeLevel optimize_level;
-};
-struct AppOption {
-  CompileOption compile_option;
-  RuntimeOption runtime_option;
-  std::optional<Source> input=std::nullopt;
-  std::optional<fs::path> output_path;
-  bool is_verbose = false;
-};
 
 class GenericApp {
  public:

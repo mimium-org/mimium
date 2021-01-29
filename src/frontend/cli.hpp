@@ -6,7 +6,10 @@
 
 #include <utility>
 #include <unordered_map>
+#include <iostream>
+#include <vector>
 
+#include "appoptions.hpp"
 namespace mimium::app{
 class GenericApp;
 namespace cli{
