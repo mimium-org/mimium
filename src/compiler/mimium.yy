@@ -28,28 +28,27 @@
 %}
 
 %code requires{
-   namespace mmmpsr {
-      // class MimiumDriver;
-      class MimiumScanner;
-   }
-   namespace mimium {
-      class Driver;
-   }
-  #include <memory>
-  #include <sstream>
+#include <memory>
+#include <sstream>
 
 #include "basic/ast.hpp"
 #include "basic/helper_functions.hpp"
-using namespace mimium;
+#include "compiler/ast_loader.hpp"
 
-  #define YYDEBUG 1
+namespace mimium{
+ class MimiumScanner;
+}
+
+
+#define YYDEBUG 1
 
 }
-%parse-param { mmmpsr::MimiumScanner &scanner  }
+%parse-param { mimium::MimiumScanner &scanner  }
 %parse-param { Driver  &driver  }
 
 %code {
   using namespace mimium;
+  #include "compiler/scanner.hpp"
   #include "compiler/ast_loader.hpp"
   #undef yylex
   #define yylex scanner.yylex

@@ -3,6 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #include "compiler/compiler.hpp"
+
+#include "compiler/scanner.hpp"
+
 namespace mimium {
 Compiler::Compiler()
     : llvmctx(std::make_unique<llvm::LLVMContext>()),

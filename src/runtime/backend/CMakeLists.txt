@@ -1,8 +1,9 @@
-add_library(mimium_audiodriver STATIC audiodriver.cpp)
+add_library(mimium_audiodriver SHARED audiodriver.cpp)
 
 target_include_directories(mimium_audiodriver
-PUBLIC
-${MIMIUM_SOURCE_DIR}
+PRIVATE
+$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/mimium>
+$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
 )
 target_compile_features(mimium_audiodriver PUBLIC cxx_std_17)
 target_link_libraries(mimium_audiodriver PRIVATE

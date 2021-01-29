@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 # set_property(GLOBAL PROPERTY GLOBAL_DEPENDS_DEBUG_MODE 1)
 
-set(MIMIUM_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 add_subdirectory(basic)
 add_subdirectory(preprocessor)
 add_subdirectory(compiler)
@@ -10,8 +9,12 @@ add_subdirectory(runtime)
 add_library(mimium SHARED libmain.cpp)
 target_compile_options(mimium PUBLIC -std=c++17)
 target_compile_definitions(mimium PUBLIC MIMIUM_VERSION=\"${CMAKE_PROJECT_VERSION}\")
-target_include_directories(mimium PUBLIC
-${MIMIUM_SOURCE_DIR})
+target_include_directories(mimium
+INTERFACE
+$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/mimium>
+PRIVATE
+$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+)
 
 target_compile_options(mimium PUBLIC
 -fvisibility=hidden
@@ -37,7 +40,15 @@ set_target_properties(mimium_exe PROPERTIES OUTPUT_NAME mimium)
 target_link_libraries(mimium_exe mimium_cli)
 
 
-install (TARGETS mimium_exe
+install (TARGETS     
+            mimium_compiler
+            mimium_runtime_jit
+            mimium_scheduler
+            mimium_audiodriver
+            mimium_backend_rtaudio
+            mimium_builtinfn 
+            mimium_filereader
+            mimium mimium_exe
         EXPORT  mimium-export
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib

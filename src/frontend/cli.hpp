@@ -3,9 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
-#include "genericapp.hpp"
 
-namespace mimium::app::cli{
+#include <utility>
+#include <unordered_map>
+
+namespace mimium::app{
+class GenericApp;
+namespace cli{
 
 
 enum class ArgKind {
@@ -55,4 +59,5 @@ class CliApp {
   CliAppMode mode = CliAppMode::Run;
 };
 
-}  // namespace mimium::app::cli
+}  // namespace cli
+  }  // namespace mimium::app

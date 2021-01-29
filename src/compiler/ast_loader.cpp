@@ -4,24 +4,23 @@
 #include "compiler/ast_loader.hpp"
 #include "basic/ast_to_string.hpp"
 #include "basic/filereader.hpp"
+#include "compiler/scanner.hpp"
+#include "mimium_parser.hpp"
 
 namespace mimium {
-
+Driver::Driver() : parser(nullptr), scanner(nullptr) {}
 AstPtr Driver::parse(std::istream& is) {
-  scanner = std::make_unique<mmmpsr::MimiumScanner>(is);
+  scanner = std::make_unique<MimiumScanner>(is);
   parser = std::make_unique<MimiumParser>(*scanner, *this);
   parser->set_debug_level(DEBUG_LEVEL);  // debug
-  int res=0;
-  try{
+  int res = 0;
+  try {
     res = parser->parse();
-  }catch(std::exception& e){
-    throw std::runtime_error(e.what());
-  }catch(...){
-    throw std::runtime_error("undefined parse error");;
+  } catch (std::exception& e) { throw std::runtime_error(e.what()); } catch (...) {
+    throw std::runtime_error("undefined parse error");
+    ;
   }
-  if(res>0){
-    throw std::runtime_error("parse error.");
-  }
+  if (res > 0) { throw std::runtime_error("parse error."); }
   return ast_top;
 }
 

@@ -4,12 +4,11 @@
 
 #pragma once
 
-#include "basic/helper_functions.hpp"
-#include "basic/type.hpp"
+#include "helper_functions.hpp"
+#include "type.hpp"
 using mmmfloat = double;
 
-namespace mimium {
-namespace ast {
+namespace mimium::ast {
 
 // forward declaration
 struct Base;
@@ -248,5 +247,4 @@ auto makeStatement(FROM&& ast) {
   return std::make_shared<ast::Statement>(ast);
 }
 
-}  // namespace ast
 }  // namespace mimium

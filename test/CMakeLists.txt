@@ -5,7 +5,17 @@ cmake_minimum_required(VERSION 3.0)
 add_subdirectory(googletest)
 
 file(GLOB SRCS ./*.cpp)
-add_executable(UnitTest ${SRCS})
+add_executable(UnitTest
+# ${MIMIUM_SOURCE_DIR}/basic/ast.cpp
+# ${MIMIUM_SOURCE_DIR}/basic/ast_to_string.cpp
+0.newast_test.cpp
+1.ast_to_string_test.cpp
+2.parser_test.cpp
+3.symbolrename_test.cpp
+4.typeinfer_test.cpp
+5.mirgen_test.cpp
+6.cli_test.cpp
+)
 target_compile_options(UnitTest PUBLIC -std=c++17)
 target_compile_definitions(UnitTest PRIVATE
 TEST_ROOT_DIR=\"${CMAKE_CURRENT_BINARY_DIR}\"
@@ -36,6 +46,9 @@ target_link_libraries(UnitTest
     mimium_preprocessor
     mimium_cli
   )
+target_link_options(UnitTest
+PRIVATE
+-static)
 
 add_test(Name UnitTest Command "ASAN_OPTIONS=detect_container_overflow=0 ${CMAKE_CURRENT_BINARY_DIR}/UnitTest")
 

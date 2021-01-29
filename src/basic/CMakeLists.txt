@@ -1,11 +1,19 @@
 add_library(mimium_filereader STATIC filereader.cpp)
 target_compile_features(mimium_filereader PUBLIC cxx_std_17)
-target_include_directories(mimium_filereader PUBLIC  ${MIMIUM_SOURCE_DIR})
-target_compile_options(mimium_filereader PUBLIC -fvisibility=hidden)
+target_include_directories(mimium_filereader 
+INTERFACE
+$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/mimium>
+PRIVATE
+$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>)
+target_compile_options(mimium_filereader PRIVATE -fvisibility=hidden)
 
 
 add_library(mimium_utils STATIC mir.cpp type.cpp ast.cpp ast_to_string.cpp)
-target_include_directories(mimium_utils PUBLIC  ${MIMIUM_SOURCE_DIR})
+target_include_directories(mimium_utils 
+INTERFACE
+$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/mimium>
+PRIVATE
+$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>)
 target_compile_features(mimium_utils PUBLIC cxx_std_17)
 
 target_compile_options(mimium_utils PUBLIC
