@@ -4,31 +4,32 @@
 
 #pragma once
 #include "export.hpp"
-#include "RtAudio.h"
 #include "runtime/backend/audiodriver.hpp"
 
+class RtAudio;
 namespace mimium {
 class Scheduler;
+//Foward declaration wrapper for nested structs in RtAudio class.
+class StreamParametersPrivate;
+class StreamOptionsPrivate;
 
 class MIMIUM_DLL_PUBLIC AudioDriverRtAudio : public AudioDriver {
+ public:
+  explicit AudioDriverRtAudio(int buffer_size = 256);
+  ~AudioDriverRtAudio() override = default;
+  bool start() override;
+  bool stop() override;
+  private:
   std::unique_ptr<RtAudio> rtaudio;
-  RtAudio::StreamParameters rtaudio_params_input;
-  RtAudio::StreamParameters rtaudio_params_output;
-  RtAudio::StreamOptions rtaudio_options;
+  std::unique_ptr<StreamParametersPrivate> rtaudio_params_input;
+  std::unique_ptr<StreamParametersPrivate> rtaudio_params_output;
+  std::unique_ptr<StreamOptionsPrivate> rtaudio_options;
   bool setCallback();
   unsigned int bufsize_internal;
   std::vector<std::unique_ptr<std::vector<double>>> in_buffer;
   std::vector<std::unique_ptr<std::vector<double>>> out_buffer;
 
   [[nodiscard]] unsigned int getPreferredSampleRate() const;
-  auto getInputDevice() const { return rtaudio->getDeviceInfo(rtaudio_params_input.deviceId); }
-  auto getOutputDevice() const { return rtaudio->getDeviceInfo(rtaudio_params_output.deviceId); }
   void printStreamInfo()const;
- public:
-  explicit AudioDriverRtAudio(int buffer_size = 256);
-  ~AudioDriverRtAudio() override = default;
-  bool start() override;
-  bool stop() override;
-  static RtAudioCallback callback;
 };
 }  // namespace mimium
