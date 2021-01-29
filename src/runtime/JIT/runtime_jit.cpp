@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #include "runtime/JIT/runtime_jit.hpp"
-
+#include "runtime/JIT/jit_engine.hpp"
 #include <llvm/IRReader/IRReader.h>
 
 extern "C" {
@@ -57,6 +57,9 @@ Runtime_LLVM::Runtime_LLVM(std::string const& filepath, std::unique_ptr<AudioDri
   module = llvm::parseIRFile(filepath, errorreporter, *ctx);
   init(std::move(ctx), optimize);
 }
+
+llvm::LLVMContext& Runtime_LLVM::getLLVMContext() { return jitengine->getContext(); }
+
 void Runtime_LLVM::init(std::unique_ptr<llvm::LLVMContext> ctx, bool optimize) {
   llvm::InitializeNativeTarget();
   llvm::InitializeNativeTargetAsmPrinter();
