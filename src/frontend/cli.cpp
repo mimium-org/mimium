@@ -110,7 +110,7 @@ bool CliApp::OptionParser::isArgOption(std::string_view str) {
   return str.substr(0, 2) == "--" || str.substr(0, 1) == "-";
 }
 
-CliApp::OptionParser::OptionParser() : result(), res_mode(CliAppMode::Run){};
+CliApp::OptionParser::OptionParser() : result(), res_mode(CliAppMode::Run){}
 
 std::pair<AppOption, CliAppMode> CliApp::OptionParser::operator()(int argc, const char** argv) {
   auto args = initRawArgs(argc, argv);

@@ -19,7 +19,7 @@ bool Scheduler::incrementTime() {
   time += 1;
   if (hastask && time > tasks.top().first) { executeTask(tasks.top().second); }
   return false;
-};
+}
 void Scheduler::addTask(double time, void* addresstofn, double arg, void* addresstocls) {
   tasks.emplace(static_cast<int64_t>(time), TaskType{addresstofn, arg, addresstocls});
 }

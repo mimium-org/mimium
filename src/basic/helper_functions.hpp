@@ -94,7 +94,7 @@ static std::string join(std::deque<ElementType>& vec, std::string delim) {
                          [&](std::string a, std::shared_ptr<ElementType>& b) {
                            return std::move(a) + delim + b.toString();
                          });
-};
+}
 
 template <class T>
 bool has(std::vector<T> t, T s) {
@@ -120,7 +120,7 @@ T transformArgs(T& args, L lambda) {
                           [&](std::string a, std::string b) { return std::move(a) + delim + b; });
   }
   return res;
-};
+}
 template <class T>
 static std::string join(std::deque<std::shared_ptr<T>>& vec, std::string delim) {
   std::string res;
@@ -130,7 +130,7 @@ static std::string join(std::deque<std::shared_ptr<T>>& vec, std::string delim) 
         [&](std::string a, std::shared_ptr<T>& b) { return std::move(a) + delim + b->toString(); });
   }
   return res;
-};
+}
 
 // static std::string join(const std::vector<TypedVal>& vec, std::string delim)
 // {

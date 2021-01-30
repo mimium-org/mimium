@@ -159,4 +159,4 @@ class MIMIUM_DLL_PUBLIC AudioDriver {
     }
   }
 };
-};  // namespace mimium
+}  // namespace mimium

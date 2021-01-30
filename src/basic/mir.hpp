@@ -196,7 +196,7 @@ MIMIUM_DLL_PUBLIC inline std::string toString(Value const& inst) {
 inline std::string getName(Instructions const& inst) {
   return std::visit([](auto const& i) { return i.name; }, inst);
 }
-inline std::string getName(Argument const& i) { return toString(i); };
+inline std::string getName(Argument const& i) { return toString(i); }
 
 inline std::string getName(Value const& val) {
   return std::visit(overloaded{[](Instructions const& i) { return getName(i); },
@@ -219,7 +219,7 @@ inline std::string join(T const& vec, std::string const& delim) {
         [&](std::string const& a, elemtype const& b) { return a + delim + getName(*b); });
   }
   return res;
-};
+}
 
 class block : public std::enable_shared_from_this<block> {
  public:

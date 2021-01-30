@@ -29,7 +29,7 @@ struct PrimitiveType {
   PrimitiveType() = default;
 };
 
-inline bool operator==(const PrimitiveType& /*t1*/, const PrimitiveType& /*t2*/) { return true; };
+inline bool operator==(const PrimitiveType& /*t1*/, const PrimitiveType& /*t2*/) { return true; }
 
 struct None : PrimitiveType {};
 struct Void : PrimitiveType {};
@@ -159,7 +159,7 @@ struct Tuple {
   std::vector<Value> arg_types;
 };
 
-inline bool operator==(const Tuple& t1, const Tuple& t2) { return (t1.arg_types == t2.arg_types); };
+inline bool operator==(const Tuple& t1, const Tuple& t2) { return (t1.arg_types == t2.arg_types); }
 
 struct Struct {
   struct Keytype {
@@ -171,17 +171,17 @@ struct Struct {
 
 inline bool operator==(const Struct::Keytype& t1, const Struct::Keytype& t2) {
   return (t1.field == t2.field) && (t1.val == t2.val);
-};
+}
 
 inline bool operator==(const Struct& t1, const Struct& t2) {
   return (t1.arg_types == t2.arg_types);
-};
+}
 
 struct Alias {
   std::string name;
   Value target;
 };
-inline bool operator==(const Alias& t1, const Alias& t2) { return (t1.name == t2.name); };
+inline bool operator==(const Alias& t1, const Alias& t2) { return (t1.name == t2.name); }
 bool isTypeVar(types::Value t);
 
 template <class T>
@@ -204,7 +204,7 @@ constexpr size_t fixed_delaysize = 44100;
 inline auto getDelayStruct(){
   return types::Alias{"MmmRingBuf", types::Tuple{{types::Float{}, types::Float{},
                                                   types::Array{types::Float{}, fixed_delaysize}}}};
-};
+}
 
 struct ToStringVisitor {
   bool verbose = false;

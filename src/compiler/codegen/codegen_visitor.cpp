@@ -155,7 +155,7 @@ llvm::Value* CodeGenVisitor::createAllocation(bool isglobal, llvm::Type* type,
     return res;
   }
   return G.builder->CreateAlloca(type, array_size, "ptr_" + name);
-};
+}
 
 llvm::Value* CodeGenVisitor::operator()(minst::Number& i) {
   return llvm::ConstantFP::get(G.ctx, llvm::APFloat(i.val));

@@ -54,8 +54,8 @@ llvm::Module& Compiler::generateLLVMIr(mir::blockptr mir, funobjmap const& funob
   llvmgenerator.generateCode(mir, &funobjs);
   return llvmgenerator.getModule();
 }
-std::unique_ptr<llvm::LLVMContext> Compiler::moveLLVMCtx() { return std::move(llvmctx); };
-std::unique_ptr<llvm::Module> Compiler::moveLLVMModule() { return llvmgenerator.moveModule(); };
+std::unique_ptr<llvm::LLVMContext> Compiler::moveLLVMCtx() { return std::move(llvmctx); }
+std::unique_ptr<llvm::Module> Compiler::moveLLVMModule() { return llvmgenerator.moveModule(); }
 
 void Compiler::dumpLLVMModule(std::ostream& out) {
   std::string str;
