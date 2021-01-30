@@ -33,6 +33,13 @@ if(ENABLE_COVERAGE)
   set(CMAKE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} --coverage)
 endif()
 
+if((CMAKE_BUILD_TYPE STREQUAL "Debug") AND 
+    (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
+message("sanitizer activated")
+list(APPEND CMAKE_CXX_FLAGS "-fsanitize=address -fno-omit-frame-pointer")
+set(CMAKE_LINKER_FLAGS ${CMAKE_LINKER_FLAGS} -fsanitize=address)
+endif()
+
 set(CMAKE_FIND_PACKAGE_SORT_ORDER NATURAL)
 SET(CMAKE_FIND_PACKAGE_SORT_DIRECTION DEC)
 # list(APPEND CMAKE_PREFIX_PATH $ENV{LLVM_DIR})

@@ -48,6 +48,7 @@ $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 install (TARGETS
             mimium_utils
             mimium_filereader
+            mimium_parser
             mimium_preprocessor
             mimium_compiler
             mimium_llvm_codegen

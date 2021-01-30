@@ -23,8 +23,9 @@ ${SNDFILE_LIBRARIES}
 mimium_utils )
 
 
+
 add_subdirectory(codegen)
-add_library(mimium_parser STATIC
+add_library(mimium_parser OBJECT
 ${FLEX_CPP} 
 ${BISON_CPP} 
 ast_loader.cpp
