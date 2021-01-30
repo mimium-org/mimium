@@ -5,10 +5,6 @@
 #pragma once
 
 #include "basic/mir.hpp"
-#include "compiler/collect_memoryobjs.hpp"
-#include "compiler/ffi.hpp"
-#include "runtime/runtime_defs.hpp"
-
 namespace llvm {
 class LLVMContext;
 class Module;
@@ -26,11 +22,16 @@ class IRBuilderBase;
 }  // namespace llvm
 
 namespace mimium {
+struct FunObjTree;
+using funobjmap = std::unordered_map<mir::valueptr, std::shared_ptr<FunObjTree>>;
+
 class IRBuilderPrivate;
 struct LLVMBuiltin;
 struct CodeGenVisitor;
 struct TypeConverter;
-class LLVMGenerator {
+
+namespace minst = mir::instruction;
+class MIMIUM_DLL_PUBLIC LLVMGenerator {
   friend struct CodeGenVisitor;
 
  public:

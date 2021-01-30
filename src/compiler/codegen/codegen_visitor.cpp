@@ -6,6 +6,7 @@
 #include "compiler/codegen/llvmgenerator.hpp"
 #include "compiler/codegen/typeconverter.hpp"
 #include "compiler/collect_memoryobjs.hpp"
+#include "compiler/ffi.hpp"
 
 namespace mimium {
 using OpId = ast::OpId;

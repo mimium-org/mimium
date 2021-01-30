@@ -10,15 +10,16 @@ target_link_options(RegressionTest PUBLIC -fsanitize=address)
 endif()
 target_include_directories(RegressionTest
     PRIVATE
-    ${GTEST_DIR}/include
+    ${MIMIUM_SOURCE_DIR}
+    ${GOOGLE_TEST_DIR}/include
     )
 
 target_link_libraries(RegressionTest
   PRIVATE
+  mimium_cli
   gtest_main
   )
 
-add_test(
-  Name RegressionTest 
-  Command RegressionTest
+gtest_discover_tests(
+  RegressionTest 
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/test)

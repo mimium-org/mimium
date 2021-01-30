@@ -6,6 +6,8 @@
 #define MIMIUM_VERSION "unspecified"
 #endif
 
+#include "frontend/genericapp.hpp"
+
 #include "frontend/cli.hpp"
 
 int main(int argc, const char** argv) {

@@ -2,6 +2,7 @@
 
 #include "basic/ast.hpp"
 #include "compiler/ast_loader.hpp"
+
 #include "gtest/gtest.h"
 #include "gtest/internal/gtest-port.h"
 namespace mimium {

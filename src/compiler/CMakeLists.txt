@@ -1,4 +1,8 @@
 include(AddFlexBisonDeps)
+set(FLEX_CPP ${FLEX_MyScanner_OUTPUTS}  CACHE PATH "for FLEX outputs ")
+set(BISON_CPP ${BISON_MyParser_OUTPUTS}  CACHE PATH "for BISON outputs ")
+
+
 
 find_package(SndFile REQUIRED)
 
@@ -11,7 +15,7 @@ INTERFACE
 $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/mimium>
 PRIVATE
 $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
-${SNDFILE_INCLUDE_DIRS}
+$<BUILD_INTERFACE:${SNDFILE_INCLUDE_DIRS}>
 )
 
 target_link_libraries(mimium_builtinfn 
@@ -22,8 +26,8 @@ mimium_utils )
 
 add_subdirectory(codegen)
 add_library(mimium_parser STATIC
-${FLEX_MyScanner_OUTPUTS} 
-${BISON_MyParser_OUTPUTS} 
+${FLEX_CPP} 
+${BISON_CPP} 
 ast_loader.cpp
 scanner.cpp
 )
@@ -37,8 +41,8 @@ $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/mimium>
 PRIVATE
 $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
 PUBLIC
-${FLEX_INCLUDE_CACHE}
-${PARSER_HEADER_DIR} 
+$<BUILD_INTERFACE:${FLEX_INCLUDE_CACHE}>
+$<BUILD_INTERFACE:${PARSER_HEADER_DIR}>
 )
 
 add_library(mimium_compiler SHARED
@@ -53,15 +57,18 @@ target_include_directories(mimium_compiler
 PRIVATE
 $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/mimium>
 $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
+$<BUILD_INTERFACE:${LLVM_INCLUDE_DIRS}>
 )
 target_compile_features(mimium_compiler PRIVATE cxx_std_17)
 
 
-target_link_libraries(mimium_compiler PRIVATE
+target_link_libraries(mimium_compiler 
+PRIVATE
 mimium_parser
-mimium_llvm_codegen 
 mimium_utils
 mimium_filereader
-mimium_builtinfn)
+mimium_builtinfn
+mimium_llvm_codegen
+)
 
-install(TARGETS mimium_compiler mimium_builtinfn DESTINATION lib)
+# install(TARGETS mimium_compiler mimium_llvm_codegen mimium_builtinfn DESTINATION lib)

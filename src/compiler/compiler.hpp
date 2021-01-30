@@ -25,7 +25,7 @@ class MIMIUM_DLL_PUBLIC Compiler {
  public:
   Compiler();
   explicit Compiler(std::unique_ptr<llvm::LLVMContext> ctx);
-  ~Compiler();
+  virtual ~Compiler();
 
   AstPtr loadSource(std::istream& source);
   AstPtr loadSource(const std::string& source);
@@ -42,8 +42,8 @@ class MIMIUM_DLL_PUBLIC Compiler {
 
   llvm::Module& generateLLVMIr(mir::blockptr mir, funobjmap const& funobjs);
   void dumpLLVMModule(std::ostream& out);
-  auto moveLLVMCtx(){return std::move(llvmctx);}
-  auto moveLLVMModule() { return llvmgenerator.moveModule(); }
+  std::unique_ptr<llvm::LLVMContext> moveLLVMCtx();
+  std::unique_ptr<llvm::Module> moveLLVMModule() ;
 
  private:
   std::unique_ptr<llvm::LLVMContext> llvmctx;

@@ -6,8 +6,8 @@
 #include "RtAudio.h"
 
 namespace {
- const RtAudioCallback callback = [](void* output, void* input, unsigned int nFrames, double time,
-                                     RtAudioStreamStatus status, void* userdata) -> int {
+const RtAudioCallback callback = [](void* output, void* input, unsigned int nFrames, double time,
+                                    RtAudioStreamStatus status, void* userdata) -> int {
   auto* driver = static_cast<mimium::AudioDriverRtAudio*>(userdata);
   // Process interleaved audio data.
   driver->process(static_cast<const double*>(input), static_cast<double*>(output));
@@ -48,11 +48,15 @@ AudioDriverRtAudio::AudioDriverRtAudio(int buffer_size)
   if (rtaudio->getDeviceCount() < 1) { throw std::runtime_error("No audio devices found!"); }
   rtaudio_params_input->get().deviceId = rtaudio->getDefaultInputDevice();
   rtaudio_params_output->get().deviceId = rtaudio->getDefaultOutputDevice();
-  rtaudio_params_input->get().nChannels =rtaudio_params_input->getDeviceInfo(*rtaudio).inputChannels;
-  rtaudio_params_output->get().nChannels =rtaudio_params_output->getDeviceInfo(*rtaudio).outputChannels;
+  rtaudio_params_input->get().nChannels =
+      rtaudio_params_input->getDeviceInfo(*rtaudio).inputChannels;
+  rtaudio_params_output->get().nChannels =
+      rtaudio_params_output->getDeviceInfo(*rtaudio).outputChannels;
   rtaudio_params_input->get().firstChannel = 0;
   rtaudio_params_output->get().firstChannel = 0;
 }
+
+AudioDriverRtAudio::~AudioDriverRtAudio() = default;
 
 void AudioDriverRtAudio::printStreamInfo() const {
   std::string deviceinfostr;
@@ -88,8 +92,9 @@ bool AudioDriverRtAudio::start() {
     // check parameter are valid
     AudioDriver::setup(std::move(p));
     AudioDriver::start();
-    rtaudio->openStream(&rtaudio_params_output->get(), &rtaudio_params_input->get(), RTAUDIO_FLOAT64,
-                        sr, &bufsize_internal, callback, this, &rtaudio_options->get(), nullptr);
+    rtaudio->openStream(&rtaudio_params_output->get(), &rtaudio_params_input->get(),
+                        RTAUDIO_FLOAT64, sr, &bufsize_internal, callback, this,
+                        &rtaudio_options->get(), nullptr);
     params->buffersize = static_cast<int>(bufsize_internal);
 
     printStreamInfo();

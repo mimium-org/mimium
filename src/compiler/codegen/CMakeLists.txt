@@ -8,11 +8,9 @@ target_include_directories(mimium_llvm_codegen
 INTERFACE
 $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/mimium>
 PRIVATE
-$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
-PUBLIC
-${LLVM_INCLUDE_DIRS}
-)
+$<BUILD_INTERFACE:${LLVM_INCLUDE_DIRS}>
+$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>)
 target_link_libraries(mimium_llvm_codegen 
 PRIVATE 
 mimium_utils mimium_builtinfn 
-${LLVM_LIBRARIES})
+$<BUILD_INTERFACE:${LLVM_LIBRARIES}>)

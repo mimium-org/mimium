@@ -4,16 +4,17 @@
 
 #pragma once
 #include <csignal>
-#include "libmain.hpp"
+#include <iostream>
 #include "appoptions.hpp"
+#include "libmimium.hpp"
+#include "export.hpp"
 namespace mimium::app {
 
+MIMIUM_DLL_PUBLIC ExecutionEngine getExecutionEngine(std::string_view val);
 
-ExecutionEngine getExecutionEngine(std::string_view val);
+MIMIUM_DLL_PUBLIC BackEnd getBackEnd(std::string_view val);
 
-BackEnd getBackEnd(std::string_view val);
-
-class GenericApp {
+class MIMIUM_DLL_PUBLIC GenericApp {
  public:
   explicit GenericApp(std::unique_ptr<AppOption> options);
 

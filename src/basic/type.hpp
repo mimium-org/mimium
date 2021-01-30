@@ -303,7 +303,7 @@ class TypeEnv {
   auto emplace(std::string key, types::Value typevar) { return env.insert_or_assign(key, typevar); }
   void replaceTypeVars();
 
-  std::string toString(bool verbose = false);
+  MIMIUM_DLL_PUBLIC std::string toString(bool verbose = false);
   void dump(bool verbose = false);
   void dumpTvLinks();
 };

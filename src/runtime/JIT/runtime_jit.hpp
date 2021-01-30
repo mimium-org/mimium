@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
-#include "export.hpp"
 #include "runtime/backend/audiodriver.hpp"
 
 namespace llvm {
@@ -24,7 +23,7 @@ class MIMIUM_DLL_PUBLIC Runtime_LLVM : public Runtime,
                         std::unique_ptr<AudioDriver> a = nullptr, bool optimize = true);
   explicit Runtime_LLVM(std::string const& filepath, std::unique_ptr<AudioDriver> a = nullptr,
                         bool optimize = true);
-  ~Runtime_LLVM() override = default;
+  ~Runtime_LLVM() override;
   void start() override;
   void runMainFun() override;
 

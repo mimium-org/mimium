@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include "helper_functions.hpp"
 #include "type.hpp"
 using mmmfloat = double;
 

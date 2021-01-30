@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
-#include "export.hpp"
 #include "runtime/backend/audiodriver.hpp"
 
 class RtAudio;
@@ -16,7 +15,7 @@ class StreamOptionsPrivate;
 class MIMIUM_DLL_PUBLIC AudioDriverRtAudio : public AudioDriver {
  public:
   explicit AudioDriverRtAudio(int buffer_size = 256);
-  ~AudioDriverRtAudio() override = default;
+  ~AudioDriverRtAudio() override;
   bool start() override;
   bool stop() override;
   private:

@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #include "genericapp.hpp"
-#include "../basic/ast_to_string.hpp"
+#include "compiler/codegen/llvm_header.hpp"
+#include "basic/ast_to_string.hpp"
 
 namespace {
 const std::string_view about_message =
@@ -39,8 +40,7 @@ GenericApp::GenericApp(std::unique_ptr<AppOption> option) : option(std::move(opt
 std::ostream& GenericApp::printAbout(std::ostream& out) {
   out << about_message << std::endl;
   out << "version ";
-  printVersion(out) << std::endl;
-  return out;
+  return printVersion(out);
 }
 
 std::ostream& GenericApp::printVersion(std::ostream& out) {
@@ -48,6 +48,7 @@ std::ostream& GenericApp::printVersion(std::ostream& out) {
 #ifdef MIMIUM_BUILD_DEBUG
   out << "(debug build)";
 #endif
+  out << std::endl;
   return out;
 }
 
@@ -166,7 +167,6 @@ int GenericApp::run() {
 
     int res = 0;
     if (should_run) {
-      auto backend = std::make_unique<AudioDriverRtAudio>();
       res = runtimeMainLoop(option->runtime_option, option->input.value().filepath,
                             option->input.value().filetype, option->output_path);
     }

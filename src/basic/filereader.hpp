@@ -19,13 +19,13 @@ enum class FileType {
   MimiumMir,  // currently not used
   LLVMIR,
 };
-struct Source {
+struct MIMIUM_DLL_PUBLIC Source {
   fs::path filepath;
   FileType filetype;
   std::string source;
 };
-FileType getFileTypeByExt(std::string_view ext);
-std::pair<fs::path, FileType> getFilePath(std::string_view val);
+MIMIUM_DLL_PUBLIC  FileType getFileTypeByExt(std::string_view ext);
+MIMIUM_DLL_PUBLIC  std::pair<fs::path, FileType> getFilePath(std::string_view val);
 
 class MIMIUM_DLL_PUBLIC FileReader {
  public:

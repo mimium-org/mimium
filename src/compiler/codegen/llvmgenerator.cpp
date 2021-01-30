@@ -3,8 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 #include "compiler/codegen/llvmgenerator.hpp"
 #include "compiler/codegen/codegen_visitor.hpp"
+#include "compiler/collect_memoryobjs.hpp"
+
 #include "compiler/codegen/llvm_header.hpp"
 #include "compiler/codegen/typeconverter.hpp"
+#include "compiler/ffi.hpp"
 
 namespace mimium {
 
