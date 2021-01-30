@@ -20,5 +20,3 @@ target_compile_options(mimium_utils PUBLIC
 $<$<CONFIG:Debug>:-O0 -DMIMIUM_DEBUG_BUILD -Wall -pedantic-errors>
 -fvisibility=hidden
 )
-
-# install(TARGETS mimium_utils DESTINATION lib)

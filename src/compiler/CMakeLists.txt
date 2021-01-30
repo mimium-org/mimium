@@ -70,5 +70,3 @@ mimium_filereader
 mimium_builtinfn
 mimium_llvm_codegen
 )
-
-# install(TARGETS mimium_compiler mimium_llvm_codegen mimium_builtinfn DESTINATION lib)

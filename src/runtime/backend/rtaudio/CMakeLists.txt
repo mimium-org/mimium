@@ -51,5 +51,3 @@ mimium_audiodriver
 mimium_scheduler
 ${LLVM_LIBRARIES}
 )
-install( TARGETS mimium_backend_rtaudio DESTINATION lib)
-
