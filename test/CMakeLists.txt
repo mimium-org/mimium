@@ -5,19 +5,26 @@ set(INSTALL_GTEST OFF)
 add_subdirectory(googletest)
 include(GoogleTest)
 
-file(GLOB SRCS ./*.cpp)
+BISON_TARGET(TestParser ${CMAKE_SOURCE_DIR}/src/compiler/mimium.yy ${CMAKE_BINARY_DIR}/src/compiler/mimium_parser_test.cpp
+DEFINES_FILE ${CMAKE_BINARY_DIR}/test/mimium_parser.hpp
+)
+FLEX_TARGET(TestScanner ${CMAKE_SOURCE_DIR}/src/compiler/mimium.l ${CMAKE_BINARY_DIR}/src/compiler/tokens_test.cpp)
+
+ADD_FLEX_BISON_DEPENDENCY(TestScanner TestParser)
+
+
+
 
 set (MIMIUM_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src)
 set (GOOGLETEST_DIR ${CMAKE_SOURCE_DIR}/test/googletest/googletest)
-
 add_library(TestLib STATIC 
 ${MIMIUM_SOURCE_DIR}/basic/ast.cpp 
 ${MIMIUM_SOURCE_DIR}/basic/mir.cpp
 ${MIMIUM_SOURCE_DIR}/basic/type.cpp
 ${MIMIUM_SOURCE_DIR}/basic/ast_to_string.cpp
 ${MIMIUM_SOURCE_DIR}/basic/filereader.cpp
-${FLEX_CPP} 
-${BISON_CPP} 
+${FLEX_TestScanner_OUTPUTS}
+${BISON_TestParser_OUTPUTS}
 ${MIMIUM_SOURCE_DIR}/compiler/ast_loader.cpp
 ${MIMIUM_SOURCE_DIR}/compiler/scanner.cpp
 ${MIMIUM_SOURCE_DIR}/compiler/symbolrenamer.cpp
@@ -26,13 +33,11 @@ ${MIMIUM_SOURCE_DIR}/compiler/mirgenerator.cpp
 # ${MIMIUM_SOURCE_DIR}/frontend/genericapp.cpp
 # ${MIMIUM_SOURCE_DIR}/frontend/cli.cpp
 )
-add_dependencies(TestLib mimium_parser)
-
 target_include_directories(TestLib
     PUBLIC
     .
-    ${FLEX_INCLUDE_CACHE}
-    ${PARSER_HEADER_DIR}
+    $<BUILD_INTERFACE:${FLEX_INCLUDE_CACHE}>
+    $<BUILD_INTERFACE:${PARSER_HEADER_DIR}>
     $<BUILD_INTERFACE:${MIMIUM_SOURCE_DIR}>
     )
 target_compile_features(TestLib PRIVATE cxx_std_17)
