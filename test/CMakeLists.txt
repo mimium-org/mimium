@@ -9,6 +9,10 @@ file(GLOB SRCS ./*.cpp)
 
 set (MIMIUM_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src)
 set (GOOGLETEST_DIR ${CMAKE_SOURCE_DIR}/test/googletest/googletest)
+include(AddFlexBisonDeps)
+set(FLEX_CPP ${FLEX_MyScanner_OUTPUTS})
+set(BISON_CPP ${BISON_MyParser_OUTPUTS})
+
 add_library(TestLib STATIC 
 ${MIMIUM_SOURCE_DIR}/basic/ast.cpp 
 ${MIMIUM_SOURCE_DIR}/basic/mir.cpp
