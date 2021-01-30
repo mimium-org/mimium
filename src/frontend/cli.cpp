@@ -1,10 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-#include "errors.hpp"
 #include "cli.hpp"
+#include "errors.hpp"
 #include "genericapp.hpp"
-
 
 namespace {
 
@@ -127,8 +126,7 @@ std::pair<AppOption, CliAppMode> CliApp::OptionParser::operator()(int argc, cons
       if (isArgPaired(kind)) {
         iter++;
         if (iter == args.cend()) {
-          throw CliAppError("An argument to option " + std::string(a) +
-                                   "was not specified.");
+          throw CliAppError("An argument to option " + std::string(a) + "was not specified.");
         }
       }
       processArgs(kind, *iter);
@@ -143,16 +141,30 @@ std::pair<AppOption, CliAppMode> CliApp::OptionParser::operator()(int argc, cons
 }
 
 CliApp::CliApp(int argc, const char** argv) : app(nullptr) {
-  auto [option, climode] = OptionParser()(argc, argv);
-  this->app = std::make_unique<GenericApp>(std::make_unique<AppOption>(std::move(option)));
-  this->mode = climode;
+  try {
+    auto [option, climode] = OptionParser()(argc, argv);
+    this->app = std::make_unique<GenericApp>(std::make_unique<AppOption>(std::move(option)));
+    this->mode = climode;
+  } catch (CliAppError& e) {
+    std::cerr << e.what();
+  } catch (...) {
+    assert(false);
+  }
 }
 
 int CliApp::run() {
-  switch (this->mode) {
-    case CliAppMode::Run: return this->app->run();
-    case CliAppMode::ShowHelp: printHelp(); return 0;
-    case CliAppMode::ShowVersion: this->app->printVersion(); return 0;
+  try {
+    switch (this->mode) {
+      case CliAppMode::Run: return this->app->run();
+      case CliAppMode::ShowHelp: printHelp(); return 0;
+      case CliAppMode::ShowVersion: this->app->printVersion(); return 0;
+    }
+  } catch (CliAppError& e) {
+    std::cerr << e.what();
+    return -1;
+  } catch (...) {
+    assert(false);
+    return -1;
   }
 }
 
