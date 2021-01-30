@@ -110,7 +110,7 @@ bool CliApp::OptionParser::isArgOption(std::string_view str) {
   return str.substr(0, 2) == "--" || str.substr(0, 1) == "-";
 }
 
-CliApp::OptionParser::OptionParser() : result(), res_mode(CliAppMode::Run){}
+CliApp::OptionParser::OptionParser() : result(), res_mode(CliAppMode::Run) {}
 
 std::pair<AppOption, CliAppMode> CliApp::OptionParser::operator()(int argc, const char** argv) {
   auto args = initRawArgs(argc, argv);
@@ -126,7 +126,7 @@ std::pair<AppOption, CliAppMode> CliApp::OptionParser::operator()(int argc, cons
       if (isArgPaired(kind)) {
         iter++;
         if (iter == args.cend()) {
-          throw CliAppError("An argument to option " + std::string(a) + "was not specified.");
+          throw CliAppError("An argument to option " + std::string(a) + " was not specified.");
         }
       }
       processArgs(kind, *iter);
@@ -146,26 +146,28 @@ CliApp::CliApp(int argc, const char** argv) : app(nullptr) {
     this->app = std::make_unique<GenericApp>(std::make_unique<AppOption>(std::move(option)));
     this->mode = climode;
   } catch (CliAppError& e) {
-    std::cerr << e.what();
+    std::cerr << e.what() << std::endl;
+    std::exit(1);
   } catch (...) {
     assert(false);
+    std::exit(1);
   }
 }
 
 int CliApp::run() {
-  try {
-    switch (this->mode) {
-      case CliAppMode::Run: return this->app->run();
-      case CliAppMode::ShowHelp: printHelp(); return 0;
-      case CliAppMode::ShowVersion: this->app->printVersion(); return 0;
-    }
-  } catch (CliAppError& e) {
-    std::cerr << e.what();
-    return -1;
-  } catch (...) {
-    assert(false);
-    return -1;
+  if (this->app != nullptr) {
+    try {
+      switch (this->mode) {
+        case CliAppMode::Run: return this->app->run();
+        case CliAppMode::ShowHelp: printHelp(); return 0;
+        case CliAppMode::ShowVersion: this->app->printVersion(); return 0;
+      }
+    } catch (CliAppError& e) {
+      std::cerr << e.what();
+      return -1;
+    } catch (...) { assert(false); }
   }
+  return -1;
 }
 
 }  // namespace mimium::app::cli
