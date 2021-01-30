@@ -6,7 +6,9 @@
 namespace mimium {
 
 MimiumScanner::MimiumScanner(std::istream& in)
-    : yyFlexLexer(in, std::cout), loc(std::make_unique<MimiumParser::location_type>()) {
+    : yyFlexLexer(in, std::cout),
+      loc(std::make_unique<MimiumParser::location_type>()),
+      yylval(nullptr) {
 // debug mode
 #ifdef MIMIUM_PARSER_DEBUG
   yy_flex_debug = 1;
