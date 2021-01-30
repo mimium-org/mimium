@@ -3,6 +3,8 @@ option(BUILD_DOCS "build a documentation")
 option(BUILD_TEST "build a test" OFF)
 option(ENABLE_LLD "use lld for linker" OFF)
 option(ENABLE_COVERAGE "Generate code coverage data for gcov" OFF)
+option(BUILD_SHARED_LIBS "build libraries as a dynamic link libraries" OFF)
+
 
 #set(CMAKE_CXX_COMPILER /usr/local/opt/llvm/bin/clang++)
 #set(CMAKE_C_COMPILER /usr/local/opt/llvm/bin/clang) 

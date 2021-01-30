@@ -1,4 +1,4 @@
-add_library(mimium_audiodriver SHARED audiodriver.cpp)
+add_library(mimium_audiodriver audiodriver.cpp)
 
 target_include_directories(mimium_audiodriver
 PRIVATE

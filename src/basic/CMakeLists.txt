@@ -1,4 +1,4 @@
-add_library(mimium_filereader SHARED filereader.cpp)
+add_library(mimium_filereader filereader.cpp)
 target_compile_features(mimium_filereader PUBLIC cxx_std_17)
 target_include_directories(mimium_filereader 
 INTERFACE

@@ -1,4 +1,4 @@
-add_library(mimium_scheduler SHARED scheduler.cpp)
+add_library(mimium_scheduler scheduler.cpp)
 target_compile_features(mimium_scheduler PUBLIC cxx_std_17)
 target_include_directories(mimium_scheduler 
 INTERFACE

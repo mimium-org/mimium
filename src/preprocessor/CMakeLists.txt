@@ -1,4 +1,4 @@
-add_library(mimium_preprocessor SHARED preprocessor.cpp)
+add_library(mimium_preprocessor preprocessor.cpp)
 target_include_directories(mimium_preprocessor
 INTERFACE
 $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/mimium>

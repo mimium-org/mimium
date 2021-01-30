@@ -6,7 +6,7 @@ add_subdirectory(preprocessor)
 add_subdirectory(compiler)
 add_subdirectory(runtime)
 
-add_library(mimium SHARED libmimium.cpp)
+add_library(mimium libmimium.cpp)
 target_compile_options(mimium PUBLIC -std=c++17)
 target_compile_definitions(mimium PUBLIC MIMIUM_VERSION=\"${CMAKE_PROJECT_VERSION}\")
 target_include_directories(mimium
