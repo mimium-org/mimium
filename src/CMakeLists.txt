@@ -35,8 +35,6 @@ target_link_libraries(mimium
 
 add_subdirectory(frontend)
 include(GenerateExportHeader)
-generate_export_header(mimium_cli EXPORT_MACRO_NAME MIMIUM_DLL_PUBLIC)
-
 add_executable(mimium_exe main.cpp)
 add_dependencies(default_build mimium)
 set_target_properties(mimium_exe PROPERTIES OUTPUT_NAME mimium)
