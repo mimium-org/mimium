@@ -39,8 +39,8 @@ class MIMIUM_DLL_PUBLIC LLVMGenerator {
   ~LLVMGenerator();
   void generateCode(mir::blockptr mir, const funobjmap* funobjs);
 
-  llvm::Module& getModule() { return *module; }
-  auto moveModule() { return std::move(module); }
+  llvm::Module& getModule();
+  std::unique_ptr<llvm::Module> moveModule();
   void init(std::string filename);
   void setDataLayout(const llvm::DataLayout& dl);
   void reset(std::string filename);

@@ -26,6 +26,10 @@ LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx)
                 getDoubleTy(), {llvm::PointerType::get(getDoubleTy(), 0), getDoubleTy()}, false)},
            {"mimium_malloc",
             llvm::FunctionType::get(geti8PtrTy(), {geti8PtrTy(), geti64Ty()}, false)}}) {}
+
+llvm::Module& LLVMGenerator::getModule() { return *this->module; }
+std::unique_ptr<llvm::Module> LLVMGenerator::moveModule() { return std::move(this->module); }
+
 void LLVMGenerator::init(std::string filename) {
   module->setSourceFileName(filename);
   module->setModuleIdentifier(filename);
