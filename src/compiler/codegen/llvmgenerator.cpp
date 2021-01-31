@@ -176,12 +176,15 @@ void LLVMGenerator::createNewBasicBlock(std::string name, llvm::Function* f) {
 }
 std::optional<int> LLVMGenerator::getDspFnChannelNumForType(types::Value const& t) {
   // if (std::holds_alternative<types::Float>(t)) { return 1; }
-  if (rv::holds_alternative<types::Tuple>(t)) {
-    const auto& ttype = rv::get<types::Tuple>(t);
-    for (const auto& at : ttype.arg_types) {
-      if (!std::holds_alternative<types::Float>(at)) { return std::nullopt; }
+  if (rv::holds_alternative<types::Pointer>(t)) {
+    const auto& ptype = rv::get<types::Pointer>(t);
+    if (rv::holds_alternative<types::Tuple>(ptype.val)) {
+      const auto& ttype = rv::get<types::Tuple>(ptype.val);
+      for (const auto& at : ttype.arg_types) {
+        if (!std::holds_alternative<types::Float>(at)) { return std::nullopt; }
+      }
+      return ttype.arg_types.size();
     }
-    return ttype.arg_types.size();
   }
   if (std::holds_alternative<types::Void>(t)) { return 0; }
   return std::nullopt;
@@ -198,10 +201,7 @@ void LLVMGenerator::checkDspFunctionType(minst::Function const& i) {
 
   if (i.args.ret_ptr) {
     auto retptrty = i.args.ret_ptr.value()->type;
-    auto ptrty = rv::get<types::Pointer>(retptrty);
-    if (auto* ttype = std::get_if<types::rTuple>(&ptrty.val)) {
-      outchs = getDspFnChannelNumForType(ptrty.val);
-    }
+    outchs = getDspFnChannelNumForType(retptrty);
   } else {
     outchs = getDspFnChannelNumForType(rettype);
   }

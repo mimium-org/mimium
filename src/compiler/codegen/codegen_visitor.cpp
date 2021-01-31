@@ -392,7 +392,10 @@ llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
     // addTask should be declared in preprocess;
     fun = G.module->getFunction(isclosure ? "addTask_cls" : "addTask");
   }
-  args = makeFcallArgs(fun->getType(), i.args);
+  {
+    auto tmparg = makeFcallArgs(fun->getType(), i.args);
+    std::copy(tmparg.begin(), tmparg.end(), std::back_inserter(args));
+  }
   if (isclosure) {
     auto* capptr = isrecursive
                        ? std::prev(G.curfunc->arg_end(), (hasmemobj) ? 2 : 1)
