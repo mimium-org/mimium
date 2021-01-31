@@ -16,7 +16,7 @@ PRIVATE
 $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
 $<BUILD_INTERFACE:${SNDFILE_INCLUDE_DIRS}>
 )
-
+set_target_properties(mimium_builtinfn PROPERTIES ENABLE_EXPORTS ON)
 target_link_libraries(mimium_builtinfn 
 PRIVATE
 ${SNDFILE_LIBRARIES}

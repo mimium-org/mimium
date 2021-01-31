@@ -21,7 +21,6 @@ target_compile_options(mimium PUBLIC
 )
 target_link_options(mimium PUBLIC
 )
-
 target_link_libraries(mimium
     PUBLIC
     mimium_filereader
@@ -36,6 +35,8 @@ target_link_libraries(mimium
 add_subdirectory(frontend)
 include(GenerateExportHeader)
 add_executable(mimium_exe main.cpp)
+set_target_properties(mimium_exe PROPERTIES ENABLE_EXPORTS ON)
+
 add_dependencies(default_build mimium)
 set_target_properties(mimium_exe PROPERTIES OUTPUT_NAME mimium)
     
