@@ -3,6 +3,8 @@ option(BUILD_DOCS "build a documentation")
 option(BUILD_TEST "build a test" OFF)
 option(ENABLE_LLD "use lld for linker" OFF)
 option(ENABLE_COVERAGE "Generate code coverage data for gcov" OFF)
+option(BUILD_SHARED_LIBS "build libraries as a dynamic link libraries" OFF)
+
 
 #set(CMAKE_CXX_COMPILER /usr/local/opt/llvm/bin/clang++)
 #set(CMAKE_C_COMPILER /usr/local/opt/llvm/bin/clang) 
@@ -29,6 +31,13 @@ endif()
 if(ENABLE_COVERAGE)
   set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} --coverage)
   set(CMAKE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} --coverage)
+endif()
+
+if((CMAKE_BUILD_TYPE STREQUAL "Debug") AND 
+    (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
+message("sanitizer activated")
+list(APPEND CMAKE_CXX_FLAGS "-fsanitize=address -fno-omit-frame-pointer")
+set(CMAKE_LINKER_FLAGS ${CMAKE_LINKER_FLAGS} -fsanitize=address)
 endif()
 
 set(CMAKE_FIND_PACKAGE_SORT_ORDER NATURAL)

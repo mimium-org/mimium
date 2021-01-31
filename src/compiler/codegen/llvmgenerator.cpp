@@ -1,10 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
 #include "compiler/codegen/llvmgenerator.hpp"
 #include "compiler/codegen/codegen_visitor.hpp"
+#include "compiler/collect_memoryobjs.hpp"
+
+#include "compiler/codegen/llvm_header.hpp"
 #include "compiler/codegen/typeconverter.hpp"
+#include "compiler/ffi.hpp"
 
 namespace mimium {
 
@@ -23,6 +26,10 @@ LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx)
                 getDoubleTy(), {llvm::PointerType::get(getDoubleTy(), 0), getDoubleTy()}, false)},
            {"mimium_malloc",
             llvm::FunctionType::get(geti8PtrTy(), {geti8PtrTy(), geti64Ty()}, false)}}) {}
+
+llvm::Module& LLVMGenerator::getModule() { return *this->module; }
+std::unique_ptr<llvm::Module> LLVMGenerator::moveModule() { return std::move(this->module); }
+
 void LLVMGenerator::init(std::string filename) {
   module->setSourceFileName(filename);
   module->setModuleIdentifier(filename);
@@ -44,11 +51,24 @@ void LLVMGenerator::dropAllReferences() {
 llvm::Type* LLVMGenerator::getType(types::Value const& type) {
   return std::visit(*typeconverter, type);
 }
+
 llvm::ArrayType* LLVMGenerator::getArrayType(types::Value const& type) {
   assert(rv::holds_alternative<types::Array>(type));
   const auto& atype = rv::get<types::Array>(type);
   return llvm::ArrayType::get(std::visit(*typeconverter, atype.elem_type), atype.size);
 }
+
+llvm::Type* LLVMGenerator::getDoubleTy() { return llvm::Type::getDoubleTy(ctx); }
+llvm::PointerType* LLVMGenerator::geti8PtrTy() { return builder->getInt8PtrTy(); }
+llvm::Type* LLVMGenerator::geti64Ty() { return builder->getInt64Ty(); }
+llvm::Value* LLVMGenerator::getConstInt(int v, const int bitsize) {
+  return llvm::ConstantInt::get(llvm::IntegerType::get(ctx, bitsize), llvm::APInt(bitsize, v));
+}
+llvm::Value* LLVMGenerator::getConstDouble(double v) {
+  return llvm::ConstantFP::get(builder->getDoubleTy(), v);
+}
+
+llvm::Value* LLVMGenerator::getZero(const int bitsize) { return getConstInt(0, bitsize); }
 
 llvm::Type* LLVMGenerator::getClosureToFunType(types::Value& type) {
   auto aliasty = rv::get<types::Alias>(type);

@@ -3,10 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
-#include "genericapp.hpp"
 
-namespace mimium::app::cli{
+#include <iostream>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
+#include "appoptions.hpp"
+#include "export.hpp"
+namespace mimium::app {
+class GenericApp;
+namespace cli {
 
 enum class ArgKind {
   Invalid = -1,
@@ -24,18 +31,17 @@ enum class ArgKind {
   Verbose,
 };
 
-
 ArgKind getArgKind(std::string_view str);
 bool isArgPaired(ArgKind arg);
 
 enum class CliAppMode { Run, ShowHelp, ShowVersion };
 
-class CliApp {
+class MIMIUM_DLL_PUBLIC CliApp {
  public:
   class OptionParser {
    public:
     OptionParser();
-    std::pair<AppOption,CliAppMode> operator()(int argc, const char** argv);
+    std::pair<AppOption, CliAppMode> operator()(int argc, const char** argv);
 
    private:
     static std::vector<std::string_view> initRawArgs(int argc, const char** argv);
@@ -55,4 +61,5 @@ class CliApp {
   CliAppMode mode = CliAppMode::Run;
 };
 
-}  // namespace mimium::app::cli
+}  // namespace cli
+}  // namespace mimium::app

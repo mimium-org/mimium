@@ -7,7 +7,6 @@
 #include <utility>
 
 #include "basic/ast.hpp"
-#include "basic/type.hpp"
 
 namespace mimium {
 
@@ -185,7 +184,7 @@ inline std::string toString(Constants const& inst) {
                                [](const auto i) { return std::to_string(i); }},
                     inst);
 }
-inline std::string toString(Value const& inst) {
+MIMIUM_DLL_PUBLIC inline std::string toString(Value const& inst) {
   return std::visit(overloaded{[](Instructions const& i) { return toString(i); },
                                [](Constants const& i) { return toString(i); },
                                [](std::shared_ptr<Argument> i) { return toString(*i); },
@@ -197,7 +196,7 @@ inline std::string toString(Value const& inst) {
 inline std::string getName(Instructions const& inst) {
   return std::visit([](auto const& i) { return i.name; }, inst);
 }
-inline std::string getName(Argument const& i) { return toString(i); };
+inline std::string getName(Argument const& i) { return toString(i); }
 
 inline std::string getName(Value const& val) {
   return std::visit(overloaded{[](Instructions const& i) { return getName(i); },
@@ -220,7 +219,7 @@ inline std::string join(T const& vec, std::string const& delim) {
         [&](std::string const& a, elemtype const& b) { return a + delim + getName(*b); });
   }
   return res;
-};
+}
 
 class block : public std::enable_shared_from_this<block> {
  public:
@@ -237,7 +236,7 @@ inline blockptr makeBlock(std::string const& label, int indent = 0) {
   return b;
 }
 
-std::string toString(blockptr block);
+MIMIUM_DLL_PUBLIC std::string toString(blockptr block);
 
 inline std::shared_ptr<mir::Value> addInstToBlock(Instructions&& inst, blockptr block) {
   auto ptr = std::make_shared<Value>(std::move(inst));

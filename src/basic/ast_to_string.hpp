@@ -10,7 +10,7 @@ namespace mimium {
 enum class Mode { Lisp, Json };
 
 struct ToStringVisitor {
-  explicit ToStringVisitor(std::ostream& output, Mode mode = Mode::Lisp);
+  MIMIUM_DLL_PUBLIC explicit ToStringVisitor(std::ostream& output, Mode mode = Mode::Lisp);
   std::ostream& output;
   struct {
     std::string lpar;
@@ -54,11 +54,11 @@ struct AstStringifier : public ToStringVisitor {
   void operator()(const ast::Time& ast);
   void operator()(const ast::For& ast);
   // variants
-  void toString(const ast::Lvar& ast);
-  void toString(const ast::Expr& ast);
-  void toString(ast::ExprPtr ast);
-  void toString(const ast::Statement& ast);
-  void toString(const ast::Statements& ast);
+  MIMIUM_DLL_PUBLIC void toString(const ast::Lvar& ast);
+  MIMIUM_DLL_PUBLIC void toString(const ast::Expr& ast);
+  MIMIUM_DLL_PUBLIC void toString(ast::ExprPtr ast);
+  MIMIUM_DLL_PUBLIC void toString(const ast::Statement& ast);
+  MIMIUM_DLL_PUBLIC void toString(const ast::Statements& ast);
 
   template <typename T>
   void toStringVec(const T& vec) {

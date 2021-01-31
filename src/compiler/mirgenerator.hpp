@@ -72,8 +72,7 @@ class MirGenerator {
     explicit StatementKnormVisitor(ExprKnormVisitor& evisitor)
         : retvalue(std::nullopt),
           exprvisitor(evisitor),
-          mirgen(evisitor.mirgen),
-          fnctx(exprvisitor.fnctx) {}
+          mirgen(evisitor.mirgen){}
 
     void operator()(ast::Assign& ast);
     void operator()(ast::Fdef& ast);
@@ -89,7 +88,6 @@ class MirGenerator {
    private:
     ExprKnormVisitor& exprvisitor;
     MirGenerator& mirgen;
-    const std::optional<mir::valueptr>& fnctx;
   };
   mir::blockptr generate(ast::Statements& topast);
 

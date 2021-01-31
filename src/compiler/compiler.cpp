@@ -3,6 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #include "compiler/compiler.hpp"
+#include "codegen/llvm_header.hpp"
+#include "compiler/scanner.hpp"
+
 namespace mimium {
 Compiler::Compiler()
     : llvmctx(std::make_unique<llvm::LLVMContext>()),
@@ -51,6 +54,9 @@ llvm::Module& Compiler::generateLLVMIr(mir::blockptr mir, funobjmap const& funob
   llvmgenerator.generateCode(mir, &funobjs);
   return llvmgenerator.getModule();
 }
+std::unique_ptr<llvm::LLVMContext> Compiler::moveLLVMCtx() { return std::move(llvmctx); }
+std::unique_ptr<llvm::Module> Compiler::moveLLVMModule() { return llvmgenerator.moveModule(); }
+
 void Compiler::dumpLLVMModule(std::ostream& out) {
   std::string str;
   llvm::raw_string_ostream tmpout(str);

@@ -19,7 +19,7 @@
 #include <utility>  //pair
 #include <variant>
 #include <vector>
-
+#include "export.hpp"
 #include "variant_visitor_helper.hpp"
 
 #ifdef _WIN32
@@ -94,7 +94,7 @@ static std::string join(std::deque<ElementType>& vec, std::string delim) {
                          [&](std::string a, std::shared_ptr<ElementType>& b) {
                            return std::move(a) + delim + b.toString();
                          });
-};
+}
 
 template <class T>
 bool has(std::vector<T> t, T s) {
@@ -120,7 +120,7 @@ T transformArgs(T& args, L lambda) {
                           [&](std::string a, std::string b) { return std::move(a) + delim + b; });
   }
   return res;
-};
+}
 template <class T>
 static std::string join(std::deque<std::shared_ptr<T>>& vec, std::string delim) {
   std::string res;
@@ -130,7 +130,7 @@ static std::string join(std::deque<std::shared_ptr<T>>& vec, std::string delim) 
         [&](std::string a, std::shared_ptr<T>& b) { return std::move(a) + delim + b->toString(); });
   }
   return res;
-};
+}
 
 // static std::string join(const std::vector<TypedVal>& vec, std::string delim)
 // {
@@ -150,7 +150,7 @@ size_t getAddressfromFun(std::function<T(U...)> f) {
   return (size_t)*fnPointer;
 }
 
-class Logger {
+class MIMIUM_DLL_PUBLIC Logger {
  public:
   Logger() {
     setoutput(std::cerr);

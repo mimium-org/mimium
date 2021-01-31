@@ -1,5 +1,7 @@
 #include "basic/ast_to_string.hpp"
 #include "compiler/ast_loader.hpp"
+#include "compiler/scanner.hpp"
+#include "mimium_parser.hpp"
 #include "compiler/symbolrenamer.hpp"
 #include "compiler/type_infer_visitor.hpp"
 #include "gtest/gtest.h"

@@ -3,16 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #include "runtime/JIT/runtime_jit.hpp"
-
 #include <llvm/IRReader/IRReader.h>
+#include "runtime/JIT/jit_engine.hpp"
 
 extern "C" {
 void setDspParams(void* runtimeptr, void* dspfn, void* clsaddress, void* memobjaddress,
                   int in_numchs, int out_numchs) {
   auto* runtime = static_cast<mimium::Runtime*>(runtimeptr);
   auto& audiodriver = runtime->getAudioDriver();
-  auto p = std::make_unique<mimium::DspFnInfos>(mimium::DspFnInfos{
-      reinterpret_cast<mimium::DspFnPtr>(dspfn), clsaddress, memobjaddress, in_numchs, out_numchs});//NOLINT
+  auto p = std::make_unique<mimium::DspFnInfos>(
+      mimium::DspFnInfos{reinterpret_cast<mimium::DspFnPtr>(dspfn), clsaddress, memobjaddress,
+                         in_numchs, out_numchs});  // NOLINT
   audiodriver.setDspFnInfos(std::move(p));
 }
 
@@ -43,7 +44,7 @@ void* mimium_malloc(void* runtimeptr, size_t size) {
 
 namespace mimium {
 Runtime_LLVM::Runtime_LLVM(std::unique_ptr<llvm::LLVMContext> ctx,
-                           std::unique_ptr<llvm::Module> module, std::string const&  /*filename_i*/,
+                           std::unique_ptr<llvm::Module> module, std::string const& /*filename_i*/,
                            std::unique_ptr<AudioDriver> a, bool optimize)
     : Runtime(std::move(a)), module(std::move(module)) {
   init(std::move(ctx), optimize);
@@ -57,6 +58,11 @@ Runtime_LLVM::Runtime_LLVM(std::string const& filepath, std::unique_ptr<AudioDri
   module = llvm::parseIRFile(filepath, errorreporter, *ctx);
   init(std::move(ctx), optimize);
 }
+
+Runtime_LLVM::~Runtime_LLVM() = default;
+
+llvm::LLVMContext& Runtime_LLVM::getLLVMContext() { return jitengine->getContext(); }
+
 void Runtime_LLVM::init(std::unique_ptr<llvm::LLVMContext> ctx, bool optimize) {
   llvm::InitializeNativeTarget();
   llvm::InitializeNativeTargetAsmPrinter();

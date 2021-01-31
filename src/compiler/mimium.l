@@ -6,18 +6,19 @@
  
   #include <sstream>
   #include "compiler/scanner.hpp"
+  #include "mimium_parser.hpp"
   #include "basic/helper_functions.hpp"
   #undef  YY_DECL
-  #define YY_DECL int mmmpsr::MimiumScanner::yylex( MimiumParser::semantic_type * const lval, MimiumParser::location_type *loc )
+  #define YY_DECL int mimium::MimiumScanner::yylex( MimiumParser::semantic_type * const lval, MimiumParser::location_type *loc )
   
-  using token = MimiumParser::token;
+  using token = mimium::MimiumParser::token;
   using namespace mimium;
   #define yyterminate() return  token::ENDFILE;
   #define YY_USER_ACTION loc->begin=loc->end; loc->end.col += yyleng;
   #define LOC_BREAK loc->end.line+=yyleng; loc->end.col=0;
 %}
 %option c++ noyywrap nounput noinput nodefault debug
-%option yyclass="mmmpsr::MimiumParser"
+%option yyclass="mimium::MimiumParser"
 %x comment
 %x inlinecomment
 

@@ -3,6 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
+
+#include "export.hpp"
+
 #include "basic/ast.hpp"
 #include "basic/helper_functions.hpp"
 #include "basic/mir.hpp"
@@ -18,11 +21,11 @@
 
 namespace mimium {
 // compiler class  that load source code,analyze, and emit llvm IR.
-class Compiler {
+class MIMIUM_DLL_PUBLIC Compiler {
  public:
   Compiler();
   explicit Compiler(std::unique_ptr<llvm::LLVMContext> ctx);
-  ~Compiler();
+  virtual ~Compiler();
 
   AstPtr loadSource(std::istream& source);
   AstPtr loadSource(const std::string& source);
@@ -39,8 +42,8 @@ class Compiler {
 
   llvm::Module& generateLLVMIr(mir::blockptr mir, funobjmap const& funobjs);
   void dumpLLVMModule(std::ostream& out);
-  auto moveLLVMCtx(){return std::move(llvmctx);}
-  auto moveLLVMModule() { return llvmgenerator.moveModule(); }
+  std::unique_ptr<llvm::LLVMContext> moveLLVMCtx();
+  std::unique_ptr<llvm::Module> moveLLVMModule() ;
 
  private:
   std::unique_ptr<llvm::LLVMContext> llvmctx;

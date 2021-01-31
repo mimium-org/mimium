@@ -56,7 +56,7 @@ mir::blockptr ClosureConverter::convert(mir::blockptr toplevel) {
     clstypeenv.emplace("dsp", dummycapture);
   }
   return this->toplevel;
-};  // namespace mimium
+} // namespace mimium
 
 void ClosureConverter::CCVisitor::dump() {
   std::cerr << "----------fvset-----------\n";

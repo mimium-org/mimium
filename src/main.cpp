@@ -6,8 +6,12 @@
 #define MIMIUM_VERSION "unspecified"
 #endif
 
+#include "frontend/genericapp.hpp"
+
 #include "frontend/cli.hpp"
 
 int main(int argc, const char** argv) {
-  return std::make_unique<mimium::app::cli::CliApp>(argc, argv)->run();
+  auto app = std::make_unique<mimium::app::cli::CliApp>(argc, argv);
+  if (app != nullptr) { return app->run(); }
+  return 1;
 }

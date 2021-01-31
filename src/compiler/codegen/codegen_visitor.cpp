@@ -6,6 +6,7 @@
 #include "compiler/codegen/llvmgenerator.hpp"
 #include "compiler/codegen/typeconverter.hpp"
 #include "compiler/collect_memoryobjs.hpp"
+#include "compiler/ffi.hpp"
 
 namespace mimium {
 using OpId = ast::OpId;
@@ -154,7 +155,7 @@ llvm::Value* CodeGenVisitor::createAllocation(bool isglobal, llvm::Type* type,
     return res;
   }
   return G.builder->CreateAlloca(type, array_size, "ptr_" + name);
-};
+}
 
 llvm::Value* CodeGenVisitor::operator()(minst::Number& i) {
   return llvm::ConstantFP::get(G.ctx, llvm::APFloat(i.val));

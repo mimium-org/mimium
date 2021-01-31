@@ -6,38 +6,38 @@
 #include <cmath>
 #include "sndfile.h"
 
-extern "C" {
-void dumpaddress(void* a) { std::cerr << a << "\n"; }
+extern "C"{
+MIMIUM_DLL_PUBLIC void dumpaddress(void* a) { std::cerr << a << "\n"; }
 
-void printdouble(double d) { std::cout << d; }
-void printlndouble(double d) { std::cout << d << "\n"; }
+MIMIUM_DLL_PUBLIC void printdouble(double d) { std::cout << d; }
+MIMIUM_DLL_PUBLIC void printlndouble(double d) { std::cout << d << "\n"; }
 
-void printlnstr(char* str) { std::cout << str << "\n"; }
+MIMIUM_DLL_PUBLIC void printlnstr(char* str) { std::cout << str << "\n"; }
 
-double mimiumrand() { return ((double)rand() / RAND_MAX) * 2 - 1; }
+MIMIUM_DLL_PUBLIC double mimiumrand() { return ((double)rand() / RAND_MAX) * 2 - 1; }
 
-bool mimium_dtob(double d) { return d > 0; }
-int64_t mimium_dtoi(double d) { return static_cast<int64_t>(d); }
-double mimium_gt(double d1, double d2) { return static_cast<double>(d1 > d2); }
-double mimium_lt(double d1, double d2) { return static_cast<double>(d1 < d2); }
-double mimium_ge(double d1, double d2) { return static_cast<double>(d1 >= d2); }
-double mimium_le(double d1, double d2) { return static_cast<double>(d1 <= d2); }
-double mimium_and(double d1, double d2) {
+MIMIUM_DLL_PUBLIC bool mimium_dtob(double d) { return d > 0; }
+MIMIUM_DLL_PUBLIC int64_t mimium_dtoi(double d) { return static_cast<int64_t>(d); }
+MIMIUM_DLL_PUBLIC double mimium_gt(double d1, double d2) { return static_cast<double>(d1 > d2); }
+MIMIUM_DLL_PUBLIC double mimium_lt(double d1, double d2) { return static_cast<double>(d1 < d2); }
+MIMIUM_DLL_PUBLIC double mimium_ge(double d1, double d2) { return static_cast<double>(d1 >= d2); }
+MIMIUM_DLL_PUBLIC double mimium_le(double d1, double d2) { return static_cast<double>(d1 <= d2); }
+MIMIUM_DLL_PUBLIC double mimium_and(double d1, double d2) {
   return static_cast<double>(mimium_dtob(d1) && mimium_dtob(d2));
 }
-double mimium_or(double d1, double d2) {
+MIMIUM_DLL_PUBLIC double mimium_or(double d1, double d2) {
   return static_cast<double>(mimium_dtob(d1) || mimium_dtob(d2));
 }
-double mimium_not(double d1) { return static_cast<double>(!mimium_dtob(d1)); }
+MIMIUM_DLL_PUBLIC double mimium_not(double d1) { return static_cast<double>(!mimium_dtob(d1)); }
 
-double mimium_lshift(double d1, double d2) {
+MIMIUM_DLL_PUBLIC double mimium_lshift(double d1, double d2) {
   return static_cast<double>(mimium_dtoi(d1) << mimium_dtoi(d2));
 }
-double mimium_rshift(double d1, double d2) {
+MIMIUM_DLL_PUBLIC double mimium_rshift(double d1, double d2) {
   return static_cast<double>(mimium_dtoi(d1) >> mimium_dtoi(d2));
 }
 
-double access_array_lin_interp(double* array, double index_d) {
+MIMIUM_DLL_PUBLIC double access_array_lin_interp(double* array, double index_d) {
   double fract = fmod(index_d, 1.000);
   size_t index = floor(index_d);
   if (fract == 0) { return array[index]; }
@@ -49,7 +49,7 @@ struct MmmRingBuf {
   int64_t writei = 0;
   double buf[mimium::types::fixed_delaysize]{};
 };
-double mimium_delayprim(double in, double time, MmmRingBuf* rbuf) {
+MIMIUM_DLL_PUBLIC double mimium_delayprim(double in, double time, MmmRingBuf* rbuf) {
   auto size = sizeof(rbuf->buf) / sizeof(double);
   rbuf->writei = (rbuf->writei + 1) % size;
   double readi = fmod((size + rbuf->writei - time), size);
@@ -58,7 +58,7 @@ double mimium_delayprim(double in, double time, MmmRingBuf* rbuf) {
   return access_array_lin_interp(rbuf->buf, readi);
 }
 
-double libsndfile_loadwavsize(char* filename) {
+MIMIUM_DLL_PUBLIC double libsndfile_loadwavsize(char* filename) {
   SF_INFO sfinfo;
   auto* sfile = sf_open(filename, SFM_READ, &sfinfo);
   if (sfile == nullptr) { std::cerr << sf_strerror(sfile) << "\n"; }
@@ -67,7 +67,7 @@ double libsndfile_loadwavsize(char* filename) {
   return res;
 }
 
-double* libsndfile_loadwav(char* filename) {
+MIMIUM_DLL_PUBLIC double* libsndfile_loadwav(char* filename) {
   SF_INFO sfinfo;
   auto* sfile = sf_open(filename, SFM_READ, &sfinfo);
   if (sfile == nullptr) { std::cerr << sf_strerror(sfile) << "\n"; }

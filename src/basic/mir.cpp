@@ -39,7 +39,7 @@ std::string instruction::toString(Store const& i) {
 }
 
 std::string instruction::toString(Op const& i) {
-  auto opstr = std::string(ast::op_str.find(i.op)->second);
+  auto opstr = std::string(ast::getOpString(i.op));
   return i.name + " = " + opstr + " " + (i.lhs.has_value() ? mir::getName(*i.lhs.value()) : "") +
          " " + mir::getName(*i.rhs);
 }
@@ -65,7 +65,8 @@ std::string instruction::toString(Fcall const& i) {
   std::string s;
   if (!std::holds_alternative<types::Void>(i.type)) { s = i.name + " = "; }
   auto timestr = (i.time) ? "@" + mir::getName(*i.time.value()) : "";
-  s += "app" + fcalltype_str[i.ftype] + " " + mir::getName(*i.fname) + " " + join(i.args, " , ") + timestr;
+  s += "app" + fcalltype_str[i.ftype] + " " + mir::getName(*i.fname) + " " + join(i.args, " , ") +
+       timestr;
   return s;
 }
 
