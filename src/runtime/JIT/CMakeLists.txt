@@ -20,5 +20,3 @@ mimium_scheduler
 )
 target_link_options(mimium_runtime_jit PRIVATE
 ${LLVM_LD_FLAGS})
-
-install(TARGETS mimium_runtime_jit DESTINATION lib)

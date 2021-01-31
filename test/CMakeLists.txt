@@ -37,7 +37,7 @@ target_include_directories(TestLib
     PUBLIC
     .
     $<BUILD_INTERFACE:${FLEX_INCLUDE_CACHE}>
-    $<BUILD_INTERFACE:${PARSER_HEADER_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/src/compiler>
     $<BUILD_INTERFACE:${MIMIUM_SOURCE_DIR}>
     )
 target_compile_features(TestLib PRIVATE cxx_std_17)
