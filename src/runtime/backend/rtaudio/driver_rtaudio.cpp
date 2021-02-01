@@ -82,6 +82,12 @@ void AudioDriverRtAudio::printStreamInfo() const {
 }
 bool AudioDriverRtAudio::start() {
   try {
+    assert(this->dspfninfos != nullptr);
+    rtaudio_params_input->get().nChannels = std::min(
+        static_cast<int>(rtaudio_params_input->get().nChannels), this->dspfninfos->in_numchs);
+    rtaudio_params_output->get().nChannels = std::min(
+        static_cast<int>(rtaudio_params_output->get().nChannels), this->dspfninfos->out_numchs);
+
     rtaudio_options->get().streamName = "mimium";
     auto sr = getPreferredSampleRate();
 
