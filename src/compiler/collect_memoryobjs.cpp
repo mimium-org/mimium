@@ -56,7 +56,7 @@ funobjmap MemoryObjsCollector::process(mir::blockptr toplevel) {
         auto memtype = res->objtype;
         if (!res->memobjs.empty() || res->hasself) {
           alloca_container.emplace(std::make_shared<mir::Value>(
-              minst::Allocate{{mir::getName(*inst) + ".mem", memtype}}));
+              minst::Allocate{{mir::getName(*inst) + ".mem", types::Pointer{memtype}}}));
         }
       }
     }
