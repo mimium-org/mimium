@@ -1,0 +1,10 @@
+fn panner(input:float,pan:float) -> (float,float){
+    // println(1)
+    return (input*pan,input*(1-pan))
+}
+
+test:float = 0.8
+fn dsp(input:(float,float))->(float,float){
+    res = panner(random()*0.2,sin(5*now/48000)+1*0.5)
+    return res
+}

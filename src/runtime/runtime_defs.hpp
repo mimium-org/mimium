@@ -25,7 +25,8 @@ struct DspFnInfos {
 struct AudioDriverParams {
   public:
   double samplerate = 0;
-  int buffersize = 0;
+  int buffersizebyte = 0;
+  int audioframesize = 0;
   int in_numchs = 0;
   int out_numchs = 0;
 };
