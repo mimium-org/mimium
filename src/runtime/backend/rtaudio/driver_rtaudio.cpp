@@ -101,14 +101,14 @@ bool AudioDriverRtAudio::start() {
 
     rtaudio_params_input->get().nChannels = params->in_numchs;
     rtaudio_params_output->get().nChannels = params->out_numchs;
+    auto* iparam = params->in_numchs > 0 ? &rtaudio_params_input->get() : nullptr;
+    auto* oparam = params->out_numchs > 0 ? &rtaudio_params_output->get() : nullptr;
 
     // check parameter are valid
-    rtaudio->openStream(&rtaudio_params_output->get(), &rtaudio_params_input->get(),
-                        RTAUDIO_FLOAT64, params->samplerate, &bufsize_internal, callback, this,
-                        &rtaudio_options->get(), nullptr);
-    params->buffersizebyte = static_cast<int>(bufsize_internal);
-
+    rtaudio->openStream(oparam, iparam, RTAUDIO_FLOAT64, params->samplerate, &bufsize_internal,
+                        callback, this, &rtaudio_options->get(), nullptr);
     printStreamInfo();
+    params->buffersizebyte = static_cast<int>(bufsize_internal);
 
     bool hasdsp = dspfninfos->fn != nullptr;
     sch.start(hasdsp);
