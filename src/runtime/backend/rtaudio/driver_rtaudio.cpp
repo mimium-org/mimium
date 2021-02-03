@@ -10,7 +10,8 @@ const RtAudioCallback callback = [](void* output, void* input, unsigned int nFra
                                     RtAudioStreamStatus status, void* userdata) -> int {
   auto* driver = static_cast<mimium::AudioDriverRtAudio*>(userdata);
   // Process interleaved audio data.
-  driver->process(static_cast<const double*>(input), static_cast<double*>(output));
+  driver->process(static_cast<const double*>(input), static_cast<double*>(output),
+                  static_cast<int>(nFrames));
   if (status > 0) {
     mimium::Logger::debug_log("Stream underflow detected!", mimium::Logger::WARNING);
   }
@@ -80,28 +81,32 @@ void AudioDriverRtAudio::printStreamInfo() const {
   }
   return sr_out;
 }
+std::unique_ptr<AudioDriverParams> AudioDriverRtAudio::getDefaultAudioParameter(
+    std::optional<int> samplerate, std::optional<int> framesize) const {
+  assert(rtaudio != nullptr && dspfninfos != nullptr);
+  auto in_chs = std::min(static_cast<int>(rtaudio_params_input->get().nChannels),
+                         this->dspfninfos->in_numchs);
+  auto out_chs = std::min(static_cast<int>(rtaudio_params_output->get().nChannels),
+                          this->dspfninfos->out_numchs);
+  int sr = samplerate.value_or(getPreferredSampleRate());
+  int frames = framesize.value_or(AudioDriver::default_framesize);
+  return std::make_unique<AudioDriverParams>(AudioDriverParams{
+      static_cast<double>(sr), static_cast<int>(frames * sizeof(double)), frames, in_chs, out_chs});
+}
+
 bool AudioDriverRtAudio::start() {
   try {
-    assert(this->dspfninfos != nullptr);
-    rtaudio_params_input->get().nChannels = std::min(
-        static_cast<int>(rtaudio_params_input->get().nChannels), this->dspfninfos->in_numchs);
-    rtaudio_params_output->get().nChannels = std::min(
-        static_cast<int>(rtaudio_params_output->get().nChannels), this->dspfninfos->out_numchs);
-
-    rtaudio_options->get().streamName = "mimium";
-    auto sr = getPreferredSampleRate();
-
-    auto p = std::make_unique<AudioDriverParams>(
-        AudioDriverParams{static_cast<double>(sr), static_cast<int>(bufsize_internal),
-                          static_cast<int>(rtaudio_params_input->get().nChannels),
-                          static_cast<int>(rtaudio_params_output->get().nChannels)});
-    // check parameter are valid
-    AudioDriver::setup(std::move(p));
     AudioDriver::start();
+    rtaudio_options->get().streamName = "mimium";
+
+    rtaudio_params_input->get().nChannels = params->in_numchs;
+    rtaudio_params_output->get().nChannels = params->out_numchs;
+
+    // check parameter are valid
     rtaudio->openStream(&rtaudio_params_output->get(), &rtaudio_params_input->get(),
-                        RTAUDIO_FLOAT64, sr, &bufsize_internal, callback, this,
+                        RTAUDIO_FLOAT64, params->samplerate, &bufsize_internal, callback, this,
                         &rtaudio_options->get(), nullptr);
-    params->buffersize = static_cast<int>(bufsize_internal);
+    params->buffersizebyte = static_cast<int>(bufsize_internal);
 
     printStreamInfo();
 

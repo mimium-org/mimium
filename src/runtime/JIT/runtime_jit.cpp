@@ -98,6 +98,7 @@ void Runtime_LLVM::runMainFun() {
 void Runtime_LLVM::start() {
   auto& sch = audiodriver->getScheduler();
   if (hasdsp || sch.hasTask()) {
+    audiodriver->setup(audiodriver->getDefaultAudioParameter(std::nullopt, std::nullopt));
     audiodriver->start();
     {
       auto& waitc = sch.getWaitController();

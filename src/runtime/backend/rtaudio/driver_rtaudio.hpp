@@ -8,7 +8,7 @@
 class RtAudio;
 namespace mimium {
 class Scheduler;
-//Foward declaration wrapper for nested structs in RtAudio class.
+// Foward declaration wrapper for nested structs in RtAudio class.
 class StreamParametersPrivate;
 class StreamOptionsPrivate;
 
@@ -18,7 +18,10 @@ class MIMIUM_DLL_PUBLIC AudioDriverRtAudio : public AudioDriver {
   ~AudioDriverRtAudio() override;
   bool start() override;
   bool stop() override;
-  private:
+  [[nodiscard]] std::unique_ptr<AudioDriverParams> getDefaultAudioParameter(
+      std::optional<int> samplerate, std::optional<int> framesize)const override;
+
+ private:
   std::unique_ptr<RtAudio> rtaudio;
   std::unique_ptr<StreamParametersPrivate> rtaudio_params_input;
   std::unique_ptr<StreamParametersPrivate> rtaudio_params_output;
@@ -29,6 +32,6 @@ class MIMIUM_DLL_PUBLIC AudioDriverRtAudio : public AudioDriver {
   std::vector<std::unique_ptr<std::vector<double>>> out_buffer;
 
   [[nodiscard]] unsigned int getPreferredSampleRate() const;
-  void printStreamInfo()const;
+  void printStreamInfo() const;
 };
 }  // namespace mimium
