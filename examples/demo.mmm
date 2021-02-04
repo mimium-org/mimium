@@ -1,11 +1,8 @@
-fn count(){
-    return self + 1
+fn toStereo(input:float){
+    return (input,input)
 }
-
-fn loop()->void{
-    println(count())
+fn dsp(){
+    return toStereo(sin(now*440*3.14*2/48000))
 }
-test =0
-fn dsp(time:float)->float{
-    return (count())%1
-}
+//Oneliner version
+// dsp = | |{ 440 |> |freq|{ sin(now*freq*3.14*2/48000) } |> |i|{(i,i)}}

@@ -46,7 +46,8 @@ fn loopnote()->void{
 phasor = |f:float|{return (self+f/48000)%1}
 saw = |f:float|{return phasor(f)-0.5 }
 sq = |f:float|{return (phasor(f)>0.5) - 0.5 }
-fn dsp(time){
-    return sq(mtof(mnum)) * (triggerval |> myadsr)
+fn dsp(){
+    out = sq(mtof(mnum)) * (triggerval |> myadsr)
+    return (out,out)
 }
 loopnote()@0
