@@ -18,11 +18,13 @@ AstPtr SymbolRenamer::rename(ast::Statements& ast) {
   }
   return newast;
 }
+std::string SymbolRenamer::generateNewName(std::string const& name) {
+  return name + std::to_string(namecount++);
+}
 
 std::string SymbolRenamer::getNewName(std::string const& name) {
   auto res = env->search(std::optional(name));
-  if (res == std::nullopt) { return name + std::to_string(namecount++); }
-  return res.value();
+  return res.value_or(generateNewName(name));
 }
 std::string SymbolRenamer::searchFromEnv(std::string const& name) {
   auto res = env->search(std::optional(name));
@@ -60,7 +62,7 @@ ast::ExprPtr ExprRenameVisitor::operator()(ast::Block& ast) {
 }
 ast::LambdaArgs ExprRenameVisitor::renameLambdaArgs(ast::LambdaArgs& ast) {
   auto newargs = ast::transformArgs(
-      ast.args, [&](ast::DeclVar a) { return renamer.lvar_renamevisitor.renameDeclVar(a); });
+      ast.args, [&](ast::DeclVar a) { return renamer.lvar_renamevisitor.renameLambdaArgVar(a); });
   return ast::LambdaArgs{{{ast.debuginfo}}, std::move(newargs)};
 }
 ast::Lambda ExprRenameVisitor::renameLambda(ast::Lambda& ast) {
@@ -126,6 +128,11 @@ ast::ExprPtr ExprRenameVisitor::operator()(ast::If& ast) {
 using LvarRenameVisitor = SymbolRenamer::LvarRenameVisitor;
 ast::DeclVar LvarRenameVisitor::renameDeclVar(ast::DeclVar& ast) {
   auto newname = renamer.getNewName(ast.value.value);
+  renamer.env->addToMap(ast.value.value, newname);
+  return ast::DeclVar{{{ast.debuginfo}}, ast::Symbol{{ast.value.debuginfo}, newname}, ast.type};
+}
+ast::DeclVar LvarRenameVisitor::renameLambdaArgVar(ast::DeclVar& ast) {
+  auto newname = renamer.generateNewName(ast.value.value);
   renamer.env->addToMap(ast.value.value, newname);
   return ast::DeclVar{{{ast.debuginfo}}, ast::Symbol{{ast.value.debuginfo}, newname}, ast.type};
 }

@@ -52,6 +52,7 @@ class SymbolRenamer {
     ast::Lvar operator()(ast::ArrayLvar& ast);
     ast::Lvar operator()(ast::TupleLvar& ast);
     ast::DeclVar renameDeclVar(ast::DeclVar& ast);
+    ast::DeclVar renameLambdaArgVar(ast::DeclVar& ast);
     ast::Lvar rename(ast::Lvar& ast) { return std::visit(*this, ast); }
   };
   struct StatementRenameVisitor : public VisitorBase<StatementPtr> {
@@ -86,6 +87,7 @@ class SymbolRenamer {
   std::shared_ptr<RenameEnvironment> env;
   uint64_t namecount = 0;
   std::string getNewName(std::string const& name);
+  std::string generateNewName(std::string const& name);
   std::string searchFromEnv(std::string const& name);
 };
 
