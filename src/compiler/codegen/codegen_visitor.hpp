@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
+
+#include <queue>
 #include "basic/mir.hpp"
 #include "compiler/codegen/llvm_header.hpp"
 #include "compiler/collect_memoryobjs.hpp"
@@ -46,7 +48,7 @@ struct CodeGenVisitor {
 
   std::unordered_map<mir::valueptr, llvm::Value*> mirfv_to_llvm;
   std::unordered_map<mir::valueptr, llvm::Value*> memobj_to_llvm;
-
+  std::queue<llvm::Value*> memobjqueue;
   std::unordered_map<mir::valueptr, llvm::Value*> fun_to_selfval;
   std::unordered_map<mir::valueptr, llvm::Value*> fun_to_selfptr;
 
@@ -61,7 +63,7 @@ struct CodeGenVisitor {
   llvm::Value* getDirFun(minst::Fcall const& i);
   llvm::Value* getClsFun(minst::Fcall const& i);
   llvm::Value* getExtFun(minst::Fcall const& i);
-
+  llvm::Value* popMemobjInContext();
   llvm::FunctionType* createFunctionType(minst::Function& i);
   llvm::FunctionType* createDspFnType(minst::Function& i,bool hascapture,bool hasmemobj);
 
