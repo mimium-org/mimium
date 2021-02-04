@@ -133,10 +133,11 @@ fn seekloop(speed,size)->float{
 }
 
 
-fn dsp(time)->float{
+fn dsp(){
     kpos = seek(1.0,kicksize,kt)
     spos = seek2(1.0,snaresize,st)
-    return (kickwav[kpos] + snarewav[spos] + mysynth(synfreq,synt)+ mylpf(mypad(55)+mypadhigh(110)))*0.5 + seawav[seekloop(sin(time/48000)+1,seasize)]
+    out =  (kickwav[kpos] + snarewav[spos] + mysynth(synfreq,synt)+ mylpf(mypad(55)+mypadhigh(110)))*0.5 + seawav[seekloop(sin(now/48000)+1,seasize)]
+    return (out,out)
 }
 ktrigger(24000)@0
 strigger(12000)@12000
