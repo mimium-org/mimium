@@ -14,7 +14,7 @@ class StreamOptionsPrivate;
 
 class MIMIUM_DLL_PUBLIC AudioDriverRtAudio : public AudioDriver {
  public:
-  explicit AudioDriverRtAudio(int buffer_size = 256);
+  explicit AudioDriverRtAudio();
   ~AudioDriverRtAudio() override;
   bool start() override;
   bool stop() override;
@@ -27,7 +27,6 @@ class MIMIUM_DLL_PUBLIC AudioDriverRtAudio : public AudioDriver {
   std::unique_ptr<StreamParametersPrivate> rtaudio_params_output;
   std::unique_ptr<StreamOptionsPrivate> rtaudio_options;
   bool setCallback();
-  unsigned int bufsize_internal;
   std::vector<std::unique_ptr<std::vector<double>>> in_buffer;
   std::vector<std::unique_ptr<std::vector<double>>> out_buffer;
 

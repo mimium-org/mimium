@@ -1,6 +1,7 @@
 trigger = 0
 fn setval(v){
     trigger = v
+    println(v)
 }
 
 fn attack(dur){

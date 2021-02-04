@@ -6,12 +6,13 @@
 #include "RtAudio.h"
 
 namespace {
-const RtAudioCallback callback = [](void* output, void* input, unsigned int nFrames, double time,
-                                    RtAudioStreamStatus status, void* userdata) -> int {
+const RtAudioCallback callback = [](void* output, void* input, unsigned int n_frames,
+                                    double /*time*/, RtAudioStreamStatus status,
+                                    void* userdata) -> int {
   auto* driver = static_cast<mimium::AudioDriverRtAudio*>(userdata);
   // Process interleaved audio data.
   driver->process(static_cast<const double*>(input), static_cast<double*>(output),
-                  static_cast<int>(nFrames));
+                  static_cast<int>(n_frames));
   if (status > 0) {
     mimium::Logger::debug_log("Stream underflow detected!", mimium::Logger::WARNING);
   }
@@ -36,8 +37,7 @@ class StreamOptionsPrivate {
   auto& get() { return opt; }
 };
 
-AudioDriverRtAudio::AudioDriverRtAudio(int buffer_size)
-    : AudioDriver(), bufsize_internal(buffer_size) {
+AudioDriverRtAudio::AudioDriverRtAudio() : AudioDriver() {
   try {
     rtaudio = std::make_unique<RtAudio>();
     rtaudio_params_input = std::make_unique<StreamParametersPrivate>();
@@ -68,7 +68,7 @@ void AudioDriverRtAudio::printStreamInfo() const {
   deviceinfostr += "Output Audio Device : " + outdevice.name;
   deviceinfostr += " - " + std::to_string(outdevice.outputChannels) + "chs\n ";
   deviceinfostr += "Sampling Rate : " + std::to_string(rtaudio->getStreamSampleRate());
-  deviceinfostr += " / Buffer Size : " + std::to_string(bufsize_internal);
+  deviceinfostr += " / Buffer Size : " + std::to_string(params->audioframesize);
   Logger::debug_log(deviceinfostr, Logger::INFO);
 }
 [[nodiscard]] unsigned int AudioDriverRtAudio::getPreferredSampleRate() const {
@@ -103,12 +103,16 @@ bool AudioDriverRtAudio::start() {
     rtaudio_params_output->get().nChannels = params->out_numchs;
     auto* iparam = params->in_numchs > 0 ? &rtaudio_params_input->get() : nullptr;
     auto* oparam = params->out_numchs > 0 ? &rtaudio_params_output->get() : nullptr;
-
+    if (iparam == nullptr && oparam == nullptr) {  // create dummy parameter for no dsp mode
+      oparam = &rtaudio_params_output->get();
+      rtaudio_params_output->get().nChannels = 1;
+    }
     // check parameter are valid
-    rtaudio->openStream(oparam, iparam, RTAUDIO_FLOAT64, params->samplerate, &bufsize_internal,
-                        callback, this, &rtaudio_options->get(), nullptr);
+    unsigned int framesize = params->audioframesize;
+    rtaudio->openStream(oparam, iparam, RTAUDIO_FLOAT64, params->samplerate, &framesize, callback,
+                        this, &rtaudio_options->get(), nullptr);
     printStreamInfo();
-    params->buffersizebyte = static_cast<int>(bufsize_internal);
+    params->audioframesize = framesize;
 
     bool hasdsp = dspfninfos->fn != nullptr;
     sch.start(hasdsp);
