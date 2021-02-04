@@ -19,7 +19,6 @@
 
 namespace mimium {
 
-
 namespace types {
 enum class Kind { VOID, PRIMITIVE, POINTER, AGGREGATE, INTERMEDIATE };
 }
@@ -30,7 +29,7 @@ struct PrimitiveType {
   PrimitiveType() = default;
 };
 
-inline bool operator==(const PrimitiveType& /*t1*/, const PrimitiveType& /*t2*/) { return true; };
+inline bool operator==(const PrimitiveType& /*t1*/, const PrimitiveType& /*t2*/) { return true; }
 
 struct None : PrimitiveType {};
 struct Void : PrimitiveType {};
@@ -113,6 +112,19 @@ struct Pointer {
   Value val;
 };
 inline bool operator==(const Pointer& t1, const Pointer& t2) { return t1.val == t2.val; }
+// Helper function to make pointer to pointer type
+// Because nested aggregate initialization like Pointer{Pointer{Float}} interpreted as copy
+// construction.
+inline auto makePointer(types::Value&& t) {
+  types::Pointer res;
+  res.val = std::forward<types::Value>(t);
+  return std::forward<types::Value>(res);
+}
+inline auto makePointer(types::Value const& t) {
+  types::Pointer res;
+  res.val = t;
+  return res;
+}
 
 struct Function {
   Value ret_type;
@@ -140,11 +152,14 @@ struct Array {
 inline bool operator==(const Array& t1, const Array& t2) {
   return (t1.elem_type == t2.elem_type) && (t1.size == t2.size);
 }
+
+inline bool isArraySizeVariable(const Array& arr) { return arr.size == 0; }
+
 struct Tuple {
   std::vector<Value> arg_types;
 };
 
-inline bool operator==(const Tuple& t1, const Tuple& t2) { return (t1.arg_types == t2.arg_types); };
+inline bool operator==(const Tuple& t1, const Tuple& t2) { return (t1.arg_types == t2.arg_types); }
 
 struct Struct {
   struct Keytype {
@@ -156,17 +171,17 @@ struct Struct {
 
 inline bool operator==(const Struct::Keytype& t1, const Struct::Keytype& t2) {
   return (t1.field == t2.field) && (t1.val == t2.val);
-};
+}
 
 inline bool operator==(const Struct& t1, const Struct& t2) {
   return (t1.arg_types == t2.arg_types);
-};
+}
 
 struct Alias {
   std::string name;
   Value target;
 };
-inline bool operator==(const Alias& t1, const Alias& t2) { return (t1.name == t2.name); };
+inline bool operator==(const Alias& t1, const Alias& t2) { return (t1.name == t2.name); }
 bool isTypeVar(types::Value t);
 
 template <class T>
@@ -185,13 +200,16 @@ bool operator!=(T t1, T t2) {
   return !(t1 == t2);
 }
 
-constexpr size_t fixed_delaysize =44100;
-inline static auto delaystruct = types::Alias{"MmmRingBuf", types::Tuple{{types::Float{}, types::Float{},types::Array{types::Float{}, fixed_delaysize}}}};
-
+constexpr size_t fixed_delaysize = 44100;
+inline auto getDelayStruct(){
+  return types::Alias{"MmmRingBuf", types::Tuple{{types::Float{}, types::Float{},
+                                                  types::Array{types::Float{}, fixed_delaysize}}}};
+}
 
 struct ToStringVisitor {
   bool verbose = false;
-  [[nodiscard]] std::string join(const std::vector<types::Value>& vec, std::string delim) const {
+  [[nodiscard]] std::string join(const std::vector<types::Value>& vec,
+                                 std::string const& delim) const {
     std::string res;
     if (!vec.empty()) {
       res = std::accumulate(std::next(vec.begin()), vec.end(), std::visit(*this, *vec.begin()),
@@ -201,11 +219,11 @@ struct ToStringVisitor {
     }
     return res;
   }
-  std::string operator()(None) const { return "none"; }
+  std::string operator()(None /*unused*/) const { return "none"; }
   std::string operator()(const TypeVar& v) const { return "TypeVar" + std::to_string(v.index); }
-  std::string operator()(Void) const { return "void"; }
-  std::string operator()(Float) const { return "float"; }
-  std::string operator()(String) const { return "string"; }
+  std::string operator()(Void /*unused*/) const { return "void"; }
+  std::string operator()(Float /*unused*/) const { return "float"; }
+  std::string operator()(String /*unused*/) const { return "string"; }
   std::string operator()(const Ref& r) const { return std::visit(*this, r.val) + "&"; }
   std::string operator()(const Pointer& r) const { return std::visit(*this, r.val) + "*"; }
   std::string operator()(const Function& f) const {
@@ -219,7 +237,9 @@ struct ToStringVisitor {
   }
   std::string operator()(const Struct& s) const {
     std::string str = "{";
-    for (auto& arg : s.arg_types) { str += arg.field + ":" + std::visit(*this, arg.val) + ","; }
+    for (const auto& arg : s.arg_types) {
+      str += arg.field + ":" + std::visit(*this, arg.val) + ",";
+    }
     return str.substr(0, str.size() - 1) + "}";
   }
   std::string operator()(const Tuple& t) const { return "(" + join(t.arg_types, ",") + ")"; }
@@ -231,7 +251,6 @@ struct ToStringVisitor {
   }
 };
 
-static ToStringVisitor tostrvisitor;
 std::string toString(const Value& v, bool verbose = false);
 void dump(const Value& v, bool verbose = false);
 
@@ -240,11 +259,9 @@ inline bool isPrimitive(const Value& v) {
       [](auto& a) { return std::is_base_of_v<PrimitiveType, std::decay_t<decltype(a)>>; }, v);
 }
 
-inline bool isClosure(const Value&v){
-  if(std::holds_alternative<rClosure>(v)){
-    return true;
-  }
-  if(const auto* alias = std::get_if<Box<Alias>>(&v)){
+inline bool isClosure(const Value& v) {
+  if (std::holds_alternative<rClosure>(v)) { return true; }
+  if (const auto* alias = std::get_if<Box<Alias>>(&v)) {
     return std::holds_alternative<rClosure>(alias->getraw().target);
   }
   return false;
@@ -263,7 +280,7 @@ class TypeEnv {
   std::deque<types::Value> tv_container;
   std::shared_ptr<types::TypeVar> createNewTypeVar() {
     auto res = std::make_shared<types::TypeVar>(typeid_count++);
-    tv_container.push_back(*res);
+    tv_container.emplace_back(*res);
     return res;
   }
   types::Value& findTypeVar(int tindex) { return tv_container[tindex]; }
@@ -275,7 +292,7 @@ class TypeEnv {
     types::Value* res = (it == env.end()) ? nullptr : &it->second;
     return res;
   }
-  types::Value& find(std::string key) {
+  types::Value& find(std::string const& key) {
     auto* res = tryFind(key);
     if (res == nullptr) {
       throw std::runtime_error("Could not find type for variable \"" + key + "\"");
@@ -286,7 +303,7 @@ class TypeEnv {
   auto emplace(std::string key, types::Value typevar) { return env.insert_or_assign(key, typevar); }
   void replaceTypeVars();
 
-  std::string toString(bool verbose = false);
+  MIMIUM_DLL_PUBLIC std::string toString(bool verbose = false);
   void dump(bool verbose = false);
   void dumpTvLinks();
 };

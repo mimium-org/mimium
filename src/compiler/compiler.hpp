@@ -3,6 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
+
+#include "export.hpp"
+
 #include "basic/ast.hpp"
 #include "basic/helper_functions.hpp"
 #include "basic/mir.hpp"
@@ -18,13 +21,15 @@
 
 namespace mimium {
 // compiler class  that load source code,analyze, and emit llvm IR.
-class Compiler {
+class MIMIUM_DLL_PUBLIC Compiler {
  public:
   Compiler();
   explicit Compiler(std::unique_ptr<llvm::LLVMContext> ctx);
-  ~Compiler();
-  AstPtr loadSource(std::string source);
-  AstPtr loadSourceFile(std::string filename);
+  virtual ~Compiler();
+
+  AstPtr loadSource(std::istream& source);
+  AstPtr loadSource(const std::string& source);
+  AstPtr loadSourceFile(const std::string& filename);
   void setFilePath(std::string path);
   void setDataLayout(const llvm::DataLayout& dl);
   void setDataLayout();
@@ -36,18 +41,18 @@ class Compiler {
   funobjmap collectMemoryObjs(mir::blockptr mir);
 
   llvm::Module& generateLLVMIr(mir::blockptr mir, funobjmap const& funobjs);
-  auto moveLLVMCtx(){return std::move(llvmctx);}
-  auto moveLLVMModule() { return llvmgenerator.moveModule(); }
+  void dumpLLVMModule(std::ostream& out);
+  std::unique_ptr<llvm::LLVMContext> moveLLVMCtx();
+  std::unique_ptr<llvm::Module> moveLLVMModule() ;
 
  private:
+  std::unique_ptr<llvm::LLVMContext> llvmctx;
   Driver driver;
-  // AlphaConvertVisitor alphavisitor;
   SymbolRenamer symbolrenamer;
   TypeInferer typeinferer;
   MirGenerator mirgenerator;
   std::shared_ptr<ClosureConverter> closureconverter;
   MemoryObjsCollector memobjcollector;
-  std::unique_ptr<llvm::LLVMContext> llvmctx;
   LLVMGenerator llvmgenerator;
   std::string path;
 };

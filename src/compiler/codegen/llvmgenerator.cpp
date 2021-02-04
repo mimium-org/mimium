@@ -1,31 +1,39 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
 #include "compiler/codegen/llvmgenerator.hpp"
 #include "compiler/codegen/codegen_visitor.hpp"
+#include "compiler/collect_memoryobjs.hpp"
+
+#include "compiler/codegen/llvm_header.hpp"
 #include "compiler/codegen/typeconverter.hpp"
+#include "compiler/ffi.hpp"
 
 namespace mimium {
 
 LLVMGenerator::LLVMGenerator(llvm::LLVMContext& ctx)
     : ctx(ctx),
+      curfunc(nullptr),
       module(std::make_unique<llvm::Module>("no_file_name.mmm", ctx)),
       builder(std::make_unique<llvm::IRBuilder<>>(ctx)),
       mainentry(nullptr),
       currentblock(nullptr),
-      curfunc(nullptr),
       typeconverter(std::make_unique<TypeConverter>(*builder, *module)),
       runtime_fun_names(
-          {{"mimium_getnow", llvm::FunctionType::get(getDoubleTy(), {}, false)},
+          {{"mimium_getnow", llvm::FunctionType::get(getDoubleTy(), {geti8PtrTy()}, false)},
            {"access_array_lin_interp",
             llvm::FunctionType::get(
                 getDoubleTy(), {llvm::PointerType::get(getDoubleTy(), 0), getDoubleTy()}, false)},
-           {"mimium_malloc", llvm::FunctionType::get(geti8PtrTy(), {geti64Ty()}, false)}}) {}
+           {"mimium_malloc",
+            llvm::FunctionType::get(geti8PtrTy(), {geti8PtrTy(), geti64Ty()}, false)}}) {}
+
+llvm::Module& LLVMGenerator::getModule() { return *this->module; }
+std::unique_ptr<llvm::Module> LLVMGenerator::moveModule() { return std::move(this->module); }
+
 void LLVMGenerator::init(std::string filename) {
   module->setSourceFileName(filename);
   module->setModuleIdentifier(filename);
-  module->setTargetTriple(LLVMGetDefaultTargetTriple());
+  module->setTargetTriple(llvm::sys::getDefaultTargetTriple());
 }
 
 void LLVMGenerator::setDataLayout(const llvm::DataLayout& dl) { module->setDataLayout(dl); }
@@ -40,7 +48,27 @@ void LLVMGenerator::dropAllReferences() {
   if (module != nullptr) { module->dropAllReferences(); }
 }
 
-llvm::Type* LLVMGenerator::getType(types::Value& type) { return std::visit(*typeconverter, type); }
+llvm::Type* LLVMGenerator::getType(types::Value const& type) {
+  return std::visit(*typeconverter, type);
+}
+
+llvm::ArrayType* LLVMGenerator::getArrayType(types::Value const& type) {
+  assert(rv::holds_alternative<types::Array>(type));
+  const auto& atype = rv::get<types::Array>(type);
+  return llvm::ArrayType::get(std::visit(*typeconverter, atype.elem_type), atype.size);
+}
+
+llvm::Type* LLVMGenerator::getDoubleTy() { return llvm::Type::getDoubleTy(ctx); }
+llvm::PointerType* LLVMGenerator::geti8PtrTy() { return builder->getInt8PtrTy(); }
+llvm::Type* LLVMGenerator::geti64Ty() { return builder->getInt64Ty(); }
+llvm::Value* LLVMGenerator::getConstInt(int v, const int bitsize) {
+  return llvm::ConstantInt::get(llvm::IntegerType::get(ctx, bitsize), llvm::APInt(bitsize, v));
+}
+llvm::Value* LLVMGenerator::getConstDouble(double v) {
+  return llvm::ConstantFP::get(builder->getDoubleTy(), v);
+}
+
+llvm::Value* LLVMGenerator::getZero(const int bitsize) { return getConstInt(0, bitsize); }
 
 llvm::Type* LLVMGenerator::getClosureToFunType(types::Value& type) {
   auto aliasty = rv::get<types::Alias>(type);
@@ -57,11 +85,14 @@ void LLVMGenerator::switchToMainFun() {
   curfunc = mainentry->getParent();
 }
 llvm::Function* LLVMGenerator::getForeignFunction(const std::string& name) {
-  auto& [type, targetname] = LLVMBuiltin::ftable.find(name)->second;
-  if (name == "delay") {
-    rv::get<types::Function>(type).arg_types.emplace_back(types::Ref{types::delaystruct});
+  const auto& [type, targetname] = LLVMBuiltin::ftable.find(name)->second;
+  auto ftype = rv::get<types::Function>(type);
+  if (name == "delay") { ftype.arg_types.emplace_back(types::Ref{types::getDelayStruct()}); }
+  if (!types::isPrimitive(ftype.ret_type)) {
+    // for loadwavfile
+    ftype.ret_type = types::Ref{ftype.ret_type};
   }
-  return getFunction(targetname, getType(type));
+  return getFunction(targetname, getType(ftype));
 }
 llvm::Function* LLVMGenerator::getRuntimeFunction(const std::string& name) {
   const auto& type = runtime_fun_names.at(name);
@@ -89,15 +120,20 @@ void LLVMGenerator::createMiscDeclarations() {
   for (auto [name, type] : runtime_fun_names) {
     module->getOrInsertFunction(name, llvm::cast<llvm::FunctionType>(type));
   }
+  module->getOrInsertGlobal("global_runtime", geti8PtrTy());
+  auto* gruntimeptr = module->getNamedGlobal("global_runtime");
+  gruntimeptr->setLinkage(llvm::GlobalValue::LinkageTypes::PrivateLinkage);
+  gruntimeptr->setInitializer(llvm::ConstantPointerNull::get(geti8PtrTy()));
 }
 
 // Create mimium_main() function it returns address of closure object for dsp()
 // function if it exists.
 
 void LLVMGenerator::createMainFun() {
-  auto* fntype = llvm::FunctionType::get(builder->getInt8PtrTy(), false);
+  auto* fntype = llvm::FunctionType::get(builder->getInt8PtrTy(), {builder->getInt8PtrTy()}, false);
   auto* mainfun =
       llvm::Function::Create(fntype, llvm::Function::ExternalLinkage, "mimium_main", *module);
+  mainfun->args().begin()->setName("runtime_ptr");
   mainfun->setCallingConv(llvm::CallingConv::C);
   curfunc = mainfun;
   using Akind = llvm::Attribute;
@@ -110,6 +146,7 @@ void LLVMGenerator::createMainFun() {
 }
 void LLVMGenerator::createTaskRegister(bool isclosure = false) {
   std::vector<llvm::Type*> argtypes = {
+      builder->getInt8PtrTy(),  // address to runtime instance
       builder->getDoubleTy(),   // time
       builder->getInt8PtrTy(),  // address to function
       builder->getDoubleTy()    // argument(single)
@@ -137,14 +174,67 @@ void LLVMGenerator::createNewBasicBlock(std::string name, llvm::Function* f) {
   builder->SetInsertPoint(bb);
   currentblock = bb;
 }
+std::optional<int> LLVMGenerator::getDspFnChannelNumForType(types::Value const& t) {
+  // if (std::holds_alternative<types::Float>(t)) { return 1; }
+  if (rv::holds_alternative<types::Pointer>(t)) {
+    const auto& ptype = rv::get<types::Pointer>(t);
+    if (rv::holds_alternative<types::Tuple>(ptype.val)) {
+      const auto& ttype = rv::get<types::Tuple>(ptype.val);
+      for (const auto& at : ttype.arg_types) {
+        if (!std::holds_alternative<types::Float>(at)) { return std::nullopt; }
+      }
+      return ttype.arg_types.size();
+    }
+  }
+  if (std::holds_alternative<types::Void>(t)) { return 0; }
+  return std::nullopt;
+}
+
+void LLVMGenerator::checkDspFunctionType(minst::Function const& i) {
+  assert(i.name == "dsp");
+  assert(rv::holds_alternative<types::Function>(i.type));
+  auto rettype = rv::get<types::Function>(i.type).ret_type;
+  auto argtype = rv::get<types::Function>(i.type).arg_types;
+
+  std::optional<int> outchs = std::nullopt;
+  std::optional<int> inchs = std::nullopt;
+
+  if (i.args.ret_ptr) {
+    auto retptrty = i.args.ret_ptr.value()->type;
+    outchs = getDspFnChannelNumForType(retptrty);
+  } else {
+    outchs = getDspFnChannelNumForType(rettype);
+  }
+  switch (i.args.args.size()) {
+    case 0: inchs = 0; break;
+    case 1: {
+      auto inputargidx = i.args.ret_ptr ? 1 : 0;
+      inchs = getDspFnChannelNumForType(argtype.at(inputargidx));
+    } break;
+    default:
+      throw std::runtime_error("Number of Arguments for dsp function must be 0 or 1.");
+      break;
+  }
+  if (!inchs) { throw std::runtime_error("Arguments for dsp function must be 1 Tuple of Floats"); }
+  if (!outchs) {
+    throw std::runtime_error(
+        "Return type for dsp function must be either of Void or Tuple of Floats");
+  }
+  runtime_dspfninfo.in_numchs = inchs.value();
+  runtime_dspfninfo.out_numchs = outchs.value();
+}
+
 void LLVMGenerator::createRuntimeSetDspFn(llvm::Type* memobjtype) {
   auto* voidptrtype = builder->getInt8PtrTy();
+  auto* int32ty = builder->getInt32Ty();
+  auto* constantnull = llvm::ConstantPointerNull::get(voidptrtype);
   auto* dspfn = module->getFunction("dsp");
-  auto* dspfnaddress = builder->CreateBitCast(dspfn, voidptrtype);
+  auto* dspfnaddress =
+      (dspfn != nullptr) ? builder->CreateBitCast(dspfn, voidptrtype) : constantnull;
   auto* dspclsaddress = (runtime_dspfninfo.capptr != nullptr)
                             ? builder->CreateBitCast(runtime_dspfninfo.capptr, voidptrtype)
                             : llvm::ConstantPointerNull::get(voidptrtype);
-  llvm::Value* dspmemobjaddress = nullptr;
+  llvm::Value* dspmemobjaddress = constantnull;
   if (memobjtype != nullptr) {
     auto* dspmemobjptr = codegenvisitor->createAllocation(true, memobjtype, nullptr, "dsp.mem");
     dspmemobjaddress = builder->CreateBitCast(dspmemobjptr, voidptrtype);
@@ -156,13 +246,24 @@ void LLVMGenerator::createRuntimeSetDspFn(llvm::Type* memobjtype) {
     constexpr int bitsize = 8;
     builder->CreateCall(memsetfn, {dspmemobjaddress, getConstInt(0, bitsize), getConstInt(size),
                                    getConstInt(0, 1)});
-  } else {
-    dspmemobjaddress = llvm::ConstantPointerNull::get(voidptrtype);
   }
   auto setdsp = module->getOrInsertFunction(
-      "setDspParams", llvm::FunctionType::get(builder->getVoidTy(),
-                                              {voidptrtype, voidptrtype, voidptrtype}, false));
-  builder->CreateCall(setdsp, {dspfnaddress, dspclsaddress, dspmemobjaddress});
+      "setDspParams",
+      llvm::FunctionType::get(
+          builder->getVoidTy(),
+          {voidptrtype, voidptrtype, voidptrtype, voidptrtype, int32ty, int32ty}, false));
+  constexpr int bitsize = 32;
+  auto* inchs_const = getConstInt(runtime_dspfninfo.in_numchs, bitsize);
+  auto* outchs_const = getConstInt(runtime_dspfninfo.out_numchs, bitsize);
+
+  builder->CreateCall(setdsp, {getRuntimeInstance(), dspfnaddress, dspclsaddress, dspmemobjaddress,
+                               inchs_const, outchs_const});
+}
+
+llvm::Value* LLVMGenerator::getRuntimeInstance() {
+  auto* var = module->getNamedGlobal("global_runtime");
+  assert(var != nullptr);
+  return builder->CreateLoad(var, "runtimeptr");
 }
 
 void LLVMGenerator::preprocess() {
@@ -171,6 +272,8 @@ void LLVMGenerator::preprocess() {
   createTaskRegister(true);   // for non-closure function
   createTaskRegister(false);  // for closure
   setBB(mainentry);
+  builder->CreateStore(mainentry->getParent()->args().begin(),
+                       module->getNamedGlobal("global_runtime"), false);
 }
 void LLVMGenerator::visitInstructions(mir::valueptr inst, bool isglobal) {
   codegenvisitor->isglobal = isglobal;
@@ -192,7 +295,8 @@ void LLVMGenerator::generateCode(mir::blockptr mir, const funobjmap* funobjs) {
       if (iter != funobjs->end()) { memobjtype = getType(iter->second->objtype); }
     }
   }
-  if (module->getFunction("dsp") != nullptr) { createRuntimeSetDspFn(memobjtype); }
+  // create a call for setDspParams regardless dsp fn is present
+  createRuntimeSetDspFn(memobjtype);
   // main always return null for now;
   builder->CreateRet(llvm::ConstantPointerNull::get(builder->getInt8PtrTy()));
 }

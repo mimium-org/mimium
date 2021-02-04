@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.4)
 option(BUILD_DOCS "build a documentation")
 option(BUILD_TEST "build a test" OFF)
 option(ENABLE_LLD "use lld for linker" OFF)
+option(ENABLE_COVERAGE "Generate code coverage data for gcov" OFF)
+option(BUILD_SHARED_LIBS "build libraries as a dynamic link libraries" OFF)
+
 
 #set(CMAKE_CXX_COMPILER /usr/local/opt/llvm/bin/clang++)
 #set(CMAKE_C_COMPILER /usr/local/opt/llvm/bin/clang) 
@@ -11,7 +14,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 PROJECT(mimium 
 LANGUAGES CXX
 HOMEPAGE_URL "https://mimium.org"
-VERSION 0.2.0
+VERSION 0.3.0
 )
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
     set(CMAKE_CXX_FLAGS_DEBUG "-g4")
@@ -25,6 +28,18 @@ set(CMAKE_MODULE_LINKER_FLAGS ${CMAKE_MODULE_LINKER_FLAGS} -fuse-ld=lld)
 set(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS} -fuse-ld=lld)
 endif()
 
+if(ENABLE_COVERAGE)
+  set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} --coverage)
+  set(CMAKE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} --coverage)
+endif()
+
+if((CMAKE_BUILD_TYPE STREQUAL "Debug") AND 
+    (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
+message("sanitizer activated")
+list(APPEND CMAKE_CXX_FLAGS "-fsanitize=address -fno-omit-frame-pointer")
+set(CMAKE_LINKER_FLAGS ${CMAKE_LINKER_FLAGS} -fsanitize=address)
+endif()
+
 set(CMAKE_FIND_PACKAGE_SORT_ORDER NATURAL)
 SET(CMAKE_FIND_PACKAGE_SORT_DIRECTION DEC)
 # list(APPEND CMAKE_PREFIX_PATH $ENV{LLVM_DIR})
@@ -32,8 +47,13 @@ SET(CMAKE_FIND_PACKAGE_SORT_DIRECTION DEC)
 include(cmake/FindLlvm.cmake)
 message(STATUS "set llvm include dir to ${LLVM_INCLUDE_DIRS}, libdir to ${LLVM_LIBDIRS}")
 
-include_directories(${LLVM_INCLUDE_DIRS})
-add_definitions(${LLVM_DEFINITIONS})
+execute_process(COMMAND ${LLVM_CONFIG_EXE} --cppflags
+OUTPUT_VARIABLE LLVM_CXX_FLAGS
+OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(COMMAND ${LLVM_CONFIG_EXE} --ldflags
+OUTPUT_VARIABLE LLVM_LD_FLAGS
+OUTPUT_STRIP_TRAILING_WHITESPACE)
+
 
 SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
@@ -46,8 +66,6 @@ include(cmake/clang-cxx-dev-tools.cmake)
 endif()
 #include ccache
 include(cmake/EnableCcache.cmake)
-
-add_compile_options("$<$<CONFIG:DEBUG>:-DMIMIUM_DEBUG_BUILD>")
 
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -66,10 +84,12 @@ if(MINGW OR MSYS)
 if(NOT CMAKE_COMPILER_IS_GNUCXX)
 message(WARNING "Currently, only g++ is allowed to build on mingw/msys to link standard library statically.")
 endif()
-set(CMAKE_CXX_STANDARD_LIBRARIES "-static -lstdc++ -lgcc -lwinpthread ${CMAKE_CXX_STANDARD_LIBRARIES}")
+set(CMAKE_CXX_STANDARD_LIBRARIES "-static -lstdc++ -lgcc -lz -lwinpthread ${CMAKE_CXX_STANDARD_LIBRARIES}")
 endif()
 
-
+if(UNIX AND NOT(APPLE OR MINGW OR MSYS))
+set(CMAKE_CXX_STANDARD_LIBRARIES "-lz -ldl -ltinfo ${CMAKE_CXX_STANDARD_LIBRARIES}")
+endif()
 
 
 add_custom_target(default_build)

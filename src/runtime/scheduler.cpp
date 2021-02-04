@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#include "runtime/scheduler.hpp"
+#include "scheduler.hpp"
 
 namespace mimium {
 
@@ -19,20 +19,20 @@ bool Scheduler::incrementTime() {
   time += 1;
   if (hastask && time > tasks.top().first) { executeTask(tasks.top().second); }
   return false;
-};
+}
 void Scheduler::addTask(double time, void* addresstofn, double arg, void* addresstocls) {
   tasks.emplace(static_cast<int64_t>(time), TaskType{addresstofn, arg, addresstocls});
 }
 
 void Scheduler::executeTask(const TaskType& task) {
   // todo
-  auto& [addresstofn, arg, addresstocls] = task;
+  const auto& [addresstofn, arg, addresstocls] = task;
 
   if (addresstocls == nullptr) {
-    auto fn = reinterpret_cast<void (*)(double)>(addresstofn);
+    auto fn = reinterpret_cast<void (*)(double)>(addresstofn);//NOLINT
     fn(arg);
   } else {
-    auto fn = reinterpret_cast<void (*)(double, void*)>(addresstofn);
+    auto fn = reinterpret_cast<void (*)(double, void*)>(addresstofn);//NOLINT
     fn(arg, addresstocls);
   }
   tasks.pop();
@@ -40,11 +40,11 @@ void Scheduler::executeTask(const TaskType& task) {
     stop();
   } else {
     // recursive call until all tasks have been done!
-    if (time > tasks.top().first) { this->executeTask(tasks.top().second); }
+    if (time >= tasks.top().first) { this->executeTask(tasks.top().second); }
   }
 }
 
-void Scheduler::start(bool _hasdsp) { hasdsp = _hasdsp; }
+void Scheduler::start(bool hasdsp) { this->hasdsp = hasdsp; }
 
 void Scheduler::stop() {
   {

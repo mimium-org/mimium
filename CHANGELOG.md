@@ -1,5 +1,68 @@
 # CHANGELOG
 
+## v0.3.0 (2021-02-03)
+
+### New language features
+
+#### Tuple and Array type
+
+New aggregate type, tuple and array have been added.
+
+Tuple type can be constructed with parenthesis and comma.
+Currently, the only way to get value of tuple type is like C++'s structural binding.
+```rust
+# Tuple Construction
+triples = (100,200,300)//type signature is (float,float,float)
+
+one,two,three = triples
+```
+In the future, dot access operator like `triples.0` will be added.
+
+Array type can be constructed with angle brackets and comma.
+Currently All the array is mutable , fixed sized and declared as a private global variable in llvm module.
+As a unique feature, an interpolation with floating pointer index is supported as same as reading audio files.
+```rust
+# Array Construction
+myarr = [100,200,300]
+internalv = myarr[0]//zero-based index
+myarr[2] = 400//the array is now [100,200,400]
+interp = myarr[0.5]//the result will be 150(linear interpolation)
+```
+
+#### Multichannel support for dsp function
+
+Now mimium supports more than mono output, stereo and more many channels.
+
+Numbers of inputs and outputs are determined by a type of `dsp function`.
+For example, stereo panning can be written like below.
+
+```rust
+fn panner(input:float,pan:float) -> (float,float){
+    return (input*pan,input*(1-pan))
+}
+
+fn dsp(input:(float,float))->(float,float){
+    src = random()*0.2
+    res = panner(src,sin(5*now/48000)+1*0.5)
+    return res
+}
+```
+This is the breaking change because, 1. input parameter for `dsp` was `time` before v0.2 (this was a temporary solution before `now` was implemented), 2. output type for `dsp` was `float` but now the type for `dsp` should be  `(tuple of float)->(tuple of float)`, a function that takes 1 variable with tuple of floats and returns tuple of floats.
+Even if you want to process mono, the output type should be a tuple of 1 float.
+
+Some examples were rewritten to match with this language spec.
+
+### Using mimium as C++ library
+
+Dependencies of library headers and frontend(application instance and CLI) were tidied up. 
+We can now use mimium as C++ Library.
+You can import mimium easily by using CMake. 
+A minimal example is on https://github.com/mimium-org/mimium-libimport-example.
+
+### other changes
+
+- Supported version of LLVM is now 11.
+- Code_Of_Conduct.md was added.
 ## v0.2.0 (2020-12-24)
 ### Improvements
 

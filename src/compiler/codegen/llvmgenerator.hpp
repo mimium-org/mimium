@@ -5,16 +5,33 @@
 #pragma once
 
 #include "basic/mir.hpp"
-#include "compiler/codegen/llvm_header.hpp"
-#include "compiler/collect_memoryobjs.hpp"
-#include "compiler/ffi.hpp"
-#include "runtime/runtime_defs.hpp"
+namespace llvm {
+class LLVMContext;
+class Module;
+class DataLayout;
+class raw_ostream;
+class Value;
+class Type;
+class PointerType;
+class BasicBlock;
+class ArrayType;
+class Function;
+class ConstantInt;
+
+class IRBuilderBase;
+}  // namespace llvm
 
 namespace mimium {
+struct FunObjTree;
+using funobjmap = std::unordered_map<mir::valueptr, std::shared_ptr<FunObjTree>>;
+
+class IRBuilderPrivate;
 struct LLVMBuiltin;
 struct CodeGenVisitor;
 struct TypeConverter;
-class LLVMGenerator {
+
+namespace minst = mir::instruction;
+class MIMIUM_DLL_PUBLIC LLVMGenerator {
   friend struct CodeGenVisitor;
 
  public:
@@ -22,8 +39,8 @@ class LLVMGenerator {
   ~LLVMGenerator();
   void generateCode(mir::blockptr mir, const funobjmap* funobjs);
 
-  llvm::Module& getModule() { return *module; }
-  auto moveModule() { return std::move(module); }
+  llvm::Module& getModule();
+  std::unique_ptr<llvm::Module> moveModule();
   void init(std::string filename);
   void setDataLayout(const llvm::DataLayout& dl);
   void reset(std::string filename);
@@ -36,20 +53,25 @@ class LLVMGenerator {
   llvm::LLVMContext& ctx;
   llvm::Function* curfunc;
   std::unique_ptr<llvm::Module> module;
-  std::unique_ptr<llvm::IRBuilder<>> builder;
+  std::unique_ptr<llvm::IRBuilderBase> builder;
   llvm::BasicBlock* mainentry;
   llvm::BasicBlock* currentblock;
   std::unique_ptr<TypeConverter> typeconverter;
   std::shared_ptr<CodeGenVisitor> codegenvisitor;
 
-  llvm::Type* getType(types::Value& type);
+  llvm::Type* getType(types::Value const& type);
+  // Used for getting Arraytype which is not pointer of elementtype
+  llvm::ArrayType* getArrayType(types::Value const& type);
 
   llvm::Type* getClosureToFunType(types::Value& type);
   const std::unordered_map<std::string, llvm::Type*> runtime_fun_names;
 
   struct {
+   public:
     llvm::Value* capptr = nullptr;
     llvm::Value* memobjptr = nullptr;
+    int in_numchs = 0;
+    int out_numchs = 0;
   } runtime_dspfninfo;
 
   void switchToMainFun();
@@ -60,23 +82,23 @@ class LLVMGenerator {
 
   void createMiscDeclarations();
   void createRuntimeSetDspFn(llvm::Type* memobjtype);
+  void checkDspFunctionType(minst::Function const& i);
+  static std::optional<int> getDspFnChannelNumForType(types::Value const& t);
   void createMainFun();
   void createTaskRegister(bool isclosure);
   void createNewBasicBlock(std::string name, llvm::Function* f);
   void visitInstructions(mir::valueptr inst, bool isglobal);
-
   void setBB(llvm::BasicBlock* newblock);
   void dropAllReferences();
-  auto getDoubleTy() { return llvm::Type::getDoubleTy(ctx); }
-  auto geti8PtrTy() { return builder->getInt8PtrTy(); }
-  auto geti64Ty() { return builder->getInt64Ty(); }
 
-  auto getConstInt(int v, const int bitsize = 64) {
-    return llvm::ConstantInt::get(llvm::IntegerType::get(ctx, bitsize), llvm::APInt(bitsize, v));
-  }
-  auto getConstDouble(double v) { return llvm::ConstantFP::get(builder->getDoubleTy(), v); }
+  llvm::Value* getRuntimeInstance();
 
-  auto getZero(const int bitsize = 64) { return getConstInt(0, bitsize); }
+  llvm::Type* getDoubleTy();
+  llvm::PointerType* geti8PtrTy();
+  llvm::Type* geti64Ty();
+  llvm::Value* getConstInt(int v, int bitsize = 64);
+  llvm::Value* getConstDouble(double v);
+  llvm::Value* getZero(int bitsize = 64);
 };
 
 }  // namespace mimium

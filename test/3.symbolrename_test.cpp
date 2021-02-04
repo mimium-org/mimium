@@ -1,13 +1,15 @@
 #include "basic/ast_to_string.hpp"
 #include "compiler/ast_loader.hpp"
+#include "mimium_parser.hpp"
+#include "compiler/scanner.hpp"
 #include "compiler/symbolrenamer.hpp"
 #include "gtest/gtest.h"
 #include "gtest/internal/gtest-port.h"
 
 namespace mimium {
-TEST(symbolrename, astcomplete) {
+TEST(symbolrename, astcomplete) {//NOLINT
   Driver driver{};
-  auto ast = driver.parseFile("ast_complete.mmm");
+  auto ast = driver.parseFile(TEST_ROOT_DIR "/ast_complete.mmm");
   SymbolRenamer renamer;
   auto newast = renamer.rename(*ast);
   std::ostringstream ss;

@@ -3,27 +3,24 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 #include "compiler/ast_loader.hpp"
 #include "basic/ast_to_string.hpp"
-
-namespace fs = std::filesystem;
+#include "basic/filereader.hpp"
+#include "compiler/scanner.hpp"
+#include "mimium_parser.hpp"
 
 namespace mimium {
-
+Driver::Driver() : parser(nullptr), scanner(nullptr) {}
 AstPtr Driver::parse(std::istream& is) {
-  scanner = std::make_unique<mmmpsr::MimiumScanner>(is);
+  scanner = std::make_unique<MimiumScanner>(is);
   parser = std::make_unique<MimiumParser>(*scanner, *this);
   parser->set_debug_level(DEBUG_LEVEL);  // debug
-  int res=0;
-  try{
+  int res = 0;
+  try {
     res = parser->parse();
-  }catch(std::exception& e){
-    throw std::runtime_error(e.what());
-  }catch(...){
-    throw std::runtime_error("undefined parse error");;
+  } catch (std::exception& e) { throw std::runtime_error(e.what()); } catch (...) {
+    throw std::runtime_error("undefined parse error");
+    ;
   }
-  if(res>0){
-    throw std::runtime_error("parse error.");
-    ast_top = std::make_shared<ast::Statements>();
-  }
+  if (res > 0) { throw std::runtime_error("parse error."); }
   return ast_top;
 }
 
@@ -33,26 +30,9 @@ AstPtr Driver::parseString(const std::string& source) {
   return std::move(parse(is));
 }
 AstPtr Driver::parseFile(const std::string& filename) {
-  //TODO:Replace with FileReader.
-  fs::path path(filename);
-  auto abspath = fs::absolute(path);
-  auto ext = path.extension().string();
-
-  if (ext != ".mmm") {
-    throw std::runtime_error("file type " + ext +
-                             " does not match to mimium source code file(.mmm).");
-  }
-  std::error_code ec;
-  auto status = fs::status(abspath, ec);
-  // memo: fs::exists(path,ec) for .mmm file returns file type of "unknown", not "regular" or
-  // "none". to prevent error, need to check specifically not to be "not found"
-  if (status.type() == fs::file_type::none || status.type() == fs::file_type::not_found) {
-    throw std::runtime_error("file " + abspath.string() + " does not exist.");
-  }
-  std::ifstream ifs;
-  ifs.open(abspath);
-  ifs.exceptions(std::fstream::failbit | std::fstream::badbit);
-  return std::move(parse(ifs));
+  FileReader reader(fs::current_path());
+  auto src = reader.loadFile(filename);
+  return std::move(parseString(src.source));
 }
 
 void Driver::setTopAst(AstPtr top) { this->ast_top = top; }

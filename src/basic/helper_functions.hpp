@@ -3,9 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
-
+#include <algorithm>
 #include <condition_variable>
 #include <deque>
+#include <functional>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -18,28 +19,37 @@
 #include <utility>  //pair
 #include <variant>
 #include <vector>
-
-#include "llvm/Support/Error.h"
+#include "export.hpp"
 #include "variant_visitor_helper.hpp"
 
 #ifdef _WIN32
 // SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 #endif
-#if (__has_feature(address_sanitizer) && defined(__clang__)) || defined(__SANITIZE_ADDRESS__)
-// code that builds only under AddressSanitizer
-#define NO_SANITIZE __attribute__((no_sanitize("address", "undefined")))
-#else
-#define NO_SANITIZE
+#if defined(__clang__)
+  #if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+  // code that builds only under AddressSanitizer
+    #define NO_SANITIZE __attribute__((no_sanitize("address", "undefined")))
+  #endif
+#endif
+#ifndef NO_SANITIZE
+  #define NO_SANITIZE
 #endif
 
 namespace mimium {
 
 #ifdef MIMIUM_DEBUG_BUILD
-#define MMMASSERT(cond, message) \
-  assert(cond && message);
+#define MMMASSERT(cond, message) assert(cond&& message);
 #else
 #define MMMASSERT(cond, message)
 #endif
+
+template <typename ENUMTYPE>
+auto getEnumByStr(const std::unordered_map<std::string_view, ENUMTYPE>& map, std::string_view val) {
+  static_assert(static_cast<int>(ENUMTYPE::Invalid) == -1);
+  auto iter = map.find(val);
+  if (iter != map.cend()) { return iter->second; }
+  return ENUMTYPE::Invalid;
+}
 
 // meta function to check if it is smart pointer or not(used in ast_to_string);
 template <typename T, typename Enable = void>
@@ -84,7 +94,7 @@ static std::string join(std::deque<ElementType>& vec, std::string delim) {
                          [&](std::string a, std::shared_ptr<ElementType>& b) {
                            return std::move(a) + delim + b.toString();
                          });
-};
+}
 
 template <class T>
 bool has(std::vector<T> t, T s) {
@@ -110,7 +120,7 @@ T transformArgs(T& args, L lambda) {
                           [&](std::string a, std::string b) { return std::move(a) + delim + b; });
   }
   return res;
-};
+}
 template <class T>
 static std::string join(std::deque<std::shared_ptr<T>>& vec, std::string delim) {
   std::string res;
@@ -120,7 +130,7 @@ static std::string join(std::deque<std::shared_ptr<T>>& vec, std::string delim) 
         [&](std::string a, std::shared_ptr<T>& b) { return std::move(a) + delim + b->toString(); });
   }
   return res;
-};
+}
 
 // static std::string join(const std::vector<TypedVal>& vec, std::string delim)
 // {
@@ -140,7 +150,7 @@ size_t getAddressfromFun(std::function<T(U...)> f) {
   return (size_t)*fnPointer;
 }
 
-class Logger {
+class MIMIUM_DLL_PUBLIC Logger {
  public:
   Logger() {
     setoutput(std::cerr);
@@ -157,17 +167,6 @@ class Logger {
     if (report_level <= Logger::current_report_level) {
       std::string content = report_str.at(report_level) + ": " + str + norm + "\n";
       *output << content;
-    }
-  }
-  static void debug_log(llvm::Error& err, REPORT_LEVEL report_level) {
-    if (bool(err) && report_level <= Logger::current_report_level) {
-      llvm::errs() << report_str.at(report_level) << ": " << err << norm << "\n";
-    }
-  }
-  template <typename T>
-  static void debug_log(llvm::Expected<T>& expected, REPORT_LEVEL report_level) {
-    if (auto err = expected.takeError() && report_level <= Logger::current_report_level) {
-      llvm::errs() << report_str.at(report_level) << ": " << err << norm << "\n";
     }
   }
 

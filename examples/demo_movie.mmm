@@ -2,7 +2,7 @@ fn phasor(freq:float){
     return (self+freq/48000)%1
 }
 myfreq = 1
-name = "/Users/tomoya/Music/Chickens.wav"
+name = "/Users/tomoya/Music/Chickens_mono.wav"
 mysize = loadwavsize(name)
 mywave = loadwav(name)
 fn seek(speed:float,size:float){
@@ -79,6 +79,7 @@ fn pitchdown(period:float)->void{
     pitchdown(nexttime)@(now+nexttime)
 }
 pitchdown(40000)@0
-fn dsp(time:float)->float{
-    return mysynth() +noisesynth()+saw(mtof(pitch))*0.5
+fn dsp(){
+    out = mysynth() +noisesynth()+saw(mtof(pitch))*0.5
+    return (out,out)
 }

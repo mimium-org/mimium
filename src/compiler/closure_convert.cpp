@@ -6,11 +6,7 @@
 
 namespace mimium {
 ClosureConverter::ClosureConverter(TypeEnv& typeenv)
-    : typeenv(typeenv),
-      capturecount(0),
-      closurecount(0)
-// ,typereplacer(*this)
-{}
+    : typeenv(typeenv), capturecount(0), closurecount(0) {}
 
 void ClosureConverter::reset() { capturecount = 0; }
 ClosureConverter::~ClosureConverter() = default;
@@ -53,25 +49,18 @@ mir::blockptr ClosureConverter::convert(mir::blockptr toplevel) {
     ccvis.instance_holder = cinst;
     ccvis.visit(*cinst);
   }
-  // std::visit(typereplacer, cinst);
 
   moveFunToTop(this->toplevel);
   if (!(clstypeenv.count("dsp") > 0)) {
     types::Value dummycapture = types::Alias{makeCaptureName(), types::Tuple{{}}};
-    auto ctypename = makeClosureTypeName();
-    auto dummytype = types::Alias{
-        ctypename, types::Closure{types::Ref{types::Function{
-                                      types::Float{}, {types::Float{}, types::Ref{dummycapture}}}},
-                                  dummycapture}};
     clstypeenv.emplace("dsp", dummycapture);
-    // typeenv.emplace("dsp_cls", std::move(dummytype));
   }
   return this->toplevel;
-};  // namespace mimium
+} // namespace mimium
 
 void ClosureConverter::CCVisitor::dump() {
   std::cerr << "----------fvset-----------\n";
-  for (auto& v : fvset) { std::cerr << mir::getName(*v) << "\n"; }
+  for (const auto& v : fvset) { std::cerr << mir::getName(*v) << "\n"; }
   std::flush(std::cerr);
 }
 
@@ -108,14 +97,6 @@ void ClosureConverter::CCVisitor::tryReplaceFntoCls(mir::valueptr& val) {
   auto iter = cc.fn_to_cls.find(val);
   if (iter != cc.fn_to_cls.end()) { val = cc.fn_to_cls[val]; }
 }
-// void ClosureConverter::CCVisitor::registerFv(std::string& name) {
-//   auto isself = name == "self";
-//   auto islocal = has(localvlist, name);
-//   bool isext = LLVMBuiltin::isBuiltin(name);
-//   auto alreadycheked = has(fvset, name);
-//   bool isfreevar = !(islocal || isext || alreadycheked || isself);
-//   if (isfreevar) { fvset.push_back(name); }
-// };
 
 void ClosureConverter::CCVisitor::visitinsts(minst::Function& i, CCVisitor& ccvis) {
   for (auto it = i.body->instructions.begin(), end = i.body->instructions.end(); it != end; ++it) {
@@ -134,7 +115,6 @@ void ClosureConverter::CCVisitor::operator()(minst::Function& i) {
   auto fn_ptr = getValPtr(&i);
   auto stored_fn_iter = cc.known_functions.insert(cc.known_functions.end(), fn_ptr);
   ccvis.block_ctx = i.body;
-  bool checked = false;
   // first, try assuming the function is not a closure.
   visitinsts(i, ccvis);
   // when the function was really not a closure, end.
@@ -144,21 +124,17 @@ void ClosureConverter::CCVisitor::operator()(minst::Function& i) {
 
   cc.known_functions.erase(stored_fn_iter);
   ccvis.fvset.clear();
-  // cc.known_functions = know_function_tmp;//reset state
-
   visitinsts(i, ccvis);
-  // if (i.isrecursive) {//to replace recursive call to appcls
-  //   visitinsts(i, ccvis,pos);
-  // }
+
   // make closure
   std::vector<types::Value> fvtype_inside;
   fvtype_inside.reserve(ccvis.fvset.size());
   auto it = std::begin(ccvis.fvset);
-  for (auto& fv : ccvis.fvset) {
+  for (const auto& fv : ccvis.fvset) {
     bool isrecurse = mir::toString(*fv) == i.name;
     if (!isrecurse) {
       auto ft = mir::getType(*fv);
-      fvtype_inside.emplace_back(types::Ref{ft});
+      fvtype_inside.emplace_back(ft);
     } else {
       ccvis.fvset.erase(it);
     }
@@ -168,13 +144,10 @@ void ClosureConverter::CCVisitor::operator()(minst::Function& i) {
   std::transform(ccvis.fvset.begin(), ccvis.fvset.end(), std::back_inserter(fvsetvec),
                  [](auto& i) { return i; });
   i.freevariables = fvsetvec;  // copy;
-
   // do not use auto here, move happens...
   types::Alias fvtype{cc.makeCaptureName(), types::Tuple{fvtype_inside}};
+
   types::Function ftype = rv::get<types::Function>(i.type);
-  // types::Alias clstype{cc.makeClosureTypeName(),
-  //                      types::Closure{types::Ref{types::Function{ftype}},
-  //                      types::Alias{fvtype}}};
 
   auto makecls = std::make_shared<mir::Value>(createClosureInst(fn_ptr, fvsetvec, fvtype, i.name));
   cc.fn_to_cls.emplace(fn_ptr, makecls);
@@ -206,9 +179,9 @@ void ClosureConverter::CCVisitor::operator()(minst::Fcall& i) {
   checkVariable(i.fname);
   if (i.time.has_value()) { checkVariable(i.time.value()); }
   for (auto& a : i.args) { checkVariable(a); }
-  //currently higher order function is limited to direct call - no closure or memobj
+  // currently higher order function is limited to direct call - no closure or memobj
   const bool is_hof = std::holds_alternative<std::shared_ptr<mir::Argument>>(*i.fname);
-  if (cc.isKnownFunction(i.fname)||is_hof) {
+  if (cc.isKnownFunction(i.fname) || is_hof) {
     i.ftype = DIRECT;
   } else {
     if (i.ftype != EXTERNAL) { i.ftype = CLOSURE; }

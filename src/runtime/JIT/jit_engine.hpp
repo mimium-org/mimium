@@ -2,13 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-
-
 #pragma once
 #include <iostream>
 #include <memory>
 
-#include "llvm-c/ExecutionEngine.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ExecutionEngine/JITSymbol.h"
 #include "llvm/ExecutionEngine/Orc/CompileUtils.h"
@@ -25,32 +22,30 @@
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/LegacyPassManager.h"
+
 #include "llvm/Support/Error.h"
+#include "llvm/Support/TargetSelect.h"
+
 #include "llvm/Transforms/InstCombine/InstCombine.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Scalar/GVN.h"
 #include "llvm/Transforms/Utils.h"
 #include "llvm/Transforms/Vectorize.h"
 
-#include "basic/helper_functions.hpp" //load NO_SANITIZE
+#include "basic/helper_functions.hpp"  //load NO_SANITIZE
 
 #define LAZY_ENABLE 0
 #if LAZY_ENABLE
-#define LLJITCLASS LLLazyJIT
+  #define LLJITCLASS LLLazyJIT
 #else
-#define LLJITCLASS LLJIT
+  #define LLJITCLASS LLJIT
 #endif
 
-namespace llvm {
-namespace orc {
-
+namespace llvm::orc {
 class MimiumJIT {
  private:
-#if LAZY_ENABLE
   std::unique_ptr<LLJITCLASS> lllazyjit;
-#else
-  std::unique_ptr<LLJIT> lllazyjit;
-#endif
+
   ExecutionSession& ES;
   const DataLayout& DL;
   JITDylib& MainJD;
@@ -59,16 +54,23 @@ class MimiumJIT {
   ThreadSafeContext Ctx;
 
  public:
-  MimiumJIT(std::unique_ptr<LLVMContext> ctx)
+  enum OptimizeLevel { NO = 0, NORMAL = 1 } optimize_level;
+  explicit MimiumJIT(std::unique_ptr<LLVMContext> ctx,
+                     OptimizeLevel optimizelevel = OptimizeLevel::NO)
       : lllazyjit(createEngine()),
         ES(lllazyjit->getExecutionSession()),
         DL(lllazyjit->getDataLayout()),
         MainJD(lllazyjit->getMainJITDylib()),
         Mangle(ES, this->DL),
-        Ctx(std::move(ctx)) {
+        Ctx(std::move(ctx)),
+        optimize_level(optimizelevel) {
+    if (optimize_level == OptimizeLevel::NORMAL) {
 #if LAZY_ENABLE
-    lllazyjit->setLazyCompileTransform(optimizeModule);
+      lllazyjit->setLazyCompileTransform(optimizeModule);
+#else
+      lllazyjit->getIRTransformLayer().setTransform(optimizeModule);
 #endif
+    }
 // MainJD.getExecutionSession()
 #if LLVM_VERSION_MAJOR >= 10
     MainJD.addGenerator(
@@ -78,17 +80,17 @@ class MimiumJIT {
         cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(DL.getGlobalPrefix())));
 #endif
   }
-//Creates LLJIT engine. Note that builder.create causes container overflow inside llvm library.
-// maybe in llvm::LLVMTargetMachine::initAsmInfo()?
+  // Creates LLJIT engine. Note that builder.create causes container overflow inside llvm library.
+  // maybe in llvm::LLVMTargetMachine::initAsmInfo()?
 
-NO_SANITIZE static std::unique_ptr<LLJITCLASS> createEngine() {
+  NO_SANITIZE static std::unique_ptr<LLJITCLASS> createEngine() {
 #if LAZY_ENABLE
     auto builder = LLLazyJITBuilder();
 #else
     auto builder = LLJITBuilder();
 #endif
     auto jit = builder.create();
-    llvm::logAllUnhandledErrors(jit.takeError(), llvm::errs());
+    if (!jit) { llvm::errs() << jit.takeError() << "\n"; }
     return std::move(jit.get());
   }
   Error addModule(std::unique_ptr<Module> M) {
@@ -124,13 +126,14 @@ NO_SANITIZE static std::unique_ptr<LLJITCLASS> createEngine() {
     auto FPM = std::make_unique<legacy::FunctionPassManager>(M.getModule());
 #endif
     // Add some optimizations.
-    // FPM->add(createPromoteMemoryToRegisterPass());//mem2reg
-    // FPM->add(createDeadStoreEliminationPass());
-    // FPM->add(createInstructionCombiningPass());
-    // FPM->add(createReassociatePass());
-    // FPM->add(createGVNPass());
-    // FPM->add(createCFGSimplificationPass());
-    // FPM->add(createLoopVectorizePass());
+    FPM->add(createPromoteMemoryToRegisterPass());  // mem2reg
+    FPM->add(createDeadStoreEliminationPass());
+    FPM->add(createInstructionCombiningPass());
+    FPM->add(createReassociatePass());
+    FPM->add(createGVNPass());
+    FPM->add(createCFGSimplificationPass());
+    FPM->add(createLoopInterchangePass());
+    FPM->add(createLoopVectorizePass());
     FPM->doInitialization();
 
 // Run the optimizations over all functions in the module being added to
@@ -146,5 +149,4 @@ NO_SANITIZE static std::unique_ptr<LLJITCLASS> createEngine() {
   [[nodiscard]] const DataLayout& getDataLayout() const { return DL; }
   LLVMContext& getContext() { return *Ctx.getContext(); }
 };
-}  // namespace orc
-}  // namespace llvm
+}  // namespace llvm::orc

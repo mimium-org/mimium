@@ -1,0 +1,7 @@
+arr = [500,400,300,200,100]
+
+println(arr[4])
+println(arr[3])
+println(arr[2])
+println(arr[1])
+println(arr[0])

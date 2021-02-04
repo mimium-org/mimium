@@ -56,7 +56,7 @@ funobjmap MemoryObjsCollector::process(mir::blockptr toplevel) {
         auto memtype = res->objtype;
         if (!res->memobjs.empty() || res->hasself) {
           alloca_container.emplace(std::make_shared<mir::Value>(
-              minst::Allocate{{mir::getName(*inst) + ".mem", memtype}, memtype}));
+              minst::Allocate{{mir::getName(*inst) + ".mem", types::Pointer{memtype}}}));
         }
       }
     }
@@ -171,15 +171,17 @@ ResultT MemoryObjsCollector::CollectMemVisitor::operator()(minst::Fcall& i) {
                             [&](const mir::ExternalSymbol& e) -> opt_objtreeptr {
                               if (e.name == "delay") {
                                 auto res = std::make_shared<FunObjTree>(
-                                    FunObjTree{i.fname, false, {}, types::delaystruct});
+                                    FunObjTree{i.fname, false, {}, types::getDelayStruct()});
                                 M.result_map.emplace(i.fname, res);
                                 return res;
                               }
                               return std::nullopt;
                             },
-                            [&](std::shared_ptr<mir::Argument> e)-> opt_objtreeptr {
-                              //TODO:cannot pass function with memobj like higher order function currently.
-                               return std::nullopt; },
+                            [&](std::shared_ptr<mir::Argument> e) -> opt_objtreeptr {
+                              // TODO:cannot pass function with memobj like higher order function
+                              // currently.
+                              return std::nullopt;
+                            },
                             [&](const auto& i) -> opt_objtreeptr {
                               assert(false);  // cannot call self or constant as function
                               return std::nullopt;

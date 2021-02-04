@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
+
+#include <queue>
 #include "basic/mir.hpp"
 #include "compiler/codegen/llvm_header.hpp"
 #include "compiler/collect_memoryobjs.hpp"
@@ -39,11 +41,14 @@ struct CodeGenVisitor {
   void registerLlvmVal(std::shared_ptr<mir::Argument> mirval, llvm::Value* llvmval);
 
   llvm::Value* getLlvmVal(mir::valueptr mirval);
+  llvm::Value* getLlvmValForFcallArgs(mir::valueptr mirval);
+  std::vector<llvm::Value*> makeFcallArgs(llvm::Type* ft,std::list<mir::valueptr>const& args);
+
   std::unordered_map<mir::valueptr, llvm::Value*> mir_to_llvm;
 
   std::unordered_map<mir::valueptr, llvm::Value*> mirfv_to_llvm;
   std::unordered_map<mir::valueptr, llvm::Value*> memobj_to_llvm;
-
+  std::queue<llvm::Value*> memobjqueue;
   std::unordered_map<mir::valueptr, llvm::Value*> fun_to_selfval;
   std::unordered_map<mir::valueptr, llvm::Value*> fun_to_selfptr;
 
@@ -58,7 +63,7 @@ struct CodeGenVisitor {
   llvm::Value* getDirFun(minst::Fcall const& i);
   llvm::Value* getClsFun(minst::Fcall const& i);
   llvm::Value* getExtFun(minst::Fcall const& i);
-
+  llvm::Value* popMemobjInContext();
   llvm::FunctionType* createFunctionType(minst::Function& i);
   llvm::FunctionType* createDspFnType(minst::Function& i,bool hascapture,bool hasmemobj);
 
@@ -76,7 +81,7 @@ struct CodeGenVisitor {
   llvm::Value* getConstant(const mir::Constants& val);
   template <class T>
   mir::valueptr getValPtr(T* ptr) {
-    assert(ptr = &mir::getInstRef<T>(instance_holder));
+    assert(ptr == &mir::getInstRef<T>(instance_holder));
     return instance_holder;
   }
 };

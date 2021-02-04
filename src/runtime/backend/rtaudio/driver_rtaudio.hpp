@@ -3,23 +3,34 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
-#include "RtAudio.h"
 #include "runtime/backend/audiodriver.hpp"
 
+class RtAudio;
 namespace mimium {
 class Scheduler;
+// Foward declaration wrapper for nested structs in RtAudio class.
+class StreamParametersPrivate;
+class StreamOptionsPrivate;
 
-class AudioDriverRtAudio : public AudioDriver {
-  std::unique_ptr<RtAudio> rtaudio;
-  RtAudio::StreamParameters parameters;
-  bool setCallback();
-
+class MIMIUM_DLL_PUBLIC AudioDriverRtAudio : public AudioDriver {
  public:
-  explicit AudioDriverRtAudio(unsigned int bs = 256,
-                       unsigned int sr = 44100, unsigned int chs = 2);
-  ~AudioDriverRtAudio() override = default;
+  explicit AudioDriverRtAudio();
+  ~AudioDriverRtAudio() override;
   bool start() override;
   bool stop() override;
-  static RtAudioCallback callback;
+  [[nodiscard]] std::unique_ptr<AudioDriverParams> getDefaultAudioParameter(
+      std::optional<int> samplerate, std::optional<int> framesize)const override;
+
+ private:
+  std::unique_ptr<RtAudio> rtaudio;
+  std::unique_ptr<StreamParametersPrivate> rtaudio_params_input;
+  std::unique_ptr<StreamParametersPrivate> rtaudio_params_output;
+  std::unique_ptr<StreamOptionsPrivate> rtaudio_options;
+  bool setCallback();
+  std::vector<std::unique_ptr<std::vector<double>>> in_buffer;
+  std::vector<std::unique_ptr<std::vector<double>>> out_buffer;
+
+  [[nodiscard]] unsigned int getPreferredSampleRate() const;
+  void printStreamInfo() const;
 };
 }  // namespace mimium

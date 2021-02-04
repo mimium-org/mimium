@@ -12,9 +12,9 @@ namespace fs = std::filesystem;
 #ifndef TEST_BIN_DIR
 #define TEST_BIN_DIR ""
 #endif
-
+// NOLINTNEXTLINE
 #define REGRESSION(filename, expect)                                                          \
-  TEST(regression, filename) {                                                                \
+  TEST(regression, filename) { /*NOLINT*/                                                     \
     testing::internal::CaptureStdout();                                                       \
     fs::path testbinpath(TEST_BIN_DIR);                                                       \
     fs::current_path(testbinpath);                                                            \
@@ -28,20 +28,14 @@ namespace fs = std::filesystem;
   }
 
 REGRESSION(regression, "120")
-
 REGRESSION(typeident, R"(3
 3
 2
 )")
-
 REGRESSION(closure2, "20015\n")
-
 REGRESSION(tuple, "100\n")
-
 REGRESSION(fibonacchi, "610\n")
-
 REGRESSION(ifexpr, "130\n")
-
 REGRESSION(builtin,
            R"(100
 2.55255e+08
@@ -72,4 +66,11 @@ REGRESSION(builtin,
 200
 )")
 
-REGRESSION(libsndfile, "146640\n-0.0621338\n")
+REGRESSION(libsndfile, "146640\n-0.0803833\n")
+REGRESSION(tuple_capture, "100\n200\n300\n")
+REGRESSION(tupletofn, "0.2\n0.8\n0.6\n2.4\n")
+REGRESSION(array, "100\n200\n300\n400\n500\n")
+REGRESSION(array_capture, "100\n200\n300\n400\n500\n")
+REGRESSION(array_tofun, "100\n200\n300\n400\n500\n")
+REGRESSION(arrayreturn, "100\n200\n300\n400\n500\n")
+REGRESSION(arraylvar, "600\n700\n800\n")

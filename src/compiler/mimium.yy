@@ -28,28 +28,27 @@
 %}
 
 %code requires{
-   namespace mmmpsr {
-      // class MimiumDriver;
-      class MimiumScanner;
-   }
-   namespace mimium {
-      class Driver;
-   }
-  #include <memory>
-  #include <sstream>
+#include <memory>
+#include <sstream>
 
 #include "basic/ast.hpp"
 #include "basic/helper_functions.hpp"
-using namespace mimium;
+#include "compiler/ast_loader.hpp"
 
-  #define YYDEBUG 1
+namespace mimium{
+ class MimiumScanner;
+}
+
+
+#define YYDEBUG 1
 
 }
-%parse-param { mmmpsr::MimiumScanner &scanner  }
+%parse-param { mimium::MimiumScanner &scanner  }
 %parse-param { Driver  &driver  }
 
 %code {
   using namespace mimium;
+  #include "compiler/scanner.hpp"
   #include "compiler/ast_loader.hpp"
   #undef yylex
   #define yylex scanner.yylex
@@ -117,15 +116,14 @@ using namespace mimium;
 %token  <std::string> STRING "string_token"
 
 %type <types::Value> types "types"
-%type <types::Value> primtypes "primtypes"
+%type <types::Value> primtypes "primitive types"
 
 
-%type <types::Value> fntype "fn_type"
-%type <types::Value> reftype "ref_type"
+%type <types::Value> fntype "fn type"
+%type <types::Value> reftype "ref type"
+%type <types::Value> tupletype "tuple type"
 
-
-
-%type <std::vector<types::Value>> fntypeargs "fntypeargs"
+%type <std::vector<types::Value>> typeargs "typeargs"
 
 
 %type <ast::Number> num "number"
@@ -283,28 +281,23 @@ self: SELF {
 // type specifiers
 
 
-primtypes: TYPEFLOAT {$$ =types::Float{};}
-               | TYPEVOID  {$$ = types::Void{};}
-               | TYPESTRING  {$$ = types::String{};}
+primtypes:   TYPEFLOAT {$$ =types::Float{};}
+           | TYPEVOID  {$$ = types::Void{};}
+           | TYPESTRING  {$$ = types::String{};}
 
-reftype: 
-      types AND {
-            $$ = types::Ref{std::move($1)};} 
+reftype: types AND {$$ = types::Ref{std::move($1)};} 
+fntype: '(' typeargs ')' ARROW types { $$ = types::Function{std::move($5),std::move($2)};}
+tupletype: '(' typeargs ')' { $$ = types::Tuple{std::move($2)}; }
 
-fntype: 
-      '(' fntypeargs ')' ARROW types {
-      $$ = types::Function{std::move($5),std::move($2)};
-      }
-
-fntypeargs:  
-             fntypeargs ',' types { $1.push_back(std::move($3));
-                                     $$ = std::move($1); }
-            |types { $$ = std::vector<types::Value>{$1};}
-
+typeargs:  typeargs ',' types { $1.emplace_back(std::move($3));
+                                $$ = std::move($1); }
+      |    types { $$ = std::vector<types::Value>{$1};}
+      
 types: 
-        reftype        { $$=std::move($1);}
-      | fntype         { $$=std::move($1);}
-      | primtypes { $$=std::move($1);}
+        primtypes  { $$=std::move($1);}
+      | reftype    { $$=std::move($1);}
+      | fntype     { $$=std::move($1);}
+      | tupletype  { $$=std::move($1);}
 
 // Expression Section
 // temporarily debug symbol for aggregate ast is disabled

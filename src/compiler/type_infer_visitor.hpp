@@ -89,7 +89,8 @@ struct TypeInferer {
     TypeInferer& inferer;
   };
   struct LvarTypeVisitor {
-    explicit LvarTypeVisitor(TypeInferer& parent,ast::ExprPtr rvar) : inferer(parent),rvar(std::move(rvar)) {}
+    explicit LvarTypeVisitor(TypeInferer& parent, ast::ExprPtr rvar)
+        : rvar(std::move(rvar)), inferer(parent) {}
 
     void operator()(ast::DeclVar& ast);
     void operator()(ast::TupleLvar& ast);
@@ -128,7 +129,7 @@ struct TypeInferer {
     types::Value unify(types::rRef p1, types::rRef p2);
     types::Value unify(types::rAlias a1, types::rAlias a2);
     template <typename T>
-    types::Value unify(T a1, T a2) {
+    types::Value unify(T a1, T /*a2*/) {
       return a1;
     }
 
@@ -145,7 +146,7 @@ struct TypeInferer {
     types::Value unify(types::rFunction f1, types::rFunction f2);
     types::Value unify(types::rArray a1, types::rArray a2);
     types::Value unify(types::rStruct s1, types::rStruct s2);
-    types::Value unify(types::rTuple f1, types::rTuple f2);
+    types::Value unify(types::rTuple t1, types::rTuple t2);
 
     // note(tomoya): t2 in debugger may be desplayed as "error: no value"
     // despite they are active(because of expansion of parameter pack in
@@ -155,12 +156,8 @@ struct TypeInferer {
       constexpr bool issame = std::is_same_v<std::decay_t<T1>, std::decay_t<T2>>;
       constexpr bool istv_l = std::is_same_v<std::decay_t<T1>, types::rTypeVar>;
       constexpr bool istv_r = std::is_same_v<std::decay_t<T2>, types::rTypeVar>;
-      if constexpr (issame || istv_l || istv_r) {
-        return unify(t1, t2);
-      } else {
-        throw std::runtime_error("type mismatch");
-        return t1;  // for primitives
-      }
+      if constexpr (issame || istv_l || istv_r) { return unify(t1, t2); }
+      throw std::runtime_error("type mismatch");
     }
     std::vector<types::Value> unifyArgs(std::vector<types::Value>& v1,
                                         std::vector<types::Value>& v2);
@@ -233,11 +230,11 @@ struct TypeInferer {
   friend struct StatementTypeVisitor;
   friend struct TypeUnifyVisitor;
   TypeInferer()
-      : exprvisitor(*this),
+      : typeenv(),
+        exprvisitor(*this),
         statementvisitor(*this),
         unifyvisitor(*this),
-        substitutevisitor(*this),
-        typeenv() {
+        substitutevisitor(*this) {
     for (const auto& [key, val] : LLVMBuiltin::ftable) { typeenv.emplace(key, val.mmmtype); }
     typeenv.emplace("mimium_getnow", types::Function{types::Float{}, {}});
   }

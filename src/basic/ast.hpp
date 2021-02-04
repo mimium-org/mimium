@@ -4,12 +4,10 @@
 
 #pragma once
 
-#include "basic/helper_functions.hpp"
-#include "basic/type.hpp"
+#include "type.hpp"
 using mmmfloat = double;
 
-namespace mimium {
-namespace ast {
+namespace mimium::ast {
 
 // forward declaration
 struct Base;
@@ -83,27 +81,7 @@ enum class OpId {
   RShift
 };
 
-inline const std::map<OpId, std::string_view> op_str = {{OpId::Add, "Add"},
-                                                        {OpId::Sub, "Sub"},
-                                                        {OpId::Mul, "Mul"},
-                                                        {OpId::Div, "Div"},
-                                                        {OpId::Mod, "Mod"},
-                                                        {OpId::Exponent, "Exponent"},
-                                                        {OpId::Equal, "Equal"},
-                                                        {OpId::NotEq, "NotEq"},
-                                                        {OpId::LessEq, "LessEq"},
-                                                        {OpId::GreaterEq, "GreaterEq"},
-                                                        {OpId::LessThan, "LessThan"},
-                                                        {OpId::GreaterThan, "GreaterThan"},
-                                                        {OpId::And, "And"},
-                                                        {OpId::BitAnd, "BitAnd"},
-                                                        {OpId::Or, "Or"},
-                                                        {OpId::BitOr, "BitOr"},
-                                                        {OpId::Xor, "Xor"},
-                                                        {OpId::Not, "Not"},
-                                                        {OpId::LShift, "LShift"},
-                                                        {OpId::RShift, "RShift"}};
-
+std::string_view getOpString(OpId id);
 struct Pos {
   int line = 1;
   int col;
@@ -268,5 +246,4 @@ auto makeStatement(FROM&& ast) {
   return std::make_shared<ast::Statement>(ast);
 }
 
-}  // namespace ast
 }  // namespace mimium

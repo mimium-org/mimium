@@ -3,20 +3,20 @@ add_library(mimium_runtime_jit STATIC runtime_jit.cpp)
 target_compile_options(mimium_runtime_jit PUBLIC -std=c++17)
 add_dependencies(mimium_runtime_jit mimium_utils)
 target_include_directories(mimium_runtime_jit
-PUBLIC
-${MIMIUM_SOURCE_DIR}
+INTERFACE
+$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/mimium>
 PRIVATE
-#  ${CMAKE_SOURCE_DIR}/libs/rtaudio
-#  ${CMAKE_SOURCE_DIR}/libs/rtmidi 
-# ${SNDFILE_INCLUDE_DIRS}
-# ${CMAKE_CURRENT_BINARY_DIR}
+$<BUILD_INTERFACE:${LLVM_INCLUDE_DIRS}>
+$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
 )
+target_compile_options(mimium_runtime_jit PRIVATE
+${LLVM_CXX_FLAGS})
 
 target_link_libraries(mimium_runtime_jit 
 PUBLIC 
-mimium_scheduler 
-${LLVM_LIBRARIES}
 PRIVATE
+$<BUILD_INTERFACE:${LLVM_LIBRARIES}>
+mimium_scheduler 
 )
-
-install(TARGETS mimium_runtime_jit DESTINATION lib)
+target_link_options(mimium_runtime_jit PRIVATE
+${LLVM_LD_FLAGS})

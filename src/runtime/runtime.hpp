@@ -3,32 +3,34 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
-#define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
 
 #include <list>
+#include "export.hpp"
 
 #include "basic/helper_functions.hpp"
 #include "runtime/runtime_defs.hpp"
 #include "runtime/scheduler.hpp"
+
 namespace mimium {
 class AudioDriver;
 
-class Runtime {
+class MIMIUM_DLL_PUBLIC Runtime {
  public:
-  explicit Runtime(std::string const& filename_i = "untitled",std::shared_ptr<AudioDriver> a=nullptr):audiodriver(std::move(a))  {}
+   explicit Runtime(std::unique_ptr<AudioDriver> a=nullptr):audiodriver(std::move(a))  {}
 
-  ~Runtime() {
+  virtual ~Runtime() {
     for (auto&& [address, size] : malloc_container) { free(address); }
   };
-
+  
+  virtual void runMainFun()=0;
   virtual void start() = 0;
-  auto getAudioDriver() { return audiodriver; }
-  bool hasDsp() { return hasdsp; }
-  bool hasDspCls() { return hasdspcls; }
+  auto& getAudioDriver() { return *audiodriver; }
+  [[nodiscard]] bool hasDsp() const { return hasdsp; }
+  [[nodiscard]] bool hasDspCls() const { return hasdspcls; }
   void push_malloc(void* address, size_t size) { malloc_container.emplace_back(address, size); }
 
  protected:
-  std::shared_ptr<AudioDriver> audiodriver;
+  std::unique_ptr<AudioDriver> audiodriver;
   bool hasdsp = false;
   bool hasdspcls = false;
   std::list<std::pair<void*, size_t>> malloc_container{};

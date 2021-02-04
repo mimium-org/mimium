@@ -6,7 +6,9 @@
 namespace mimium {
 
 ToStringVisitor::ToStringVisitor(std::ostream& output, Mode mode)
-    : output(output), is_prettry(true) {
+    : output(output)
+// ,is_prettry(true)
+{
   this->mode = mode;
   switch (mode) {
     case Mode::Lisp: format = {"(", ")", "(", ")", " ", "\n"}; break;
@@ -18,7 +20,7 @@ ToStringVisitor::ToStringVisitor(std::ostream& output, Mode mode)
 void AstStringifier::operator()(const ast::Number& ast) { output << ast.value; }
 void AstStringifier::operator()(const ast::String& ast) { output << ast.value; }
 void AstStringifier::operator()(const ast::Op& ast) {
-  output << format.lpar << ast::op_str.at(ast.op);
+  output << format.lpar << ast::getOpString(ast.op);
   if (ast.lhs.has_value()) {
     output << format.delim;
     toString(ast.lhs.value());
@@ -143,9 +145,7 @@ void AstStringifier::toString(const ast::Lvar& ast) { std::visit(*this, ast); }
 void AstStringifier::toString(const ast::Expr& ast) { std::visit(*this, ast); }
 void AstStringifier::toString(ast::ExprPtr ast) { std::visit(*this, *ast); }
 
-void AstStringifier::toString(const ast::Statement& ast) {
-  std::visit(*this, ast);
-}
+void AstStringifier::toString(const ast::Statement& ast) { std::visit(*this, ast); }
 void AstStringifier::toString(const ast::Statements& ast) {
   for (auto&& stmt : ast) {
     toString(*stmt);

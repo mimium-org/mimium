@@ -1,4 +1,4 @@
-fn hof(x, func::Fn(Float)->float){
+fn hof(x, func:(float)->float){
     return func(x)
 }
 
@@ -10,5 +10,9 @@ fn square(x){
     return x*x
 }
 
-main1 = hof(2,double)
-main2 = hof(2,square)
+main1 = hof(3,double)
+main2 = hof(3,square)
+main3 = hof(3,|x|{ x ^ x })
+println(main1)
+println(main2)
+println(main3)
