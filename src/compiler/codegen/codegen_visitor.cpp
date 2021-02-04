@@ -74,12 +74,13 @@ llvm::Value* CodeGenVisitor::getLlvmVal(mir::valueptr mirval) {
                  [&](mir::Instructions& v) {
                    auto iter = mir_to_llvm.find(mirval);
                    if (iter != mir_to_llvm.end()) {
+                     const bool isconst = llvm::isa<llvm::Constant>(iter->second);
                      const bool isinst = llvm::isa<llvm::Instruction>(iter->second);
                      const llvm::Instruction* inst = nullptr;
                      if (isinst) { inst = llvm::cast<llvm::Instruction>(iter->second); }
                      auto* parentfn = G.builder->GetInsertBlock()->getParent();
                      bool is_on_samefunc = isinst && inst->getParent()->getParent() == parentfn;
-                     if (is_on_samefunc || !isinst) { return iter->second; }
+                     if (is_on_samefunc || isconst) { return iter->second; }
                    }
                    auto iterfv = mirfv_to_llvm.find(mirval);
                    if (iterfv != mirfv_to_llvm.end()) { return iterfv->second; }
@@ -353,7 +354,8 @@ void CodeGenVisitor::setFvsToMap(minst::Function& i, llvm::Value* clsarg) {
   for (auto& fv : i.freevariables) {
     auto* gep = G.builder->CreateStructGEP(clsarg, count++, mir::getName(*fv) + "_ptr");
     // load variable from ptr(closure is reference capture mode)
-    auto* val = G.builder->CreateLoad(gep, mir::getName(*fv));
+    auto* val =
+        mir::isInstA<minst::MakeClosure>(fv) ? gep : G.builder->CreateLoad(gep, mir::getName(*fv));
     registerLlvmValforFreeVar(fv, val);
   }
 }
@@ -476,8 +478,12 @@ llvm::Value* CodeGenVisitor::operator()(minst::MakeClosure& i) {
   for (auto& cap : i.captures) {
     auto* gep = G.builder->CreateStructGEP(capture_ptr, idx++, "capture_" + mir::getName(*cap));
     auto* gepelemty = llvm::cast<llvm::PointerType>(gep->getType())->getContainedType(0);
+    const bool isvalclosure = mir::isInstA<minst::MakeClosure>(cap);
     auto* capval = getLlvmVal(cap);
-    if (gepelemty != capval->getType()) { capval = G.builder->CreateBitCast(capval, gepelemty); }
+    if (gepelemty != capval->getType() && !isvalclosure) {
+      capval = G.builder->CreateBitCast(capval, gepelemty);
+    }
+    if (isvalclosure) { capval = G.builder->CreateLoad(capval); }
     G.builder->CreateStore(capval, gep);
   }
 

@@ -1,0 +1,11 @@
+trigger = 0
+fn setval(v){
+    trigger = v
+}
+
+fn attack(dur){
+    setval(1)@now
+    setval(0)@(now+dur)
+}
+
+attack(44000)@0
