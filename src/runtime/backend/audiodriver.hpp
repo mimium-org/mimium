@@ -152,7 +152,11 @@ class MIMIUM_DLL_PUBLIC AudioDriver {
       }
       return res;
     } else {
-      return processSample<false>(input, output);
+      bool res = true;
+      for (int count = 0; count < framesize; count++) {
+        res |= processSample<false>(input, output);
+      }
+      return res;
     }
   }
 };

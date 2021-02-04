@@ -40,7 +40,7 @@ void Scheduler::executeTask(const TaskType& task) {
     stop();
   } else {
     // recursive call until all tasks have been done!
-    if (time > tasks.top().first) { this->executeTask(tasks.top().second); }
+    if (time >= tasks.top().first) { this->executeTask(tasks.top().second); }
   }
 }
 
