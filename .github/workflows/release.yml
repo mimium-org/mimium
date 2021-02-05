@@ -46,16 +46,19 @@ jobs:
         include:
             - os: ubuntu-20.04
               cxx: /usr/bin/g++-9
-              zip_postfix: Linux
               shell: bash
+              zip_postfix: Linux
+              cmake_args:  -DBUILD_SHARED_LIBS=OFF
             - os: macos-10.15
               cxx: /usr/bin/clang++
-              zip_postfix: Darwin
               shell: bash
+              zip_postfix: Darwin
+              cmake_args:  -DBUILD_SHARED_LIBS=ON
             - os: windows-latest
               cxx: g++
-              zip_postfix: Windows
               shell: msys2 {0}
+              zip_postfix: Windows
+              cmake_args: -DBUILD_SHARED_LIBS=OFF
     defaults:
       run:
         shell: ${{ matrix.shell }}
@@ -66,16 +69,13 @@ jobs:
         uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
-          # update: true
-          install: git flex bison mingw-w64-x86_64-cmake mingw-w64-x86_64-gcc mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus mingw-w64-x86_64-ninja
-      - if: contains(matrix.os, 'windows')
-        run: pacman -U --noconfirm https://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-llvm-10.0.0-1-any.pkg.tar.xz
+          install: git flex bison mingw-w64-x86_64-cmake mingw-w64-x86_64-gcc mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus mingw-w64-x86_64-ninja mingw-w64-x86_64-llvm
       - if: contains(matrix.os, 'macos')
         run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 brew install flex bison libsndfile llvm@9 ninja
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install flex bison libsndfile llvm ninja
       - if: contains(matrix.os, 'ubuntu')
         run: |
-          brew install llvm@9
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install llvm
           sudo apt-get update
           sudo apt-get install libalsa-ocaml-dev libfl-dev libbison-dev libz-dev libsndfile-dev libopus-dev gcc-9 ninja-build
       - uses: actions/checkout@v2
@@ -83,7 +83,7 @@ jobs:
           submodules: "recursive"
       - name: configure
         run:
-          cmake . -Bbuild -G Ninja -DCMAKE_BUILD_CONFIG=${{ matrix.config }}
+          cmake . -Bbuild -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.config }} ${{ matrix.cmake_args }}
       - name: build
         run: cmake --build build -j --config ${{ matrix.config }}
 

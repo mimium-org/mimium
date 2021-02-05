@@ -68,7 +68,7 @@ TEST(typeinfer, highorderfunction) {//NOLINT
 
   EXPECT_TRUE(
       (rv::get<types::Function>(hof) == types::Function{hofrettype, {types::Float{}, add2type}}));
-  EXPECT_TRUE(std::holds_alternative<types::Float>(env.at("result7")));
+  EXPECT_TRUE(std::holds_alternative<types::Float>(env.at("result8")));
 }
 
 TEST(typeinfer, recursivecall) {//NOLINT

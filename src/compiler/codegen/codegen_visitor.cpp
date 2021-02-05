@@ -235,6 +235,7 @@ llvm::Value* CodeGenVisitor::createBinOp(minst::Op& i) {
 llvm::Value* CodeGenVisitor::operator()(minst::Function& i) {
   mirfv_to_llvm.clear();
   memobj_to_llvm.clear();
+  assert(memobjqueue.empty());
   bool hascapture = !i.freevariables.empty();
 
   auto fobjtree = funobj_map->find(getValPtr(&i));
@@ -338,8 +339,9 @@ void CodeGenVisitor::setMemObjsToMap(mir::valueptr fun, llvm::Value* memarg) {
   int count = 0;
   // appending order matters! self should be put on last.
   for (auto& o : memobjs) {
-    auto* gep = G.builder->CreateStructGEP(memarg, count++, mir::getName(*o->fname) + ".mem");
-    memobj_to_llvm.emplace(o->fname, gep);
+    memobjqueue.emplace(
+        G.builder->CreateStructGEP(memarg, count++, mir::getName(*o->fname) + ".mem"));
+    // memobj_to_llvm.emplace(o->fname, gep);
   }
   if (fobjtree->hasself) {
     auto* gep = G.builder->CreateStructGEP(memarg, count++, "ptr_self");
@@ -409,8 +411,9 @@ llvm::Value* CodeGenVisitor::operator()(minst::Fcall& i) {
   }
 
   if (hasmemobj) {
-    auto res = memobj_to_llvm.find(fobjtree_iter->second->fname);
-    if (res != memobj_to_llvm.end()) { args.emplace_back(res->second); }
+    // auto res = memobj_to_llvm.find(fobjtree_iter->second->fname);
+    // if (res != memobj_to_llvm.end()) { args.emplace_back(res->second); }
+    args.emplace_back(popMemobjInContext());
   }
   auto* funtype_raw = fun->getType();
   if (funtype_raw->isPointerTy()) {
@@ -458,6 +461,12 @@ llvm::Value* CodeGenVisitor::getExtFun(minst::Fcall const& i) {
   if (G.runtime_fun_names.count(fun.name) > 0) { return G.getRuntimeFunction(fun.name); }
   assert(false);
   return nullptr;
+}
+llvm::Value* CodeGenVisitor::popMemobjInContext() {
+  assert(!memobjqueue.empty());
+  auto* res = memobjqueue.front();
+  memobjqueue.pop();
+  return res;
 }
 
 // store the capture address to memory
