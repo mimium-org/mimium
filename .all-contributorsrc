@@ -4,9 +4,6 @@
   ],
   "imageSize": 100,
   "contributorsPerLine": 7,
-  "contributorsSortAlphabetically": false,
-  "badgeTemplate": "[![All Contributors](https://img.shields.io/badge/all_contributors-<%= contributors.length %>-orange.svg?style=flat-square)](#contributors)",
-  "contributorTemplate": "<a href=\"<%= contributor.profile %>\"><img src=\"<%= contributor.avatar_url %>\" width=\"<%= options.imageSize %>px;\" alt=\"\"/><br /><sub><b><%= contributor.name %></b></sub></a>",
   "skipCi": true,
   "contributors": [
     {
@@ -41,6 +38,15 @@
       "name": "Yuichi Yogo",
       "avatar_url": "https://avatars.githubusercontent.com/u/14039540?v=4",
       "profile": "https://github.com/yuichkun",
+      "contributions": [
+        "financial"
+      ]
+    },
+    {
+      "login": "nama-gatsuo",
+      "name": "Ayumu Nagamatsu",
+      "avatar_url": "https://avatars.githubusercontent.com/u/7838131?v=4",
+      "profile": "http://ayumu-nagamatsu.com",
       "contributions": [
         "financial"
       ]
