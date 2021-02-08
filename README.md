@@ -112,10 +112,23 @@ This project is supported by all the contributers, [Sponsors](https://github.com
 ### Contributors
 
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-3-orange.svg?style=flat-square)](#contributors)
+[![All Contributors](https://img.shields.io/badge/all_contributors-4-orange.svg?style=flat-square)](#contributors)
 <!-- ALL-CONTRIBUTORS-BADGE:END --> 
 
 	
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
-<!-- prettier-ignore -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<table>
+  <tr>
+    <td align="center"><a href="https://t-sin.github.io"><img src="https://avatars.githubusercontent.com/u/4403863?v=4" width="100px;" alt=""/><br /><sub><b>Shinichi Tanaka</b></sub></a></td>
+    <td align="center"><a href="http://deepdrilledwell.secret.jp/ddw/"><img src="https://avatars.githubusercontent.com/u/74606612?v=4" width="100px;" alt=""/><br /><sub><b>kyo</b></sub></a></td>
+    <td align="center"><a href="http://baku89.com"><img src="https://avatars.githubusercontent.com/u/2124392?v=4" width="100px;" alt=""/><br /><sub><b>Baku 麦</b></sub></a></td>
+    <td align="center"><a href="https://github.com/yuichkun"><img src="https://avatars.githubusercontent.com/u/14039540?v=4" width="100px;" alt=""/><br /><sub><b>Yuichi Yogo</b></sub></a></td>
+  </tr>
+</table>
+
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+
 <!-- ALL-CONTRIBUTORS-LIST:END -->
