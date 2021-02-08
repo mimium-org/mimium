@@ -1,11 +1,26 @@
 {
-    "files": ["README.md"],
-    "imageSize": 100,
-    "contributorsPerLine": 7,
-    "contributorsSortAlphabetically": false,
-    "badgeTemplate": "[![All Contributors](https://img.shields.io/badge/all_contributors-<%= contributors.length %>-orange.svg?style=flat-square)](#contributors)",
-    "contributorTemplate": "<a href=\"<%= contributor.profile %>\"><img src=\"<%= contributor.avatar_url %>\" width=\"<%= options.imageSize %>px;\" alt=\"\"/><br /><sub><b><%= contributor.name %></b></sub></a>",
-    "skipCi": "true",
-    "contributors": []
-  }
-  
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "contributorsPerLine": 7,
+  "contributorsSortAlphabetically": false,
+  "badgeTemplate": "[![All Contributors](https://img.shields.io/badge/all_contributors-<%= contributors.length %>-orange.svg?style=flat-square)](#contributors)",
+  "contributorTemplate": "<a href=\"<%= contributor.profile %>\"><img src=\"<%= contributor.avatar_url %>\" width=\"<%= options.imageSize %>px;\" alt=\"\"/><br /><sub><b><%= contributor.name %></b></sub></a>",
+  "skipCi": true,
+  "contributors": [
+    {
+      "login": "syougikakugenn",
+      "name": "kyo",
+      "avatar_url": "https://avatars.githubusercontent.com/u/74606612?v=4",
+      "profile": "http://deepdrilledwell.secret.jp/ddw/",
+      "contributions": [
+        "doc"
+      ]
+    }
+  ],
+  "projectName": "mimium",
+  "projectOwner": "mimium-org",
+  "repoType": "github",
+  "repoHost": "https://github.com"
+}
