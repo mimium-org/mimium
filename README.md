@@ -40,7 +40,7 @@ fn lpf(input:float,fb:float){
 }
 ```
 
-You can also write a note-level processing by using `@` operator which specifies the time when the function will be executed.
+You can also write a note-level processing by using `@` operator which specifies the time when the function will be executed. Another special keyword `now` can be used for getting current logical time.
 An event scheduling is sample-accurate because the scheduler is driven by an audio driver.
 
 ```rust
@@ -55,26 +55,19 @@ More specific infos about the language are on [mimium Website](https://mimium.or
 
 ## Installation
 
-You can get a built binary from [release](https://github.com/mimium-org/mimium/releases) section.
+mimium can be run on macOS(x86), Linux(ALSA backend), Windows(WASAPI backend). WebAssemby backend will be supported for future.
 
-mimium can run on macOS(x86), Linux(ALSA backend), Windows(WASAPI backend). WebAssemby backend will be supported for future.
+An easiest way to getting started is to use [Visual Studio Code extension](https://marketplace.visualstudio.com/items?itemName=mimium-org.mimium-language). Search "mimium" in extension tab and install it. When you create & open the file with the file extension `.mmm`, you will be asked to install the latest binary. The extension also contains syntax highlights for `.mmm` files.
 
 On macOS and Linux, installation via [Homebrew](https://brew.sh/) is recommended.
 
-Open your terminal application and type the command to install homebrew itself as follows.
-
-```sh
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)" 
-```
-
-After installation, you can install mimium with a command as follows.
+You can install mimium with a command as follows.
 
 ```sh
 brew install mimium-org/mimium/mimium
 ```
 
-Also, [an extension for Visual Studio Code](https://github.com/mimium-org/mimium-language) for a syntax highlighting is available. 
-
+Also, you can get a built binary from [release](https://github.com/mimium-org/mimium/releases) section.
 ## Build from Source
 
 To build on Windows, you need to use MSYS2. For details, check [GitHub Action Workflow](https://github.com/mimium-org/mimium/blob/dev/.github/workflows/build_and_test.yml).
@@ -83,7 +76,7 @@ To build on Windows, you need to use MSYS2. For details, check [GitHub Action Wo
 - cmake
 - bison >= 3.3
 - flex
-- llvm 11
+- llvm >= 11
 - Libsndfile
 - RtAudio(cmake will automatically download)
 
@@ -115,3 +108,5 @@ This project is supported by all the contributers, [Sponsors](https://github.com
 
 - 2019 Exploratory IT Human Resources Project ([The MITOU Program](https://www.ipa.go.jp/jinzai/mitou/portal_index.html)) by IPA: INFORMATION-TECHNOLOGY PROMOTION AGENCY, Japan.
 - Kakehashi Foundation
+
+### Contributors
