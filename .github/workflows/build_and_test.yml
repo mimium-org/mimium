@@ -29,7 +29,7 @@ jobs:
 
   build:
     needs: prebuild
-    if: "!contains( needs.prebuild.outputs.lastmessage , '[ci skip]')"
+    if: "!contains( needs.prebuild.outputs.lastmessage , '[skip ci]')"
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
     strategy:

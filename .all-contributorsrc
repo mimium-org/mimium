@@ -1,35 +1,44 @@
 {
-    "files": [
-        "README.md"
-    ],
-    "imageSize": 100,
-    "contributorsPerLine": 7,
-    "contributorsSortAlphabetically": false,
-    "badgeTemplate": "[![All Contributors](https://img.shields.io/badge/all_contributors-<%= contributors.length %>-orange.svg?style=flat-square)](#contributors)",
-    "contributorTemplate": "<a href=\"<%= contributor.profile %>\"><img src=\"<%= contributor.avatar_url %>\" width=\"<%= options.imageSize %>px;\" alt=\"\"/><br /><sub><b><%= contributor.name %></b></sub></a>",
-    "skipCi": true,
-    "contributors": [
-        {
-            "login": "t-sin",
-            "name": "Shinichi Tanaka",
-            "avatar_url": "https://avatars.githubusercontent.com/u/4403863?v=4",
-            "profile": "https://t-sin.github.io",
-            "contributions": [
-                "doc"
-            ]
-        },
-        {
-            "login": "syougikakugenn",
-            "name": "kyo",
-            "avatar_url": "https://avatars.githubusercontent.com/u/74606612?v=4",
-            "profile": "http://deepdrilledwell.secret.jp/ddw/",
-            "contributions": [
-                "doc"
-            ]
-        }
-    ],
-    "projectName": "mimium",
-    "projectOwner": "mimium-org",
-    "repoType": "github",
-    "repoHost": "https://github.com"
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "contributorsPerLine": 7,
+  "contributorsSortAlphabetically": false,
+  "badgeTemplate": "[![All Contributors](https://img.shields.io/badge/all_contributors-<%= contributors.length %>-orange.svg?style=flat-square)](#contributors)",
+  "contributorTemplate": "<a href=\"<%= contributor.profile %>\"><img src=\"<%= contributor.avatar_url %>\" width=\"<%= options.imageSize %>px;\" alt=\"\"/><br /><sub><b><%= contributor.name %></b></sub></a>",
+  "skipCi": true,
+  "contributors": [
+    {
+      "login": "t-sin",
+      "name": "Shinichi Tanaka",
+      "avatar_url": "https://avatars.githubusercontent.com/u/4403863?v=4",
+      "profile": "https://t-sin.github.io",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "syougikakugenn",
+      "name": "kyo",
+      "avatar_url": "https://avatars.githubusercontent.com/u/74606612?v=4",
+      "profile": "http://deepdrilledwell.secret.jp/ddw/",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "baku89",
+      "name": "Baku 麦",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2124392?v=4",
+      "profile": "http://baku89.com",
+      "contributions": [
+        "financial"
+      ]
+    }
+  ],
+  "projectName": "mimium",
+  "projectOwner": "mimium-org",
+  "repoType": "github",
+  "repoHost": "https://github.com"
 }
