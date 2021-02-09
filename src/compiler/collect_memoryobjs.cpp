@@ -175,6 +175,12 @@ ResultT MemoryObjsCollector::CollectMemVisitor::operator()(minst::Fcall& i) {
                                 M.result_map.emplace(i.fname, res);
                                 return res;
                               }
+                              if(e.name == "mem"){
+                                auto res = std::make_shared<FunObjTree>(
+                                    FunObjTree{i.fname, false, {}, types::Float{}});
+                                M.result_map.emplace(i.fname, res);
+                                return res;
+                              }
                               return std::nullopt;
                             },
                             [&](std::shared_ptr<mir::Argument> e) -> opt_objtreeptr {

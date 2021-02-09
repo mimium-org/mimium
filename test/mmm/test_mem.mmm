@@ -25,6 +25,7 @@ fn adsr(attack,decay,sustain,release,input){
     return if (at_or_rel) at_dec_sus_sig else releasesig
 }
 
-fn dsp(time){
-    return sin(time/10) * adsr(0.1,0.2,0.1,0.1, stepinout(time,44100,120000))
+fn dsp(){
+    out = sin(now/10) * adsr(0.1,0.2,0.1,0.1, stepinout(now,44100,120000))
+    return (out,out)
 }

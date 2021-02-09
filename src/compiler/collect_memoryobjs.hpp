@@ -82,7 +82,9 @@ class MemoryObjsCollector {
 
    private:
     static bool isSelf(mir::valueptr val) { return std::holds_alternative<mir::Self>(*val); };
-    static bool isExternalFunMemobj(const mir::ExternalSymbol& s) { return s.name == "delay"; }
+    static bool isExternalFunMemobj(const mir::ExternalSymbol& s) {
+      return s.name == "delay" || s.name == "mem";
+    }
     static ResultT makeResfromHasSelf(bool hasself);
     static void mergeResultTs(ResultT& dest, ResultT& src);
   };
