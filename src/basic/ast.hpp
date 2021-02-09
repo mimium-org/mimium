@@ -246,4 +246,4 @@ auto makeStatement(FROM&& ast) {
   return std::make_shared<ast::Statement>(ast);
 }
 
-}  // namespace mimium
+}  // namespace mimium::ast
