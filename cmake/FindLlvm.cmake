@@ -16,16 +16,19 @@ find_path(LLVM_INCLUDE_DIRS NAMES llvm/IR/IRBuilder.h
     ${HOMEBREW_PATH}/include
     ${HOMEBREW_PATH}/opt/llvm/include
     /usr/local/opt/llvm/include
+    /usr/local/include
+    /usr/include
     /mingw64/include
     C:/tools/msys64/mingw64/include
 )
 find_program(LLVM_CONFIG_EXE
-      NAMES llvm-config llvm-config-10 llvm-config10
+      NAMES llvm-config llvm-config-11 llvm-config11
       PATHS
       ${HOMEBREW_PATH}/bin
       ${HOMEBREW_PATH}/opt/llvm/bin
-      /usr/local/bin
       /usr/local/opt/llvm/bin
+      /usr/local/bin
+      /usr/bin
       "/mingw64/bin"
       "/c/msys64/mingw64/bin"
       "C:/tools/msys64/mingw64/bin"
@@ -73,7 +76,12 @@ find_program(LLVM_CONFIG_EXE
   NEED_TARGET("WebAssembly")
   NEED_TARGET("X86")
   # NEED_TARGET("XCore")
-
+  if((NOT LLVM_INCLUDE_DIRS))
+  execute_process(
+    COMMAND ${LLVM_CONFIG_EXE} --includedir
+    OUTPUT_VARIABLE LLVM_INCLUDE_DIRS
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  endif()
   
   if(NOT LLVM_LIBRARIES)
     execute_process(
