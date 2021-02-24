@@ -16,8 +16,8 @@
 #include "compiler/compiler.hpp"
 #include "compiler/ffi.hpp"
 
-#include "runtime/JIT/runtime_jit.hpp"
 #include "runtime/backend/rtaudio/driver_rtaudio.hpp"
+#include "runtime/executionengine/llvm/llvm_jitengine.hpp"
 
 #include "frontend/genericapp.hpp"
 #include "frontend/cli.hpp"
