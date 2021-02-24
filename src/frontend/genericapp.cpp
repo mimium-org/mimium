@@ -5,6 +5,7 @@
 #include "genericapp.hpp"
 #include "basic/ast_to_string.hpp"
 #include "compiler/codegen/llvm_header.hpp"
+#include "runtime/executionengine/executionengine.hpp"
 #include "preprocessor/preprocessor.hpp"
 namespace {
 const std::string_view about_message =
@@ -61,8 +62,8 @@ bool GenericApp::compileMainLoop(Compiler& compiler, const CompileOption& option
                                  const std::optional<fs::path>& output_path) {
   auto stage = option.stage;
   compiler.setFilePath(input ? fs::absolute(input.value().filepath).string() : "/stdin");
-  auto preprocessor_path = input ? input.value().filepath.parent_path() : fs::current_path();
-  Preprocessor preprocessor(preprocessor_path);
+  // auto preprocessor_path = input ? input.value().filepath.parent_path() : fs::current_path();
+  Preprocessor preprocessor(fs::current_path());
   std::stringstream iss;
   if (input) {
     auto newsource = preprocessor.process(input.value().filepath);
@@ -117,26 +118,28 @@ bool GenericApp::compileMainLoop(Compiler& compiler, const CompileOption& option
 
 int GenericApp::runtimeMainLoop(const RuntimeOption& option, const fs::path& input_path,
                                 FileType inputtype, const std::optional<fs::path>& output_path) {
-  std::unique_ptr<Runtime> runtime;
+  std::unique_ptr<mimium::ExecutionEngine> exec_engine=nullptr;
+  std::unique_ptr<Runtime> runtime=nullptr;
   try {
-    auto backend = std::make_unique<AudioDriverRtAudio>();
     bool optimize = option.optimize_level == OptimizeLevel::ON;
     if (option.engine == ExecutionEngine::LLVM) {
       switch (inputtype) {
         case FileType::MimiumSource:
-          runtime = std::make_unique<Runtime_LLVM>(
+          exec_engine = std::make_unique<LLVMJitExecutionEngine>(
               compiler->moveLLVMCtx(), compiler->moveLLVMModule(),
-              fs::absolute(input_path).string(), std::move(backend), optimize);
+              fs::absolute(input_path).string(), optimize);
           break;
         case FileType::LLVMIR:
-          runtime = std::make_unique<Runtime_LLVM>(fs::absolute(input_path).string(),
-                                                   std::move(backend), optimize);
+          exec_engine =
+              std::make_unique<LLVMJitExecutionEngine>(fs::absolute(input_path).string(), optimize);
           break;
         case FileType::MimiumMir:
           throw std::runtime_error("MIR Parser is not available yet.");
           return -1;
         default: throw std::runtime_error("Unknown File Type"); return -1;
       }
+      runtime =
+          std::make_unique<Runtime>(std::make_unique<AudioDriverRtAudio>(), std::move(exec_engine));
       runtime->runMainFun();
       runtime->start();  // start() blocks thread until scheduler stops
       return 0;

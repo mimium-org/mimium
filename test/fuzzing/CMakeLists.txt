@@ -13,7 +13,7 @@ target_link_libraries(fuzzing_compiler
     PRIVATE
       mimium_utils
       mimium_compiler
-      mimium_runtime_jit
+      mimium_llvm_jitengine 
     )
 file(COPY fuzz_dictionary.txt DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 

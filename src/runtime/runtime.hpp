@@ -13,27 +13,38 @@
 
 namespace mimium {
 class AudioDriver;
-
+class ExecutionEngine;
 class MIMIUM_DLL_PUBLIC Runtime {
  public:
-   explicit Runtime(std::unique_ptr<AudioDriver> a=nullptr):audiodriver(std::move(a))  {}
+  explicit Runtime(std::unique_ptr<AudioDriver> a, std::unique_ptr<ExecutionEngine> e);
 
   virtual ~Runtime() {
     for (auto&& [address, size] : malloc_container) { free(address); }
   };
-  
-  virtual void runMainFun()=0;
-  virtual void start() = 0;
-  auto& getAudioDriver() { return *audiodriver; }
+
+  virtual void runMainFun();
+  virtual void start();
+  AudioDriver& getAudioDriver();
   [[nodiscard]] bool hasDsp() const { return hasdsp; }
   [[nodiscard]] bool hasDspCls() const { return hasdspcls; }
-  void push_malloc(void* address, size_t size) { malloc_container.emplace_back(address, size); }
+  void pushMalloc(void* address, size_t size);
 
  protected:
   std::unique_ptr<AudioDriver> audiodriver;
+  std::unique_ptr<ExecutionEngine> executionengine;
   bool hasdsp = false;
   bool hasdspcls = false;
   std::list<std::pair<void*, size_t>> malloc_container{};
 };
+
+extern "C" {
+MIMIUM_DLL_PUBLIC void setDspParams(void* runtimeptr, void* dspfn, void* clsaddress,
+                                    void* memobjaddress, int in_numchs, int out_numchs);
+MIMIUM_DLL_PUBLIC void addTask(void* runtimeptr, double time, void* addresstofn, double arg);
+MIMIUM_DLL_PUBLIC void addTask_cls(void* runtimeptr, double time, void* addresstofn, double arg,
+                                   void* addresstocls);
+MIMIUM_DLL_PUBLIC double mimium_getnow(void* runtimeptr);
+MIMIUM_DLL_PUBLIC void* mimium_malloc(void* runtimeptr, size_t size);
+}
 
 }  // namespace mimium

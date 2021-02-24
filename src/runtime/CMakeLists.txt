@@ -10,5 +10,17 @@ $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
 target_link_libraries(mimium_scheduler PRIVATE 
 mimium_utils)
 
+add_library(mimium_runtime runtime.cpp)
+target_compile_features(mimium_runtime PUBLIC cxx_std_17)
+target_include_directories(mimium_runtime 
+INTERFACE
+$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/mimium>
+PRIVATE
+$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
+)
+
+target_link_libraries(mimium_runtime PRIVATE 
+mimium_scheduler)
+
 add_subdirectory(backend)
-add_subdirectory(JIT)
+add_subdirectory(executionengine)

@@ -33,5 +33,8 @@ struct UnknownExtension : public PreprocessorError {
 
 // related to compiler
 
-struct RuntimeError : public Error {};
+struct RuntimeError : public Error {
+    explicit RuntimeError(const std::string& what) : Error(what){};
+
+};
 }  // namespace mimium
