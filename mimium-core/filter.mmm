@@ -1,0 +1,68 @@
+fn biquad(x,a1,a2,b0,b1,b2){
+    fn Wbiquad(x,a1,a2){
+        return x - a1*self -a2*mem(self)
+    }
+    W = Wbiquad(x,a1,a2)
+    W1 = mem(W)
+    W2 = mem(W1)
+    return b0*W + b1*W1 + b2*W2
+}
+fn getGain(gain){
+    return 10 ^(gain/40.0)
+}
+fn getOmega(fc,fs){
+    PI = 3.14159565
+    return 2*PI*fc/fs
+}
+fn getAlpha(omega,q){
+    return sin(omega)/(2*q)
+}
+
+fn calcCoeffs(fc,gain,q,fs,paramfn:(float,float,float)->(float,float,float,float,float)){
+    A = getGain(gain)
+    omega = getOmega(fc,fs)
+    alpha =getAlpha(omega,q)
+    return paramfn(A,omega,alpha)
+}
+
+fn peakfilter(x,fc,gain,q,fs){
+    coeffs = calcCoeffs(fc,gain,q,fs, |A,omega,alpha|{
+        a0 =  1.0 + alpha / A
+        a1 = (-2.0 * cos(omega) )/a0
+        a2 = ( 1.0 - alpha / A )/a0
+        b0 = ( 1.0 + alpha * A )/a0
+        b1 = (-2.0 * cos(omega) )/a0
+        b2 = ( 1.0 - alpha * A )/a0
+        return (a1,a2,b0,b1,b2)
+    } )
+    a1,a2,b0,b1,b2 = coeffs
+    return biquad(x,a1,a2,b0,b1,b2)
+}
+
+// fn lowpass(x,fc,gain,q,fs){
+//     A = getGain(gain)
+//     omega = getOmega(fc,fs)
+//     alpha =getAlpha(omega,q)
+
+//     a0 = 1+alpha
+//     a1 = -2*cos(omega) /a0
+//     a2 = (1-alpha)/a0
+//     cosomegatmp = 1-cos(omega)
+//     b0 = cosomegatmp/(2*a0)
+//     b1 = b0/2
+//     b2 = b1
+//     return biquad(x,a1,a2,b0,b1,b2)
+// }
+
+// fn peakfilter(x,fc,gain,q,fs){
+//     A = getGain(gain)
+//     omega = getOmega(fc,fs)
+//     alpha = getAlpha(omega,q)
+//     a0 =  1.0 + alpha / A
+//     a1 = (-2.0 * cos(omega) )/a0
+//     a2 = ( 1.0 - alpha / A )/a0
+//     b0 = ( 1.0 + alpha * A )/a0
+//     b1 = (-2.0 * cos(omega) )/a0
+//     b2 = ( 1.0 - alpha * A )/a0
+//     return biquad(x,a1,a2,b0,b1,b2)
+// }

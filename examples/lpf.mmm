@@ -10,7 +10,7 @@ fn lpf(input:float,fb:float){
     return (1-fb)*input + fb*self
 }
 freq = 10000
-fn dsp(time:float)->float{
+fn dsp(){
     out = lpf(random(),tau2pole(1/freq))
     return (out,out)
 }
