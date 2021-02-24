@@ -15,14 +15,13 @@ LLVMJitExecutionEngine::LLVMJitExecutionEngine(std::unique_ptr<llvm::LLVMContext
 }
 
 LLVMJitExecutionEngine::LLVMJitExecutionEngine(std::string const& filepath, bool optimize)
-    : ExecutionEngine() {
+    : ExecutionEngine(), module() {
   auto ctx = std::make_unique<llvm::LLVMContext>();
   llvm::SMDiagnostic errorreporter;
   module = llvm::parseIRFile(filepath, errorreporter, *ctx);
   initInternal(std::move(ctx), optimize);
 }
 LLVMJitExecutionEngine::~LLVMJitExecutionEngine() = default;
-
 
 void LLVMJitExecutionEngine::initInternal(std::unique_ptr<llvm::LLVMContext> ctx, bool optimize) {
   llvm::InitializeNativeTarget();
