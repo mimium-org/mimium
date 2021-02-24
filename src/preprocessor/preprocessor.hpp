@@ -10,16 +10,15 @@
 namespace mimium {
 namespace fs = std::filesystem;
 
-
 class Preprocessor {
  public:
   explicit Preprocessor(fs::path cwd);
   Source process(fs::path path);
 
  private:
-  Source loadFile(fs::path path);
+  static Source loadFile(const fs::path& path, const fs::path& base_path);
   static std::list<std::string> splitSource(const std::string& str);
-  void replaceIncludeMacro(std::list<std::string>& src);
+  void replaceIncludeMacro(std::list<std::string>& src, const fs::path& base_path);
   std::unordered_set<std::string> files;
   fs::path cwd;
 };

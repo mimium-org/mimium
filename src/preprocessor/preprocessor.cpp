@@ -11,8 +11,8 @@ namespace mimium {
 
 Preprocessor::Preprocessor(fs::path cwd) : cwd(std::move(cwd)) {}
 
-Source Preprocessor::loadFile(fs::path path) {
-  FileReader filereader(cwd);
+Source Preprocessor::loadFile(const fs::path& path, const fs::path& base_path) {
+  FileReader filereader(base_path);
   return filereader.loadFile(path.string());
 }
 
@@ -25,7 +25,7 @@ std::list<std::string> Preprocessor::splitSource(const std::string& str) {
   }
   return res;
 }
-void Preprocessor::replaceIncludeMacro(std::list<std::string>& src) {
+void Preprocessor::replaceIncludeMacro(std::list<std::string>& src, const fs::path& base_path) {
   const std::regex re(R"((include)(\s)+\"(.*)\")");
   for (auto&& iter = src.begin(); iter != src.cend(); /*increment manually*/) {
     const auto& line = *iter;
@@ -36,7 +36,7 @@ void Preprocessor::replaceIncludeMacro(std::list<std::string>& src) {
       fs::path newfilepath(filename.str());
       std::list<std::string> newsrclist;
       if (files.find(newfilepath.string()) == files.end()) {
-        auto new_src = this->loadFile(newfilepath);
+        auto new_src = this->loadFile(newfilepath, base_path);
         newsrclist = splitSource(new_src.source);
       }
       auto nextiter = std::next(iter);
@@ -49,10 +49,10 @@ void Preprocessor::replaceIncludeMacro(std::list<std::string>& src) {
   }
 }
 Source Preprocessor::process(fs::path path) {
-  auto src = loadFile(path);
+  auto src = loadFile(path, cwd);
   files.emplace(src.filepath.string());
   auto src_list_by_line = splitSource(src.source);
-  replaceIncludeMacro(src_list_by_line);
+  replaceIncludeMacro(src_list_by_line, path.parent_path());
   std::string res;
   src.source =
       std::accumulate(src_list_by_line.begin(), src_list_by_line.end(), res,
