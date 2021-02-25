@@ -29,7 +29,7 @@ jobs:
 
   build:
     needs: prebuild
-    if: "!contains( needs.prebuild.outputs.lastmessage , '[ci skip]')"
+    if: "!contains( needs.prebuild.outputs.lastmessage , '[skip ci]')"
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
     strategy:
@@ -70,8 +70,11 @@ jobs:
           HOMEBREW_NO_AUTO_UPDATE=1 brew install flex bison libsndfile llvm ninja
       - if: contains(matrix.os, 'ubuntu')
         run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 brew install llvm
-          sudo apt-get update
+          brew update
+          brew info llvm@11
+      - if: contains(matrix.os, 'ubuntu')
+        run: |
+          brew install llvm@11
           sudo apt-get install libalsa-ocaml-dev libfl-dev libbison-dev libz-dev libsndfile-dev libopus-dev gcc-9 ninja-build
       - uses: actions/checkout@v2
         with: 

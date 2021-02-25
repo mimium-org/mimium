@@ -40,7 +40,7 @@ fn lpf(input:float,fb:float){
 }
 ```
 
-You can also write a note-level processing by using `@` operator which specifies the time when the function will be executed.
+You can also write a note-level processing by using `@` operator which specifies the time when the function will be executed. Another special keyword `now` can be used for getting current logical time.
 An event scheduling is sample-accurate because the scheduler is driven by an audio driver.
 
 ```rust
@@ -55,26 +55,19 @@ More specific infos about the language are on [mimium Website](https://mimium.or
 
 ## Installation
 
-You can get a built binary from [release](https://github.com/mimium-org/mimium/releases) section.
+mimium can be run on macOS(x86), Linux(ALSA backend), Windows(WASAPI backend). WebAssemby backend will be supported for future.
 
-mimium can run on macOS(x86), Linux(ALSA backend), Windows(WASAPI backend). WebAssemby backend will be supported for future.
+An easiest way to getting started is to use [Visual Studio Code extension](https://marketplace.visualstudio.com/items?itemName=mimium-org.mimium-language). Search "mimium" in extension tab and install it. When you create & open the file with the file extension `.mmm`, you will be asked to install the latest binary. The extension also contains syntax highlights for `.mmm` files.
 
 On macOS and Linux, installation via [Homebrew](https://brew.sh/) is recommended.
 
-Open your terminal application and type the command to install homebrew itself as follows.
-
-```sh
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)" 
-```
-
-After installation, you can install mimium with a command as follows.
+You can install mimium with a command as follows.
 
 ```sh
 brew install mimium-org/mimium/mimium
 ```
 
-Also, [an extension for Visual Studio Code](https://github.com/mimium-org/mimium-language) for a syntax highlighting is available. 
-
+Also, you can get a built binary from [release](https://github.com/mimium-org/mimium/releases) section.
 ## Build from Source
 
 To build on Windows, you need to use MSYS2. For details, check [GitHub Action Workflow](https://github.com/mimium-org/mimium/blob/dev/.github/workflows/build_and_test.yml).
@@ -83,7 +76,7 @@ To build on Windows, you need to use MSYS2. For details, check [GitHub Action Wo
 - cmake
 - bison >= 3.3
 - flex
-- llvm 11
+- llvm >= 11
 - Libsndfile
 - RtAudio(cmake will automatically download)
 
@@ -115,3 +108,33 @@ This project is supported by all the contributers, [Sponsors](https://github.com
 
 - 2019 Exploratory IT Human Resources Project ([The MITOU Program](https://www.ipa.go.jp/jinzai/mitou/portal_index.html)) by IPA: INFORMATION-TECHNOLOGY PROMOTION AGENCY, Japan.
 - Kakehashi Foundation
+
+### Contributors
+
+<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
+[![All Contributors](https://img.shields.io/badge/all_contributors-8-orange.svg?style=flat-square)](#contributors-)
+<!-- ALL-CONTRIBUTORS-BADGE:END --> 
+
+	
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<table>
+  <tr>
+    <td align="center"><a href="https://t-sin.github.io"><img src="https://avatars.githubusercontent.com/u/4403863?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Shinichi Tanaka</b></sub></a><br /><a href="https://github.com/mimium-org/mimium/commits?author=t-sin" title="Documentation">📖</a></td>
+    <td align="center"><a href="http://deepdrilledwell.secret.jp/ddw/"><img src="https://avatars.githubusercontent.com/u/74606612?v=4?s=100" width="100px;" alt=""/><br /><sub><b>kyo</b></sub></a><br /><a href="https://github.com/mimium-org/mimium/commits?author=syougikakugenn" title="Documentation">📖</a></td>
+    <td align="center"><a href="http://baku89.com"><img src="https://avatars.githubusercontent.com/u/2124392?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Baku 麦</b></sub></a><br /><a href="#financial-baku89" title="Financial">💵</a></td>
+    <td align="center"><a href="https://github.com/yuichkun"><img src="https://avatars.githubusercontent.com/u/14039540?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Yuichi Yogo</b></sub></a><br /><a href="#financial-yuichkun" title="Financial">💵</a></td>
+    <td align="center"><a href="http://ayumu-nagamatsu.com"><img src="https://avatars.githubusercontent.com/u/7838131?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Ayumu Nagamatsu</b></sub></a><br /><a href="#financial-nama-gatsuo" title="Financial">💵</a></td>
+    <td align="center"><a href="https://horol.org"><img src="https://avatars.githubusercontent.com/u/3610296?v=4?s=100" width="100px;" alt=""/><br /><sub><b>zigen</b></sub></a><br /><a href="#financial-zigen" title="Financial">💵</a></td>
+    <td align="center"><a href="http://hitoshitakeuchi.com"><img src="https://avatars.githubusercontent.com/u/6305267?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Hitoshi Takeuchi</b></sub></a><br /><a href="#financial-hitoshitakeuchi" title="Financial">💵</a></td>
+  </tr>
+  <tr>
+    <td align="center"><a href="https://github.com/Inqb8tr-jp"><img src="https://avatars.githubusercontent.com/u/79005925?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Inqb8tr-jp</b></sub></a><br /><a href="#financial-Inqb8tr-jp" title="Financial">💵</a> <a href="#infra-Inqb8tr-jp" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a></td>
+  </tr>
+</table>
+
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+
+<!-- ALL-CONTRIBUTORS-LIST:END -->

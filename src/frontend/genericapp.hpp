@@ -34,9 +34,9 @@ class MIMIUM_DLL_PUBLIC GenericApp {
   // If compiler should emit result and quit app, return 0.
   static bool compileMainLoop(Compiler& compiler, const CompileOption& option,
                               const std::optional<Source>& input,
-                              std::optional<fs::path>& output_path);
+                              const std::optional<fs::path>& output_path);
   int runtimeMainLoop(const RuntimeOption& option, const fs::path& input_path, FileType inputtype,
-                      std::optional<fs::path>& output_path);
+                      const std::optional<fs::path>& output_path);
   std::unique_ptr<AppOption> option;
 };
 

@@ -3,9 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #include "genericapp.hpp"
-#include "compiler/codegen/llvm_header.hpp"
 #include "basic/ast_to_string.hpp"
-
+#include "compiler/codegen/llvm_header.hpp"
+#include "runtime/executionengine/executionengine.hpp"
+#include "preprocessor/preprocessor.hpp"
 namespace {
 const std::string_view about_message =
     "mimium - MInimal Musical medIUM, "
@@ -58,18 +59,21 @@ void GenericApp::handleSignal(int signal) { GenericApp::signal_status = signal; 
 
 bool GenericApp::compileMainLoop(Compiler& compiler, const CompileOption& option,
                                  const std::optional<Source>& input,
-                                 std::optional<fs::path>& output_path) {
+                                 const std::optional<fs::path>& output_path) {
   auto stage = option.stage;
   compiler.setFilePath(input ? fs::absolute(input.value().filepath).string() : "/stdin");
-  std::ifstream ifs;
+  // auto preprocessor_path = input ? input.value().filepath.parent_path() : fs::current_path();
+  Preprocessor preprocessor(fs::current_path());
+  std::stringstream iss;
   if (input) {
-    ifs.open(input.value().filepath.string());
+    auto newsource = preprocessor.process(input.value().filepath);
+    iss << newsource.source;
   } else {
     Logger::debug_log(
         "Reading from stdin. If you are typing from terminal, type Ctrl+D to finish input. ",
         Logger::INFO);
   }
-  std::istream& in = input ? ifs : std::cin;
+  std::istream& in = input ? iss : std::cin;
   auto ast = compiler.loadSource(in);
 
   std::ofstream fout;
@@ -113,27 +117,29 @@ bool GenericApp::compileMainLoop(Compiler& compiler, const CompileOption& option
 }
 
 int GenericApp::runtimeMainLoop(const RuntimeOption& option, const fs::path& input_path,
-                                FileType inputtype, std::optional<fs::path>& /*output_path*/) {
-  std::unique_ptr<Runtime> runtime;
+                                FileType inputtype, const std::optional<fs::path>& output_path) {
+  std::unique_ptr<mimium::ExecutionEngine> exec_engine=nullptr;
+  std::unique_ptr<Runtime> runtime=nullptr;
   try {
-    auto backend = std::make_unique<AudioDriverRtAudio>();
     bool optimize = option.optimize_level == OptimizeLevel::ON;
     if (option.engine == ExecutionEngine::LLVM) {
       switch (inputtype) {
         case FileType::MimiumSource:
-          runtime = std::make_unique<Runtime_LLVM>(
+          exec_engine = std::make_unique<LLVMJitExecutionEngine>(
               compiler->moveLLVMCtx(), compiler->moveLLVMModule(),
-              fs::absolute(input_path).string(), std::move(backend), optimize);
+              fs::absolute(input_path).string(), optimize);
           break;
         case FileType::LLVMIR:
-          runtime = std::make_unique<Runtime_LLVM>(fs::absolute(input_path).string(),
-                                                   std::move(backend), optimize);
+          exec_engine =
+              std::make_unique<LLVMJitExecutionEngine>(fs::absolute(input_path).string(), optimize);
           break;
         case FileType::MimiumMir:
           throw std::runtime_error("MIR Parser is not available yet.");
           return -1;
         default: throw std::runtime_error("Unknown File Type"); return -1;
       }
+      runtime =
+          std::make_unique<Runtime>(std::make_unique<AudioDriverRtAudio>(), std::move(exec_engine));
       runtime->runMainFun();
       runtime->start();  // start() blocks thread until scheduler stops
       return 0;
@@ -167,8 +173,11 @@ int GenericApp::run() {
 
     int res = 0;
     if (should_run) {
-      res = runtimeMainLoop(option->runtime_option, option->input.value().filepath,
-                            option->input.value().filetype, option->output_path);
+      auto inpath = option->input ? option->input.value().filepath : fs::path("/stdin");
+      auto intype = option->input ? option->input.value().filetype : FileType::MimiumSource;
+      // auto outpath = option->output_path.value_or(fs::path("/stdout"));
+      res = runtimeMainLoop(option->runtime_option, inpath, intype,
+                            option->output_path.value_or(fs::path("/stdout")));
     }
     return res;
   } catch (std::exception& e) {

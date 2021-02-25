@@ -145,7 +145,7 @@ CliApp::CliApp(int argc, const char** argv) : app(nullptr) {
     auto [option, climode] = OptionParser()(argc, argv);
     this->app = std::make_unique<GenericApp>(std::make_unique<AppOption>(std::move(option)));
     this->mode = climode;
-  } catch (CliAppError& e) {
+  } catch (std::runtime_error& e) {
     std::cerr << e.what() << std::endl;
     std::exit(1);
   } catch (...) {

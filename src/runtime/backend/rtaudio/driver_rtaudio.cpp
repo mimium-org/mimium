@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #include "runtime/backend/rtaudio/driver_rtaudio.hpp"
+#include "runtime/executionengine/executionengine.hpp"
 #include "RtAudio.h"
 
 namespace {

@@ -21,6 +21,8 @@ MIMIUM_DLL_PUBLIC int64_t mimium_dtoi(double d) { return static_cast<int64_t>(d)
 MIMIUM_DLL_PUBLIC double mimium_gt(double d1, double d2) { return static_cast<double>(d1 > d2); }
 MIMIUM_DLL_PUBLIC double mimium_lt(double d1, double d2) { return static_cast<double>(d1 < d2); }
 MIMIUM_DLL_PUBLIC double mimium_ge(double d1, double d2) { return static_cast<double>(d1 >= d2); }
+MIMIUM_DLL_PUBLIC double mimium_eq(double d1, double d2) { return static_cast<double>(d1 == d2); }
+MIMIUM_DLL_PUBLIC double mimium_noteq(double d1, double d2) { return static_cast<double>(d1 != d2); }
 MIMIUM_DLL_PUBLIC double mimium_le(double d1, double d2) { return static_cast<double>(d1 <= d2); }
 MIMIUM_DLL_PUBLIC double mimium_and(double d1, double d2) {
   return static_cast<double>(mimium_dtob(d1) && mimium_dtob(d2));
@@ -49,6 +51,12 @@ struct MmmRingBuf {
   int64_t writei = 0;
   double buf[mimium::types::fixed_delaysize]{};
 };
+
+MIMIUM_DLL_PUBLIC double mimium_memprim(double in, double* valptr){
+  auto res= *valptr;
+  *valptr = in;
+  return res;
+}
 MIMIUM_DLL_PUBLIC double mimium_delayprim(double in, double time, MmmRingBuf* rbuf) {
   auto size = sizeof(rbuf->buf) / sizeof(double);
   rbuf->writei = (rbuf->writei + 1) % size;
@@ -123,6 +131,8 @@ const std::unordered_map<std::string, BuiltinFnInfo> LLVMBuiltin::ftable = {
     {"max", initBI(Function{Float{}, {Float{}, Float{}}}, "fmax")},
 
     {"ge", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_ge")},
+    {"eq", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_eq")},
+    {"noteq", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_noteq")},
     {"le", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_le")},
     {"gt", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_gt")},
     {"lt", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_lt")},

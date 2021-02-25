@@ -1,0 +1,87 @@
+{
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "contributorsPerLine": 7,
+  "skipCi": true,
+  "contributors": [
+    {
+      "login": "t-sin",
+      "name": "Shinichi Tanaka",
+      "avatar_url": "https://avatars.githubusercontent.com/u/4403863?v=4",
+      "profile": "https://t-sin.github.io",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "syougikakugenn",
+      "name": "kyo",
+      "avatar_url": "https://avatars.githubusercontent.com/u/74606612?v=4",
+      "profile": "http://deepdrilledwell.secret.jp/ddw/",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "baku89",
+      "name": "Baku 麦",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2124392?v=4",
+      "profile": "http://baku89.com",
+      "contributions": [
+        "financial"
+      ]
+    },
+    {
+      "login": "yuichkun",
+      "name": "Yuichi Yogo",
+      "avatar_url": "https://avatars.githubusercontent.com/u/14039540?v=4",
+      "profile": "https://github.com/yuichkun",
+      "contributions": [
+        "financial"
+      ]
+    },
+    {
+      "login": "nama-gatsuo",
+      "name": "Ayumu Nagamatsu",
+      "avatar_url": "https://avatars.githubusercontent.com/u/7838131?v=4",
+      "profile": "http://ayumu-nagamatsu.com",
+      "contributions": [
+        "financial"
+      ]
+    },
+    {
+      "login": "zigen",
+      "name": "zigen",
+      "avatar_url": "https://avatars.githubusercontent.com/u/3610296?v=4",
+      "profile": "https://horol.org",
+      "contributions": [
+        "financial"
+      ]
+    },
+    {
+      "login": "hitoshitakeuchi",
+      "name": "Hitoshi Takeuchi",
+      "avatar_url": "https://avatars.githubusercontent.com/u/6305267?v=4",
+      "profile": "http://hitoshitakeuchi.com",
+      "contributions": [
+        "financial"
+      ]
+    },
+    {
+      "login": "Inqb8tr-jp",
+      "name": "Inqb8tr-jp",
+      "avatar_url": "https://avatars.githubusercontent.com/u/79005925?v=4",
+      "profile": "https://github.com/Inqb8tr-jp",
+      "contributions": [
+        "financial",
+        "infra"
+      ]
+    }
+  ],
+  "projectName": "mimium",
+  "projectOwner": "mimium-org",
+  "repoType": "github",
+  "repoHost": "https://github.com"
+}

@@ -13,10 +13,11 @@ using OpId = ast::OpId;
 const std::unordered_map<OpId, std::string> CodeGenVisitor::opid_to_ffi = {
     // names are declared in ffi.cpp
 
-    {OpId::Exponent, "pow"}, {OpId::Mod, "fmod"},       {OpId::GreaterEq, "ge"},
-    {OpId::LessEq, "le"},    {OpId::GreaterThan, "gt"}, {OpId::LessThan, "lt"},
-    {OpId::And, "and"},      {OpId::BitAnd, "and"},     {OpId::Or, "or"},
-    {OpId::BitOr, "or"},     {OpId::LShift, "lshift"},  {OpId::RShift, "rshift"},
+    {OpId::Exponent, "pow"},  {OpId::Mod, "fmod"},       {OpId::GreaterEq, "ge"},
+    {OpId::LessEq, "le"},     {OpId::GreaterThan, "gt"}, {OpId::LessThan, "lt"},
+    {OpId::Equal, "eq"},      {OpId::NotEq, "noteq"},    {OpId::And, "and"},
+    {OpId::BitAnd, "and"},    {OpId::Or, "or"},          {OpId::BitOr, "or"},
+    {OpId::LShift, "lshift"}, {OpId::RShift, "rshift"},
 };
 
 // Creates Allocation instruction or call malloc function depends on context
@@ -539,14 +540,11 @@ llvm::Value* CodeGenVisitor::operator()(minst::Field& i) {
 
 llvm::Value* CodeGenVisitor::createIfBody(mir::blockptr& block) {
   auto& insts = block->instructions;
-  if (!std::holds_alternative<minst::Return>(std::get<mir::Instructions>(*insts.back()))) {
-    throw std::logic_error("non-void block should have minst::Return for last line");
-  }
-  for (auto&& iter = insts.cbegin(); iter != std::prev(insts.cend()); ++iter) {
-    G.visitInstructions(*iter, false);
-  }
-  auto retinst = mir::getInstRef<minst::Return>(insts.back());
-  return getLlvmVal(retinst.val);
+  const bool hasreturn =
+      std::holds_alternative<minst::Return>(std::get<mir::Instructions>(*insts.back()));
+  const auto enditer = hasreturn ? std::prev(insts.cend()) : insts.cend();
+  for (auto&& iter = insts.cbegin(); iter != enditer; ++iter) { G.visitInstructions(*iter, false); }
+  return hasreturn ? getLlvmVal(mir::getInstRef<minst::Return>(insts.back()).val) : nullptr;
 }
 
 llvm::Value* CodeGenVisitor::operator()(minst::If& i) {
@@ -574,10 +572,10 @@ llvm::Value* CodeGenVisitor::operator()(minst::If& i) {
   bool isvoid = std::holds_alternative<types::Void>(ifrettype);
   llvm::Value* res = nullptr;
   if (!isvoid) {
+    assert(elseret != nullptr && thenret != nullptr);
     auto* phinode = G.builder->CreatePHI(G.getType(i.type), 2);
     phinode->addIncoming(thenret, thenbb_last);
     phinode->addIncoming(elseret, elsebb_last);
-
     res = phinode;
   }
   G.builder->SetInsertPoint(thisbb);

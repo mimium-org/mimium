@@ -26,7 +26,7 @@ target_link_libraries(mimium
     mimium_filereader
     mimium_preprocessor
     mimium_compiler
-    mimium_runtime_jit
+    mimium_llvm_jitengine 
     mimium_backend_rtaudio
     mimium_builtinfn
     mimium_utils
@@ -53,7 +53,8 @@ install (TARGETS
             mimium_preprocessor
             mimium_compiler
             mimium_llvm_codegen
-            mimium_runtime_jit
+            mimium_llvm_jitengine
+            mimium_runtime
             mimium_scheduler
             mimium_audiodriver
             mimium_backend_rtaudio

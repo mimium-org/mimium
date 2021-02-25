@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## v0.3.1(2021-02-25)
+### Bugfixes
+
+- fixed a bug in code generator when if statement has void block(#51)
+- added missing `==` and `!=` infix operators (#53)
+
+### Refactoring
+
+- `ExecutionEngine` class has been made by splitting from `Runtime` class toward implementing interpreter backend and environment variables feature.
+
+### New Function
+
+Though this release is a patch release, a subtle new feature is added.
+
+- `mem`, a 1-sample delay function has been added. A simple example of biquad filter using this function is added to `mimium-core/filter.mmm`(#44).
+
+### Other updates
+
+A list of all contributers is added to readme by using [all-contributors](https://allcontributors.org/).
 ## v0.3.0 (2021-02-03)
 
 ### New language features
