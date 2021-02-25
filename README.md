@@ -112,7 +112,7 @@ This project is supported by all the contributers, [Sponsors](https://github.com
 ### Contributors
 
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-7-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-8-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END --> 
 
 	
@@ -128,6 +128,9 @@ This project is supported by all the contributers, [Sponsors](https://github.com
     <td align="center"><a href="http://ayumu-nagamatsu.com"><img src="https://avatars.githubusercontent.com/u/7838131?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Ayumu Nagamatsu</b></sub></a><br /><a href="#financial-nama-gatsuo" title="Financial">💵</a></td>
     <td align="center"><a href="https://horol.org"><img src="https://avatars.githubusercontent.com/u/3610296?v=4?s=100" width="100px;" alt=""/><br /><sub><b>zigen</b></sub></a><br /><a href="#financial-zigen" title="Financial">💵</a></td>
     <td align="center"><a href="http://hitoshitakeuchi.com"><img src="https://avatars.githubusercontent.com/u/6305267?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Hitoshi Takeuchi</b></sub></a><br /><a href="#financial-hitoshitakeuchi" title="Financial">💵</a></td>
+  </tr>
+  <tr>
+    <td align="center"><a href="https://github.com/Inqb8tr-jp"><img src="https://avatars.githubusercontent.com/u/79005925?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Inqb8tr-jp</b></sub></a><br /><a href="#financial-Inqb8tr-jp" title="Financial">💵</a> <a href="#infra-Inqb8tr-jp" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a></td>
   </tr>
 </table>
 
