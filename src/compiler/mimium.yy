@@ -386,6 +386,7 @@ op:   expr ADD    expr   {$$ = ast::Op{{@$,"op"},ast::OpId::Add,        std::mov
      |expr LE expr       {$$ = ast::Op{{@$,"op"},ast::OpId::LessEq,     std::move($1),std::move($3)};}
      |expr LSHIFT expr   {$$ = ast::Op{{@$,"op"},ast::OpId::LShift,     std::move($1),std::move($3)};}
      |expr RSHIFT expr   {$$ = ast::Op{{@$,"op"},ast::OpId::RShift,     std::move($1),std::move($3)};}
+     |expr EQ expr      {$$ = ast::Op{{@$,"op"},ast::OpId::Equal,      std::move($1),std::move($3)};}
      |expr NEQ expr      {$$ = ast::Op{{@$,"op"},ast::OpId::NotEq,      std::move($1),std::move($3)};}
      |SUB expr           {$$ = ast::Op{{@$,"op"},ast::OpId::Sub,        std::nullopt, std::move($2)};} %prec UMINUS
      |NOT expr           {$$ = ast::Op{{@$,"op"},ast::OpId::Not,        std::nullopt, std::move($2)};} %prec UMINUS
