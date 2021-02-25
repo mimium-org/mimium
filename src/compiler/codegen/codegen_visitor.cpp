@@ -13,10 +13,11 @@ using OpId = ast::OpId;
 const std::unordered_map<OpId, std::string> CodeGenVisitor::opid_to_ffi = {
     // names are declared in ffi.cpp
 
-    {OpId::Exponent, "pow"}, {OpId::Mod, "fmod"},       {OpId::GreaterEq, "ge"},
-    {OpId::LessEq, "le"},    {OpId::GreaterThan, "gt"}, {OpId::LessThan, "lt"},
-    {OpId::And, "and"},      {OpId::BitAnd, "and"},     {OpId::Or, "or"},
-    {OpId::BitOr, "or"},     {OpId::LShift, "lshift"},  {OpId::RShift, "rshift"},
+    {OpId::Exponent, "pow"},  {OpId::Mod, "fmod"},       {OpId::GreaterEq, "ge"},
+    {OpId::LessEq, "le"},     {OpId::GreaterThan, "gt"}, {OpId::LessThan, "lt"},
+    {OpId::Equal, "eq"},      {OpId::NotEq, "noteq"},    {OpId::And, "and"},
+    {OpId::BitAnd, "and"},    {OpId::Or, "or"},          {OpId::BitOr, "or"},
+    {OpId::LShift, "lshift"}, {OpId::RShift, "rshift"},
 };
 
 // Creates Allocation instruction or call malloc function depends on context
