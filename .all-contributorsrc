@@ -68,6 +68,16 @@
       "contributions": [
         "financial"
       ]
+    },
+    {
+      "login": "Inqb8tr-jp",
+      "name": "Inqb8tr-jp",
+      "avatar_url": "https://avatars.githubusercontent.com/u/79005925?v=4",
+      "profile": "https://github.com/Inqb8tr-jp",
+      "contributions": [
+        "financial",
+        "infra"
+      ]
     }
   ],
   "projectName": "mimium",
