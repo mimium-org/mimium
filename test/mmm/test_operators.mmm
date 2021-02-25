@@ -1,0 +1,22 @@
+a = 1+2//3
+b = a-2//1
+c = b*2//2
+d = c/2//1
+print(d)
+e = c*3//8
+print(e)
+
+print(2 & 3)//1
+print(2 & 0)//0
+print(2 | 3)//1
+print(2 | 0)//1
+print(2 == 0)//0
+print(2 != 0)//1
+print(2>0)//1
+print(2>=2)//1
+print(2<0)//0
+print(2<=0)//0
+print(2 << 2)//?
+print(128 >> 2) //?
+print(-2)//-2
+println(!2)//0

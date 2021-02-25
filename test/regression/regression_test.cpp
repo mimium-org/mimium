@@ -28,6 +28,7 @@ namespace fs = std::filesystem;
   }
 
 REGRESSION(regression, "120")
+REGRESSION(operators,"161011011100832-20\n")
 REGRESSION(typeident, R"(3
 3
 2
