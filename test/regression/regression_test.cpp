@@ -36,6 +36,7 @@ REGRESSION(closure2, "20015\n")
 REGRESSION(tuple, "100\n")
 REGRESSION(fibonacchi, "610\n")
 REGRESSION(ifexpr, "130\n")
+REGRESSION(if_void,"1\n2\n2\n")
 REGRESSION(builtin,
            R"(100
 2.55255e+08

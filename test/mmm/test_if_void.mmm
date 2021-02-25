@@ -1,0 +1,24 @@
+myglobal=0
+
+fn mutate(){
+    myglobal = myglobal+1
+}
+
+
+fn test(cond){
+    if(cond) mutate()
+    println(myglobal)
+}
+
+fn test2(cond){
+    if(cond){
+        mutate()
+        println(myglobal)
+    }else{
+        println(myglobal)
+    }
+}
+
+test(1)//print 1
+test2(1)//print 2
+test2(0)//print 2

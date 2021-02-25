@@ -117,7 +117,7 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Symbol& ast) {
   }
   throw std::runtime_error("symbol " + ast.value + " not found");
 }  // namespace mimium
-mir::valueptr ExprKnormVisitor::operator()(ast::Self&  /*ast*/) {
+mir::valueptr ExprKnormVisitor::operator()(ast::Self& /*ast*/) {
   // todo: create special type for self
   MMMASSERT(fnctx.has_value(), "Self cannot used in global context");
   auto self = mir::Self{fnctx.value(), types::Float{}};
@@ -294,7 +294,7 @@ mir::valueptr ExprKnormVisitor::operator()(ast::If& ast) {
   auto lvname = mirgen.makeNewName();
   auto cond = genInst(ast.cond);
   auto [thenretval, thenblock] = genIfBlock(ast.then_stmts, lvname + "$then");
-  auto rettype = mir::getType(*require(thenretval));
+  auto rettype = thenretval.has_value() ? mir::getType(*require(thenretval)) : types::Void{};
   if (ast.else_stmts.has_value()) {
     auto [elseretval, elseblock] = genIfBlock(ast.else_stmts.value(), lvname + "$else");
     return emplace(minst::If{{lvname, rettype}, cond, thenblock, elseblock});
