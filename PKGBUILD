@@ -20,3 +20,4 @@ package() {
   cd "build"
   make DESTDIR="$pkgdir/" install 
 }
+
