@@ -192,7 +192,7 @@ struct Struct : public Base {
 
 struct StructAccess : public Base {
   ExprPtr stru;
-  ExprPtr field;
+  std::string field;
 };
 
 // Time ast, only a function call can be tied with time.

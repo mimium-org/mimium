@@ -58,8 +58,7 @@ void AstStringifier::operator()(const ast::Struct& ast) {
 void AstStringifier::operator()(const ast::StructAccess& ast) {
   output << format.lpar << "structaccess" << format.delim << format.lpar_a;
   toString(ast.stru);
-  output << format.delim;
-  toString(ast.field);
+  output << format.delim << ast.field;
   output << format.rpar_a << format.rpar;
 }
 void AstStringifier::operator()(const ast::ArrayInit& ast) {

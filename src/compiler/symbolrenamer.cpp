@@ -105,7 +105,7 @@ ast::ExprPtr ExprRenameVisitor::operator()(ast::Struct& ast) {
   return ast::makeExpr(ast::Struct{{{ast.debuginfo}}, std::move(newargs)});
 }
 ast::ExprPtr ExprRenameVisitor::operator()(ast::StructAccess& ast) {
-  return ast::makeExpr(ast::StructAccess{{{ast.debuginfo}}, rename(ast.stru), rename(ast.field)});
+  return ast::makeExpr(ast::StructAccess{{{ast.debuginfo}}, rename(ast.stru), ast.field});
 }
 ast::ExprPtr ExprRenameVisitor::operator()(ast::ArrayInit& ast) {
   auto newargs =
