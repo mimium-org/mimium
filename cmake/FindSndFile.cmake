@@ -16,15 +16,14 @@
 #
 
 if (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
-  # in cache already
-  set(SNDFILE_FOUND TRUE)
+# in cache already
+set(SNDFILE_FOUND TRUE)
 else (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
 if(APPLE)
 set(HOMEBREW_PATH /usr/local)
 elseif(UNIX)
 set(HOMEBREW_PATH /home/linuxbrew/.linuxbrew )
 else()#windows
-SET(CMAKE_FIND_LIBRARY_SUFFIXES ".lib" ".dll" ".a.dll" ".dll.a" ".a")
 set(CMAKE_FIND_LIBRARY_PREFIXES "lib")  
 endif()
 find_path(SNDFILE_INCLUDE_DIR
@@ -42,7 +41,7 @@ find_path(SNDFILE_INCLUDE_DIR
   
   find_library(SNDFILE_LIBRARY
     NAMES
-      sndfile 
+      libsndfile.a sndfile 
     PATHS
       ${HOMEBREW_PATH}/lib
       /usr/lib
@@ -55,7 +54,7 @@ find_path(SNDFILE_INCLUDE_DIR
 
   find_library(OGG_LIBRARY
   NAMES
-  ogg
+  libogg.a ogg
   PATHS
   ${HOMEBREW_PATH}/lib
   /usr/lib
@@ -67,7 +66,7 @@ find_path(SNDFILE_INCLUDE_DIR
   )
   find_library(VORBIS_LIBRARY
   NAMES
-  vorbis 
+  libvorbis.a vorbis 
   PATHS
   ${HOMEBREW_PATH}/lib
   /usr/lib
@@ -79,7 +78,7 @@ find_path(SNDFILE_INCLUDE_DIR
   )
   find_library(VORBISENC_LIBRARY
   NAMES
-  vorbisenc
+  libvorbisenc.a vorbisenc
   PATHS
   ${HOMEBREW_PATH}/lib
   /usr/lib
@@ -91,7 +90,7 @@ find_path(SNDFILE_INCLUDE_DIR
   )
   find_library(FLAC_LIBRARY
   NAMES
-  flac FLAC
+  libFLAC.a flac FLAC
   PATHS
   ${HOMEBREW_PATH}/lib
   /usr/lib
@@ -103,7 +102,7 @@ find_path(SNDFILE_INCLUDE_DIR
   )
   find_library(OPUS_LIBRARY  REQUIRED
   NAMES
-  opus libopus.a
+  libopus.a opus
   PATHS
   ${HOMEBREW_PATH}/lib
   /usr/lib
