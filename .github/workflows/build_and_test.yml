@@ -51,6 +51,10 @@ jobs:
               cxx: /usr/bin/clang++
               shell: bash
               cmake_args:  -DBUILD_SHARED_LIBS=ON
+            - os: macos-10.14
+              cxx: /usr/bin/clang++
+              shell: bash
+              cmake_args:  -DBUILD_SHARED_LIBS=ON
             - os: windows-latest
               cxx: g++
               shell: msys2 {0}
