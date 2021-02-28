@@ -71,7 +71,7 @@ jobs:
       - if: contains(matrix.os, 'ubuntu')
         run: |
           brew install llvm@11
-          sudo apt-get install libalsa-ocaml-dev libfl-dev libbison-dev libz-dev libsndfile-dev libopus-dev gcc-9 ninja-build
+          sudo apt-get install libalsa-ocaml-dev libfl-dev libbison-dev libz-dev libvorbis-dev libsndfile-dev libopus-dev gcc-9 ninja-build
       - uses: actions/checkout@v2
         with: 
           submodules: "recursive"
