@@ -8,7 +8,6 @@
 #include "basic/filereader.hpp"
 
 namespace mimium {
-namespace fs = std::filesystem;
 
 class Preprocessor {
  public:

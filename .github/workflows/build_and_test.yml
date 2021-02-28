@@ -38,6 +38,7 @@ jobs:
         os:
           - ubuntu-20.04
           - macos-10.15
+          - macos-10.14
           - windows-latest
         config:
           - Release
@@ -47,6 +48,10 @@ jobs:
               shell: bash
               cmake_args:  -DBUILD_SHARED_LIBS=OFF
             - os: macos-10.15
+              cxx: /usr/bin/clang++
+              shell: bash
+              cmake_args:  -DBUILD_SHARED_LIBS=ON
+            - os: macos-10.14
               cxx: /usr/bin/clang++
               shell: bash
               cmake_args:  -DBUILD_SHARED_LIBS=ON
