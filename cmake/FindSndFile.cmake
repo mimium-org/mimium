@@ -1,4 +1,8 @@
-# Found on http://hg.kvats.net
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/. 
+
+# Original Copyright http://hg.kvats.net
 #
 # - Try to find libsndfile
 # 
@@ -37,88 +41,44 @@ find_path(SNDFILE_INCLUDE_DIR
       /opt/local/include
       /sw/include
       C:/tools/msys64/mingw64/include
-  )
-  
-  find_library(SNDFILE_LIBRARY
-    NAMES
-      libsndfile.a sndfile 
-    PATHS
-      ${HOMEBREW_PATH}/lib
-      /usr/lib
-      /usr/local/lib
-      /opt/local/lib
-      /sw/lib
-      /mingw64/lib
-      C:/tools/msys64/mingw64/lib
-  )
+)
 
-  find_library(OGG_LIBRARY
-  NAMES
-  libogg.a ogg
-  PATHS
+function(setlibname  output name_val)
+  if(UNIX AND (NOT APPLE))
+    set(output ${name_val})
+  else()
+    set(output lib${name_val}.a)
+  endif()
+endfunction()
+function(find_library_private libname)
+string(TOUPPER ${libname} libname_u)
+set(LIBNAMEPRIVATE ${libname_u}_LIBNAME)
+setlibname(${libname_u}_LIBNAME libname)
+find_library(${libname_u}_LIBRARY REQUIRED
+NAMES
+  ${LIBNAMEPRIVATE}
+PATHS
   ${HOMEBREW_PATH}/lib
   /usr/lib
-  /usr/lib/x86_64-linux-gnu/
   /usr/local/lib
   /opt/local/lib
   /sw/lib
-  C:/tools/msys64/mingw64/lib
-  )
-  find_library(VORBIS_LIBRARY
-  NAMES
-  libvorbis.a vorbis 
-  PATHS
-  ${HOMEBREW_PATH}/lib
-  /usr/lib
-  /usr/lib/x86_64-linux-gnu/
-  /usr/local/lib
-  /opt/local/lib
-  /sw/lib
-  C:/tools/msys64/mingw64/lib
-  )
-  find_library(VORBISENC_LIBRARY
-  NAMES
-  libvorbisenc.a vorbisenc
-  PATHS
-  ${HOMEBREW_PATH}/lib
-  /usr/lib
-  /usr/lib/x86_64-linux-gnu/
-  /usr/local/lib
-  /opt/local/lib
-  /sw/lib
-  C:/tools/msys64/mingw64/lib
-  )
-  find_library(FLAC_LIBRARY
-  NAMES
-  libFLAC.a flac FLAC
-  PATHS
-  ${HOMEBREW_PATH}/lib
-  /usr/lib
-  /usr/lib/x86_64-linux-gnu/
-  /usr/local/lib
-  /opt/local/lib
-  /sw/lib
-  C:/tools/msys64/mingw64/lib
-  )
-  find_library(OPUS_LIBRARY  REQUIRED
-  NAMES
-  libopus.a opus
-  PATHS
-  ${HOMEBREW_PATH}/lib
-  /usr/lib
-  /usr/lib/x86_64-linux-gnu/
-  /usr/local/lib
-  /opt/local/lib
-  /sw/lib
-  C:/tools/msys64/mingw64/lib
   /mingw64/lib
+  C:/tools/msys64/mingw64/lib
+)
+endfunction()
 
-  )
-  # find_package(OPUS REQUIRED)
-  set(SNDFILE_INCLUDE_DIRS
+find_library_private(sndfile)
+find_library_private(ogg)
+find_library_private(vorbis)
+find_library_private(vorbisenc)
+find_library_private(FLAC)
+find_library_private(opus)
+
+set(SNDFILE_INCLUDE_DIRS
     ${SNDFILE_INCLUDE_DIR}
   )
-  set(SNDFILE_LIBRARIES
+set(SNDFILE_LIBRARIES
   ${SNDFILE_LIBRARY}
   ${FLAC_LIBRARY}
   ${VORBIS_LIBRARY}
@@ -126,10 +86,10 @@ find_path(SNDFILE_INCLUDE_DIR
   ${OGG_LIBRARY}
   ${OPUS_LIBRARY}
   )
-  message(STATUS "------------------")
+message(STATUS "------------------")
 
 message(STATUS ${SNDFILE_INCLUDE_DIR})
-message(STATUS     ${SNDFILE_LIBRARY})
+message(STATUS ${SNDFILE_LIBRARY})
 
   if (SNDFILE_INCLUDE_DIR AND SNDFILE_LIBRARY)
     set(SNDFILE_FOUND TRUE)
