@@ -299,11 +299,11 @@ typeargs:  typeargs ',' types { $1.emplace_back(std::move($3));
                                 $$ = std::move($1); }
       |    types { $$ = std::vector<types::Value>{$1};}
       
-structtype: '{' strutypeargs '}' { $$ = types::Struct{std::move($2)}; }
+structtype: LBRACE strutypeargs RBRACE { $$ = types::Struct{std::move($2)}; }
 
 strutypeargs : strutypeargs ',' strutypearg { $1.emplace_back(std::move($3));$$ = std::move($1); }
             | strutypearg {$$ = std::vector<types::Struct::Keytype>{$1}; }
-strutypearg : SYMBOL ':' types { $$ = types::Struct::Keytype{std::move($1),std::move($3)}; }
+strutypearg : SYMBOL TYPE_DELIM types { $$ = types::Struct::Keytype{std::move($1),std::move($3)}; }
 
 types: 
         primtypes  { $$=std::move($1);}
