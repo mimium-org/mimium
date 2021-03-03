@@ -1,0 +1,9 @@
+type a = {key1:float,key2:string}
+fn test(){
+    hoge = a{999,"something"}
+    fuga = hoge.key1 //should be 100
+    println(fuga)
+    //TBD
+    // hoge.key1 = 999
+}
+test()
