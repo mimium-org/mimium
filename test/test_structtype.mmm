@@ -1,0 +1,5 @@
+type a = {key1:float,key2:string}
+
+hoge = a{100,"something"}
+
+fuga = a.key1 //should be 100

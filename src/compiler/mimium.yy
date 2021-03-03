@@ -178,7 +178,7 @@ namespace mimium{
 
 
 %type <ast::ArrayAccess> array_access "array access"
-
+%type <ast::Struct> structconstruct "struct"
 %type <ast::StructAccess> structaccess "struct access"
 
 %type <ast::Assign> assign "assign"
@@ -377,6 +377,7 @@ array_access: expr '[' expr ']' {
       // @$ = {@1.first_line,@1.first_col,@4.last_line,@4.last_col};
       $$ = ast::ArrayAccess{{@$,"arrayaccess"},std::move($1),std::move($3)};}
 
+structconstruct: SYMBOL LBRACE tupleargs RBRACE {$$ =ast::Struct{{@$,"struct"},std::move($1),std::move($3)};}
 structaccess: expr '.' SYMBOL {$$ = ast::StructAccess{{@$,"structaccess"},std::move($1),std::move($3)};}
 
 tupleargs: expr ',' expr {$$ = std::deque<ast::ExprPtr>{std::move($1),std::move($3)};}
@@ -419,14 +420,15 @@ ifstmt: IF cond expr   {$$ = ast::If{{@$,"if"},std::move($2),std::move($3),std::
    |IF cond expr ELSE expr {$$ = ast::If{{@$,"if"},std::move($2),std::move($3),std::move($5)};} %prec ELSE_EXPR
 
 
-expr_non_fcall:op      {$$ = ast::makeExpr($1);}
-      |    array     {$$ = ast::makeExpr($1);}
-      | array_access {$$ = ast::makeExpr($1);}
-      | structaccess {$$ = ast::makeExpr($1);}
-      |     tuple    {$$ = ast::makeExpr($1);}%prec TUPLE
-      |    lambda    {$$ = ast::makeExpr($1);}
-      |    single    {$$ = std::move($1);}
-      |'(' expr ')' {$$ = std::move($2);}
+expr_non_fcall:op       {$$ = ast::makeExpr($1);}
+      |    array        {$$ = ast::makeExpr($1);}
+      | array_access    {$$ = ast::makeExpr($1);}
+      | structconstruct {$$ = ast::makeExpr($1);}
+      | structaccess    {$$ = ast::makeExpr($1);}
+      |     tuple       {$$ = ast::makeExpr($1);}%prec TUPLE
+      |    lambda       {$$ = ast::makeExpr($1);}
+      |    single       {$$ = std::move($1);}
+      |'(' expr ')'     {$$ = std::move($2);}
       // | term {$$ = std::move($1);}
 
 expr: expr_non_fcall {$$ = std::move($1);}

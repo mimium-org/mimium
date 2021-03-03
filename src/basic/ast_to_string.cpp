@@ -51,7 +51,7 @@ void AstStringifier::operator()(const ast::Time& ast) {
   output << format.delim << format.rpar;
 }
 void AstStringifier::operator()(const ast::Struct& ast) {
-  output << format.lpar << "struct" << format.delim;
+  output << format.lpar << "struct" << format.delim << ast.typesymbol;
   toStringVec(ast.args);
   output << format.rpar;
 }

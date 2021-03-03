@@ -28,6 +28,7 @@ PARSER_TEST(tuplelvar)
 PARSER_TEST(tuple)
 PARSER_TEST(tupletype)
 PARSER_TEST(typedecl)
+PARSER_TEST(struct)
 PARSER_TEST(structaccess)
 
 TEST(parser, ast_complete) {//NOLINT

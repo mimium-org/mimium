@@ -188,6 +188,7 @@ struct ArrayAccess : public Base {
   ExprPtr index;
 };
 struct Struct : public Base {
+  std::string typesymbol;
   std::deque<ExprPtr> args;
 };
 
