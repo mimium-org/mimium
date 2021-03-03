@@ -221,7 +221,17 @@ types::Value TypeUnifyVisitor::unify(types::rRef p1, types::rRef p2) {
   auto target = inferer.unify(p1.getraw().val, p2.getraw().val);
   return types::Ref{target};
 }
-types::Value TypeUnifyVisitor::unify(types::Alias a1, types::Alias a2) {
+types::Value TypeUnifyVisitor::unify(types::Alias& a1, types::Alias& a2) {
+  auto aliasupdater = [&](types::Alias& a){
+    auto& amap =inferer.typeenv.alias_map;
+    if (amap.find(a.name)!=amap.cend()){
+      a.target = amap.at(a1.name);
+    }else{
+      throw std::runtime_error("Unknown Type Name:" + a.name);
+    }
+  };
+  aliasupdater(a1);
+  aliasupdater(a2);
   return inferer.unify(a1.target, a2.target);
 }
 types::Value TypeUnifyVisitor::unify(types::rFunction f1, types::rFunction f2) {

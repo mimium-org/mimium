@@ -128,7 +128,7 @@ struct TypeInferer {
     types::Value unify(types::rTypeVar t1, types::rTypeVar t2);
     types::Value unify(types::rPointer p1, types::rPointer p2);
     types::Value unify(types::rRef p1, types::rRef p2);
-    types::Value unify(types::Alias a1, types::Alias a2);
+    types::Value unify(types::Alias& a1, types::Alias& a2);
     template <typename T>
     types::Value unify(T a1, T /*a2*/) {
       return a1;
