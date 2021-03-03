@@ -61,7 +61,8 @@ std::pair<optvalptr, mir::blockptr> MirGenerator::generateBlock(ast::Block& bloc
 }
 
 bool MirGenerator::isPassByValue(types::Value const& type) {
-  return !(rv::holds_alternative<types::Tuple>(type) || rv::holds_alternative<types::Array>(type));
+  return !(rv::holds_alternative<types::Tuple>(type) ||
+           rv::holds_alternative<types::Struct>(type) || rv::holds_alternative<types::Array>(type));
 }
 
 mir::valueptr ExprKnormVisitor::emplace(mir::Instructions&& inst) {
@@ -209,7 +210,7 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Fcall& ast) {
   return genFcallInst(ast, std::nullopt);
 }
 
-mir::valueptr ExprKnormVisitor::genExprArray(std::deque<ast::ExprPtr>const& args){
+mir::valueptr ExprKnormVisitor::genExprArray(std::deque<ast::ExprPtr> const& args) {
   auto lvname = mirgen.makeNewName();
   std::vector<mir::valueptr> newelems;
   std::vector<types::Value> types;
@@ -218,8 +219,8 @@ mir::valueptr ExprKnormVisitor::genExprArray(std::deque<ast::ExprPtr>const& args
     newelems.emplace_back(arg);
     types.emplace_back(mir::getType(*arg));
   }
-  //even if original value is struct type, 
-  //it is no more problem to use tuple type because field name is no longer used.
+  // even if original value is struct type,
+  // it is no more problem to use tuple type because field name is no longer used.
   types::Value rettype = types::Tuple{{types}};
   mir::valueptr lvar = emplace(minst::Allocate{{lvname + "_ref", types::Pointer{rettype}}});
   int count = 0;
@@ -233,19 +234,22 @@ mir::valueptr ExprKnormVisitor::genExprArray(std::deque<ast::ExprPtr>const& args
   return lvar;
 }
 
-
-mir::valueptr ExprKnormVisitor::operator()(ast::Struct& ast) {
-  return genExprArray(ast.args);
-}
+mir::valueptr ExprKnormVisitor::operator()(ast::Struct& ast) { return genExprArray(ast.args); }
 mir::valueptr ExprKnormVisitor::operator()(ast::StructAccess& ast) {
   auto lvname = mirgen.makeNewName();
   auto target = genInst(ast.stru);
+
   auto type = mir::getType(*target);
-  assert(rv::holds_alternative<types::Struct>(type));
-  auto& strtype = rv::get<types::Struct>(type);
+  assert(rv::holds_alternative<types::Pointer>(type) &&
+         rv::holds_alternative<types::Struct>(rv::get<types::Pointer>(type).val));
+  auto& strtype = rv::get<types::Struct>(rv::get<types::Pointer>(type).val);
   auto [index, fieldtype] = types::getField(strtype, ast.field);
-  return emplace(minst::Field{
+  auto ptr =  emplace(minst::Field{
       {lvname, fieldtype}, target, std::make_shared<mir::Value>(mir::Constants(index))});
+  if(isPassByValue(fieldtype)){
+    return emplace(minst::Load{{mirgen.makeNewName(), fieldtype},ptr});
+  }
+  return ptr;
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::ArrayInit& ast) {
   auto lvname = mirgen.makeNewName();
@@ -277,9 +281,7 @@ mir::valueptr ExprKnormVisitor::operator()(ast::ArrayAccess& ast) {
   return emplace(minst::ArrayAccess{{newname, rettype}, array, index});
 }
 
-mir::valueptr ExprKnormVisitor::operator()(ast::Tuple& ast) {
-  return genExprArray(ast.args);
-}
+mir::valueptr ExprKnormVisitor::operator()(ast::Tuple& ast) { return genExprArray(ast.args); }
 
 mir::valueptr ExprKnormVisitor::operator()(ast::Block& ast) {
   StatementKnormVisitor svisitor(*this);
@@ -371,7 +373,7 @@ void StatementKnormVisitor::operator()(ast::Assign& ast) {
   std::visit(visitor, ast.lvar);
 }
 void StatementKnormVisitor::operator()(ast::TypeAssign& /*ast*/) {
-  //do nothing
+  // do nothing
 }
 
 void StatementKnormVisitor::operator()(ast::Return& ast) {
