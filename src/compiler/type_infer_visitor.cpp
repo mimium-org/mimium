@@ -15,8 +15,8 @@ types::Value ExprTypeVisitor::operator()(ast::Op& ast) {
   return ast.lhs.has_value() ? inferer.unify(infer(ast.lhs.value()), infer(ast.rhs))
                              : infer(ast.rhs);
 }
-types::Value ExprTypeVisitor::operator()(ast::Number&  /*ast*/) { return types::Float{}; }
-types::Value ExprTypeVisitor::operator()(ast::String&  /*ast*/) { return types::String{}; }
+types::Value ExprTypeVisitor::operator()(ast::Number& /*ast*/) { return types::Float{}; }
+types::Value ExprTypeVisitor::operator()(ast::String& /*ast*/) { return types::String{}; }
 types::Value ExprTypeVisitor::operator()(ast::Symbol& ast) {
   return inferer.typeenv.find(ast.value);
 }
@@ -55,23 +55,30 @@ types::Value ExprTypeVisitor::operator()(ast::Fcall& ast) { return inferer.infer
 
 types::Value ExprTypeVisitor::operator()(ast::Struct& ast) {
   std::vector<types::Struct::Keytype> argtypes;
-  types::Value tmptype;
-  for (auto&& a : ast.args) {
-    // todo(tomoya): need to fix parser(add key)
-    argtypes.push_back({"struct_key", std::visit(*this, *a)});
+  auto iter = inferer.typeenv.alias_map.find(ast.typesymbol);
+  if (iter == inferer.typeenv.alias_map.cend()) { throw std::runtime_error("Unknown Type"); }
+  auto type = iter->second;
+  if (!rv::holds_alternative<types::Struct>(type)) {
+    throw std::runtime_error("Alias type " + ast.typesymbol + " is not struct type.");
   }
-  return types::Struct{std::move(argtypes)};
+  // type field name will be filled in unifying process
+  for (auto&& a : ast.args) { argtypes.push_back({"", std::visit(*this, *a)}); }
+  auto contenttype = types::Struct{std::move(argtypes)};
+  auto res = inferer.unify(contenttype, type);
+  return res;
 }
 types::Value ExprTypeVisitor::operator()(ast::StructAccess& ast) {
-  auto stru_type = std::visit(*this, *ast.stru);
-  if (!rv::holds_alternative<types::Struct>(stru_type)) {
+  auto type = std::visit(*this, *ast.stru);
+  const bool is_alias = rv::holds_alternative<types::Alias>(type);
+  const bool is_struct = rv::holds_alternative<types::Struct>(type);
+  if (!is_alias && !is_struct) {
     throw std::runtime_error(
         "you cannot access to variables other than Struct type with dot "
         "operator.");
   }
-  auto& stru = rv::get<types::Struct>(stru_type);
-  auto[index,fieldtype] = types::getField(stru, ast.field);
-  // todo(tomoya): need to restrict field ast to rvar, not an term
+  types::Value strutype = is_alias ? rv::get<types::Alias>(type).target : type;
+  auto& stru = rv::get<types::Struct>(strutype);
+  auto [index, fieldtype] = types::getField(stru, ast.field);
   return fieldtype;
 }
 types::Value ExprTypeVisitor::operator()(ast::ArrayInit& ast) {
@@ -160,7 +167,7 @@ types::Value StatementTypeVisitor::operator()(ast::Assign& ast) {
   return types::Void{};
 }
 types::Value StatementTypeVisitor::operator()(ast::TypeAssign& ast) {
-  inferer.typeenv.alias_map.emplace(ast.name,ast.val);
+  inferer.typeenv.alias_map.emplace(ast.name, ast.val);
   return types::Void{};
 }
 types::Value StatementTypeVisitor::operator()(ast::Return& ast) {
@@ -222,11 +229,11 @@ types::Value TypeUnifyVisitor::unify(types::rRef p1, types::rRef p2) {
   return types::Ref{target};
 }
 types::Value TypeUnifyVisitor::unify(types::Alias& a1, types::Alias& a2) {
-  auto aliasupdater = [&](types::Alias& a){
-    auto& amap =inferer.typeenv.alias_map;
-    if (amap.find(a.name)!=amap.cend()){
+  auto aliasupdater = [&](types::Alias& a) {
+    auto& amap = inferer.typeenv.alias_map;
+    if (amap.find(a.name) != amap.cend()) {
       a.target = amap.at(a1.name);
-    }else{
+    } else {
       throw std::runtime_error("Unknown Type Name:" + a.name);
     }
   };
@@ -248,13 +255,27 @@ types::Value TypeUnifyVisitor::unify(types::rArray a1, types::rArray a2) {
   return types::Array{elemtype, a1.getraw().size};
 }
 types::Value TypeUnifyVisitor::unify(types::rStruct s1, types::rStruct s2) {
-  // TODO(tomoya)
-  return s1;
+  auto& args1 = s1.getraw().arg_types;
+  auto& args2 = s2.getraw().arg_types;
+  if (args1.size() != args2.size()) {
+    throw std::runtime_error("type mismatch: struct size are different");
+  }
+  std::vector<types::Struct::Keytype> args;
+  for (int i = 0; i < args1.size(); i++) {
+    auto& t1 = args1.at(i);
+    auto& t2 = args2.at(i);
+    const bool t1empty = t1.field.empty();
+    const bool t2empty = t2.field.empty();
+    if (t1empty && t2empty) { assert(false); }
+    if (!t1empty && !t2empty) { assert(t1.field == t2.field); }
+    if (t1empty) { t1.field = t2.field; }
+    if (t2empty) { t2.field = t1.field; }
+    args.emplace_back(types::Struct::Keytype{t1.field, inferer.unify(t1.val, t2.val)});
+  }
+  return types::Struct{std::move(args)};
 }
-types::Value TypeUnifyVisitor::unify(types::rTuple t1, types::rTuple t2) {
-  auto lhs = t1.getraw();
-  auto rhs = t2.getraw();
-  return types::Tuple{unifyArgs(lhs.arg_types, rhs.arg_types)};
+types::Value TypeUnifyVisitor::unify(types::rTuple t1, types::rTuple  t2) {
+  return types::Tuple{unifyArgs(t1.getraw().arg_types, t2.getraw().arg_types)};
 }
 std::vector<types::Value> TypeUnifyVisitor::unifyArgs(std::vector<types::Value>& v1,
                                                       std::vector<types::Value>& v2) {

@@ -266,9 +266,12 @@ struct ToStringVisitor {
 std::string toString(const Value& v, bool verbose = false);
 void dump(const Value& v, bool verbose = false);
 
+template<typename T>
+using is_primitive_type = typename std::is_base_of<PrimitiveType, std::decay_t<T>>;
+static_assert(is_primitive_type<types::Float&>::value==true);
 inline bool isPrimitive(const Value& v) {
   return std::visit(
-      [](auto& a) { return std::is_base_of_v<PrimitiveType, std::decay_t<decltype(a)>>; }, v);
+      [](auto& a) { return is_primitive_type<decltype(a)>::value; }, v);
 }
 
 inline bool isClosure(const Value& v) {

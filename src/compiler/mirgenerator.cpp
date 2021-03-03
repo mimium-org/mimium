@@ -209,9 +209,33 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Fcall& ast) {
   return genFcallInst(ast, std::nullopt);
 }
 
-mir::valueptr ExprKnormVisitor::operator()(ast::Struct& /*ast*/) {
-  // TODO(tomoya)
-  return nullptr;
+mir::valueptr ExprKnormVisitor::genExprArray(std::deque<ast::ExprPtr>const& args){
+  auto lvname = mirgen.makeNewName();
+  std::vector<mir::valueptr> newelems;
+  std::vector<types::Value> types;
+  for (const auto& a : args) {
+    auto arg = genInst(a);
+    newelems.emplace_back(arg);
+    types.emplace_back(mir::getType(*arg));
+  }
+  //even if original value is struct type, 
+  //it is no more problem to use tuple type because field name is no longer used.
+  types::Value rettype = types::Tuple{{types}};
+  mir::valueptr lvar = emplace(minst::Allocate{{lvname + "_ref", types::Pointer{rettype}}});
+  int count = 0;
+  for (auto& elem : newelems) {
+    auto newlvname = mirgen.makeNewName();
+    auto index = std::make_shared<mir::Value>(mir::Constants{static_cast<double>(count)});
+    auto ptrtostore = emplace(minst::Field{{newlvname, types[count]}, lvar, std::move(index)});
+    emplace(minst::Store{{newlvname, types[count]}, ptrtostore, elem});
+    count++;
+  }
+  return lvar;
+}
+
+
+mir::valueptr ExprKnormVisitor::operator()(ast::Struct& ast) {
+  return genExprArray(ast.args);
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::StructAccess& ast) {
   auto lvname = mirgen.makeNewName();
@@ -254,27 +278,7 @@ mir::valueptr ExprKnormVisitor::operator()(ast::ArrayAccess& ast) {
 }
 
 mir::valueptr ExprKnormVisitor::operator()(ast::Tuple& ast) {
-  auto lvname = mirgen.makeNewName();
-  std::vector<mir::valueptr> newelems;
-  std::vector<types::Value> tupletypes;
-  for (auto& a : ast.args) {
-    auto arg = genInst(a);
-    newelems.emplace_back(arg);
-    tupletypes.emplace_back(mir::getType(*arg));
-  }
-  types::Value rettype = types::Tuple{{tupletypes}};
-  mir::valueptr lvar = emplace(minst::Allocate{{lvname + "_ref", types::Pointer{rettype}}});
-  int count = 0;
-  for (auto& elem : newelems) {
-    auto newlvname = mirgen.makeNewName();
-    auto index = std::make_shared<mir::Value>(mir::Constants{static_cast<double>(count)});
-    auto ptrtostore = emplace(minst::Field{{newlvname, tupletypes[count]}, lvar, std::move(index)});
-    emplace(minst::Store{{newlvname, tupletypes[count]}, ptrtostore, elem});
-    count++;
-  }
-  // mir::valueptr res = emplace(minst::Load{{lvname, rettype}, lvar});
-
-  return lvar;
+  return genExprArray(ast.args);
 }
 
 mir::valueptr ExprKnormVisitor::operator()(ast::Block& ast) {

@@ -49,6 +49,7 @@ class MirGenerator {
     const std::optional<mir::valueptr>& fnctx;
 
    private:
+    mir::valueptr genExprArray(std::deque<ast::ExprPtr>const& args);
     std::pair<optvalptr, mir::blockptr> genIfBlock(ast::ExprPtr& block, std::string const& label);
 
     mir::blockptr block;
