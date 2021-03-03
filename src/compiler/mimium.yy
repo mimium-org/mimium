@@ -311,6 +311,7 @@ types:
       | fntype     { $$=std::move($1);}
       | tupletype  { $$=std::move($1);}
       | structtype { $$=std::move($1);}
+      | SYMBOL     { $$=types::Alias{std::move($1),types::None{}};}
 
 // Type Declaration
 

@@ -161,6 +161,9 @@ StatementPtr StatementRenameVisitor::operator()(ast::Assign& ast) {
   auto newrvar = renamer.renameExpr(ast.expr);
   return ast::makeStatement(ast::Assign{{{ast.debuginfo}}, std::move(newlvar), std::move(newrvar)});
 }
+StatementPtr StatementRenameVisitor::operator()(ast::TypeAssign& ast) {
+    return ast::makeStatement(ast);
+}
 StatementPtr StatementRenameVisitor::operator()(ast::Return& ast) {
   return ast::makeStatement(ast::Return{{{ast.debuginfo}}, renamer.renameExpr(ast.value)});
 }

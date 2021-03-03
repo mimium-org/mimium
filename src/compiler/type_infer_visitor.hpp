@@ -76,6 +76,7 @@ struct TypeInferer {
     explicit StatementTypeVisitor(TypeInferer& parent) : inferer(parent) {}
     types::Value operator()(ast::Fdef& ast);
     types::Value operator()(ast::Assign& ast);
+    types::Value operator()(ast::TypeAssign& ast);
     types::Value operator()(ast::Return& ast);
     types::Value operator()(ast::Time& ast);
 

@@ -288,7 +288,7 @@ class TypeEnv {
  public:
   TypeEnv() : env() {}
   std::unordered_map<std::string, types::Value> env;
-
+  std::unordered_map<std::string, types::Value> alias_map;
   std::deque<types::Value> tv_container;
   std::shared_ptr<types::TypeVar> createNewTypeVar() {
     auto res = std::make_shared<types::TypeVar>(typeid_count++);

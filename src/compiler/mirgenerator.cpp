@@ -366,6 +366,10 @@ void StatementKnormVisitor::operator()(ast::Assign& ast) {
   auto visitor = AssignKnormVisitor(exprvisitor.mirgen, exprvisitor, ast.expr);
   std::visit(visitor, ast.lvar);
 }
+void StatementKnormVisitor::operator()(ast::TypeAssign& /*ast*/) {
+  //do nothing
+}
+
 void StatementKnormVisitor::operator()(ast::Return& ast) {
   auto val = exprvisitor.genInst(ast.value);
   auto type = mir::getType(*val);

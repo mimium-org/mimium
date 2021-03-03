@@ -75,6 +75,7 @@ class MirGenerator {
           mirgen(evisitor.mirgen){}
 
     void operator()(ast::Assign& ast);
+    void operator()(ast::TypeAssign& ast);
     void operator()(ast::Fdef& ast);
     void operator()(ast::Return& ast);
     void operator()(ast::Time& ast);

@@ -159,6 +159,10 @@ types::Value StatementTypeVisitor::operator()(ast::Assign& ast) {
   std::visit(assignvisitor, ast.lvar);
   return types::Void{};
 }
+types::Value StatementTypeVisitor::operator()(ast::TypeAssign& ast) {
+  inferer.typeenv.alias_map.emplace(ast.name,ast.val);
+  return types::Void{};
+}
 types::Value StatementTypeVisitor::operator()(ast::Return& ast) {
   return inferer.inferExpr(ast.value);
 }

@@ -85,6 +85,12 @@ void AstStringifier::operator()(const ast::Assign& ast) {
   toString(ast.expr);
   output << format.rpar;
 }
+void AstStringifier::operator()(const ast::TypeAssign& ast) {
+  output << format.lpar << "typeassign" << format.delim;
+  output << ast.name << format.delim << types::toString(ast.val);;
+  output << format.rpar;
+}
+
 void AstStringifier::operator()(const ast::Fdef& ast) {
   output << format.lpar << "Fdef" << format.delim;
   (*this)(ast.lvar);
