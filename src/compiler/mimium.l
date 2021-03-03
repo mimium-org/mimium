@@ -79,6 +79,7 @@ NEWLINE {BREAK}* | ";"
 "void" return token::TYPEVOID;
 "string" return token::TYPESTRING;
 "Fn" return token::TYPEFN;
+"type" return token::TYPEIDENT;
 
 ":" return token::TYPE_DELIM;
 

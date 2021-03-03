@@ -48,13 +48,14 @@ using Expr =
 using ExprPtr = std::shared_ptr<Expr>;
 
 struct Assign;
+struct TypeAssign;
 struct Fdef;
 
 struct Return;
 struct Declaration;
 struct For;
 
-using Statement = std::variant<Assign, Return, Fdef, Time, Fcall, Box<If>, /* Declaration, */
+using Statement = std::variant<Assign,TypeAssign, Return, Fdef, Time, Fcall, Box<If>, /* Declaration, */
                                Box<For>>;
 using Statements = std::deque<std::shared_ptr<Statement>>;
 
@@ -206,6 +207,10 @@ struct Assign : public Base {
   ExprPtr expr;
 };
 
+struct TypeAssign : public Base{
+  std::string name;
+  types::Value val;
+};
 struct Fdef : public Base {
   DeclVar lvar;
   Lambda fun;

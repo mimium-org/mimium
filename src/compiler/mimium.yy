@@ -99,6 +99,7 @@ namespace mimium{
    TYPEVOID "typeid:void"
    TYPEFN "typeid:fn"
    TYPESTRING "typeid:string"
+   TYPEIDENT "type identifier"
 
    INCLUDE "include"
 
@@ -126,6 +127,7 @@ namespace mimium{
 %type <std::vector<types::Value>> typeargs "typeargs"
 %type <std::vector<types::Struct::Keytype>> strutypeargs "struct args"
 %type <types::Struct::Keytype> strutypearg "struct arg"
+%type <ast::TypeAssign> typedecl "typedecl"
 
 %type <ast::Number> num "number"
 
@@ -310,6 +312,10 @@ types:
       | tupletype  { $$=std::move($1);}
       | structtype { $$=std::move($1);}
 
+// Type Declaration
+
+typedecl: TYPEIDENT SYMBOL ASSIGN types {$$ = ast::TypeAssign{{@$,"typeassign"},std::move($2),std::move($4)}; }
+
 // Expression Section
 // temporarily debug symbol for aggregate ast is disabled
 
@@ -459,14 +465,13 @@ statements: opt_nl statement{  $$ = std::deque<std::shared_ptr<ast::Statement>>{
                                           $$= std::move($1);  }
             
 statement: assign       {$$=ast::makeStatement(std::move($1));} 
+          |typedecl     {$$=ast::makeStatement(std::move($1));} 
           |fdef         {$$=ast::makeStatement(std::move($1));}
           |forloop      {$$=ast::makeStatement(std::move($1));}
-      //     |declaration  {$$=ast::makeStatement(std::move($1));}
-          |RETURN expr  {auto ret = ast::Return{{@$,"ret"},std::move($2)};
-                         $$=ast::makeStatement(std::move(ret));}
-          |fcalltime     {$$=ast::makeStatement(std::move($1));}
-          |fcall         {$$=ast::makeStatement(std::move($1));}
-          |ifstmt         {$$=ast::makeStatement(std::move($1));}
+          |RETURN expr  {$$=ast::makeStatement(ast::Return{{@$,"ret"},std::move($2)});}
+          |fcalltime    {$$=ast::makeStatement(std::move($1));}
+          |fcall        {$$=ast::makeStatement(std::move($1));}
+          |ifstmt       {$$=ast::makeStatement(std::move($1));}
 
 
 block: LBRACE   statements newlines expr_non_fcall opt_nl RBRACE {$$ = ast::Block{{@$,"block"},std::move($2),std::optional(std::move($4))};}
