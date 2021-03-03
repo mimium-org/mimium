@@ -43,20 +43,21 @@ find_path(SNDFILE_INCLUDE_DIR
       C:/tools/msys64/mingw64/include
 )
 
-function(setlibname  output name_val)
-  if(UNIX AND (NOT APPLE))
-    set(output ${name_val})
-  else()
-    set(output lib${name_val}.a)
-  endif()
-endfunction()
+
 function(find_library_private libname)
+  macro(setlibname  output name_val)
+    if(UNIX AND (NOT APPLE))
+      set(${output} ${name_val})
+    else()
+      set(${output} lib${name_val}.a)
+    endif()
+  endmacro()
 string(TOUPPER ${libname} libname_u)
-set(LIBNAMEPRIVATE ${libname_u}_LIBNAME)
-setlibname(${libname_u}_LIBNAME libname)
-find_library(${libname_u}_LIBRARY REQUIRED
+setlibname(LIBFILENAME ${libname})
+set(OUTPUT_VAR ${libname_u}_LIBRARY)
+find_library(${OUTPUT_VAR} REQUIRED
 NAMES
-  ${LIBNAMEPRIVATE}
+  ${LIBFILENAME}
 PATHS
   ${HOMEBREW_PATH}/lib
   /usr/lib
