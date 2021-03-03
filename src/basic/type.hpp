@@ -169,6 +169,18 @@ struct Struct {
   std::vector<Keytype> arg_types;
 };
 
+// return 0-based index and its type of Struct type fields for the key string.
+
+inline std::pair<int, types::Value> getField(types::Struct const& sttype, std::string const& key) {
+  auto iter = std::find_if(sttype.arg_types.cbegin(), sttype.arg_types.cend(),
+                           [&](const auto& a) { return a.field == key; });
+  if (iter == sttype.arg_types.cend()) {
+    throw std::logic_error("failed to find \"" + key + "\" field for struct type");
+  }
+  auto index = std::distance(sttype.arg_types.cbegin(), iter);
+  return std::pair(index, sttype.arg_types.at(index).val);
+};
+
 inline bool operator==(const Struct::Keytype& t1, const Struct::Keytype& t2) {
   return (t1.field == t2.field) && (t1.val == t2.val);
 }
@@ -201,7 +213,7 @@ bool operator!=(T t1, T t2) {
 }
 
 constexpr size_t fixed_delaysize = 44100;
-inline auto getDelayStruct(){
+inline auto getDelayStruct() {
   return types::Alias{"MmmRingBuf", types::Tuple{{types::Float{}, types::Float{},
                                                   types::Array{types::Float{}, fixed_delaysize}}}};
 }

@@ -213,9 +213,15 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Struct& /*ast*/) {
   // TODO(tomoya)
   return nullptr;
 }
-mir::valueptr ExprKnormVisitor::operator()(ast::StructAccess& /*ast*/) {
-  // TODO(tomoya)
-  return nullptr;
+mir::valueptr ExprKnormVisitor::operator()(ast::StructAccess& ast) {
+  auto lvname = mirgen.makeNewName();
+  auto target = genInst(ast.stru);
+  auto type = mir::getType(*target);
+  assert(rv::holds_alternative<types::Struct>(type));
+  auto& strtype = rv::get<types::Struct>(type);
+  auto [index, fieldtype] = types::getField(strtype, ast.field);
+  return emplace(minst::Field{
+      {lvname, fieldtype}, target, std::make_shared<mir::Value>(mir::Constants(index))});
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::ArrayInit& ast) {
   auto lvname = mirgen.makeNewName();

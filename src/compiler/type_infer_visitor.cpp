@@ -70,8 +70,9 @@ types::Value ExprTypeVisitor::operator()(ast::StructAccess& ast) {
         "operator.");
   }
   auto& stru = rv::get<types::Struct>(stru_type);
+  auto[index,fieldtype] = types::getField(stru, ast.field);
   // todo(tomoya): need to restrict field ast to rvar, not an term
-  return stru.arg_types.at(0).val;
+  return fieldtype;
 }
 types::Value ExprTypeVisitor::operator()(ast::ArrayInit& ast) {
   std::vector<types::Value> argtypes;
