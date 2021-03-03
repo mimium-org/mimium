@@ -128,21 +128,22 @@ struct TypeInferer {
     types::Value unify(types::rTypeVar t1, types::rTypeVar t2);
     types::Value unify(types::rPointer p1, types::rPointer p2);
     types::Value unify(types::rRef p1, types::rRef p2);
-    types::Value unify(types::rAlias a1, types::rAlias a2);
+    types::Value unify(types::Alias a1, types::Alias a2);
     template <typename T>
     types::Value unify(T a1, T /*a2*/) {
       return a1;
     }
+    template <typename T>
+    using TypeVarAliasTrait =
+        typename std::enable_if<std::is_same_v<std::decay_t<T>, types::TypeVar>>::type;
 
-    template <typename T, typename std::enable_if<
-                              std::is_same_v<std::decay_t<T>, types::TypeVar>>::type = nullptr>
-    types::Value unify(types::rAlias a1, T a2) {
-      return std::visit(*this, a1.getraw().target, types::Value(a2));
+    template <typename T, TypeVarAliasTrait<T>>
+    types::Value unify(types::Alias a1, T a2) {
+      return std::visit(*this, a1.target, types::Value(a2));
     }
-    template <typename T, typename std::enable_if<
-                              std::is_same_v<std::decay_t<T>, types::TypeVar>>::type = nullptr>
+    template <typename T, TypeVarAliasTrait<T>>
     types::Value unify(T a1, types::rAlias a2) {
-      return std::visit(*this, types::Value(a1), a2.getraw().target);
+      return unify(a2, a1);
     }
     types::Value unify(types::rFunction f1, types::rFunction f2);
     types::Value unify(types::rArray a1, types::rArray a2);
