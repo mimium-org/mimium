@@ -88,7 +88,7 @@ set(CMAKE_CXX_STANDARD_LIBRARIES "-static -lstdc++ -lgcc -lz -lwinpthread ${CMAK
 endif()
 
 if(UNIX AND NOT(APPLE OR MINGW OR MSYS))
-set(CMAKE_CXX_STANDARD_LIBRARIES "-lz -ldl -ltinfo ${CMAKE_CXX_STANDARD_LIBRARIES}")
+set(CMAKE_CXX_STANDARD_LIBRARIES "-lz -lmvec -lm -ldl -ltinfo ${CMAKE_CXX_STANDARD_LIBRARIES}")
 endif()
 
 
