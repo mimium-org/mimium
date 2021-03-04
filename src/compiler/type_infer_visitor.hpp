@@ -128,23 +128,27 @@ struct TypeInferer {
     types::Value unify(types::rTypeVar t1, types::rTypeVar t2);
     types::Value unify(types::rPointer p1, types::rPointer p2);
     types::Value unify(types::rRef p1, types::rRef p2);
-    types::Value unify(types::Alias& a1, types::Alias& a2);
+    types::Value unify(types::rAlias& a1, types::rAlias& a2);
     template <typename T>
     types::Value unify(T a1, T /*a2*/) {
       return a1;
     }
     template <typename T>
     using TypeVarAliasTrait =
-        typename std::enable_if<std::is_same_v<std::decay_t<T>, types::TypeVar>>::type;
+        typename std::enable_if<!std::is_same_v<std::decay_t<T>, types::rTypeVar>,
+                                std::nullptr_t>::type;
 
-    template <typename T, TypeVarAliasTrait<T>>
-    types::Value unify(types::Alias a1, T a2) {
-      return std::visit(*this, a1.target, types::Value(a2));
+    template <typename T, TypeVarAliasTrait<T> = nullptr>
+    types::Value unify(types::rAlias a1, T a2) {
+      updateAlias(a1);
+      return std::visit(*this, a1.getraw().target, types::Value(a2));
     }
-    template <typename T, TypeVarAliasTrait<T>>
+
+    template <typename T, TypeVarAliasTrait<T> = nullptr>
     types::Value unify(T a1, types::rAlias a2) {
       return unify(a2, a1);
     }
+
     types::Value unify(types::rFunction f1, types::rFunction f2);
     types::Value unify(types::rArray a1, types::rArray a2);
     types::Value unify(types::rStruct s1, types::rStruct s2);
@@ -158,11 +162,14 @@ struct TypeInferer {
       constexpr bool issame = std::is_same_v<std::decay_t<T1>, std::decay_t<T2>>;
       constexpr bool istv_l = std::is_same_v<std::decay_t<T1>, types::rTypeVar>;
       constexpr bool istv_r = std::is_same_v<std::decay_t<T2>, types::rTypeVar>;
-      if constexpr (issame || istv_l || istv_r) { return unify(t1, t2); }
+      constexpr bool isalias_l = std::is_same_v<std::decay_t<T1>, types::rAlias>;
+      constexpr bool isalias_r = std::is_same_v<std::decay_t<T2>, types::rAlias>;
+      if constexpr (issame || istv_l || istv_r || isalias_l || isalias_r) { return unify(t1, t2); }
       throw std::runtime_error("type mismatch");
     }
     std::vector<types::Value> unifyArgs(std::vector<types::Value>& v1,
                                         std::vector<types::Value>& v2);
+    void updateAlias(types::Alias& a) const;
   };
   struct SubstituteVisitor {
     explicit SubstituteVisitor(TypeInferer& parent) : inferer(parent) {}

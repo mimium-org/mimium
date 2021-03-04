@@ -61,6 +61,7 @@ std::pair<optvalptr, mir::blockptr> MirGenerator::generateBlock(ast::Block& bloc
 }
 
 bool MirGenerator::isPassByValue(types::Value const& type) {
+  if (types::isA<types::rAlias>(type)) { return isPassByValue(rv::get<types::Alias>(type).target); }
   return !(rv::holds_alternative<types::Tuple>(type) ||
            rv::holds_alternative<types::Struct>(type) || rv::holds_alternative<types::Array>(type));
 }
@@ -217,6 +218,10 @@ mir::valueptr ExprKnormVisitor::genExprArray(std::deque<ast::ExprPtr> const& arg
   for (const auto& a : args) {
     auto arg = genInst(a);
     newelems.emplace_back(arg);
+    auto type = mir::getType(*arg);
+    if (!isPassByValue(type)) { 
+      type = types::makePointer(type);
+    }
     types.emplace_back(mir::getType(*arg));
   }
   // even if original value is struct type,
@@ -244,10 +249,10 @@ mir::valueptr ExprKnormVisitor::operator()(ast::StructAccess& ast) {
          rv::holds_alternative<types::Struct>(rv::get<types::Pointer>(type).val));
   auto& strtype = rv::get<types::Struct>(rv::get<types::Pointer>(type).val);
   auto [index, fieldtype] = types::getField(strtype, ast.field);
-  auto ptr =  emplace(minst::Field{
+  auto ptr = emplace(minst::Field{
       {lvname, fieldtype}, target, std::make_shared<mir::Value>(mir::Constants(index))});
-  if(isPassByValue(fieldtype)){
-    return emplace(minst::Load{{mirgen.makeNewName(), fieldtype},ptr});
+  if (isPassByValue(fieldtype)) {
+    return emplace(minst::Load{{mirgen.makeNewName(), fieldtype}, ptr});
   }
   return ptr;
 }

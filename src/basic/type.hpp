@@ -266,20 +266,25 @@ struct ToStringVisitor {
 std::string toString(const Value& v, bool verbose = false);
 void dump(const Value& v, bool verbose = false);
 
-template<typename T>
+template <typename T>
 using is_primitive_type = typename std::is_base_of<PrimitiveType, std::decay_t<T>>;
-static_assert(is_primitive_type<types::Float&>::value==true);
+static_assert(is_primitive_type<types::Float&>::value == true);
 inline bool isPrimitive(const Value& v) {
-  return std::visit(
-      [](auto& a) { return is_primitive_type<decltype(a)>::value; }, v);
+  return std::visit(overloaded{[](auto& a) { return is_primitive_type<decltype(a)>::value; },
+                               [&](Alias const& a) { return isPrimitive(a.target); }},
+                    v);
+}
+
+template <typename T>
+bool isA(const Value& v) {
+  return std::holds_alternative<T>(v);
 }
 
 inline bool isClosure(const Value& v) {
-  if (std::holds_alternative<rClosure>(v)) { return true; }
   if (const auto* alias = std::get_if<Box<Alias>>(&v)) {
-    return std::holds_alternative<rClosure>(alias->getraw().target);
+    return isA<rClosure>(alias->getraw().target);
   }
-  return false;
+  return isA<rClosure>(v);
 }
 
 }  // namespace types
