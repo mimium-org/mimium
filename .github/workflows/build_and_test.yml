@@ -75,7 +75,7 @@ jobs:
           brew install flex bison libsndfile llvm ninja
       - if: contains(matrix.os, 'ubuntu')
         run: |
-          brew install llvm@11
+          wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && sudo ./llvm.sh 11
           sudo apt-get install libalsa-ocaml-dev libfl-dev libbison-dev libz-dev libvorbis-dev libsndfile-dev libopus-dev gcc-9 ninja-build
       - uses: actions/checkout@v2
         with: 
