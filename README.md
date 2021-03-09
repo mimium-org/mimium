@@ -70,8 +70,8 @@ brew install mimium-org/mimium/mimium
 Also, you can get a built binary from [release](https://github.com/mimium-org/mimium/releases) section.
 ## Build from Source
 
-To build on Windows, you need to use MSYS2. For details, check [GitHub Action Workflow](https://github.com/mimium-org/mimium/blob/dev/.github/workflows/build_and_test.yml).
-### Dependencies
+To build on Windows, you need to use MSYS2. For details, check [GitHub Action Workflow](https://github.com/mimium-org/mimium/blob/dev/.github/workflows/build_and_test.yml) and documentations on official website ([Installation](https://mimium.org/en/docs/users-guide/getting-started/installation/) and [Setting up development environment](https://mimium.org/en/docs/developers-guide/setup-development-environments/)).
+### Installing Dependencies
 
 - cmake
 - bison >= 3.3
@@ -79,6 +79,33 @@ To build on Windows, you need to use MSYS2. For details, check [GitHub Action Wo
 - llvm >= 11
 - Libsndfile
 - RtAudio(cmake will automatically download)
+
+#### macOS
+
+Install [homebrew](https://brew.sh) and XCode Commandline Tools beforehand.
+
+```sh
+brew install cmake flex bison libsndfile llvm ninja
+```
+
+#### Linux(Ubuntu)
+
+*On Linux(Ubuntu), we recommend to install llvm using an automatic installation script in https://apt.llvm.org/ because `llvm` package in apt does not contain some libs required by `llvm-config --libs`*
+
+```sh
+pushd /tmp && wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && sudo ./llvm.sh && popd
+sudo apt-get install libalsa-ocaml-dev libfl-dev libbison-dev libz-dev libvorbis-dev libsndfile-dev libopus-dev gcc-9 ninja-build
+```
+
+#### Windows(MSYS2,mingw64)
+
+Install [msys2](https://www.msys2.org/) by following instruction on the website. Launch Mingw64 terminal.
+
+```sh
+pacman -Syu git flex bison mingw-w64-x86_64-cmake mingw-w64-x86_64-gcc mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus mingw-w64-x86_64-ninja mingw-w64-x86_64-llvm
+```
+
+### Clone Repository, build and install
 
 ```sh
 git clone https://github.com/mimium-org/mimium
