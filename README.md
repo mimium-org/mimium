@@ -148,7 +148,7 @@ This project is supported by all the contributers, [Sponsors](https://github.com
 <!-- markdownlint-disable -->
 <table>
   <tr>
-    <td align="center"><a href="https://t-sin.github.io"><img src="https://avatars.githubusercontent.com/u/4403863?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Shinichi Tanaka</b></sub></a><br /><a href="https://github.com/mimium-org/mimium/commits?author=t-sin" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://t-sin.github.io"><img src="https://avatars.githubusercontent.com/u/4403863?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Shinichi Tanaka</b></sub></a><br /><a href="https://github.com/mimium-org/mimium/commits?author=t-sin" title="Documentation">📖</a> <a href="https://github.com/mimium-org/mimium/commits?author=t-sin" title="Code">💻</a></td>
     <td align="center"><a href="http://deepdrilledwell.secret.jp/ddw/"><img src="https://avatars.githubusercontent.com/u/74606612?v=4?s=100" width="100px;" alt=""/><br /><sub><b>kyo</b></sub></a><br /><a href="https://github.com/mimium-org/mimium/commits?author=syougikakugenn" title="Documentation">📖</a></td>
     <td align="center"><a href="http://baku89.com"><img src="https://avatars.githubusercontent.com/u/2124392?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Baku 麦</b></sub></a><br /><a href="#financial-baku89" title="Financial">💵</a></td>
     <td align="center"><a href="https://github.com/yuichkun"><img src="https://avatars.githubusercontent.com/u/14039540?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Yuichi Yogo</b></sub></a><br /><a href="#financial-yuichkun" title="Financial">💵</a></td>
