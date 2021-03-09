@@ -32,7 +32,7 @@ std::pair<fs::path, FileType> getFilePath(std::string_view val) {
 
 FileReader::FileReader(fs::path cwd) : cwd(std::move(cwd)) {}
 Source FileReader::loadFile(std::string const& path) {
-  auto [srcpath, type] = getFilePath(fs::canonical(fs::relative(path, cwd)).string());
+  auto [srcpath, type] = getFilePath(fs::weakly_canonical(fs::relative(path, cwd)).string());
   Source res{fs::absolute(srcpath), type, ""};
   // memo: fs::exists(path,ec) for .mmm file returns file type of "unknown", not "regular" or
   // "none". to prevent error, need to check specifically not to be "not found"
