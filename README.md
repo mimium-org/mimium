@@ -108,7 +108,7 @@ pacman -Syu git flex bison mingw-w64-x86_64-cmake mingw-w64-x86_64-gcc mingw64/m
 ### Clone Repository, build and install
 
 ```sh
-git clone https://github.com/mimium-org/mimium
+git clone --recursive https://github.com/mimium-org/mimium
 cd mimium
 # configure. if you want to install to specific directory, add -DCMAKE_INSTALL_PREFIX=/your/directory
 cmake -Bbuild
