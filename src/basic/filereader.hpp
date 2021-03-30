@@ -3,11 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
-#include <filesystem>
+#include "utils/include_filesystem.hpp"
 #include <fstream>
 #include "export.hpp"
 namespace mimium {
-namespace fs = std::filesystem;
 
 constexpr std::string_view mmm_ext = ".mmm";
 constexpr std::string_view ll_ext = ".ll";

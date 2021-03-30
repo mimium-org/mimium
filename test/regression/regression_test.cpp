@@ -1,6 +1,5 @@
 #include <cstdlib>
-#include <filesystem>
-namespace fs = std::filesystem;
+#include "utils/include_filesystem.hpp"
 
 #include "gtest/gtest.h"
 #include "gtest/internal/gtest-port.h"

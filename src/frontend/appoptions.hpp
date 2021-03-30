@@ -1,11 +1,9 @@
 #pragma once
 #include "basic/filereader.hpp"
-#include <filesystem>
 #include <optional>
 #include <string_view>
 
 namespace mimium::app {
-namespace fs = std::filesystem;
 
 enum class CompileStage {
   Parse = 0,

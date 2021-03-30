@@ -1,4 +1,8 @@
-# Found on http://hg.kvats.net
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/. 
+
+# Original Copyright http://hg.kvats.net
 #
 # - Try to find libsndfile
 # 
@@ -16,15 +20,14 @@
 #
 
 if (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
-  # in cache already
-  set(SNDFILE_FOUND TRUE)
+# in cache already
+set(SNDFILE_FOUND TRUE)
 else (SNDFILE_LIBRARIES AND SNDFILE_INCLUDE_DIRS)
 if(APPLE)
 set(HOMEBREW_PATH /usr/local)
 elseif(UNIX)
 set(HOMEBREW_PATH /home/linuxbrew/.linuxbrew )
 else()#windows
-SET(CMAKE_FIND_LIBRARY_SUFFIXES ".lib" ".dll" ".a.dll" ".dll.a" ".a")
 set(CMAKE_FIND_LIBRARY_PREFIXES "lib")  
 endif()
 find_path(SNDFILE_INCLUDE_DIR
@@ -38,88 +41,45 @@ find_path(SNDFILE_INCLUDE_DIR
       /opt/local/include
       /sw/include
       C:/tools/msys64/mingw64/include
-  )
-  
-  find_library(SNDFILE_LIBRARY
-    NAMES
-      sndfile 
-    PATHS
-      ${HOMEBREW_PATH}/lib
-      /usr/lib
-      /usr/local/lib
-      /opt/local/lib
-      /sw/lib
-      /mingw64/lib
-      C:/tools/msys64/mingw64/lib
-  )
+)
 
-  find_library(OGG_LIBRARY
-  NAMES
-  ogg
-  PATHS
+
+function(find_library_private libname)
+  macro(setlibname  output name_val)
+    if(UNIX AND (NOT APPLE))
+      set(${output} ${name_val})
+    else()
+      set(${output} lib${name_val}.a)
+    endif()
+  endmacro()
+string(TOUPPER ${libname} libname_u)
+setlibname(LIBFILENAME ${libname})
+set(OUTPUT_VAR ${libname_u}_LIBRARY)
+find_library(${OUTPUT_VAR} REQUIRED
+NAMES
+  ${LIBFILENAME}
+PATHS
   ${HOMEBREW_PATH}/lib
   /usr/lib
-  /usr/lib/x86_64-linux-gnu/
   /usr/local/lib
   /opt/local/lib
   /sw/lib
-  C:/tools/msys64/mingw64/lib
-  )
-  find_library(VORBIS_LIBRARY
-  NAMES
-  vorbis 
-  PATHS
-  ${HOMEBREW_PATH}/lib
-  /usr/lib
-  /usr/lib/x86_64-linux-gnu/
-  /usr/local/lib
-  /opt/local/lib
-  /sw/lib
-  C:/tools/msys64/mingw64/lib
-  )
-  find_library(VORBISENC_LIBRARY
-  NAMES
-  vorbisenc
-  PATHS
-  ${HOMEBREW_PATH}/lib
-  /usr/lib
-  /usr/lib/x86_64-linux-gnu/
-  /usr/local/lib
-  /opt/local/lib
-  /sw/lib
-  C:/tools/msys64/mingw64/lib
-  )
-  find_library(FLAC_LIBRARY
-  NAMES
-  flac FLAC
-  PATHS
-  ${HOMEBREW_PATH}/lib
-  /usr/lib
-  /usr/lib/x86_64-linux-gnu/
-  /usr/local/lib
-  /opt/local/lib
-  /sw/lib
-  C:/tools/msys64/mingw64/lib
-  )
-  find_library(OPUS_LIBRARY  REQUIRED
-  NAMES
-  opus libopus.a
-  PATHS
-  ${HOMEBREW_PATH}/lib
-  /usr/lib
-  /usr/lib/x86_64-linux-gnu/
-  /usr/local/lib
-  /opt/local/lib
-  /sw/lib
-  C:/tools/msys64/mingw64/lib
   /mingw64/lib
+  C:/tools/msys64/mingw64/lib
+)
+endfunction()
 
-  )
-  # find_package(OPUS REQUIRED)
-  set(SNDFILE_INCLUDE_DIRS
+find_library_private(sndfile)
+find_library_private(ogg)
+find_library_private(vorbis)
+find_library_private(vorbisenc)
+find_library_private(FLAC)
+find_library_private(opus)
+
+set(SNDFILE_INCLUDE_DIRS
     ${SNDFILE_INCLUDE_DIR}
   )
-  set(SNDFILE_LIBRARIES
+set(SNDFILE_LIBRARIES
   ${SNDFILE_LIBRARY}
   ${FLAC_LIBRARY}
   ${VORBIS_LIBRARY}
@@ -127,10 +87,10 @@ find_path(SNDFILE_INCLUDE_DIR
   ${OGG_LIBRARY}
   ${OPUS_LIBRARY}
   )
-  message(STATUS "------------------")
+message(STATUS "------------------")
 
 message(STATUS ${SNDFILE_INCLUDE_DIR})
-message(STATUS     ${SNDFILE_LIBRARY})
+message(STATUS ${SNDFILE_LIBRARY})
 
   if (SNDFILE_INCLUDE_DIR AND SNDFILE_LIBRARY)
     set(SNDFILE_FOUND TRUE)

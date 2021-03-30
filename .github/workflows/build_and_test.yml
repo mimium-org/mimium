@@ -38,6 +38,7 @@ jobs:
         os:
           - ubuntu-20.04
           - macos-10.15
+          - macos-10.14
           - windows-latest
         config:
           - Release
@@ -47,6 +48,10 @@ jobs:
               shell: bash
               cmake_args:  -DBUILD_SHARED_LIBS=OFF
             - os: macos-10.15
+              cxx: /usr/bin/clang++
+              shell: bash
+              cmake_args:  -DBUILD_SHARED_LIBS=ON
+            - os: macos-10.14
               cxx: /usr/bin/clang++
               shell: bash
               cmake_args:  -DBUILD_SHARED_LIBS=ON
@@ -67,15 +72,11 @@ jobs:
           install: git flex bison mingw-w64-x86_64-cmake mingw-w64-x86_64-gcc mingw64/mingw-w64-x86_64-libsndfile mingw64/mingw-w64-x86_64-opus mingw-w64-x86_64-ninja mingw-w64-x86_64-llvm
       - if: contains(matrix.os, 'macos')
         run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 brew install flex bison libsndfile llvm ninja
+          brew install flex bison libsndfile llvm ninja
       - if: contains(matrix.os, 'ubuntu')
         run: |
-          brew update
-          brew info llvm@11
-      - if: contains(matrix.os, 'ubuntu')
-        run: |
-          brew install llvm@11
-          sudo apt-get install libalsa-ocaml-dev libfl-dev libbison-dev libz-dev libsndfile-dev libopus-dev gcc-9 ninja-build
+          wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && sudo ./llvm.sh 11
+          sudo apt-get install libalsa-ocaml-dev libfl-dev libbison-dev libz-dev libvorbis-dev libsndfile-dev libopus-dev gcc-9 ninja-build
       - uses: actions/checkout@v2
         with: 
           submodules: "recursive"
