@@ -16,7 +16,7 @@ namespace mir {
 
 inline types::Value lowerType(types::Value const& t) {
   return std::visit(
-      overloaded{
+      overloaded_rec{
           [](auto i) { 
           assert(types::is_primitive_type<decltype(i)>);
           return  types::Value{i}; },
@@ -28,10 +28,10 @@ inline types::Value lowerType(types::Value const& t) {
           //   assert(false);
           //   return types::Value{i};
           // },
-          // [](types::Pointer i) {
-          //   assert(false);
-          //   return types::Value{i};
-          // },
+          [](types::Pointer i) {
+            // assert(false);
+            return types::Value{i};
+          },
           // [](types::Closure i) {
           //   assert(false);
           //   return types::Value{i};
@@ -49,15 +49,15 @@ inline types::Value lowerType(types::Value const& t) {
             return types::Value{res};
           },
           [](types::Array i) {
-            return types::Value{types::Ref{types::Array{lowerType(i.elem_type), i.size}}};
+            return types::Value{types::Pointer{types::Array{lowerType(i.elem_type), i.size}}};
           },
           [](types::Struct i) {
-            return types::Value{types::Ref{types::Struct{fmap(i.arg_types, [](auto const& a) {
+            return types::Value{types::Pointer{types::Struct{fmap(i.arg_types, [](auto const& a) {
               return types::Struct::Keytype{a.field, lowerType(a.val)};
             })}}};
           },
           [](types::Tuple i) {
-            return types::Value{types::Ref{
+            return types::Value{types::Pointer{
                 types::Tuple{fmap(i.arg_types, [](auto const& i) { return lowerType(i); })}}};
           },
           [](types::Alias i) {

@@ -40,11 +40,9 @@ types::Value ExprTypeVisitor::operator()(ast::Lambda& ast) {
 }
 
 types::Value TypeInferer::inferFcall(ast::Fcall& fcall) {
-  std::vector<types::Value> argtypes;
-  auto args = fcall.args.args;
-  std::transform(args.begin(), args.end(), std::back_inserter(argtypes),
-                 [&](ast::ExprPtr expr) { return exprvisitor.infer(expr); });
   auto frettype = *typeenv.createNewTypeVar();
+  auto argtypes = fmap<std::deque, std::vector>(
+      fcall.args.args, [&](ast::ExprPtr expr) { return exprvisitor.infer(expr); });
   types::Value ftype = types::Function{frettype, argtypes};
   types::Value targettype = exprvisitor.infer(fcall.fn);
   auto res = unify(targettype, ftype);
@@ -228,13 +226,13 @@ types::Value TypeUnifyVisitor::unify(types::rRef p1, types::rRef p2) {
   auto target = inferer.unify(p1.getraw().val, p2.getraw().val);
   return types::Ref{target};
 }
-void TypeUnifyVisitor::updateAlias(types::Alias& a)const{
-      auto& amap = inferer.typeenv.alias_map;
-    if (amap.find(a.name) != amap.cend()) {
-      a.target = amap.at(a.name);
-    } else {
-      throw std::runtime_error("Unknown Type Name:" + a.name);
-    }
+void TypeUnifyVisitor::updateAlias(types::Alias& a) const {
+  auto& amap = inferer.typeenv.alias_map;
+  if (amap.find(a.name) != amap.cend()) {
+    a.target = amap.at(a.name);
+  } else {
+    throw std::runtime_error("Unknown Type Name:" + a.name);
+  }
 }
 types::Value TypeUnifyVisitor::unify(types::rAlias& a1, types::rAlias& a2) {
   updateAlias(a1);
@@ -274,7 +272,7 @@ types::Value TypeUnifyVisitor::unify(types::rStruct s1, types::rStruct s2) {
   }
   return types::Struct{std::move(args)};
 }
-types::Value TypeUnifyVisitor::unify(types::rTuple t1, types::rTuple  t2) {
+types::Value TypeUnifyVisitor::unify(types::rTuple t1, types::rTuple t2) {
   return types::Tuple{unifyArgs(t1.getraw().arg_types, t2.getraw().arg_types)};
 }
 std::vector<types::Value> TypeUnifyVisitor::unifyArgs(std::vector<types::Value>& v1,

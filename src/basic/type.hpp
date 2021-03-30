@@ -305,14 +305,18 @@ inline bool isClosure(const Value& v) {
 
 }  // namespace types
 
-class TypeEnv {
+template <typename T>
+class TypeEnvProto {
+  using keytype = T;
+
  private:
   int64_t typeid_count{};
 
  public:
-  TypeEnv() : env() {}
-  std::unordered_map<std::string, types::Value> env;
-  std::unordered_map<std::string, types::Value> alias_map;
+  TypeEnvProto() : env() {}
+  std::unordered_map<keytype, types::Value> env;
+  std::unordered_map<keytype, types::Value> alias_map;
+  std::unordered_map<std::string,types::Value> builtin_map;
   std::deque<types::Value> tv_container;
   std::shared_ptr<types::TypeVar> createNewTypeVar() {
     auto res = std::make_shared<types::TypeVar>(typeid_count++);
@@ -320,15 +324,15 @@ class TypeEnv {
     return res;
   }
   types::Value& findTypeVar(int tindex) { return tv_container[tindex]; }
-  [[nodiscard]] bool exist(std::string key) const { return (env.count(key) > 0); }
+  [[nodiscard]] bool exist(keytype const& key) const { return (env.count(key) > 0); }
   auto begin() { return env.begin(); }
   auto end() { return env.end(); }
-  types::Value* tryFind(std::string key) {
+  types::Value* tryFind(keytype key) {
     auto it = env.find(key);
     types::Value* res = (it == env.end()) ? nullptr : &it->second;
     return res;
   }
-  types::Value& find(std::string const& key) {
+  types::Value& find(keytype const& key) {
     auto* res = tryFind(key);
     if (res == nullptr) {
       throw std::runtime_error("Could not find type for variable \"" + key + "\"");
@@ -336,12 +340,42 @@ class TypeEnv {
     return *res;
   }
 
-  auto emplace(std::string key, types::Value typevar) { return env.insert_or_assign(key, typevar); }
-  void replaceTypeVars();
+  auto emplace(keytype key, types::Value typevar) { return env.insert_or_assign(key, typevar); }
+  void replaceTypeVars() {
+    for (auto& [key, val] : env) {
+      if (rv::holds_alternative<types::TypeVar>(val)) {
+        auto& tv = rv::get<types::TypeVar>(val);
+        if (std::holds_alternative<types::None>(tv.contained)) {
+          // throw std::runtime_error("type inference for " + key + " failed");
+          tv.contained = types::Float{};
+        }
+        env[key] = tv.contained;
+      }
+    }
+  }
 
-  MIMIUM_DLL_PUBLIC std::string toString(bool verbose = false);
-  void dump(bool verbose = false);
-  void dumpTvLinks();
+  MIMIUM_DLL_PUBLIC std::string toString(bool verbose = false) {
+    std::stringstream ss;
+    types::ToStringVisitor vis;
+    vis.verbose = verbose;
+    for (auto& [key, val] : env) { ss << key << " : " << std::visit(vis, val) << "\n"; }
+    return ss.str();
+  }
+#if MIMIUM_DEBUG_BUILD
+  void dump(bool verbose = false) {
+    std::cerr << "-------------------\n" << toString(verbose) << "-------------------\n";
+  }
+  void dumpTvLinks() {
+    std::cerr << "------tvlinks-----\n";
+    int i = 0;
+    for (auto& a : tv_container) {
+      std::cerr << "typevar" << i << " : " << types::toString(a) << "\n";
+      ++i;
+    }
+    std::cerr << "------tvlinks-----" << std::endl;
+  }
+#endif
 };
 
+using TypeEnv = TypeEnvProto<std::string>;
 }  // namespace mimium

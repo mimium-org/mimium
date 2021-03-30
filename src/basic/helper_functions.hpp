@@ -104,21 +104,27 @@ inline bool has(std::vector<std::string> t, char* s) {
   return std::find(t.begin(), t.end(), std::string(s)) != t.end();
 }
 
-template <class ELEMENT, typename LAMBDA>
-using CALLABLE_TRAIT = std::enable_if_t<std::is_invocable_v<LAMBDA, ELEMENT>,std::nullptr_t>;
-
-template <template <class...> class CONTAINER, class ELEMENT, class LAMBDA>
-CONTAINER<ELEMENT> fmap(
-    CONTAINER<ELEMENT> args, LAMBDA lambda) {
-  CONTAINER<ELEMENT> res;
+template <class ELEMENT, class LAMBDA>
+using CALLABLE_TRAIT = std::enable_if<std::is_invocable_v<LAMBDA, ELEMENT>, std::nullptr_t>;
+// helper metafunction which maps container elements with lambda.
+template <template <class...> class CONTAINERIN,template <class...> class CONTAINEROUT=CONTAINERIN,
+          typename ELEMENTIN, typename LAMBDA>
+CONTAINEROUT<std::invoke_result_t<LAMBDA, ELEMENTIN>> fmap(CONTAINERIN<ELEMENTIN> args,
+                                                           LAMBDA lambda) {
+  CONTAINEROUT<std::invoke_result_t<LAMBDA, ELEMENTIN>> res;
   std::transform(args.cbegin(), args.cend(), std::back_inserter(res), lambda);
-  return res;
+  return std::forward<decltype(res)>(res);
 }
+// // simple version when container type is as same as input container
+// template <template <class...> class CONTAINERIN, typename ELEMENTIN, typename LAMBDA>
+// auto fmap(CONTAINERIN<ELEMENTIN> args, LAMBDA lambda) {
+//   return fmap<CONTAINERIN>(std::move(args), std::move(lambda));
+// }
 
 namespace ast {
 template <typename T, typename L>
 T transformArgs(T& args, L&& lambda) {
-  fmap(args, lambda);
+  return fmap(args, lambda);
 }
 }  // namespace ast
 

@@ -71,11 +71,8 @@ mir::valueptr ExprKnormVisitor::emplace(mir::Instructions&& inst) {
 }
 
 mir::valueptr ExprKnormVisitor::genAllocate(std::string const& name, types::Value const& type) {
-  auto ptrty = types::makePointer(type);
-  if (!isPassByValue(type)) {
-    return emplace(mir::instruction::Allocate{{name, types::makePointer(std::move(ptrty))}});
-  }
-  return emplace(mir::instruction::Allocate{{name, std::move(ptrty)}});
+  auto ptrty = types::makePointer(mir::lowerType(type));
+  return emplace(mir::instruction::Allocate{{name, (std::move(ptrty))}});
 }
 
 mir::valueptr ExprKnormVisitor::operator()(ast::Op& ast) {
@@ -137,6 +134,9 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Lambda& ast) {
   auto& fref = mir::getInstRef<minst::Function>(resptr);
 
   for (auto& a : fref.args.args) { a->parentfn = resptr; }
+  auto srctype = types::Function{
+      rettype, fmap<std::list, std::vector>(fref.args.args, [](auto a) { return a->type; })};
+  fref.type = mir::lowerType(srctype);
 
   fref.body = body;
 
@@ -145,30 +145,18 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Lambda& ast) {
          mir::isInstA<minst::Return>(*retinst_iter));
   auto* ptrtype = std::get_if<types::rPointer>(&rettype);
 
+  // convert function form for values of pass-by-reference
   if (!isPassByValue(rettype) || ptrtype != nullptr) {
-    if (ptrtype != nullptr) {
-      assert(!isPassByValue(ptrtype->getraw().val));
-      rettype = ptrtype->getraw().val;
-    }
-
     auto& retval = mir::getInstRef<minst::Return>(*retinst_iter).val;
     auto loadinst = mir::addInstToBlock(minst::Load{{label + "_res", rettype}, retval}, fref.body);
-    auto retptr = std::make_shared<mir::Argument>(
+    fref.args.ret_ptr = std::make_shared<mir::Argument>(
         mir::Argument{label + "_retptr", types::Pointer{rettype}, resptr});
-    fref.args.ret_ptr = std::move(retptr);
     fref.body->instructions.erase(retinst_iter);
     mir::addInstToBlock(minst::Store{{"store", types::Void{}},
                                      std::make_shared<mir::Value>(fref.args.ret_ptr.value()),
                                      loadinst},
                         fref.body);
-    rettype = types::Void{};
   }
-  auto argtypes = std::vector<types::Value>{};
-  if (fref.args.ret_ptr) { argtypes.emplace_back(mir::getType(fref.args.ret_ptr.value())); }
-  mirgen.transformArgs(fref.args.args, argtypes,
-                       [&](std::shared_ptr<mir::Argument> a) { return a->type; });
-
-  fref.type = types::Function{rettype, std::move(argtypes)};
   return resptr;
 }
 mir::valueptr ExprKnormVisitor::genFcallInst(ast::Fcall& fcall, optvalptr const& when) {
@@ -189,8 +177,8 @@ mir::valueptr ExprKnormVisitor::genFcallInst(ast::Fcall& fcall, optvalptr const&
   auto newname = mirgen.makeNewName();
   bool is_fn_ext = std::holds_alternative<mir::ExternalSymbol>(*fnptr);
   auto fnkind = is_fn_ext && !is_fn_recursive ? EXTERNAL : CLOSURE;
-  auto args = mirgen.transformArgs(fcall.args.args, std::list<mir::valueptr>{},
-                                   [&](auto expr) { return genInst(expr); });
+  auto args =
+      fmap<std::deque, std::list>(fcall.args.args, [&](auto expr) { return genInst(expr); });
   types::Value rettype = types::None{};
   if (!is_fn_recursive) {
     auto ftype = mir::getType(*fnptr);
@@ -219,9 +207,7 @@ mir::valueptr ExprKnormVisitor::genExprArray(std::deque<ast::ExprPtr> const& arg
     auto arg = genInst(a);
     newelems.emplace_back(arg);
     auto type = mir::getType(*arg);
-    if (!isPassByValue(type)) { 
-      type = types::makePointer(type);
-    }
+    if (!isPassByValue(type)) { type = types::makePointer(type); }
     types.emplace_back(mir::getType(*arg));
   }
   // even if original value is struct type,
@@ -273,7 +259,8 @@ mir::valueptr ExprKnormVisitor::operator()(ast::ArrayAccess& ast) {
   types::Value rettype;
   auto type = mir::getType(*array);
   assert(std::holds_alternative<types::rPointer>(type));
-  auto vtype = rv::get<types::Pointer>(type).val;
+  auto pvtype = rv::get<types::Pointer>(type).val;
+  auto vtype = rv::get<types::Pointer>(pvtype).val;
   if (std::holds_alternative<types::rArray>(vtype)) {
     rettype = rv::get<types::Array>(vtype).elem_type;
   } else if (std::holds_alternative<types::Float>(vtype)) {
@@ -377,17 +364,13 @@ void StatementKnormVisitor::operator()(ast::Assign& ast) {
   auto visitor = AssignKnormVisitor(exprvisitor.mirgen, exprvisitor, ast.expr);
   std::visit(visitor, ast.lvar);
 }
-void StatementKnormVisitor::operator()(ast::TypeAssign& /*ast*/) {
-  // do nothing
-}
-
 void StatementKnormVisitor::operator()(ast::Return& ast) {
   auto val = exprvisitor.genInst(ast.value);
   auto type = mir::getType(*val);
   this->retvalue =
       exprvisitor.emplace(minst::Return{{exprvisitor.mirgen.makeNewName(), type}, val});
 }
-// Instructions StatementKnormVisitor::operator()(ast::Declaration& ast){}
+void StatementKnormVisitor::operator()(ast::TypeAssign& ast) {}
 void StatementKnormVisitor::operator()(ast::For& /*ast*/) {
   // TODO(tomyoa)
 }

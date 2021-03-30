@@ -48,6 +48,7 @@ struct OccurChecker {
 };
 
 struct TypeInferer {
+  using TypeEnvT = TypeEnvProto<ast::ExprPtr>;
   struct ExprTypeVisitor : public VisitorBase<types::Value> {
     explicit ExprTypeVisitor(TypeInferer& parent) : inferer(parent) {}
     types::Value operator()(ast::Op& ast);
@@ -244,7 +245,9 @@ struct TypeInferer {
         statementvisitor(*this),
         unifyvisitor(*this),
         substitutevisitor(*this) {
-    for (const auto& [key, val] : LLVMBuiltin::ftable) { typeenv.emplace(key, val.mmmtype); }
+    for (const auto& [key, val] : LLVMBuiltin::ftable) {
+      typeenv.emplace(key, val.mmmtype);
+    }
     typeenv.emplace("mimium_getnow", types::Function{types::Float{}, {}});
   }
   // entry point.

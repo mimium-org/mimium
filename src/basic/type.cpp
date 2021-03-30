@@ -22,37 +22,4 @@ void dump(const Value& v, bool verbose) { std::cerr << toString(v, verbose) << "
 
 }  // namespace types
 
-void TypeEnv::replaceTypeVars() {
-  for (auto& [key, val] : env) {
-    if (rv::holds_alternative<types::TypeVar>(val)) {
-      auto& tv = rv::get<types::TypeVar>(val);
-      if (std::holds_alternative<types::None>(tv.contained)) {
-        // throw std::runtime_error("type inference for " + key + " failed");
-        tv.contained = types::Float{};
-      }
-      env[key] = tv.contained;
-    }
-  }
-}
-
-std::string TypeEnv::toString(bool verbose) {
-  std::stringstream ss;
-  types::ToStringVisitor vis;
-  vis.verbose = verbose;
-  for (auto& [key, val] : env) { ss << key << " : " << std::visit(vis, val) << "\n"; }
-  return ss.str();
-}
-void TypeEnv::dump(bool verbose) {
-  std::cerr << "-------------------\n" << toString(verbose) << "-------------------\n";
-}
-void TypeEnv::dumpTvLinks() {
-  std::cerr << "------tvlinks-----\n";
-  int i = 0;
-  for (auto& a : tv_container) {
-    std::cerr << "typevar" << i << " : " << types::toString(a) << "\n";
-    ++i;
-  }
-  std::cerr << "------tvlinks-----" << std::endl;
-}
-
 }  // namespace mimium
