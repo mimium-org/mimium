@@ -10,11 +10,11 @@
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <typeindex>
 #include <unordered_map>
 #include <utility>
 #include <variant>
 #include <vector>
-
 #include "basic/helper_functions.hpp"
 
 namespace mimium {
@@ -266,18 +266,34 @@ struct ToStringVisitor {
 std::string toString(const Value& v, bool verbose = false);
 void dump(const Value& v, bool verbose = false);
 
+template <typename T1, typename T2>
+constexpr bool is_a = std::is_same_v<T1, std::decay_t<T2>>;
+
 template <typename T>
-using is_primitive_type = typename std::is_base_of<PrimitiveType, std::decay_t<T>>;
-static_assert(is_primitive_type<types::Float&>::value == true);
+bool isA(const Value& v) {
+  return std::holds_alternative<T>(v);
+}
+
+template <typename T>
+constexpr bool is_primitive_type = std::is_base_of_v<PrimitiveType, std::decay_t<T>>;
+
 inline bool isPrimitive(const Value& v) {
-  return std::visit(overloaded{[](auto& a) { return is_primitive_type<decltype(a)>::value; },
+  return std::visit(overloaded{[](auto& a) { return is_primitive_type<decltype(a)>; },
                                [&](Alias const& a) { return isPrimitive(a.target); }},
                     v);
 }
 
 template <typename T>
-bool isA(const Value& v) {
-  return std::holds_alternative<T>(v);
+constexpr bool is_intermediate_type = is_a<types::rTypeVar, T>;
+
+inline bool isIntermediate(const Value& v) {
+  return std::visit([](auto& a) { return is_intermediate_type<decltype(a)>; }, v);
+}
+
+template <typename T>
+constexpr bool is_aggregate = !is_primitive_type<T> && !is_intermediate_type<T>;
+inline bool isAggregate(const Value& v) {
+  return std::visit([](auto& a) { return is_aggregate<decltype(a)>; }, v);
 }
 
 inline bool isClosure(const Value& v) {

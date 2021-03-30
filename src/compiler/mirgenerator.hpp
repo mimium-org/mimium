@@ -12,6 +12,63 @@
 namespace mimium {
 
 using optvalptr = std::optional<mir::valueptr>;
+namespace mir {
+
+inline types::Value lowerType(types::Value const& t) {
+  return std::visit(
+      overloaded{
+          [](auto i) { 
+          assert(types::is_primitive_type<decltype(i)>);
+          return  types::Value{i}; },
+          // [](types::TypeVar i) {
+          //   assert(false);
+          //   return types::Value{i};
+          // },
+          // [](types::Ref i) {
+          //   assert(false);
+          //   return types::Value{i};
+          // },
+          // [](types::Pointer i) {
+          //   assert(false);
+          //   return types::Value{i};
+          // },
+          // [](types::Closure i) {
+          //   assert(false);
+          //   return types::Value{i};
+          // },
+
+          [](types::Function i) {
+            types::Function res;
+            if (types::isAggregate(i.ret_type)) {
+              res.ret_type = types::Void{};
+              res.arg_types.emplace_back(lowerType(i.ret_type));
+            } else {
+              res.ret_type = i.ret_type;
+            }
+            for (const auto& a : i.arg_types) { res.arg_types.emplace_back(a); }
+            return types::Value{res};
+          },
+          [](types::Array i) {
+            return types::Value{types::Ref{types::Array{lowerType(i.elem_type), i.size}}};
+          },
+          [](types::Struct i) {
+            return types::Value{types::Ref{types::Struct{fmap(i.arg_types, [](auto const& a) {
+              return types::Struct::Keytype{a.field, lowerType(a.val)};
+            })}}};
+          },
+          [](types::Tuple i) {
+            return types::Value{types::Ref{
+                types::Tuple{fmap(i.arg_types, [](auto const& i) { return lowerType(i); })}}};
+          },
+          [](types::Alias i) {
+            return types::Value{types::Alias{i.name, lowerType(i.target)}};
+          },
+      },
+      t);
+}
+
+}  // namespace mir
+
 class MirGenerator {
  public:
   explicit MirGenerator(TypeEnv& typeenv) : typeenv(typeenv) {}
@@ -71,9 +128,7 @@ class MirGenerator {
   };
   struct StatementKnormVisitor {
     explicit StatementKnormVisitor(ExprKnormVisitor& evisitor)
-        : retvalue(std::nullopt),
-          exprvisitor(evisitor),
-          mirgen(evisitor.mirgen){}
+        : retvalue(std::nullopt), exprvisitor(evisitor), mirgen(evisitor.mirgen) {}
 
     void operator()(ast::Assign& ast);
     void operator()(ast::TypeAssign& ast);

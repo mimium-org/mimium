@@ -26,13 +26,13 @@
 // SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 #endif
 #if defined(__clang__)
-  #if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
-  // code that builds only under AddressSanitizer
-    #define NO_SANITIZE __attribute__((no_sanitize("address", "undefined")))
-  #endif
+#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+// code that builds only under AddressSanitizer
+#define NO_SANITIZE __attribute__((no_sanitize("address", "undefined")))
+#endif
 #endif
 #ifndef NO_SANITIZE
-  #define NO_SANITIZE
+#define NO_SANITIZE
 #endif
 
 namespace mimium {
@@ -104,12 +104,21 @@ inline bool has(std::vector<std::string> t, char* s) {
   return std::find(t.begin(), t.end(), std::string(s)) != t.end();
 }
 
+template <class ELEMENT, typename LAMBDA>
+using CALLABLE_TRAIT = std::enable_if_t<std::is_invocable_v<LAMBDA, ELEMENT>,std::nullptr_t>;
+
+template <template <class...> class CONTAINER, class ELEMENT, class LAMBDA>
+CONTAINER<ELEMENT> fmap(
+    CONTAINER<ELEMENT> args, LAMBDA lambda) {
+  CONTAINER<ELEMENT> res;
+  std::transform(args.cbegin(), args.cend(), std::back_inserter(res), lambda);
+  return res;
+}
+
 namespace ast {
 template <typename T, typename L>
-T transformArgs(T& args, L lambda) {
-  T res;
-  std::transform(args.begin(), args.end(), std::back_inserter(res), lambda);
-  return res;
+T transformArgs(T& args, L&& lambda) {
+  fmap(args, lambda);
 }
 }  // namespace ast
 
