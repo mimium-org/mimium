@@ -104,22 +104,21 @@ inline bool has(std::vector<std::string> t, char* s) {
   return std::find(t.begin(), t.end(), std::string(s)) != t.end();
 }
 
-template <class ELEMENT, class LAMBDA>
-using CALLABLE_TRAIT = std::enable_if<std::is_invocable_v<LAMBDA, ELEMENT>, std::nullptr_t>;
 // helper metafunction which maps container elements with lambda.
-template <template <class...> class CONTAINERIN,template <class...> class CONTAINEROUT=CONTAINERIN,
-          typename ELEMENTIN, typename LAMBDA>
+// Template-template parameter are input container and output container.
+// Other parameters will be inferred from context.
+// auto hoge = fmap<std::deque,std::vector>(ast.args,[](ExprPtr a){return a.name;});
+// if container between input and output are the same, you can omit template parameter.
+// auto hoge = fmap(ast.args,[](ExprPtr a){return a.name;});
+
+template <template <class...> class CONTAINERIN,
+          template <class...> class CONTAINEROUT = CONTAINERIN, typename ELEMENTIN, typename LAMBDA>
 CONTAINEROUT<std::invoke_result_t<LAMBDA, ELEMENTIN>> fmap(CONTAINERIN<ELEMENTIN> args,
                                                            LAMBDA lambda) {
   CONTAINEROUT<std::invoke_result_t<LAMBDA, ELEMENTIN>> res;
   std::transform(args.cbegin(), args.cend(), std::back_inserter(res), lambda);
-  return std::forward<decltype(res)>(res);
+  return std::move(res);
 }
-// // simple version when container type is as same as input container
-// template <template <class...> class CONTAINERIN, typename ELEMENTIN, typename LAMBDA>
-// auto fmap(CONTAINERIN<ELEMENTIN> args, LAMBDA lambda) {
-//   return fmap<CONTAINERIN>(std::move(args), std::move(lambda));
-// }
 
 namespace ast {
 template <typename T, typename L>

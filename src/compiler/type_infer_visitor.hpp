@@ -205,18 +205,13 @@ struct TypeInferer {
       return types::Array{std::visit(*this, a.elem_type), a.size};
     }
     types::Value operator()(types::Tuple& a) {
-      std::vector<types::Value> res;
-      std::transform(a.arg_types.begin(), a.arg_types.end(), std::back_inserter(res),
-                     [&](types::Value& v) { return std::visit(*this, v); });
-      return types::Tuple{std::move(res)};
+      return types::Tuple{fmap(a.arg_types, [&](types::Value v) { return std::visit(*this, v); })};
     }
     types::Value operator()(types::Struct& a) {
-      std::vector<types::Struct::Keytype> res;
-      std::transform(a.arg_types.begin(), a.arg_types.end(), std::back_inserter(res),
-                     [&](types::Struct::Keytype& v) {
-                       return types::Struct::Keytype{v.field, std::visit(*this, v.val)};
-                     });
-      return types::Struct{std::move(res)};
+      using ktype = types::Struct::Keytype;
+      return types::Struct{fmap(a.arg_types, [&](ktype v) {
+        return ktype{v.field, std::visit(*this, v.val)};
+      })};
     }
 
     types::Value operator()(types::Alias& a) {
@@ -245,9 +240,7 @@ struct TypeInferer {
         statementvisitor(*this),
         unifyvisitor(*this),
         substitutevisitor(*this) {
-    for (const auto& [key, val] : LLVMBuiltin::ftable) {
-      typeenv.emplace(key, val.mmmtype);
-    }
+    for (const auto& [key, val] : LLVMBuiltin::ftable) { typeenv.emplace(key, val.mmmtype); }
     typeenv.emplace("mimium_getnow", types::Function{types::Float{}, {}});
   }
   // entry point.

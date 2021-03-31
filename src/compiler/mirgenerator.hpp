@@ -152,14 +152,6 @@ class MirGenerator {
   std::pair<optvalptr, mir::blockptr> generateBlock(ast::Block& block, std::string label,
                                                     optvalptr const& fnctx);
 
-  // expect return value
-  // auto emplaceExpr(mir::Instructions&& inst) { return require(emplace(std::move(inst))); }
-  template <typename FROM, typename TO, class LAMBDA>
-  auto transformArgs(FROM&& from, TO&& to, LAMBDA&& op) -> decltype(to) {
-    std::transform(from.begin(), from.end(), std::back_inserter(to), op);
-    return std::forward<decltype(to)>(to);
-  }
-
   optvalptr genIfInst(ast::If& ast);
 
   static bool isPassByValue(types::Value const& type);
@@ -181,8 +173,8 @@ class MirGenerator {
   // // unpack optional value ptr, and throw error if it does not exist.
   static mir::valueptr require(optvalptr const& v);
 
-  std::function<std::shared_ptr<mir::Argument>(ast::DeclVar&)> make_arguments =
-      [&](ast::DeclVar& lvar) {
+  std::function<std::shared_ptr<mir::Argument>(ast::DeclVar)>  make_arguments =
+      [&](ast::DeclVar lvar) {
         auto& name = lvar.value.value;
         auto type = typeenv.find(name);
         if (!isPassByValue(type)) { type = types::makePointer(type); }

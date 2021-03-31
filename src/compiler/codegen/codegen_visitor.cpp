@@ -503,9 +503,8 @@ llvm::Value* CodeGenVisitor::operator()(minst::MakeClosure& i) {
 llvm::Value* CodeGenVisitor::operator()(minst::Array& i) {
   auto* atype = G.getArrayType(i.type);
   auto* gvalue = llvm::cast<llvm::GlobalVariable>(G.module->getOrInsertGlobal(i.name, atype));
-  std::vector<llvm::Constant*> values = {};
-  std::transform(i.args.cbegin(), i.args.cend(), std::back_inserter(values),
-                 [&](mir::valueptr v) { return llvm::cast<llvm::Constant>(getLlvmVal(v)); });
+  auto values =
+      fmap(i.args, [&](mir::valueptr v) { return llvm::cast<llvm::Constant>(getLlvmVal(v)); });
   auto* constantarray = llvm::ConstantArray::get(atype, values);
   gvalue->setInitializer(constantarray);
   return gvalue;

@@ -123,11 +123,10 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Self& /*ast*/) {
   return std::make_shared<mir::Value>(std::move(self));
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::Lambda& ast) {
-  auto args = std::list<std::shared_ptr<mir::Argument>>{};
   auto label = lvar_holder.has_value() ? lvar_holder.value() : mirgen.makeNewName();
   auto fun = minst::Function{
       {label, types::None{}},
-      mir::FnArgs{std::nullopt, mirgen.transformArgs(ast.args.args, args, mirgen.make_arguments)}};
+      mir::FnArgs{std::nullopt, fmap<std::deque, std::list>(ast.args.args, mirgen.make_arguments)}};
   auto resptr = emplace(std::move(fun));
   auto [blockret, body] = mirgen.generateBlock(ast.body, label, resptr);
   auto rettype = blockret ? getType(*blockret.value()) : types::Void{};
@@ -147,13 +146,15 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Lambda& ast) {
 
   // convert function form for values of pass-by-reference.
   // passing aggregate type values to function as an argument will be passed by reference.
-  // However, if the values are returned as return value, it will be copied( to prevent from complex lifetime management).
+  // However, if the values are returned as return value, it will be copied( to prevent from complex
+  // lifetime management).
   if (!isPassByValue(rettype) || ptrtype != nullptr) {
     auto& retval = mir::getInstRef<minst::Return>(*retinst_iter).val;
     auto loadinst = mir::addInstToBlock(minst::Load{{label + "_res", rettype}, retval}, fref.body);
-    // auto loadinst2 = mir::addInstToBlock(minst::Load{{label + "_res", rettype}, loadinst}, fref.body);
-    fref.args.ret_ptr = std::make_shared<mir::Argument>(
-        mir::Argument{label + "_retptr", rettype, resptr});
+    // auto loadinst2 = mir::addInstToBlock(minst::Load{{label + "_res", rettype}, loadinst},
+    // fref.body);
+    fref.args.ret_ptr =
+        std::make_shared<mir::Argument>(mir::Argument{label + "_retptr", rettype, resptr});
     fref.body->instructions.erase(retinst_iter);
     mir::addInstToBlock(minst::Store{{"store", types::Void{}},
                                      std::make_shared<mir::Value>(fref.args.ret_ptr.value()),
@@ -248,10 +249,9 @@ mir::valueptr ExprKnormVisitor::operator()(ast::StructAccess& ast) {
 mir::valueptr ExprKnormVisitor::operator()(ast::ArrayInit& ast) {
   auto lvname = mirgen.makeNewName();
 
-  std::vector<mir::valueptr> newelems;
   types::Value lasttype;
-  std::transform(ast.args.begin(), ast.args.end(), std::back_inserter(newelems),
-                 [&](ast::ExprPtr e) { return genInst(e); });
+  auto newelems =
+      fmap<std::deque, std::vector>(ast.args, [&](ast::ExprPtr e) { return genInst(e); });
   auto newname = mirgen.makeNewName();
   auto type = types::Array{mir::getType(*newelems[0]), static_cast<int>(newelems.size())};
 
