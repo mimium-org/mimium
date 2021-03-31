@@ -511,8 +511,8 @@ llvm::Value* CodeGenVisitor::operator()(minst::Array& i) {
   return gvalue;
 }
 llvm::Value* CodeGenVisitor::operator()(minst::ArrayAccess& i) {
-  auto* targetp = getLlvmVal(i.target);
-  llvm::Value* target = G.builder->CreateLoad(targetp);
+  auto* target = getLlvmVal(i.target);
+  // llvm::Value* target = G.builder->CreateLoad(targetp);
   auto* index = getLlvmVal(i.index);
   auto* arraccessfun = G.module->getFunction("access_array_lin_interp");
   auto* dptrty = arraccessfun->getArg(0)->getType();

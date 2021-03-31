@@ -145,12 +145,15 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Lambda& ast) {
          mir::isInstA<minst::Return>(*retinst_iter));
   auto* ptrtype = std::get_if<types::rPointer>(&rettype);
 
-  // convert function form for values of pass-by-reference
+  // convert function form for values of pass-by-reference.
+  // passing aggregate type values to function as an argument will be passed by reference.
+  // However, if the values are returned as return value, it will be copied( to prevent from complex lifetime management).
   if (!isPassByValue(rettype) || ptrtype != nullptr) {
     auto& retval = mir::getInstRef<minst::Return>(*retinst_iter).val;
     auto loadinst = mir::addInstToBlock(minst::Load{{label + "_res", rettype}, retval}, fref.body);
+    // auto loadinst2 = mir::addInstToBlock(minst::Load{{label + "_res", rettype}, loadinst}, fref.body);
     fref.args.ret_ptr = std::make_shared<mir::Argument>(
-        mir::Argument{label + "_retptr", types::Pointer{rettype}, resptr});
+        mir::Argument{label + "_retptr", rettype, resptr});
     fref.body->instructions.erase(retinst_iter);
     mir::addInstToBlock(minst::Store{{"store", types::Void{}},
                                      std::make_shared<mir::Value>(fref.args.ret_ptr.value()),
@@ -259,8 +262,8 @@ mir::valueptr ExprKnormVisitor::operator()(ast::ArrayAccess& ast) {
   types::Value rettype;
   auto type = mir::getType(*array);
   assert(std::holds_alternative<types::rPointer>(type));
-  auto pvtype = rv::get<types::Pointer>(type).val;
-  auto vtype = rv::get<types::Pointer>(pvtype).val;
+  // auto pvtype = rv::get<types::Pointer>(type).val;
+  auto vtype = rv::get<types::Pointer>(type).val;
   if (std::holds_alternative<types::rArray>(vtype)) {
     rettype = rv::get<types::Array>(vtype).elem_type;
   } else if (std::holds_alternative<types::Float>(vtype)) {
