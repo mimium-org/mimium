@@ -77,3 +77,4 @@ REGRESSION(arrayreturn, "100\n200\n300\n400\n500\n")
 REGRESSION(arraylvar, "600\n700\n800\n")
 
 REGRESSION(structtype, "999\n")
+REGRESSION(typealias, "100\n200\n100\n")
