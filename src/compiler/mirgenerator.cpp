@@ -61,7 +61,9 @@ std::pair<optvalptr, mir::blockptr> MirGenerator::generateBlock(ast::Block& bloc
 }
 
 bool MirGenerator::isPassByValue(types::Value const& type) {
-  return !(rv::holds_alternative<types::Tuple>(type) || rv::holds_alternative<types::Array>(type));
+  if (types::isA<types::rAlias>(type)) { return isPassByValue(rv::get<types::Alias>(type).target); }
+  return !(rv::holds_alternative<types::Tuple>(type) ||
+           rv::holds_alternative<types::Struct>(type) || rv::holds_alternative<types::Array>(type));
 }
 
 mir::valueptr ExprKnormVisitor::emplace(mir::Instructions&& inst) {
@@ -69,11 +71,8 @@ mir::valueptr ExprKnormVisitor::emplace(mir::Instructions&& inst) {
 }
 
 mir::valueptr ExprKnormVisitor::genAllocate(std::string const& name, types::Value const& type) {
-  auto ptrty = types::makePointer(type);
-  if (!isPassByValue(type)) {
-    return emplace(mir::instruction::Allocate{{name, types::makePointer(std::move(ptrty))}});
-  }
-  return emplace(mir::instruction::Allocate{{name, std::move(ptrty)}});
+  auto ptrty = types::makePointer(mir::lowerType(type));
+  return emplace(mir::instruction::Allocate{{name, (std::move(ptrty))}});
 }
 
 mir::valueptr ExprKnormVisitor::operator()(ast::Op& ast) {
@@ -124,17 +123,19 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Self& /*ast*/) {
   return std::make_shared<mir::Value>(std::move(self));
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::Lambda& ast) {
-  auto args = std::list<std::shared_ptr<mir::Argument>>{};
   auto label = lvar_holder.has_value() ? lvar_holder.value() : mirgen.makeNewName();
   auto fun = minst::Function{
       {label, types::None{}},
-      mir::FnArgs{std::nullopt, mirgen.transformArgs(ast.args.args, args, mirgen.make_arguments)}};
+      mir::FnArgs{std::nullopt, fmap<std::deque, std::list>(ast.args.args, mirgen.make_arguments)}};
   auto resptr = emplace(std::move(fun));
   auto [blockret, body] = mirgen.generateBlock(ast.body, label, resptr);
   auto rettype = blockret ? getType(*blockret.value()) : types::Void{};
   auto& fref = mir::getInstRef<minst::Function>(resptr);
 
   for (auto& a : fref.args.args) { a->parentfn = resptr; }
+  auto srctype = types::Function{
+      rettype, fmap<std::list, std::vector>(fref.args.args, [](auto a) { return a->type; })};
+  fref.type = mir::lowerType(srctype);
 
   fref.body = body;
 
@@ -143,30 +144,23 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Lambda& ast) {
          mir::isInstA<minst::Return>(*retinst_iter));
   auto* ptrtype = std::get_if<types::rPointer>(&rettype);
 
+  // convert function form for values of pass-by-reference.
+  // passing aggregate type values to function as an argument will be passed by reference.
+  // However, if the values are returned as return value, it will be copied( to prevent from complex
+  // lifetime management).
   if (!isPassByValue(rettype) || ptrtype != nullptr) {
-    if (ptrtype != nullptr) {
-      assert(!isPassByValue(ptrtype->getraw().val));
-      rettype = ptrtype->getraw().val;
-    }
-
     auto& retval = mir::getInstRef<minst::Return>(*retinst_iter).val;
     auto loadinst = mir::addInstToBlock(minst::Load{{label + "_res", rettype}, retval}, fref.body);
-    auto retptr = std::make_shared<mir::Argument>(
-        mir::Argument{label + "_retptr", types::Pointer{rettype}, resptr});
-    fref.args.ret_ptr = std::move(retptr);
+    // auto loadinst2 = mir::addInstToBlock(minst::Load{{label + "_res", rettype}, loadinst},
+    // fref.body);
+    fref.args.ret_ptr =
+        std::make_shared<mir::Argument>(mir::Argument{label + "_retptr", rettype, resptr});
     fref.body->instructions.erase(retinst_iter);
     mir::addInstToBlock(minst::Store{{"store", types::Void{}},
                                      std::make_shared<mir::Value>(fref.args.ret_ptr.value()),
                                      loadinst},
                         fref.body);
-    rettype = types::Void{};
   }
-  auto argtypes = std::vector<types::Value>{};
-  if (fref.args.ret_ptr) { argtypes.emplace_back(mir::getType(fref.args.ret_ptr.value())); }
-  mirgen.transformArgs(fref.args.args, argtypes,
-                       [&](std::shared_ptr<mir::Argument> a) { return a->type; });
-
-  fref.type = types::Function{rettype, std::move(argtypes)};
   return resptr;
 }
 mir::valueptr ExprKnormVisitor::genFcallInst(ast::Fcall& fcall, optvalptr const& when) {
@@ -187,8 +181,8 @@ mir::valueptr ExprKnormVisitor::genFcallInst(ast::Fcall& fcall, optvalptr const&
   auto newname = mirgen.makeNewName();
   bool is_fn_ext = std::holds_alternative<mir::ExternalSymbol>(*fnptr);
   auto fnkind = is_fn_ext && !is_fn_recursive ? EXTERNAL : CLOSURE;
-  auto args = mirgen.transformArgs(fcall.args.args, std::list<mir::valueptr>{},
-                                   [&](auto expr) { return genInst(expr); });
+  auto args =
+      fmap<std::deque, std::list>(fcall.args.args, [&](auto expr) { return genInst(expr); });
   types::Value rettype = types::None{};
   if (!is_fn_recursive) {
     auto ftype = mir::getType(*fnptr);
@@ -209,21 +203,55 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Fcall& ast) {
   return genFcallInst(ast, std::nullopt);
 }
 
-mir::valueptr ExprKnormVisitor::operator()(ast::Struct& /*ast*/) {
-  // TODO(tomoya)
-  return nullptr;
+mir::valueptr ExprKnormVisitor::genExprArray(std::deque<ast::ExprPtr> const& args) {
+  auto lvname = mirgen.makeNewName();
+  std::vector<mir::valueptr> newelems;
+  std::vector<types::Value> types;
+  for (const auto& a : args) {
+    auto arg = genInst(a);
+    newelems.emplace_back(arg);
+    auto type = mir::getType(*arg);
+    if (!isPassByValue(type)) { type = types::makePointer(type); }
+    types.emplace_back(mir::getType(*arg));
+  }
+  // even if original value is struct type,
+  // it is no more problem to use tuple type because field name is no longer used.
+  types::Value rettype = types::Tuple{{types}};
+  mir::valueptr lvar = emplace(minst::Allocate{{lvname + "_ref", types::Pointer{rettype}}});
+  int count = 0;
+  for (auto& elem : newelems) {
+    auto newlvname = mirgen.makeNewName();
+    auto index = std::make_shared<mir::Value>(mir::Constants{static_cast<double>(count)});
+    auto ptrtostore = emplace(minst::Field{{newlvname, types[count]}, lvar, std::move(index)});
+    emplace(minst::Store{{newlvname, types[count]}, ptrtostore, elem});
+    count++;
+  }
+  return lvar;
 }
-mir::valueptr ExprKnormVisitor::operator()(ast::StructAccess& /*ast*/) {
-  // TODO(tomoya)
-  return nullptr;
+
+mir::valueptr ExprKnormVisitor::operator()(ast::Struct& ast) { return genExprArray(ast.args); }
+mir::valueptr ExprKnormVisitor::operator()(ast::StructAccess& ast) {
+  auto lvname = mirgen.makeNewName();
+  auto target = genInst(ast.stru);
+
+  auto type = mir::getType(*target);
+  assert(rv::holds_alternative<types::Pointer>(type) &&
+         rv::holds_alternative<types::Struct>(rv::get<types::Pointer>(type).val));
+  auto& strtype = rv::get<types::Struct>(rv::get<types::Pointer>(type).val);
+  auto [index, fieldtype] = types::getField(strtype, ast.field);
+  auto ptr = emplace(minst::Field{
+      {lvname, fieldtype}, target, std::make_shared<mir::Value>(mir::Constants(index))});
+  if (isPassByValue(fieldtype)) {
+    return emplace(minst::Load{{mirgen.makeNewName(), fieldtype}, ptr});
+  }
+  return ptr;
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::ArrayInit& ast) {
   auto lvname = mirgen.makeNewName();
 
-  std::vector<mir::valueptr> newelems;
   types::Value lasttype;
-  std::transform(ast.args.begin(), ast.args.end(), std::back_inserter(newelems),
-                 [&](ast::ExprPtr e) { return genInst(e); });
+  auto newelems =
+      fmap<std::deque, std::vector>(ast.args, [&](ast::ExprPtr e) { return genInst(e); });
   auto newname = mirgen.makeNewName();
   auto type = types::Array{mir::getType(*newelems[0]), static_cast<int>(newelems.size())};
 
@@ -234,6 +262,7 @@ mir::valueptr ExprKnormVisitor::operator()(ast::ArrayAccess& ast) {
   types::Value rettype;
   auto type = mir::getType(*array);
   assert(std::holds_alternative<types::rPointer>(type));
+  // auto pvtype = rv::get<types::Pointer>(type).val;
   auto vtype = rv::get<types::Pointer>(type).val;
   if (std::holds_alternative<types::rArray>(vtype)) {
     rettype = rv::get<types::Array>(vtype).elem_type;
@@ -247,29 +276,7 @@ mir::valueptr ExprKnormVisitor::operator()(ast::ArrayAccess& ast) {
   return emplace(minst::ArrayAccess{{newname, rettype}, array, index});
 }
 
-mir::valueptr ExprKnormVisitor::operator()(ast::Tuple& ast) {
-  auto lvname = mirgen.makeNewName();
-  std::vector<mir::valueptr> newelems;
-  std::vector<types::Value> tupletypes;
-  for (auto& a : ast.args) {
-    auto arg = genInst(a);
-    newelems.emplace_back(arg);
-    tupletypes.emplace_back(mir::getType(*arg));
-  }
-  types::Value rettype = types::Tuple{{tupletypes}};
-  mir::valueptr lvar = emplace(minst::Allocate{{lvname + "_ref", types::Pointer{rettype}}});
-  int count = 0;
-  for (auto& elem : newelems) {
-    auto newlvname = mirgen.makeNewName();
-    auto index = std::make_shared<mir::Value>(mir::Constants{static_cast<double>(count)});
-    auto ptrtostore = emplace(minst::Field{{newlvname, tupletypes[count]}, lvar, std::move(index)});
-    emplace(minst::Store{{newlvname, tupletypes[count]}, ptrtostore, elem});
-    count++;
-  }
-  // mir::valueptr res = emplace(minst::Load{{lvname, rettype}, lvar});
-
-  return lvar;
-}
+mir::valueptr ExprKnormVisitor::operator()(ast::Tuple& ast) { return genExprArray(ast.args); }
 
 mir::valueptr ExprKnormVisitor::operator()(ast::Block& ast) {
   StatementKnormVisitor svisitor(*this);
@@ -366,7 +373,7 @@ void StatementKnormVisitor::operator()(ast::Return& ast) {
   this->retvalue =
       exprvisitor.emplace(minst::Return{{exprvisitor.mirgen.makeNewName(), type}, val});
 }
-// Instructions StatementKnormVisitor::operator()(ast::Declaration& ast){}
+void StatementKnormVisitor::operator()(ast::TypeAssign& ast) {}
 void StatementKnormVisitor::operator()(ast::For& /*ast*/) {
   // TODO(tomyoa)
 }

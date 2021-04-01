@@ -1,0 +1,12 @@
+type stereo = (float,float)
+
+type composite = {signal:stereo , id:float}
+fn test2(){
+    ogya = composite{(100,200), 100}
+    ho,fu = ogya.signal
+    he = ogya.id
+    println(ho)
+    println(fu)
+    println(he)
+}
+test2()

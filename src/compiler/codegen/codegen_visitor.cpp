@@ -503,15 +503,15 @@ llvm::Value* CodeGenVisitor::operator()(minst::MakeClosure& i) {
 llvm::Value* CodeGenVisitor::operator()(minst::Array& i) {
   auto* atype = G.getArrayType(i.type);
   auto* gvalue = llvm::cast<llvm::GlobalVariable>(G.module->getOrInsertGlobal(i.name, atype));
-  std::vector<llvm::Constant*> values = {};
-  std::transform(i.args.cbegin(), i.args.cend(), std::back_inserter(values),
-                 [&](mir::valueptr v) { return llvm::cast<llvm::Constant>(getLlvmVal(v)); });
+  auto values =
+      fmap(i.args, [&](mir::valueptr v) { return llvm::cast<llvm::Constant>(getLlvmVal(v)); });
   auto* constantarray = llvm::ConstantArray::get(atype, values);
   gvalue->setInitializer(constantarray);
   return gvalue;
 }
 llvm::Value* CodeGenVisitor::operator()(minst::ArrayAccess& i) {
   auto* target = getLlvmVal(i.target);
+  // llvm::Value* target = G.builder->CreateLoad(targetp);
   auto* index = getLlvmVal(i.index);
   auto* arraccessfun = G.module->getFunction("access_array_lin_interp");
   auto* dptrty = arraccessfun->getArg(0)->getType();

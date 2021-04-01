@@ -6,14 +6,17 @@
 #include <cassert>
 #include <memory>
 #include <variant>
+
 template <class... Ts>
 struct overloaded : Ts... {
   using Ts::operator()...;
 };
 template <class... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
+
 namespace mimium {
 // recursive variant
+
 template <typename T>
 struct Box {
   // construct from an existing object
@@ -33,6 +36,8 @@ struct Box {
   std::shared_ptr<T> t;
 };
 
+
+
 template <typename T>
 inline bool operator==(const Box<T>& t1, const Box<T>& t2) {
   return static_cast<const T&>(t1) == static_cast<const T&>(t2);
@@ -41,6 +46,18 @@ template <typename T>
 inline bool operator!=(const Box<T>& t1, const Box<T>& t2) {
   return !(t1 == t2);
 }
+
+template <class... Ts>
+struct overloaded_rec: Ts... {
+  using Ts::operator()...;
+  template <typename T>
+  auto operator()(Box<T> a) {
+    return (*this)(a.getraw());
+  }
+};
+template <class... Ts>
+overloaded_rec(Ts...) -> overloaded_rec<Ts...>;
+
 
 template <typename RETTYPE>
 class VisitorBase {

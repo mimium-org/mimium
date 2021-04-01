@@ -59,6 +59,7 @@ class SymbolRenamer {
     explicit StatementRenameVisitor(SymbolRenamer& parent) : renamer(parent){};
     SymbolRenamer& renamer;
     StatementPtr operator()(ast::Assign& ast);
+    StatementPtr operator()(ast::TypeAssign& ast);
     StatementPtr operator()(ast::Fdef& ast);
 
     StatementPtr operator()(ast::Return& ast);

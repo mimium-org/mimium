@@ -99,6 +99,7 @@ namespace mimium{
    TYPEVOID "typeid:void"
    TYPEFN "typeid:fn"
    TYPESTRING "typeid:string"
+   TYPEIDENT "type identifier"
 
    INCLUDE "include"
 
@@ -122,9 +123,11 @@ namespace mimium{
 %type <types::Value> fntype "fn type"
 %type <types::Value> reftype "ref type"
 %type <types::Value> tupletype "tuple type"
-
+%type <types::Value> structtype "struct type"
 %type <std::vector<types::Value>> typeargs "typeargs"
-
+%type <std::vector<types::Struct::Keytype>> strutypeargs "struct args"
+%type <types::Struct::Keytype> strutypearg "struct arg"
+%type <ast::TypeAssign> typedecl "typedecl"
 
 %type <ast::Number> num "number"
 
@@ -175,7 +178,8 @@ namespace mimium{
 
 
 %type <ast::ArrayAccess> array_access "array access"
-
+%type <ast::Struct> structconstruct "struct"
+%type <ast::StructAccess> structaccess "struct access"
 
 %type <ast::Assign> assign "assign"
 // Syntax Sugar 
@@ -229,6 +233,7 @@ namespace mimium{
 
 %left ','
 %left '&'
+%left '.'
 
 %nonassoc '{' '}'
 
@@ -286,6 +291,7 @@ primtypes:   TYPEFLOAT {$$ =types::Float{};}
            | TYPESTRING  {$$ = types::String{};}
 
 reftype: types AND {$$ = types::Ref{std::move($1)};} 
+
 fntype: '(' typeargs ')' ARROW types { $$ = types::Function{std::move($5),std::move($2)};}
 tupletype: '(' typeargs ')' { $$ = types::Tuple{std::move($2)}; }
 
@@ -293,11 +299,23 @@ typeargs:  typeargs ',' types { $1.emplace_back(std::move($3));
                                 $$ = std::move($1); }
       |    types { $$ = std::vector<types::Value>{$1};}
       
+structtype: LBRACE strutypeargs RBRACE { $$ = types::Struct{std::move($2)}; }
+
+strutypeargs : strutypeargs ',' strutypearg { $1.emplace_back(std::move($3));$$ = std::move($1); }
+            | strutypearg {$$ = std::vector<types::Struct::Keytype>{$1}; }
+strutypearg : SYMBOL TYPE_DELIM types { $$ = types::Struct::Keytype{std::move($1),std::move($3)}; }
+
 types: 
         primtypes  { $$=std::move($1);}
       | reftype    { $$=std::move($1);}
       | fntype     { $$=std::move($1);}
       | tupletype  { $$=std::move($1);}
+      | structtype { $$=std::move($1);}
+      | SYMBOL     { $$=types::Alias{std::move($1),types::None{}};}
+
+// Type Declaration
+
+typedecl: TYPEIDENT SYMBOL ASSIGN types {$$ = ast::TypeAssign{{@$,"typeassign"},std::move($2),std::move($4)}; }
 
 // Expression Section
 // temporarily debug symbol for aggregate ast is disabled
@@ -359,6 +377,9 @@ array_access: expr '[' expr ']' {
       // @$ = {@1.first_line,@1.first_col,@4.last_line,@4.last_col};
       $$ = ast::ArrayAccess{{@$,"arrayaccess"},std::move($1),std::move($3)};}
 
+structconstruct: SYMBOL LBRACE tupleargs RBRACE {$$ =ast::Struct{{@$,"struct"},std::move($1),std::move($3)};}
+structaccess: expr '.' SYMBOL {$$ = ast::StructAccess{{@$,"structaccess"},std::move($1),std::move($3)};}
+
 tupleargs: expr ',' expr {$$ = std::deque<ast::ExprPtr>{std::move($1),std::move($3)};}
       |     tupleargs ',' expr {$1.emplace_back(std::move($3));
                               $$ = std::move($1);}%prec TUPLE
@@ -399,24 +420,21 @@ ifstmt: IF cond expr   {$$ = ast::If{{@$,"if"},std::move($2),std::move($3),std::
    |IF cond expr ELSE expr {$$ = ast::If{{@$,"if"},std::move($2),std::move($3),std::move($5)};} %prec ELSE_EXPR
 
 
-
-
-
-expr_non_fcall:op      {$$ = ast::makeExpr($1);}
-      |    array     {$$ = ast::makeExpr($1);}
-      | array_access {$$ = ast::makeExpr($1);}
-      |     tuple    {$$ = ast::makeExpr($1);}%prec TUPLE
-      |    lambda    {$$ = ast::makeExpr($1);}
-      |    single    {$$ = std::move($1);}
-      |'(' expr ')' {$$ = std::move($2);}
+expr_non_fcall:op       {$$ = ast::makeExpr($1);}
+      |    array        {$$ = ast::makeExpr($1);}
+      | array_access    {$$ = ast::makeExpr($1);}
+      | structconstruct {$$ = ast::makeExpr($1);}
+      | structaccess    {$$ = ast::makeExpr($1);}
+      |     tuple       {$$ = ast::makeExpr($1);}%prec TUPLE
+      |    lambda       {$$ = ast::makeExpr($1);}
+      |    single       {$$ = std::move($1);}
+      |'(' expr ')'     {$$ = std::move($2);}
       // | term {$$ = std::move($1);}
 
 expr: expr_non_fcall {$$ = std::move($1);}
       |fcall {$$ = ast::makeExpr($1);} %prec FCALL
       |    ifstmt   {$$ = ast::makeExpr($1);} %prec ELSE_EXPR
       |    block     {$$ = ast::makeExpr($1);}
-
-// term: '(' expr ')' {$$ = std::move($2);}
 
 
 // Statements 
@@ -450,14 +468,13 @@ statements: opt_nl statement{  $$ = std::deque<std::shared_ptr<ast::Statement>>{
                                           $$= std::move($1);  }
             
 statement: assign       {$$=ast::makeStatement(std::move($1));} 
+          |typedecl     {$$=ast::makeStatement(std::move($1));} 
           |fdef         {$$=ast::makeStatement(std::move($1));}
           |forloop      {$$=ast::makeStatement(std::move($1));}
-      //     |declaration  {$$=ast::makeStatement(std::move($1));}
-          |RETURN expr  {auto ret = ast::Return{{@$,"ret"},std::move($2)};
-                         $$=ast::makeStatement(std::move(ret));}
-          |fcalltime     {$$=ast::makeStatement(std::move($1));}
-          |fcall         {$$=ast::makeStatement(std::move($1));}
-          |ifstmt         {$$=ast::makeStatement(std::move($1));}
+          |RETURN expr  {$$=ast::makeStatement(ast::Return{{@$,"ret"},std::move($2)});}
+          |fcalltime    {$$=ast::makeStatement(std::move($1));}
+          |fcall        {$$=ast::makeStatement(std::move($1));}
+          |ifstmt       {$$=ast::makeStatement(std::move($1));}
 
 
 block: LBRACE   statements newlines expr_non_fcall opt_nl RBRACE {$$ = ast::Block{{@$,"block"},std::move($2),std::optional(std::move($4))};}

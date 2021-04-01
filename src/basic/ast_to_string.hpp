@@ -49,6 +49,7 @@ struct AstStringifier : public ToStringVisitor {
   void operator()(const ast::DeclVar& ast);
 
   void operator()(const ast::Assign& ast);
+  void operator()(const ast::TypeAssign& ast);
   void operator()(const ast::Return& ast);
   void operator()(const ast::Fdef& ast);
   void operator()(const ast::Time& ast);

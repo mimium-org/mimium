@@ -102,10 +102,10 @@ ast::ExprPtr ExprRenameVisitor::operator()(ast::Fcall& ast) {
 ast::ExprPtr ExprRenameVisitor::operator()(ast::Struct& ast) {
   auto newargs =
       ast::transformArgs(ast.args, [&](ast::ExprPtr e) { return renamer.renameExpr(e); });
-  return ast::makeExpr(ast::Struct{{{ast.debuginfo}}, std::move(newargs)});
+  return ast::makeExpr(ast::Struct{{{ast.debuginfo}}, ast.typesymbol, std::move(newargs)});
 }
 ast::ExprPtr ExprRenameVisitor::operator()(ast::StructAccess& ast) {
-  return ast::makeExpr(ast::StructAccess{{{ast.debuginfo}}, rename(ast.stru), rename(ast.field)});
+  return ast::makeExpr(ast::StructAccess{{{ast.debuginfo}}, rename(ast.stru), ast.field});
 }
 ast::ExprPtr ExprRenameVisitor::operator()(ast::ArrayInit& ast) {
   auto newargs =
@@ -160,6 +160,9 @@ StatementPtr StatementRenameVisitor::operator()(ast::Assign& ast) {
   auto newlvar = renamer.renameLvar(ast.lvar);
   auto newrvar = renamer.renameExpr(ast.expr);
   return ast::makeStatement(ast::Assign{{{ast.debuginfo}}, std::move(newlvar), std::move(newrvar)});
+}
+StatementPtr StatementRenameVisitor::operator()(ast::TypeAssign& ast) {
+  return ast::makeStatement(ast);
 }
 StatementPtr StatementRenameVisitor::operator()(ast::Return& ast) {
   return ast::makeStatement(ast::Return{{{ast.debuginfo}}, renamer.renameExpr(ast.value)});

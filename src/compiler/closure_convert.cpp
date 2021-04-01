@@ -140,9 +140,7 @@ void ClosureConverter::CCVisitor::operator()(minst::Function& i) {
     }
     ++it;
   }
-  std::vector<mir::valueptr> fvsetvec;
-  std::transform(ccvis.fvset.begin(), ccvis.fvset.end(), std::back_inserter(fvsetvec),
-                 [](auto& i) { return i; });
+  auto fvsetvec = fmap<std::set,std::vector>(ccvis.fvset,[](auto i){return i;});
   i.freevariables = fvsetvec;  // copy;
   // do not use auto here, move happens...
   types::Alias fvtype{cc.makeCaptureName(), types::Tuple{fvtype_inside}};
