@@ -93,6 +93,9 @@ jobs:
       - name: Get the version
         id: get_version
         run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+      - name: Get checksum
+        id: get_checksum
+        run: echo ::set-output name=CHECKSUM::$(sha256sum ./build/mimium-${{ steps.get_version.outputs.VERSION }}-${{ matrix.zip_postfix }}.zip)
 
       - name: Upload Compiled Binary
         id: upload-release-asset
@@ -104,5 +107,27 @@ jobs:
           asset_path: ./build/mimium-${{ steps.get_version.outputs.VERSION }}-${{ matrix.zip_postfix }}.zip
           asset_name: mimium-${{ steps.get_version.outputs.VERSION }}-${{ matrix.zip_postfix }}.zip
           asset_content_type: application/zip
-
+  publish_aur: 
+    name: "Publish Arch User Repository Package"
+    runs-on : ubuntu-20.04
+    needs: build_and_upload
+    steps:
+      - uses: actions/checkout@v2
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+      - name: Generate PKGBUILD
+        run: |
+          cat ./PKGBUILD.template.txt | sed -e 's/#pkgver_template/${{ steps.get_version.outputs.VERSION }}/g' -e 's/#sha256_template/${{ steps.get_checksum.outputs.CHECKSUM }}/g' > PKGBUILD
+        hoge
+      - name: Publish AUR package
+        uses: KSXGitHub/github-actions-deploy-aur@latest
+        with:
+          pkgname: mimium
+          pkgbuild: ./PKGBUILD
+          commit_username: ${{ secrets.AUR_USERNAME }}
+          commit_email: ${{ secrets.AUR_EMAIL }}
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          commit_message: Update AUR package
+          ssh_keyscan_types: rsa,dsa,ecdsa,ed25519
   
