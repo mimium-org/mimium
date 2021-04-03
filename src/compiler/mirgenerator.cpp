@@ -62,8 +62,7 @@ std::pair<optvalptr, mir::blockptr> MirGenerator::generateBlock(ast::Block& bloc
 
 bool MirGenerator::isPassByValue(types::Value const& type) {
   if (types::isA<types::rAlias>(type)) { return isPassByValue(rv::get<types::Alias>(type).target); }
-  return !(rv::holds_alternative<types::Tuple>(type) ||
-           rv::holds_alternative<types::Struct>(type) || rv::holds_alternative<types::Array>(type));
+  return std::holds_alternative<types::Float>(type);
 }
 
 mir::valueptr ExprKnormVisitor::emplace(mir::Instructions&& inst) {
@@ -148,7 +147,7 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Lambda& ast) {
   // passing aggregate type values to function as an argument will be passed by reference.
   // However, if the values are returned as return value, it will be copied( to prevent from complex
   // lifetime management).
-  if (!isPassByValue(rettype) || ptrtype != nullptr) {
+  if (!types::isA<types::Void>(rettype) && (!isPassByValue(rettype) || ptrtype != nullptr)) {
     auto& retval = mir::getInstRef<minst::Return>(*retinst_iter).val;
     auto loadinst = mir::addInstToBlock(minst::Load{{label + "_res", rettype}, retval}, fref.body);
     // auto loadinst2 = mir::addInstToBlock(minst::Load{{label + "_res", rettype}, loadinst},
@@ -185,8 +184,16 @@ mir::valueptr ExprKnormVisitor::genFcallInst(ast::Fcall& fcall, optvalptr const&
       fmap<std::deque, std::list>(fcall.args.args, [&](auto expr) { return genInst(expr); });
   types::Value rettype = types::None{};
   if (!is_fn_recursive) {
-    auto ftype = mir::getType(*fnptr);
-    rettype = rv::get<types::Function>(ftype).ret_type;
+    std::optional<types::rFunction> ftype_opt;
+    if (auto fptrty = types::getIf<types::rPointer>(mir::getType(*fnptr))) {
+      ftype_opt = types::getIf<types::rFunction>(fptrty.value().getraw().val);
+    } else {
+      ftype_opt = types::getIf<types::rFunction>(mir::getType(*fnptr));
+    }
+    assert(ftype_opt.has_value());
+    auto ftype = ftype_opt.value().getraw();
+
+    rettype = ftype.ret_type;
     if (mir::isInstA<minst::Function>(fnptr) &&
         mir::getInstRef<minst::Function>(fnptr).args.ret_ptr) {
       rettype = mir::getType(mir::getInstRef<minst::Function>(fnptr).args.ret_ptr.value());
@@ -235,16 +242,15 @@ mir::valueptr ExprKnormVisitor::operator()(ast::StructAccess& ast) {
   auto target = genInst(ast.stru);
 
   auto type = mir::getType(*target);
-  assert(rv::holds_alternative<types::Pointer>(type) &&
-         rv::holds_alternative<types::Struct>(rv::get<types::Pointer>(type).val));
-  auto& strtype = rv::get<types::Struct>(rv::get<types::Pointer>(type).val);
+  auto strtype_opt =
+      types::getIf<types::rStruct>(types::getIf<types::rPointer>(type).value().getraw().val);
+  assert(strtype_opt.has_value());
+  auto& strtype = strtype_opt.value().getraw();
   auto [index, fieldtype] = types::getField(strtype, ast.field);
-  auto ptr = emplace(minst::Field{
-      {lvname, fieldtype}, target, std::make_shared<mir::Value>(mir::Constants(index))});
-  if (isPassByValue(fieldtype)) {
-    return emplace(minst::Load{{mirgen.makeNewName(), fieldtype}, ptr});
-  }
-  return ptr;
+  auto lowtype = mir::lowerType(fieldtype);
+  auto ptr = emplace(
+      minst::Field{{lvname, lowtype}, target, std::make_shared<mir::Value>(mir::Constants(index))});
+  return emplace(minst::Load{{mirgen.makeNewName(), fieldtype}, ptr});
 }
 mir::valueptr ExprKnormVisitor::operator()(ast::ArrayInit& ast) {
   auto lvname = mirgen.makeNewName();
@@ -351,7 +357,7 @@ void AssignKnormVisitor::operator()(ast::TupleLvar& ast) {
   auto rvar = exprvisitor.genInst(expr);
   for (auto&& arg : ast.args) {
     auto& name = arg.value.value;
-    auto& type = mirgen.typeenv.find(name);
+    auto type = mirgen.typeenv.find(name);
     mir::valueptr lvar = exprvisitor.genAllocate(name + "_ptr", type);
     mirgen.symbol_table.emplace(name + "_ptr", lvar);
 
@@ -361,6 +367,18 @@ void AssignKnormVisitor::operator()(ast::TupleLvar& ast) {
     auto valtostore = exprvisitor.emplace(minst::Load{{mirgen.makeNewName(), type}, ptrtoval});
     exprvisitor.emplace(minst::Store{{name, type}, lvar, valtostore});
   }
+}
+void AssignKnormVisitor::operator()(ast::StructLvar& ast) {
+  auto rvar = exprvisitor.genInst(this->expr);
+  auto lvar = exprvisitor.genInst(ast.stru);
+  auto structty = types::getIf<types::rStruct>(
+      types::getIf<types::rPointer>(mir::getType(*lvar)).value().getraw().val);
+  assert(structty.has_value());
+  auto [idx, fieldty] = types::getField(structty.value(), ast.field.value);
+  auto name = mir::getName(*lvar) + "_" + ast.field.value;
+  auto address = exprvisitor.emplace(
+      minst::Field{{name, fieldty}, lvar, std::make_shared<mir::Value>(mir::Constants(idx))});
+  exprvisitor.emplace(minst::Store{{name, types::Void{}}, address, rvar});
 }
 
 void StatementKnormVisitor::operator()(ast::Assign& ast) {

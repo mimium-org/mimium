@@ -52,16 +52,16 @@ types::Value TypeInferer::inferFcall(ast::Fcall& fcall) {
 types::Value ExprTypeVisitor::operator()(ast::Fcall& ast) { return inferer.inferFcall(ast); }
 
 types::Value ExprTypeVisitor::operator()(ast::Struct& ast) {
-  std::vector<types::Struct::Keytype> argtypes;
-  auto iter = inferer.typeenv.alias_map.find(ast.typesymbol);
-  if (iter == inferer.typeenv.alias_map.cend()) { throw std::runtime_error("Unknown Type"); }
-  auto type = iter->second;
+  using ktype = types::Struct::Keytype;
+  auto type = inferer.tryGetAlias(ast.typesymbol);
   if (!rv::holds_alternative<types::Struct>(type)) {
     throw std::runtime_error("Alias type " + ast.typesymbol + " is not struct type.");
   }
   // type field name will be filled in unifying process
-  for (auto&& a : ast.args) { argtypes.push_back({"", std::visit(*this, *a)}); }
-  auto contenttype = types::Struct{std::move(argtypes)};
+
+  auto contenttype = types::Struct{fmap<std::deque, std::vector>(ast.args, [&](auto a) {
+    return ktype{"", std::visit(*this, *a)};
+  })};
   auto res = inferer.unify(contenttype, type);
   return res;
 }
@@ -74,9 +74,9 @@ types::Value ExprTypeVisitor::operator()(ast::StructAccess& ast) {
         "you cannot access to variables other than Struct type with dot "
         "operator.");
   }
-  types::Value strutype = is_alias ? rv::get<types::Alias>(type).target : type;
-  auto& stru = rv::get<types::Struct>(strutype);
-  auto [index, fieldtype] = types::getField(stru, ast.field);
+  auto stru_opt = inferer.getIf<types::rStruct>(type);
+  assert(stru_opt.has_value());
+  auto [index, fieldtype] = types::getField(stru_opt.value(), ast.field);
   return fieldtype;
 }
 types::Value ExprTypeVisitor::operator()(ast::ArrayInit& ast) {
@@ -139,7 +139,10 @@ void LvarTypeVisitor::operator()(ast::TupleLvar& ast) {
   types::Tuple tuplelvar{typevec};
   auto rvartype = inferer.inferExpr(rvar);
   inferer.unify(tuplelvar, rvartype);
-  auto rvartupletype = rv::get<types::Tuple>(rvartype);
+
+  auto rvartupletype_opt = types::getIf<types::rTuple>(rvartype);
+  assert(rvartupletype_opt.has_value());
+  auto rvartupletype = rvartupletype_opt.value().getraw();
   int count = 0;
   for (auto&& a : ast.args) {
     inferer.typeenv.emplace(a.value.value, rvartupletype.arg_types[count++]);
@@ -159,6 +162,18 @@ void LvarTypeVisitor::operator()(ast::ArrayLvar& ast) {
   auto rvartype = inferer.inferExpr(rvar);
   inferer.unify(lvartype, rvartype);
 }
+void LvarTypeVisitor::operator()(ast::StructLvar& ast) {
+  auto lvar = inferer.inferExpr(ast.stru);
+  auto sttype_opt = types::getIf<types::rStruct>(lvar);
+  if (!sttype_opt.has_value()) {
+    throw std::runtime_error("Struct type expected but actual type is" + types::toString(lvar));
+  }
+  auto [idx, fieldvalty] = types::getField(sttype_opt.value(), ast.field.value);
+
+  auto rvartype = inferer.inferExpr(rvar);
+  inferer.unify(fieldvalty, rvartype);
+}
+
 types::Value StatementTypeVisitor::operator()(ast::Assign& ast) {
   LvarTypeVisitor assignvisitor(inferer, ast.expr);
   std::visit(assignvisitor, ast.lvar);

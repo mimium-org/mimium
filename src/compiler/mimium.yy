@@ -133,6 +133,8 @@ namespace mimium{
 
 %type <ast::DeclVar> declvar "lvar variable declaration"
 %type <ast::ArrayLvar> arrayLvar "array access lvar"
+%type <ast::StructLvar> structLvar "struct access lvar"
+
 %type <std::deque<ast::DeclVar>> tuplelvar_args "tuplelvar_args"
 %type <ast::TupleLvar> tupleLvar "tuple unpack"
 
@@ -271,9 +273,14 @@ tupleLvar: tuplelvar_args {
       auto arg = std::deque<ast::DeclVar>{std::move($1)};
       $$ = ast::TupleLvar{{@$,"tuplelvar"},std::move(arg)};}
 
-lvar: declvar{ $$ = std::move($1);}
-     | arrayLvar{ $$ = std::move($1);}
-     | tupleLvar{ $$ = std::move($1);}
+structLvar: expr '.' symbol {
+      $$ = ast::StructLvar{{@$,"structlvar"},std::move($1),std::move($3)};}      
+
+
+lvar: declvar    { $$ = std::move($1);}
+     | arrayLvar { $$ = std::move($1);}
+     | tupleLvar { $$ = std::move($1);}
+     | structLvar{ $$ = std::move($1);}
 
 symbol: SYMBOL {
             @$ = @1;
@@ -378,6 +385,7 @@ array_access: expr '[' expr ']' {
       $$ = ast::ArrayAccess{{@$,"arrayaccess"},std::move($1),std::move($3)};}
 
 structconstruct: SYMBOL LBRACE tupleargs RBRACE {$$ =ast::Struct{{@$,"struct"},std::move($1),std::move($3)};}
+            |SYMBOL LBRACE expr RBRACE  {$$ =ast::Struct{{@$,"struct"},std::move($1),std::deque<ast::ExprPtr>{std::move($3)}};}
 structaccess: expr '.' SYMBOL {$$ = ast::StructAccess{{@$,"structaccess"},std::move($1),std::move($3)};}
 
 tupleargs: expr ',' expr {$$ = std::deque<ast::ExprPtr>{std::move($1),std::move($3)};}

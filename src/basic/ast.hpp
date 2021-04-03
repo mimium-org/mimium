@@ -19,7 +19,8 @@ struct Symbol;
 struct DeclVar;
 struct ArrayLvar;
 struct TupleLvar;
-using Lvar = std::variant<DeclVar, ArrayLvar, TupleLvar>;
+struct StructLvar;
+using Lvar = std::variant<DeclVar, ArrayLvar, TupleLvar,StructLvar>;
 struct TypeSpec;
 
 // struct Rvar;
@@ -143,6 +144,11 @@ struct ArrayLvar : public Base {
 };
 struct TupleLvar : public Base {
   std::deque<DeclVar> args;
+};
+
+struct StructLvar: public Base{
+  ExprPtr stru;
+  Symbol field;
 };
 
 struct Self : public Base {

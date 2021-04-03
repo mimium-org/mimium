@@ -119,6 +119,7 @@ class MirGenerator {
     void operator()(ast::DeclVar& ast);
     void operator()(ast::ArrayLvar& ast);
     void operator()(ast::TupleLvar& ast);
+    void operator()(ast::StructLvar& ast);
 
    private:
     MirGenerator& mirgen;
