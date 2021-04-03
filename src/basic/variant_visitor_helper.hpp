@@ -52,7 +52,7 @@ constexpr bool isBoxed(Box<T> /*v*/) {
   return true;
 }
 template <typename T>
-using boxenabler = std::enable_if_t<isBoxed(std::declval<std::decay_t<T>>())>;
+using boxenabler = std::enable_if_t<isBoxed(T())>;
 
 template <class... Ts>
 struct overloaded_rec : Ts... {
