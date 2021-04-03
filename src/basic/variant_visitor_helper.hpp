@@ -19,6 +19,7 @@ namespace mimium {
 
 template <typename T>
 struct Box {
+  using is_boxed_ty = std::true_type;
   // construct from an existing object
   Box() = delete;
   Box(T& rt) {  // NOLINT: do not mark as explicit! need to construct variant directly through box
@@ -36,8 +37,6 @@ struct Box {
   std::shared_ptr<T> t;
 };
 
-
-
 template <typename T>
 inline bool operator==(const Box<T>& t1, const Box<T>& t2) {
   return static_cast<const T&>(t1) == static_cast<const T&>(t2);
@@ -48,16 +47,23 @@ inline bool operator!=(const Box<T>& t1, const Box<T>& t2) {
 }
 
 template <class... Ts>
-struct overloaded_rec: Ts... {
+struct overloaded_rec : Ts... {
   using Ts::operator()...;
   template <typename T>
-  auto operator()(Box<T> a) {
+  decltype(auto) operator()(Box<T>&& a) {
+    return (*this)(a.getraw());
+  }
+  template <typename T>
+  decltype(auto) operator()(Box<T>& a) {
+    return (*this)(a.getraw());
+  }
+  template <typename T>
+  decltype(auto) operator()(Box<T> a) {
     return (*this)(a.getraw());
   }
 };
 template <class... Ts>
 overloaded_rec(Ts...) -> overloaded_rec<Ts...>;
-
 
 template <typename RETTYPE>
 class VisitorBase {

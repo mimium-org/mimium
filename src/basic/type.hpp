@@ -275,6 +275,18 @@ bool isA(const Value& v) {
 }
 
 template <typename T>
+std::optional<T> getIf(Value const& v) {
+  if(isA<types::rAlias>(v)){
+    return getIf<T>(rv::get<types::Alias>(v).target);
+  }
+  if(std::holds_alternative<T>(v)){
+    return std::optional(std::get<T>(v));
+  }
+  return std::nullopt;
+}
+
+
+template <typename T>
 constexpr bool is_primitive_type = std::is_base_of_v<PrimitiveType, std::decay_t<T>>;
 
 inline bool isPrimitive(const Value& v) {

@@ -115,6 +115,7 @@ template <template <class...> class CONTAINERIN,
           template <class...> class CONTAINEROUT = CONTAINERIN, typename ELEMENTIN, typename LAMBDA>
 CONTAINEROUT<std::invoke_result_t<LAMBDA, ELEMENTIN>> fmap(CONTAINERIN<ELEMENTIN> args,
                                                            LAMBDA lambda) {
+  static_assert(std::is_invocable_v<LAMBDA, ELEMENTIN>, "the function for fmap is not invocable");
   CONTAINEROUT<std::invoke_result_t<LAMBDA, ELEMENTIN>> res;
   std::transform(args.cbegin(), args.cend(), std::back_inserter(res), lambda);
   return std::move(res);
