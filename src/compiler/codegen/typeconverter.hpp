@@ -36,7 +36,8 @@ struct TypeConverter {
 
  private:
   [[nodiscard]] std::string consumeAlias();
-  [[nodiscard]] llvm::Type* tryGetNamedType(std::string& name) const;
+  llvm::Type* convertTypeArray(std::vector<llvm::Type*>&& tarray);
+  [[nodiscard]] std::optional<llvm::Type*> tryGetNamedType(std::string& name) const;
 };
 
 }  // namespace mimium
