@@ -115,10 +115,8 @@ inline bool operator==(const Pointer& t1, const Pointer& t2) { return t1.val == 
 // Helper function to make pointer to pointer type
 // Because nested aggregate initialization like Pointer{Pointer{Float}} interpreted as copy
 // construction.
-inline auto makePointer(types::Value&& t) {
-  types::Pointer res;
-  res.val = std::forward<types::Value>(t);
-  return std::forward<types::Value>(res);
+inline types::Value makePointer(types::Value&& t) {
+  return types::Pointer{std::move(t)};
 }
 inline auto makePointer(types::Value const& t) {
   types::Pointer res;

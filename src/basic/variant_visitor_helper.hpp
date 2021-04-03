@@ -19,15 +19,13 @@ namespace mimium {
 
 template <typename T>
 struct Box {
-  using is_boxed_ty = std::true_type;
   // construct from an existing object
   Box() = delete;
-  Box(T& rt) {  // NOLINT: do not mark as explicit! need to construct variant directly through box
-    t = std::make_shared<T>(rt);
-  }
-  Box(T&& rt) {  // NOLINT
-    t = std::make_shared<T>(std::forward<T>(rt));
-  }
+  Box(T rt) : t(std::make_shared<T>(std::move(rt))) {}  // NOLINT
+  template <class U>
+  using enabler = std::enable_if_t<std::is_same_v<std::decay_t<U>, T>>;
+  template <typename U, enabler<U>>
+  Box(U&& rt) : t(std::make_shared<U>(std::forward<U>(rt))) {}  // NOLINT
   // cast back to wrapped type
   operator T&() { return *t; }              // NOLINT
   operator const T&() const { return *t; }  // NOLINT
@@ -38,28 +36,34 @@ struct Box {
 };
 
 template <typename T>
-inline bool operator==(const Box<T>& t1, const Box<T>& t2) {
+bool operator==(const Box<T>& t1, const Box<T>& t2) {
   return static_cast<const T&>(t1) == static_cast<const T&>(t2);
 }
 template <typename T>
-inline bool operator!=(const Box<T>& t1, const Box<T>& t2) {
+bool operator!=(const Box<T>& t1, const Box<T>& t2) {
   return !(t1 == t2);
 }
+template <class T>
+constexpr bool isBoxed(T /*v*/) {
+  return false;
+}
+template <class T>
+constexpr bool isBoxed(Box<T> /*v*/) {
+  return true;
+}
+template <typename T>
+using boxenabler = std::enable_if_t<isBoxed(std::declval<std::decay_t<T>>())>;
 
 template <class... Ts>
 struct overloaded_rec : Ts... {
   using Ts::operator()...;
   template <typename T>
-  decltype(auto) operator()(Box<T>&& a) {
-    return (*this)(a.getraw());
-  }
-  template <typename T>
-  decltype(auto) operator()(Box<T>& a) {
-    return (*this)(a.getraw());
-  }
-  template <typename T>
   decltype(auto) operator()(Box<T> a) {
     return (*this)(a.getraw());
+  }
+  template <typename T, boxenabler<T>>
+  decltype(auto) operator()(T&& a) {
+    return (*this)(std::forward<decltype(a)>(a.getraw()));
   }
 };
 template <class... Ts>
@@ -69,65 +73,26 @@ template <typename RETTYPE>
 class VisitorBase {
  public:
   template <typename T>
-  RETTYPE operator()(Box<T>& ast) {
-    // default action
-    return (*this)(static_cast<T&>(ast));
+  auto operator()(Box<T> ast) -> decltype(auto) {
+    return (*this)(ast.getraw());
   }
-  // in case missing to list variant
-  template <typename T>
-  RETTYPE operator()(T& /*ast*/) {
-    assert(false);
-    return RETTYPE{};
+  template <typename T, boxenabler<T>>
+  auto operator()(T&& ast) -> decltype(auto) {
+    return (*this)(std::forward<decltype(ast)>(ast).getraw());
   }
 };
 
 namespace rv {
 
-// template <class Fun, typename T>
-// static auto visit(Fun f, T target) {
-//   return std::visit(f, target);
-// }
-// template <class Fun, typename T>
-// static auto visit(Fun f, Box<T> target) {
-//   return std::visit(f, static_cast<T>(target));
-// }
-
-template <class T, class... Types>
-constexpr bool holds_alternative(std::variant<Types...>& v) {
+template <class T, class VARIANT>
+constexpr bool holds_alternative(VARIANT&& v) {
   return std::holds_alternative<Box<T>>(v);
 }
 
-template <class T, class... Types>
-constexpr bool holds_alternative(std::variant<Types...>&& v) {
-  return std::holds_alternative<Box<T>>(v);
-}
-template <class T, class... Types>
-constexpr bool holds_alternative(const std::variant<Types...>& v) {
-  return std::holds_alternative<Box<T>>(v);
+template <class T, class VARIANT>
+constexpr auto get(VARIANT&& v) -> decltype(auto) {
+  return std::get<Box<T>>(v).getraw();
 }
 
-template <class T, class... Types>
-constexpr bool holds_alternative(const std::variant<Types...>&& v) {
-  return std::holds_alternative<Box<T>>(v);
-}
-
-template <class T, class... Types>
-constexpr T& get(std::variant<Types...>& v) {
-  return static_cast<T&>(std::get<Box<T>>(v));
-}
-
-template <class T, class... Types>
-constexpr T&& get(std::variant<Types...>&& v) {
-  return static_cast<T&&>(std::get<Box<T>>(v));
-}
-template <class T, class... Types>
-constexpr const T& get(const std::variant<Types...>& v) {
-  return static_cast<const T&>(std::get<Box<T>>(v));
-}
-
-template <class T, class... Types>
-constexpr const T&& get(const std::variant<Types...>&& v) {
-  return static_cast<const T&&>(std::get<Box<T>>(v));
-}
 }  // namespace rv
 }  // namespace mimium
