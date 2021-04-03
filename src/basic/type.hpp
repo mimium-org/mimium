@@ -115,9 +115,7 @@ inline bool operator==(const Pointer& t1, const Pointer& t2) { return t1.val == 
 // Helper function to make pointer to pointer type
 // Because nested aggregate initialization like Pointer{Pointer{Float}} interpreted as copy
 // construction.
-inline types::Value makePointer(types::Value&& t) {
-  return types::Pointer{std::move(t)};
-}
+inline types::Value makePointer(types::Value&& t) { return types::Pointer{std::move(t)}; }
 inline auto makePointer(types::Value const& t) {
   types::Pointer res;
   res.val = t;
@@ -274,22 +272,17 @@ bool isA(const Value& v) {
 
 template <typename T>
 std::optional<T> getIf(Value const& v) {
-  if(isA<types::rAlias>(v)){
-    return getIf<T>(rv::get<types::Alias>(v).target);
-  }
-  if(std::holds_alternative<T>(v)){
-    return std::optional(std::get<T>(v));
-  }
+  if (isA<types::rAlias>(v)) { return getIf<T>(rv::get<types::Alias>(v).target); }
+  if (std::holds_alternative<T>(v)) { return std::optional(std::get<T>(v)); }
   return std::nullopt;
 }
-
 
 template <typename T>
 constexpr bool is_primitive_type = std::is_base_of_v<PrimitiveType, std::decay_t<T>>;
 
 inline bool isPrimitive(const Value& v) {
-  return std::visit(overloaded{[](auto& a) { return is_primitive_type<decltype(a)>; },
-                               [&](Alias const& a) { return isPrimitive(a.target); }},
+  return std::visit(overloaded_rec{[](auto& a) { return is_primitive_type<decltype(a)>; },
+                                   [](Alias const& a) { return isPrimitive(a.target); }},
                     v);
 }
 
@@ -303,7 +296,9 @@ inline bool isIntermediate(const Value& v) {
 template <typename T>
 constexpr bool is_aggregate = !is_primitive_type<T> && !is_intermediate_type<T>;
 inline bool isAggregate(const Value& v) {
-  return std::visit([](auto& a) { return is_aggregate<decltype(a)>; }, v);
+  return std::visit(overloaded_rec{[](Alias& a) { return isAggregate(a.target); },
+                                   [](auto& a) { return is_aggregate<decltype(a)>; }},
+                    v);
 }
 
 inline bool isClosure(const Value& v) {
@@ -326,7 +321,7 @@ class TypeEnvProto {
   TypeEnvProto() : env() {}
   std::unordered_map<keytype, types::Value> env;
   std::unordered_map<keytype, types::Value> alias_map;
-  std::unordered_map<std::string,types::Value> builtin_map;
+  std::unordered_map<std::string, types::Value> builtin_map;
   std::deque<types::Value> tv_container;
   std::shared_ptr<types::TypeVar> createNewTypeVar() {
     auto res = std::make_shared<types::TypeVar>(typeid_count++);

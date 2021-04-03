@@ -1,0 +1,10 @@
+type filtercoeff = (float,float)
+type coeffgenerator = (float,float,float)->filtercoeff
+//not strictly correct impl
+fn filter(input,freq,q,paramfn:coeffgenerator){
+    a,b = paramfn(1,2,3)
+    return input+freq+q+a+b
+}
+pfn:coeffgenerator = |a,b,c|{ (a+b+c,a*b*c) }
+test = filter(4,5,6,pfn) //equal to 1+2+3+4+5+6+4*5*6
+println(test)//shuld be 27

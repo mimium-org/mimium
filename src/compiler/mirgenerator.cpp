@@ -131,7 +131,10 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Lambda& ast) {
   auto rettype = blockret ? getType(*blockret.value()) : types::Void{};
   auto& fref = mir::getInstRef<minst::Function>(resptr);
 
-  for (auto& a : fref.args.args) { a->parentfn = resptr; }
+  for (auto& a : fref.args.args) {
+    a->type = mir::lowerType(a->type);
+    a->parentfn = resptr;
+  }
   auto srctype = types::Function{
       rettype, fmap<std::list, std::vector>(fref.args.args, [](auto a) { return a->type; })};
   fref.type = mir::lowerType(srctype);
@@ -152,8 +155,8 @@ mir::valueptr ExprKnormVisitor::operator()(ast::Lambda& ast) {
     auto loadinst = mir::addInstToBlock(minst::Load{{label + "_res", rettype}, retval}, fref.body);
     // auto loadinst2 = mir::addInstToBlock(minst::Load{{label + "_res", rettype}, loadinst},
     // fref.body);
-    fref.args.ret_ptr =
-        std::make_shared<mir::Argument>(mir::Argument{label + "_retptr", rettype, resptr});
+    fref.args.ret_ptr = std::make_shared<mir::Argument>(
+        mir::Argument{label + "_retptr", mir::lowerType(rettype), resptr});
     fref.body->instructions.erase(retinst_iter);
     mir::addInstToBlock(minst::Store{{"store", types::Void{}},
                                      std::make_shared<mir::Value>(fref.args.ret_ptr.value()),
@@ -192,12 +195,18 @@ mir::valueptr ExprKnormVisitor::genFcallInst(ast::Fcall& fcall, optvalptr const&
     }
     assert(ftype_opt.has_value());
     auto ftype = ftype_opt.value().getraw();
-
     rettype = ftype.ret_type;
-    if (mir::isInstA<minst::Function>(fnptr) &&
-        mir::getInstRef<minst::Function>(fnptr).args.ret_ptr) {
-      rettype = mir::getType(mir::getInstRef<minst::Function>(fnptr).args.ret_ptr.value());
-      assert(types::isPointer(rettype));
+    const bool isreturnbypointer = mir::isInstA<minst::Function>(fnptr) &&
+                                   mir::getInstRef<minst::Function>(fnptr).args.ret_ptr;
+    const bool isreturnbypointer_hof =
+        std::holds_alternative<std::shared_ptr<mir::Argument>>(*fnptr) &&
+        types::isAggregate(rettype);
+    if (isreturnbypointer || isreturnbypointer_hof) {
+      if (isreturnbypointer) {
+        rettype = mir::getType(mir::getInstRef<minst::Function>(fnptr).args.ret_ptr.value());
+      }
+      if (isreturnbypointer_hof) { rettype = types::makePointer(rettype); }
+      assert(types::getIf<types::rPointer>(rettype).has_value());
       auto res_ptr = emplace(minst::Allocate{{newname + "_res", rettype}});
       args.push_front(res_ptr);
       emplace(minst::Fcall{{newname, types::Void{}}, fnptr, args, fnkind, when});
