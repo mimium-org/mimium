@@ -1,5 +1,37 @@
 # CHANGELOG
 
+## v0.4.0
+
+### New Language Feature
+
+Struct type and type alias are introduced(#56).
+
+```rust
+type stereo = (float,float)
+type composite = {signal:stereo , id:float}
+fn test2(){
+    ogya = composite{(100,200), 100}
+    ho,fu = ogya.signal
+    he = ogya.id
+    println(ho)
+    println(fu)
+    println(he)
+}
+test2()
+```
+Still struct type has several limitations.
+
+- Embedding function type variable onto struct (and tuple) cannot be used for closure.
+- destructive assignment for struct variable by dot operator is not implemented yet(only a parser is implemented).
+
+### Bugfixes
+
+- Fixed a behaviour of CLI when it could not find an input file path(#62,by @t-sin).
+
+### Refactoring
+
+- Some internal helper functions such as recursive variants are refined.
+
 ## v0.3.1(2021-02-25)
 ### Bugfixes
 
