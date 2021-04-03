@@ -17,9 +17,10 @@ namespace mir {
 inline types::Value lowerType(types::Value const& t) {
   return std::visit(
       overloaded_rec{
-          [](auto i) { 
-          assert(types::is_primitive_type<decltype(i)>);
-          return  types::Value{i}; },
+          [](auto const& i) {
+            assert(types::is_primitive_type<decltype(i)>);
+            return types::Value{i};
+          },
           // [](types::TypeVar i) {
           //   assert(false);
           //   return types::Value{i};
@@ -28,7 +29,7 @@ inline types::Value lowerType(types::Value const& t) {
           //   assert(false);
           //   return types::Value{i};
           // },
-          [](types::Pointer i) {
+          [](types::Pointer const& i) {
             // assert(false);
             return types::Value{i};
           },
@@ -37,7 +38,7 @@ inline types::Value lowerType(types::Value const& t) {
           //   return types::Value{i};
           // },
 
-          [](types::Function i) {
+          [](types::Function const& i) {
             types::Function res;
             if (types::isAggregate(i.ret_type)) {
               res.ret_type = types::Void{};
@@ -48,19 +49,19 @@ inline types::Value lowerType(types::Value const& t) {
             for (const auto& a : i.arg_types) { res.arg_types.emplace_back(a); }
             return types::Value{res};
           },
-          [](types::Array i) {
+          [](types::Array const& i) {
             return types::Value{types::Pointer{types::Array{lowerType(i.elem_type), i.size}}};
           },
-          [](types::Struct i) {
+          [](types::Struct const& i) {
             return types::Value{types::Pointer{types::Struct{fmap(i.arg_types, [](auto const& a) {
               return types::Struct::Keytype{a.field, lowerType(a.val)};
             })}}};
           },
-          [](types::Tuple i) {
+          [](types::Tuple const& i) {
             return types::Value{types::Pointer{
                 types::Tuple{fmap(i.arg_types, [](auto const& i) { return lowerType(i); })}}};
           },
-          [](types::Alias i) {
+          [](types::Alias const& i) {
             return types::Value{types::Alias{i.name, lowerType(i.target)}};
           },
       },
@@ -106,7 +107,7 @@ class MirGenerator {
     const std::optional<mir::valueptr>& fnctx;
 
    private:
-    mir::valueptr genExprArray(std::deque<ast::ExprPtr>const& args);
+    mir::valueptr genExprArray(std::deque<ast::ExprPtr> const& args);
     std::pair<optvalptr, mir::blockptr> genIfBlock(ast::ExprPtr& block, std::string const& label);
 
     mir::blockptr block;
@@ -119,6 +120,7 @@ class MirGenerator {
     void operator()(ast::DeclVar& ast);
     void operator()(ast::ArrayLvar& ast);
     void operator()(ast::TupleLvar& ast);
+    void operator()(ast::StructLvar& ast);
 
    private:
     MirGenerator& mirgen;
@@ -173,7 +175,7 @@ class MirGenerator {
   // // unpack optional value ptr, and throw error if it does not exist.
   static mir::valueptr require(optvalptr const& v);
 
-  std::function<std::shared_ptr<mir::Argument>(ast::DeclVar)>  make_arguments =
+  std::function<std::shared_ptr<mir::Argument>(ast::DeclVar)> make_arguments =
       [&](ast::DeclVar lvar) {
         auto& name = lvar.value.value;
         auto type = typeenv.find(name);

@@ -148,6 +148,10 @@ ast::Lvar LvarRenameVisitor::operator()(ast::TupleLvar& ast) {
       ast.args, [&](ast::DeclVar a) { return renamer.lvar_renamevisitor.renameDeclVar(a); });
   return ast::TupleLvar{{{ast.debuginfo}}, newargs};
 }
+ast::Lvar LvarRenameVisitor::operator()(ast::StructLvar& ast) {
+  return ast::StructLvar{{{ast.debuginfo}}, renamer.renameExpr(ast.stru), ast.field};
+}
+
 using StatementRenameVisitor = SymbolRenamer::StatementRenameVisitor;
 
 StatementPtr StatementRenameVisitor::operator()(ast::Fdef& ast) {

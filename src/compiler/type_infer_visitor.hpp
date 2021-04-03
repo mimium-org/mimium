@@ -97,6 +97,7 @@ struct TypeInferer {
     void operator()(ast::DeclVar& ast);
     void operator()(ast::TupleLvar& ast);
     void operator()(ast::ArrayLvar& ast);
+    void operator()(ast::StructLvar& ast);
 
    private:
     ast::ExprPtr rvar;
@@ -265,7 +266,23 @@ struct TypeInferer {
   types::Value unify(types::Value lhs, types::Value rhs) {
     return std::visit(unifyvisitor, lhs, rhs);
   }
-
+  [[nodiscard]] types::Value tryGetAlias(std::string const& key) const {
+    auto iter = typeenv.alias_map.find(key);
+    if (iter == typeenv.alias_map.cend()) {
+      throw std::runtime_error("Type " + key + " is unknown.");
+    }
+    return iter->second;
+  }
+  template <typename T>
+  std::optional<T> getIf(types::Value const& t) {
+    if (rv::holds_alternative<types::Alias>(t)) {
+      auto name = rv::get<types::Alias>(t).name;
+      auto type = tryGetAlias(name);
+      return std::optional(std::get<T>(type));
+    }
+    if (std::holds_alternative<T>(t)) { return std::optional(std::get<T>(t)); }
+    return std::nullopt;
+  }
   void substituteTypeVars();
 };
 

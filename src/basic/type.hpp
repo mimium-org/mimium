@@ -115,10 +115,8 @@ inline bool operator==(const Pointer& t1, const Pointer& t2) { return t1.val == 
 // Helper function to make pointer to pointer type
 // Because nested aggregate initialization like Pointer{Pointer{Float}} interpreted as copy
 // construction.
-inline auto makePointer(types::Value&& t) {
-  types::Pointer res;
-  res.val = std::forward<types::Value>(t);
-  return std::forward<types::Value>(res);
+inline types::Value makePointer(types::Value&& t) {
+  return types::Pointer{std::move(t)};
 }
 inline auto makePointer(types::Value const& t) {
   types::Pointer res;
@@ -273,6 +271,18 @@ template <typename T>
 bool isA(const Value& v) {
   return std::holds_alternative<T>(v);
 }
+
+template <typename T>
+std::optional<T> getIf(Value const& v) {
+  if(isA<types::rAlias>(v)){
+    return getIf<T>(rv::get<types::Alias>(v).target);
+  }
+  if(std::holds_alternative<T>(v)){
+    return std::optional(std::get<T>(v));
+  }
+  return std::nullopt;
+}
+
 
 template <typename T>
 constexpr bool is_primitive_type = std::is_base_of_v<PrimitiveType, std::decay_t<T>>;

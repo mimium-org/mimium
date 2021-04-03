@@ -70,7 +70,10 @@ llvm::Value* CodeGenVisitor::getLlvmVal(mir::valueptr mirval) {
                  },
                  [&](std::shared_ptr<mir::Argument> v) {
                    auto iter = mirarg_to_llvm.find(v);
-                   return (iter != mirarg_to_llvm.end()) ? iter->second : nullptr;
+                   if (iter != mirarg_to_llvm.end()) { return iter->second; }
+                   auto iterfv = mirfv_to_llvm.find(mirval);
+                   if (iterfv != mirfv_to_llvm.cend()) { return iterfv->second; }
+                   return (llvm::Value*)nullptr;
                  },
                  [&](mir::Instructions& v) {
                    auto iter = mir_to_llvm.find(mirval);
@@ -175,8 +178,8 @@ llvm::Value* CodeGenVisitor::operator()(minst::String& i) {
 }
 llvm::Value* CodeGenVisitor::operator()(minst::Allocate& i) {
   assert(types::isPointer(i.type));
-  auto* res =
-      createAllocation(isglobal, G.getType(rv::get<types::Pointer>(i.type).val), nullptr, i.name);
+  auto alloctype = rv::get<types::Pointer>(i.type).val;
+  auto* res = createAllocation(isglobal, G.getType(alloctype), nullptr, i.name);
   registerLlvmVal(getValPtr(&i), res);
   return res;
 }
@@ -528,7 +531,9 @@ llvm::Value* CodeGenVisitor::operator()(minst::Field& i) {
                               },
                               [](const auto& v) { return (int)v; }},
                    *constant);
-    return G.builder->CreateStructGEP(target, index, "tupleaccess");
+    return G.builder->CreateStructGEP(
+        llvm::cast<llvm::PointerType>(target->getType())->getElementType(), target, index,
+        "tupleaccess");
   }
   if (std::holds_alternative<types::Float>(mir::getType(*i.index))) {
     auto* index_ll = getLlvmVal(i.index);

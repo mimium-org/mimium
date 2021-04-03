@@ -43,34 +43,23 @@ llvm::Type* TypeConverter::operator()(types::Closure const& i) {
   return llvm::StructType::create(builder.getContext(), {fty, capturetype}, name, false);
 }
 llvm::Type* TypeConverter::operator()(types::Array const& i) {
-  //note that zero-sized array can be automatically interpreted as variable-sized array
+  // note that zero-sized array can be automatically interpreted as variable-sized array
   return llvm::ArrayType::get(std::visit(*this, i.elem_type), i.size);
 }
+
+llvm::Type* TypeConverter::convertTypeArray(std::vector<llvm::Type*>&& tarray){
+  if (tmpname.empty()) { return llvm::StructType::get(builder.getContext(), tarray); }
+  auto n = consumeAlias();
+  return tryGetNamedType(n).value_or(llvm::StructType::create(builder.getContext(), tarray, n, false));
+}
+
+
 llvm::Type* TypeConverter::operator()(types::Struct const& i) {
-  std::vector<llvm::Type*> ar;
-  llvm::Type* res = nullptr;
-  for (auto&& a : i.arg_types) { ar.push_back(std::visit(*this, a.val)); }
-  if (tmpname.empty()) {
-    res = llvm::StructType::get(builder.getContext(), ar);
-  } else {
-    auto n = consumeAlias();
-    res = tryGetNamedType(n);
-    if (res == nullptr) { res = llvm::StructType::create(builder.getContext(), ar, n, false); }
-  }
-  return res;
+  return convertTypeArray(fmap(i.arg_types, [&](auto&& a) { return std::visit(*this, a.val); }));
 }
 llvm::Type* TypeConverter::operator()(types::Tuple const& i) {
-  std::vector<llvm::Type*> ar;
-  llvm::Type* res = nullptr;
-  for (const auto& a : i.arg_types) { ar.push_back(std::visit(*this, a)); }
-  if (tmpname.empty()) {
-    res = llvm::StructType::get(builder.getContext(), ar, false);
-  } else {
-    auto n = consumeAlias();
-    res = tryGetNamedType(n);
-    if (res == nullptr) { res = llvm::StructType::create(builder.getContext(), ar, n, false); }
-  }
-  return res;
+  return convertTypeArray(fmap(i.arg_types, [&](auto&& a) { return std::visit(*this, a); }));
+
 }
 // llvm::Type* TypeConverter::operator()(types::Time const& i) {
 //   llvm::Type* res;
@@ -108,8 +97,9 @@ std::string TypeConverter::consumeAlias() {
   return t;
 }
 
-llvm::Type* TypeConverter::tryGetNamedType(std::string& name) const {
-  return module.getTypeByName(name);
+std::optional<llvm::Type*> TypeConverter::tryGetNamedType(std::string& name) const {
+  auto* res = module.getTypeByName(name);
+  return (res != nullptr) ? std::optional(res) : std::nullopt;
 }
 
 }  // namespace mimium

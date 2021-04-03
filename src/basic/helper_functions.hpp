@@ -113,17 +113,19 @@ inline bool has(std::vector<std::string> t, char* s) {
 
 template <template <class...> class CONTAINERIN,
           template <class...> class CONTAINEROUT = CONTAINERIN, typename ELEMENTIN, typename LAMBDA>
-CONTAINEROUT<std::invoke_result_t<LAMBDA, ELEMENTIN>> fmap(CONTAINERIN<ELEMENTIN> args,
-                                                           LAMBDA lambda) {
+CONTAINEROUT<std::invoke_result_t<LAMBDA, ELEMENTIN>> fmap(CONTAINERIN<ELEMENTIN> const& args,
+                                                           LAMBDA&& lambda) {
+  static_assert(std::is_invocable_v<LAMBDA, ELEMENTIN>, "the function for fmap is not invocable");
   CONTAINEROUT<std::invoke_result_t<LAMBDA, ELEMENTIN>> res;
-  std::transform(args.cbegin(), args.cend(), std::back_inserter(res), lambda);
+  std::transform(args.cbegin(), args.cend(), std::back_inserter(res),
+                 std::forward<decltype(lambda)>(lambda));
   return std::move(res);
 }
 
 namespace ast {
 template <typename T, typename L>
 T transformArgs(T& args, L&& lambda) {
-  return fmap(args, lambda);
+  return fmap(args, std::forward<decltype(lambda)>(lambda));
 }
 }  // namespace ast
 

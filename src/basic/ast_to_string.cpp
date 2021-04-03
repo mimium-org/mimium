@@ -135,6 +135,12 @@ void AstStringifier::operator()(const ast::TupleLvar& ast) {
   toStringVec(ast.args);
   output << format.rpar_a << format.delim << format.rpar;
 }
+void AstStringifier::operator()(const ast::StructLvar& ast) {
+  output << format.lpar << "arraylvar" << format.delim;
+  toString(ast.stru);
+  output << format.delim << ast.field << format.rpar;
+}
+
 void AstStringifier::operator()(const ast::DeclVar& ast) {
   output << format.lpar << "lvar" << format.delim << ast.value;
   if (ast.type.has_value()) {
