@@ -26,13 +26,13 @@
 // SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 #endif
 #if defined(__clang__)
-  #if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
-  // code that builds only under AddressSanitizer
-    #define NO_SANITIZE __attribute__((no_sanitize("address", "undefined")))
-  #endif
+#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+// code that builds only under AddressSanitizer
+#define NO_SANITIZE __attribute__((no_sanitize("address", "undefined")))
+#endif
 #endif
 #ifndef NO_SANITIZE
-  #define NO_SANITIZE
+#define NO_SANITIZE
 #endif
 
 namespace mimium {
@@ -104,12 +104,28 @@ inline bool has(std::vector<std::string> t, char* s) {
   return std::find(t.begin(), t.end(), std::string(s)) != t.end();
 }
 
+// helper metafunction which maps container elements with lambda.
+// Template-template parameter are input container and output container.
+// Other parameters will be inferred from context.
+// auto hoge = fmap<std::deque,std::vector>(ast.args,[](ExprPtr a){return a.name;});
+// if container between input and output are the same, you can omit template parameter.
+// auto hoge = fmap(ast.args,[](ExprPtr a){return a.name;});
+
+template <template <class...> class CONTAINERIN,
+          template <class...> class CONTAINEROUT = CONTAINERIN, typename ELEMENTIN, typename LAMBDA>
+CONTAINEROUT<std::invoke_result_t<LAMBDA, ELEMENTIN>> fmap(CONTAINERIN<ELEMENTIN> const& args,
+                                                           LAMBDA&& lambda) {
+  static_assert(std::is_invocable_v<LAMBDA, ELEMENTIN>, "the function for fmap is not invocable");
+  CONTAINEROUT<std::invoke_result_t<LAMBDA, ELEMENTIN>> res;
+  std::transform(args.cbegin(), args.cend(), std::back_inserter(res),
+                 std::forward<decltype(lambda)>(lambda));
+  return std::move(res);
+}
+
 namespace ast {
 template <typename T, typename L>
-T transformArgs(T& args, L lambda) {
-  T res;
-  std::transform(args.begin(), args.end(), std::back_inserter(res), lambda);
-  return res;
+T transformArgs(T& args, L&& lambda) {
+  return fmap(args, std::forward<decltype(lambda)>(lambda));
 }
 }  // namespace ast
 

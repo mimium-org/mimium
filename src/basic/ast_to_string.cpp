@@ -51,15 +51,14 @@ void AstStringifier::operator()(const ast::Time& ast) {
   output << format.delim << format.rpar;
 }
 void AstStringifier::operator()(const ast::Struct& ast) {
-  output << format.lpar << "struct" << format.delim;
+  output << format.lpar << "struct" << format.delim << ast.typesymbol;
   toStringVec(ast.args);
   output << format.rpar;
 }
 void AstStringifier::operator()(const ast::StructAccess& ast) {
   output << format.lpar << "structaccess" << format.delim << format.lpar_a;
   toString(ast.stru);
-  output << format.delim;
-  toString(ast.field);
+  output << format.delim << ast.field;
   output << format.rpar_a << format.rpar;
 }
 void AstStringifier::operator()(const ast::ArrayInit& ast) {
@@ -86,6 +85,12 @@ void AstStringifier::operator()(const ast::Assign& ast) {
   toString(ast.expr);
   output << format.rpar;
 }
+void AstStringifier::operator()(const ast::TypeAssign& ast) {
+  output << format.lpar << "typeassign" << format.delim;
+  output << ast.name << format.delim << types::toString(ast.val);;
+  output << format.rpar;
+}
+
 void AstStringifier::operator()(const ast::Fdef& ast) {
   output << format.lpar << "Fdef" << format.delim;
   (*this)(ast.lvar);
@@ -130,6 +135,12 @@ void AstStringifier::operator()(const ast::TupleLvar& ast) {
   toStringVec(ast.args);
   output << format.rpar_a << format.delim << format.rpar;
 }
+void AstStringifier::operator()(const ast::StructLvar& ast) {
+  output << format.lpar << "arraylvar" << format.delim;
+  toString(ast.stru);
+  output << format.delim << ast.field << format.rpar;
+}
+
 void AstStringifier::operator()(const ast::DeclVar& ast) {
   output << format.lpar << "lvar" << format.delim << ast.value;
   if (ast.type.has_value()) {

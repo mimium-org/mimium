@@ -10,11 +10,11 @@
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <typeindex>
 #include <unordered_map>
 #include <utility>
 #include <variant>
 #include <vector>
-
 #include "basic/helper_functions.hpp"
 
 namespace mimium {
@@ -115,11 +115,7 @@ inline bool operator==(const Pointer& t1, const Pointer& t2) { return t1.val == 
 // Helper function to make pointer to pointer type
 // Because nested aggregate initialization like Pointer{Pointer{Float}} interpreted as copy
 // construction.
-inline auto makePointer(types::Value&& t) {
-  types::Pointer res;
-  res.val = std::forward<types::Value>(t);
-  return std::forward<types::Value>(res);
-}
+inline types::Value makePointer(types::Value&& t) { return types::Pointer{std::move(t)}; }
 inline auto makePointer(types::Value const& t) {
   types::Pointer res;
   res.val = t;
@@ -169,6 +165,18 @@ struct Struct {
   std::vector<Keytype> arg_types;
 };
 
+// return 0-based index and its type of Struct type fields for the key string.
+
+inline std::pair<int, types::Value> getField(types::Struct const& sttype, std::string const& key) {
+  auto iter = std::find_if(sttype.arg_types.cbegin(), sttype.arg_types.cend(),
+                           [&](const auto& a) { return a.field == key; });
+  if (iter == sttype.arg_types.cend()) {
+    throw std::logic_error("failed to find \"" + key + "\" field for struct type");
+  }
+  auto index = std::distance(sttype.arg_types.cbegin(), iter);
+  return std::pair(index, sttype.arg_types.at(index).val);
+};
+
 inline bool operator==(const Struct::Keytype& t1, const Struct::Keytype& t2) {
   return (t1.field == t2.field) && (t1.val == t2.val);
 }
@@ -201,7 +209,7 @@ bool operator!=(T t1, T t2) {
 }
 
 constexpr size_t fixed_delaysize = 44100;
-inline auto getDelayStruct(){
+inline auto getDelayStruct() {
   return types::Alias{"MmmRingBuf", types::Tuple{{types::Float{}, types::Float{},
                                                   types::Array{types::Float{}, fixed_delaysize}}}};
 }
@@ -254,29 +262,66 @@ struct ToStringVisitor {
 std::string toString(const Value& v, bool verbose = false);
 void dump(const Value& v, bool verbose = false);
 
+template <typename T1, typename T2>
+constexpr bool is_a = std::is_same_v<T1, std::decay_t<T2>>;
+
+template <typename T>
+bool isA(const Value& v) {
+  return std::holds_alternative<T>(v);
+}
+
+template <typename T>
+std::optional<T> getIf(Value const& v) {
+  if (isA<types::rAlias>(v)) { return getIf<T>(rv::get<types::Alias>(v).target); }
+  if (std::holds_alternative<T>(v)) { return std::optional(std::get<T>(v)); }
+  return std::nullopt;
+}
+
+template <typename T>
+constexpr bool is_primitive_type = std::is_base_of_v<PrimitiveType, std::decay_t<T>>;
+
 inline bool isPrimitive(const Value& v) {
-  return std::visit(
-      [](auto& a) { return std::is_base_of_v<PrimitiveType, std::decay_t<decltype(a)>>; }, v);
+  return std::visit(overloaded_rec{[](auto& a) { return is_primitive_type<decltype(a)>; },
+                                   [](Alias const& a) { return isPrimitive(a.target); }},
+                    v);
+}
+
+template <typename T>
+constexpr bool is_intermediate_type = is_a<types::rTypeVar, T>;
+
+inline bool isIntermediate(const Value& v) {
+  return std::visit([](auto& a) { return is_intermediate_type<decltype(a)>; }, v);
+}
+
+template <typename T>
+constexpr bool is_aggregate = !is_primitive_type<T> && !is_intermediate_type<T>;
+inline bool isAggregate(const Value& v) {
+  return std::visit(overloaded_rec{[](Alias& a) { return isAggregate(a.target); },
+                                   [](auto& a) { return is_aggregate<decltype(a)>; }},
+                    v);
 }
 
 inline bool isClosure(const Value& v) {
-  if (std::holds_alternative<rClosure>(v)) { return true; }
   if (const auto* alias = std::get_if<Box<Alias>>(&v)) {
-    return std::holds_alternative<rClosure>(alias->getraw().target);
+    return isA<rClosure>(alias->getraw().target);
   }
-  return false;
+  return isA<rClosure>(v);
 }
 
 }  // namespace types
 
-class TypeEnv {
+template <typename T>
+class TypeEnvProto {
+  using keytype = T;
+
  private:
   int64_t typeid_count{};
 
  public:
-  TypeEnv() : env() {}
-  std::unordered_map<std::string, types::Value> env;
-
+  TypeEnvProto() : env() {}
+  std::unordered_map<keytype, types::Value> env;
+  std::unordered_map<keytype, types::Value> alias_map;
+  std::unordered_map<std::string, types::Value> builtin_map;
   std::deque<types::Value> tv_container;
   std::shared_ptr<types::TypeVar> createNewTypeVar() {
     auto res = std::make_shared<types::TypeVar>(typeid_count++);
@@ -284,15 +329,15 @@ class TypeEnv {
     return res;
   }
   types::Value& findTypeVar(int tindex) { return tv_container[tindex]; }
-  [[nodiscard]] bool exist(std::string key) const { return (env.count(key) > 0); }
+  [[nodiscard]] bool exist(keytype const& key) const { return (env.count(key) > 0); }
   auto begin() { return env.begin(); }
   auto end() { return env.end(); }
-  types::Value* tryFind(std::string key) {
+  types::Value* tryFind(keytype key) {
     auto it = env.find(key);
     types::Value* res = (it == env.end()) ? nullptr : &it->second;
     return res;
   }
-  types::Value& find(std::string const& key) {
+  types::Value& find(keytype const& key) {
     auto* res = tryFind(key);
     if (res == nullptr) {
       throw std::runtime_error("Could not find type for variable \"" + key + "\"");
@@ -300,12 +345,42 @@ class TypeEnv {
     return *res;
   }
 
-  auto emplace(std::string key, types::Value typevar) { return env.insert_or_assign(key, typevar); }
-  void replaceTypeVars();
+  auto emplace(keytype key, types::Value typevar) { return env.insert_or_assign(key, typevar); }
+  void replaceTypeVars() {
+    for (auto& [key, val] : env) {
+      if (rv::holds_alternative<types::TypeVar>(val)) {
+        auto& tv = rv::get<types::TypeVar>(val);
+        if (std::holds_alternative<types::None>(tv.contained)) {
+          // throw std::runtime_error("type inference for " + key + " failed");
+          tv.contained = types::Float{};
+        }
+        env[key] = tv.contained;
+      }
+    }
+  }
 
-  MIMIUM_DLL_PUBLIC std::string toString(bool verbose = false);
-  void dump(bool verbose = false);
-  void dumpTvLinks();
+  MIMIUM_DLL_PUBLIC std::string toString(bool verbose = false) {
+    std::stringstream ss;
+    types::ToStringVisitor vis;
+    vis.verbose = verbose;
+    for (auto& [key, val] : env) { ss << key << " : " << std::visit(vis, val) << "\n"; }
+    return ss.str();
+  }
+#if MIMIUM_DEBUG_BUILD
+  void dump(bool verbose = false) {
+    std::cerr << "-------------------\n" << toString(verbose) << "-------------------\n";
+  }
+  void dumpTvLinks() {
+    std::cerr << "------tvlinks-----\n";
+    int i = 0;
+    for (auto& a : tv_container) {
+      std::cerr << "typevar" << i << " : " << types::toString(a) << "\n";
+      ++i;
+    }
+    std::cerr << "------tvlinks-----" << std::endl;
+  }
+#endif
 };
 
+using TypeEnv = TypeEnvProto<std::string>;
 }  // namespace mimium

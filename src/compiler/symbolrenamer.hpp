@@ -51,6 +51,7 @@ class SymbolRenamer {
     ast::Lvar operator()(ast::DeclVar& ast);
     ast::Lvar operator()(ast::ArrayLvar& ast);
     ast::Lvar operator()(ast::TupleLvar& ast);
+    ast::Lvar operator()(ast::StructLvar& ast);
     ast::DeclVar renameDeclVar(ast::DeclVar& ast);
     ast::DeclVar renameLambdaArgVar(ast::DeclVar& ast);
     ast::Lvar rename(ast::Lvar& ast) { return std::visit(*this, ast); }
@@ -59,6 +60,7 @@ class SymbolRenamer {
     explicit StatementRenameVisitor(SymbolRenamer& parent) : renamer(parent){};
     SymbolRenamer& renamer;
     StatementPtr operator()(ast::Assign& ast);
+    StatementPtr operator()(ast::TypeAssign& ast);
     StatementPtr operator()(ast::Fdef& ast);
 
     StatementPtr operator()(ast::Return& ast);

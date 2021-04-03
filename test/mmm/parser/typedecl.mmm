@@ -1,0 +1,3 @@
+type stereo = (float,float)
+
+type mystru = { hoge:float,fuga:string }

@@ -70,7 +70,10 @@ llvm::Value* CodeGenVisitor::getLlvmVal(mir::valueptr mirval) {
                  },
                  [&](std::shared_ptr<mir::Argument> v) {
                    auto iter = mirarg_to_llvm.find(v);
-                   return (iter != mirarg_to_llvm.end()) ? iter->second : nullptr;
+                   if (iter != mirarg_to_llvm.end()) { return iter->second; }
+                   auto iterfv = mirfv_to_llvm.find(mirval);
+                   if (iterfv != mirfv_to_llvm.cend()) { return iterfv->second; }
+                   return (llvm::Value*)nullptr;
                  },
                  [&](mir::Instructions& v) {
                    auto iter = mir_to_llvm.find(mirval);
@@ -174,9 +177,10 @@ llvm::Value* CodeGenVisitor::operator()(minst::String& i) {
   return bitcast;
 }
 llvm::Value* CodeGenVisitor::operator()(minst::Allocate& i) {
-  assert(types::isPointer(i.type));
-  auto* res =
-      createAllocation(isglobal, G.getType(rv::get<types::Pointer>(i.type).val), nullptr, i.name);
+  auto ptype = types::getIf<types::rPointer>(i.type);
+  assert(ptype.has_value());
+  auto alloctype = ptype.value().getraw().val;
+  auto* res = createAllocation(isglobal, G.getType(alloctype), nullptr, i.name);
   registerLlvmVal(getValPtr(&i), res);
   return res;
 }
@@ -503,15 +507,15 @@ llvm::Value* CodeGenVisitor::operator()(minst::MakeClosure& i) {
 llvm::Value* CodeGenVisitor::operator()(minst::Array& i) {
   auto* atype = G.getArrayType(i.type);
   auto* gvalue = llvm::cast<llvm::GlobalVariable>(G.module->getOrInsertGlobal(i.name, atype));
-  std::vector<llvm::Constant*> values = {};
-  std::transform(i.args.cbegin(), i.args.cend(), std::back_inserter(values),
-                 [&](mir::valueptr v) { return llvm::cast<llvm::Constant>(getLlvmVal(v)); });
+  auto values =
+      fmap(i.args, [&](mir::valueptr v) { return llvm::cast<llvm::Constant>(getLlvmVal(v)); });
   auto* constantarray = llvm::ConstantArray::get(atype, values);
   gvalue->setInitializer(constantarray);
   return gvalue;
 }
 llvm::Value* CodeGenVisitor::operator()(minst::ArrayAccess& i) {
   auto* target = getLlvmVal(i.target);
+  // llvm::Value* target = G.builder->CreateLoad(targetp);
   auto* index = getLlvmVal(i.index);
   auto* arraccessfun = G.module->getFunction("access_array_lin_interp");
   auto* dptrty = arraccessfun->getArg(0)->getType();
@@ -528,7 +532,9 @@ llvm::Value* CodeGenVisitor::operator()(minst::Field& i) {
                               },
                               [](const auto& v) { return (int)v; }},
                    *constant);
-    return G.builder->CreateStructGEP(target, index, "tupleaccess");
+    return G.builder->CreateStructGEP(
+        llvm::cast<llvm::PointerType>(target->getType())->getElementType(), target, index,
+        "tupleaccess");
   }
   if (std::holds_alternative<types::Float>(mir::getType(*i.index))) {
     auto* index_ll = getLlvmVal(i.index);

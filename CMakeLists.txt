@@ -14,7 +14,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 PROJECT(mimium 
 LANGUAGES CXX
 HOMEPAGE_URL "https://mimium.org"
-VERSION 0.3.1
+VERSION 0.4.0
 )
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
     set(CMAKE_CXX_FLAGS_DEBUG "-g4")
@@ -88,7 +88,7 @@ set(CMAKE_CXX_STANDARD_LIBRARIES "-static -lstdc++ -lgcc -lz -lwinpthread ${CMAK
 endif()
 
 if(UNIX AND NOT(APPLE OR MINGW OR MSYS))
-set(CMAKE_CXX_STANDARD_LIBRARIES "-lz -ldl -ltinfo ${CMAKE_CXX_STANDARD_LIBRARIES}")
+set(CMAKE_CXX_STANDARD_LIBRARIES "-lz -lmvec -lm -ldl -ltinfo ${CMAKE_CXX_STANDARD_LIBRARIES}")
 endif()
 
 

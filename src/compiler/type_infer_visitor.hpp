@@ -48,6 +48,7 @@ struct OccurChecker {
 };
 
 struct TypeInferer {
+  using TypeEnvT = TypeEnvProto<ast::ExprPtr>;
   struct ExprTypeVisitor : public VisitorBase<types::Value> {
     explicit ExprTypeVisitor(TypeInferer& parent) : inferer(parent) {}
     types::Value operator()(ast::Op& ast);
@@ -76,6 +77,7 @@ struct TypeInferer {
     explicit StatementTypeVisitor(TypeInferer& parent) : inferer(parent) {}
     types::Value operator()(ast::Fdef& ast);
     types::Value operator()(ast::Assign& ast);
+    types::Value operator()(ast::TypeAssign& ast);
     types::Value operator()(ast::Return& ast);
     types::Value operator()(ast::Time& ast);
 
@@ -95,6 +97,7 @@ struct TypeInferer {
     void operator()(ast::DeclVar& ast);
     void operator()(ast::TupleLvar& ast);
     void operator()(ast::ArrayLvar& ast);
+    void operator()(ast::StructLvar& ast);
 
    private:
     ast::ExprPtr rvar;
@@ -127,22 +130,27 @@ struct TypeInferer {
     types::Value unify(types::rTypeVar t1, types::rTypeVar t2);
     types::Value unify(types::rPointer p1, types::rPointer p2);
     types::Value unify(types::rRef p1, types::rRef p2);
-    types::Value unify(types::rAlias a1, types::rAlias a2);
+    types::Value unify(types::rAlias& a1, types::rAlias& a2);
     template <typename T>
     types::Value unify(T a1, T /*a2*/) {
       return a1;
     }
+    template <typename T>
+    using TypeVarAliasTrait =
+        typename std::enable_if<!std::is_same_v<std::decay_t<T>, types::rTypeVar>,
+                                std::nullptr_t>::type;
 
-    template <typename T, typename std::enable_if<
-                              std::is_same_v<std::decay_t<T>, types::TypeVar>>::type = nullptr>
+    template <typename T, TypeVarAliasTrait<T> = nullptr>
     types::Value unify(types::rAlias a1, T a2) {
+      updateAlias(a1);
       return std::visit(*this, a1.getraw().target, types::Value(a2));
     }
-    template <typename T, typename std::enable_if<
-                              std::is_same_v<std::decay_t<T>, types::TypeVar>>::type = nullptr>
+
+    template <typename T, TypeVarAliasTrait<T> = nullptr>
     types::Value unify(T a1, types::rAlias a2) {
-      return std::visit(*this, types::Value(a1), a2.getraw().target);
+      return unify(a2, a1);
     }
+
     types::Value unify(types::rFunction f1, types::rFunction f2);
     types::Value unify(types::rArray a1, types::rArray a2);
     types::Value unify(types::rStruct s1, types::rStruct s2);
@@ -156,11 +164,14 @@ struct TypeInferer {
       constexpr bool issame = std::is_same_v<std::decay_t<T1>, std::decay_t<T2>>;
       constexpr bool istv_l = std::is_same_v<std::decay_t<T1>, types::rTypeVar>;
       constexpr bool istv_r = std::is_same_v<std::decay_t<T2>, types::rTypeVar>;
-      if constexpr (issame || istv_l || istv_r) { return unify(t1, t2); }
+      constexpr bool isalias_l = std::is_same_v<std::decay_t<T1>, types::rAlias>;
+      constexpr bool isalias_r = std::is_same_v<std::decay_t<T2>, types::rAlias>;
+      if constexpr (issame || istv_l || istv_r || isalias_l || isalias_r) { return unify(t1, t2); }
       throw std::runtime_error("type mismatch");
     }
     std::vector<types::Value> unifyArgs(std::vector<types::Value>& v1,
                                         std::vector<types::Value>& v2);
+    void updateAlias(types::Alias& a) const;
   };
   struct SubstituteVisitor {
     explicit SubstituteVisitor(TypeInferer& parent) : inferer(parent) {}
@@ -195,18 +206,13 @@ struct TypeInferer {
       return types::Array{std::visit(*this, a.elem_type), a.size};
     }
     types::Value operator()(types::Tuple& a) {
-      std::vector<types::Value> res;
-      std::transform(a.arg_types.begin(), a.arg_types.end(), std::back_inserter(res),
-                     [&](types::Value& v) { return std::visit(*this, v); });
-      return types::Tuple{std::move(res)};
+      return types::Tuple{fmap(a.arg_types, [&](types::Value v) { return std::visit(*this, v); })};
     }
     types::Value operator()(types::Struct& a) {
-      std::vector<types::Struct::Keytype> res;
-      std::transform(a.arg_types.begin(), a.arg_types.end(), std::back_inserter(res),
-                     [&](types::Struct::Keytype& v) {
-                       return types::Struct::Keytype{v.field, std::visit(*this, v.val)};
-                     });
-      return types::Struct{std::move(res)};
+      using ktype = types::Struct::Keytype;
+      return types::Struct{fmap(a.arg_types, [&](ktype v) {
+        return ktype{v.field, std::visit(*this, v.val)};
+      })};
     }
 
     types::Value operator()(types::Alias& a) {
@@ -260,7 +266,23 @@ struct TypeInferer {
   types::Value unify(types::Value lhs, types::Value rhs) {
     return std::visit(unifyvisitor, lhs, rhs);
   }
-
+  [[nodiscard]] types::Value tryGetAlias(std::string const& key) const {
+    auto iter = typeenv.alias_map.find(key);
+    if (iter == typeenv.alias_map.cend()) {
+      throw std::runtime_error("Type " + key + " is unknown.");
+    }
+    return iter->second;
+  }
+  template <typename T>
+  std::optional<T> getIf(types::Value const& t) {
+    if (rv::holds_alternative<types::Alias>(t)) {
+      auto name = rv::get<types::Alias>(t).name;
+      auto type = tryGetAlias(name);
+      return std::optional(std::get<T>(type));
+    }
+    if (std::holds_alternative<T>(t)) { return std::optional(std::get<T>(t)); }
+    return std::nullopt;
+  }
   void substituteTypeVars();
 };
 

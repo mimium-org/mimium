@@ -1,6 +1,5 @@
 #include <cstdlib>
-#include <filesystem>
-namespace fs = std::filesystem;
+#include "utils/include_filesystem.hpp"
 
 #include "gtest/gtest.h"
 #include "gtest/internal/gtest-port.h"
@@ -71,8 +70,13 @@ REGRESSION(builtin,
 REGRESSION(libsndfile, "146640\n-0.0803833\n")
 REGRESSION(tuple_capture, "100\n200\n300\n")
 REGRESSION(tupletofn, "0.2\n0.8\n0.6\n2.4\n")
+REGRESSION(tuple_hof, "27\n")
+
 REGRESSION(array, "100\n200\n300\n400\n500\n")
 REGRESSION(array_capture, "100\n200\n300\n400\n500\n")
 REGRESSION(array_tofun, "100\n200\n300\n400\n500\n")
 REGRESSION(arrayreturn, "100\n200\n300\n400\n500\n")
 REGRESSION(arraylvar, "600\n700\n800\n")
+
+REGRESSION(structtype, "999\n")
+REGRESSION(typealias, "100\n200\n100\n")

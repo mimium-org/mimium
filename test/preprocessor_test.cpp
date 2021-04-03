@@ -1,7 +1,6 @@
 #include "preprocessor/preprocessor.hpp"
 #include "gtest/gtest.h"
 #include "gtest/internal/gtest-port.h"
-namespace fs = std::filesystem;
 
 #ifndef TEST_ROOT_DIR
 #define TEST_ROOT_DIR "\"\""

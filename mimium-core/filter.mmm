@@ -17,8 +17,8 @@ fn getOmega(fc,fs){
 fn getAlpha(omega,q){
     return sin(omega)/(2*q)
 }
-
-fn calcCoeffs(fc,gain,q,fs,paramfn:(float,float,float)->(float,float,float,float,float)){
+type BiquadCoeffs = (float,float,float,float,float)
+fn calcCoeffs(fc,gain,q,fs,paramfn:(float,float,float)->BiquadCoeffs){
     A = getGain(gain)
     omega = getOmega(fc,fs)
     alpha =getAlpha(omega,q)
