@@ -177,8 +177,9 @@ llvm::Value* CodeGenVisitor::operator()(minst::String& i) {
   return bitcast;
 }
 llvm::Value* CodeGenVisitor::operator()(minst::Allocate& i) {
-  assert(types::isPointer(i.type));
-  auto alloctype = rv::get<types::Pointer>(i.type).val;
+  auto ptype = types::getIf<types::rPointer>(i.type);
+  assert(ptype.has_value());
+  auto alloctype = ptype.value().getraw().val;
   auto* res = createAllocation(isglobal, G.getType(alloctype), nullptr, i.name);
   registerLlvmVal(getValPtr(&i), res);
   return res;
