@@ -16,7 +16,7 @@ namespace mir {
 
 inline types::Value lowerType(types::Value const& t) {
   return std::visit(
-      overloaded_rec{
+      overloaded{
           [](auto const& i) {
             assert(types::is_primitive_type<decltype(i)>);
             return types::Value{i};
@@ -73,7 +73,7 @@ inline types::Value lowerType(types::Value const& t) {
 class MirGenerator {
  public:
   explicit MirGenerator(TypeEnv& typeenv) : typeenv(typeenv) {}
-  struct ExprKnormVisitor : public VisitorBase<mir::valueptr&> {
+  struct ExprKnormVisitor {
     explicit ExprKnormVisitor(MirGenerator& parent, mir::blockptr block,
                               const std::optional<mir::valueptr>& fnctx)
         : mirgen(parent), fnctx(fnctx), block(std::move(block)) {}

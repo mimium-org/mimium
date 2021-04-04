@@ -49,7 +49,7 @@ struct OccurChecker {
 
 struct TypeInferer {
   using TypeEnvT = TypeEnvProto<ast::ExprPtr>;
-  struct ExprTypeVisitor : public VisitorBase<types::Value> {
+  struct ExprTypeVisitor {
     explicit ExprTypeVisitor(TypeInferer& parent) : inferer(parent) {}
     types::Value operator()(ast::Op& ast);
     types::Value operator()(ast::Number& ast);
@@ -73,7 +73,7 @@ struct TypeInferer {
   };
   // visitor for ast::Statements. its return value will be the return/expr of
   // last line in statements(used for inference of function return type).
-  struct StatementTypeVisitor : public VisitorBase<types::Value> {
+  struct StatementTypeVisitor {
     explicit StatementTypeVisitor(TypeInferer& parent) : inferer(parent) {}
     types::Value operator()(ast::Fdef& ast);
     types::Value operator()(ast::Assign& ast);
