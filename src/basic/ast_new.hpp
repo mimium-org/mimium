@@ -51,20 +51,17 @@ using ExprBase = std::variant<FloatLit,
                                 T...>;
 // clang-format on
 
-struct RecPlaceHolder {};
-
-template <template <class> class Kind>
-struct MakeRec {
-  using type = Box<Kind<MakeRec>>;
-};
-
 template <class EXPR>
 struct App;
 
 template <class EXPR>
 using ExprPrim = ExprBase<App<EXPR>, Let<EXPR>>;
 
-using Expr = MakeRec<ExprPrim>::type;
+struct ExprProto{
+    using type = ExprPrim<Box<ExprProto>>;
+};
+using Expr = ExprProto::type;
+
 
 template <class EXPR>
 struct App {
@@ -99,7 +96,7 @@ struct If{
 
 
 Expr e{FloatLit{0}};
-auto& test = std::get<FloatLit>(*e.t);
+auto& test = std::get<FloatLit>(e);
 
 // HIGH-LEVEL AST including Syntactic Sugar
 
