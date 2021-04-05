@@ -13,22 +13,23 @@ struct MakeRecursive {
 
 template <class EXPR>
 struct Ast {
-  template <class T, int ID = 0>
-  struct Primitive {
-    T v;
+  template <template <class...> class Category, class T, int ID = 0>
+  struct Aggregate {
+    Category<T> v;
+    using type = Category<T>;
   };
+
+  template <class T>
+  using IdentCategory = T;
+
+  template <class T, int ID = 0>
+  using Primitive = Aggregate<IdentCategory, T, ID>;
 
   using FloatLit = Primitive<float>;
   using IntLit = Primitive<int>;
   using BoolLit = Primitive<bool>;
   using StringLit = Primitive<std::string>;
   using Symbol = Primitive<std::string, 1>;
-
-  template <template <class...> class Category, class T, int ID = 0>
-  struct Aggregate {
-    using type = Category<T>;
-    type v;
-  };
 
   template <class T>
   using List = std::list<T>;
@@ -91,8 +92,7 @@ using ExprBase = std::variant<FloatLit,
 };
 using ExprPrim = MakeRecursive<Ast>;
 
-auto lit = ExprPrim::asts::FloatLit{0.0};
-ExprPrim::type e{lit};
+ExprPrim::type e{ExprPrim::asts::FloatLit{0.0}};
 auto& test = std::get<ExprPrim::asts::FloatLit>(e);
 
 // HIGH-LEVEL AST including Syntactic Sugar
