@@ -12,13 +12,23 @@ struct Type {
   struct String {};
   template <template <class...> class C, int ID = 0>
   using Aggregate = CategoryWrapped<C, Value, ID>;
-  // T1 * T2 * T3 ...
+  // T1 x T2 x T3 ...
   using Tuple = Aggregate<List>;
   // T1 | T2 | T3...
   using Variant = Aggregate<List, 1>;
-  // T1 -> T2 
-  using Function = Aggregate<Pair, 2>;
+  // T1 -> T2
+  using Function = Aggregate<Pair>;
 
+  template <class T>
+  struct ArrayCategory {
+    T v;
+    int size;
+  };
+  // [T]
+  using Array = Aggregate<ArrayCategory>;
+  // [[T]]
+  using ListT = CategoryWrapped<IdentCategory, Value, 1>;
+  //{key:T1,key:T2,...}
   template <class Identifier>
   struct RecordCategory {
     Identifier key;
@@ -26,24 +36,43 @@ struct Type {
   };
   using Record = CategoryWrapped<List, RecordCategory<std::string>>;
 
-  // Identified type
-  template <class T>
+  // my_t of int
+  // mostly used for variants.
+  // type color = Green of int| Red of Int |....
+  template <class ID>
   struct IdentifiedCategory {
-    T id;
+    ID id;
     Value v;
   };
-  using Identified = typename CategoryWrapped<IdentifiedCategory, int>::type;
-
+  using Identified = CategoryWrapped<IdentifiedCategory, int>;
+  // clang-format off
   template <class... T>
-  using TypeBase = std::variant<Unit, Bool, Int, Float, String, Tuple, Variant, Function, Record,
-                                Identified, T...>;
+  using TypeBase = std::variant<Unit, 
+                                Bool, 
+                                Int, 
+                                Float, 
+                                String, 
+                                Variant, 
+                                Tuple, 
+                                Function, 
+                                Array,
+                                Record, 
+                                T...>;
+  // clang-format on
+  template <class... Ts>
+  using HTypeProto = TypeBase<Variant, Identified, ListT, Ts...>;
+  using HType = HTypeProto<>;
 
-  using Intermediate = typename CategoryWrapped<IdentifiedCategory, int, 1>::type;
-  using HType = TypeBase<>;
+  using Intermediate = CategoryWrapped<IdentifiedCategory, int, 1>;
+  // Input type set
+  using IType = HTypeProto<Intermediate>;
+  //
 
-  using IType = TypeBase<Intermediate>;
+  // Types for MIR~LIR level expression, which contains Pointer, without variant, list and named
+  // newtype.
+  using Pointer = CategoryWrapped<IdentCategory, Value, 2>;
 
-  struct LType {};
+  using LType = TypeBase<Pointer>;
 
   // Generic Types
   template <class Id>
@@ -73,17 +102,19 @@ struct TypeResolver {
 // 変数と型の写像がスコープごとに
 template <class Env>
 struct Environment {
-  template <class T, class Identifier>
+  template <class Expr, class T>
   struct Value {
-    Map<Identifier, T> map;
-    std::optional<Env> e;
+    Map<Expr, Pair<T, Env>> map;
   };
 };
-template <class T>
-using TypeEnv = MakeRecursive<Environment>::type::Value<T, std::string>;
+template <class Expr, class T>
+using TypeEnv = MakeRecursive<Environment>::type::Value<Expr, T>;
 
 template <class AST>
 struct TypeInferer {
+  template <class T>
+  using TypeEnv = TypeEnv<AST, T>;
+
   using InputType = Either<TypeResolver::IType, Alias<std::string, TypeResolver::IType>>;
   using InputAliasMap = Alias<std::string, TypeResolver::IType>::map;
   // ASTを入れると中間変数を含む型環境とエイリアスの写像が帰ってくる
@@ -99,13 +130,13 @@ struct TypeInferer {
   //中間変数を取り除いた型環境を返す
   using Pass5 = TypeEnv<TypeResolver::HType>(TypeEnv<InputType>, TypeResolver::map);
 
-//入力の alias|Itype -> alias|Htype にマップし直す
+  //入力の alias|Itype -> alias|Htype にマップし直す
   using OutputType = Either<TypeResolver::HType, Alias<std::string, TypeResolver::HType>>;
   using OutputAliasMap = Alias<std::string, TypeResolver::HType>::map;
   using Pass6 = Pair<TypeEnv<OutputType>, OutputAliasMap>(TypeEnv<TypeResolver::HType>,
                                                           InputAliasMap);
   //全体としては、ASTを入れると中間変数がない(型|Alias)の環境が帰ってくる
-  using type =  Pair<TypeEnv<OutputType>, OutputAliasMap>(AST);
+  using type = Pair<TypeEnv<OutputType>, OutputAliasMap>(AST);
 };
 struct Test {};
 TypeInferer<Test> inferer;
