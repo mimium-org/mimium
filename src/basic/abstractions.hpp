@@ -27,8 +27,14 @@ using Set = std::unordered_set<T>;
 template <class FROM, class TO>
 using Map = std::unordered_map<FROM, TO>;
 
+template<class T,class U>
+using Pair = std::pair<T,U>;
+
 template <class R, class... ArgTypes>
 using Fn = std::function<R(ArgTypes...)>;
+
+template <class T,class U>
+using Either = std::variant<T,U>;
 
 template <class T, template <class...> class C, template <class...> class... Cs>
 struct Nested {
