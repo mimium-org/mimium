@@ -11,6 +11,9 @@ struct Ast {
   template <template <class...> class Category, class T, int ID = 0>
   using Aggregate = CategoryWrapped<Category, T, ID>;
 
+  template <template <class...> class Category, int ID = 0>
+  using Wrapper = Aggregate<IdentCategory, EXPR, ID>;
+
   template <class T, int ID = 0>
   using Primitive = Aggregate<IdentCategory, T, ID>;
 
@@ -20,30 +23,58 @@ struct Ast {
   using StringLit = Primitive<std::string>;
   using Symbol = Primitive<std::string, 1>;
 
-  using TupleLit = Aggregate<List, EXPR>;
-  using ArrayLit = Aggregate<List, EXPR, 1>;
+  using TupleLit = Wrapper<List, 0>;
+
+  template <class T>
+  struct GetterCategory {
+    EXPR expr;
+    T field;
+  };
+  template <class T>
+  using Getter = typename Aggregate<GetterCategory, T>::type;
+
+  using TupleGet = Getter<int>;
+
+  using ArrayLit = Wrapper<List, 1>;
+  using ArrayGet = Getter<float>;
+  using ArraySize = Wrapper<IdentCategory, 2>;
+
+  struct Id {
+    std::string v;
+  };
   struct StructKey {
     std::string key;
     EXPR v;
   };
   using StructLit = Aggregate<List, StructKey>;
 
-  struct Id {
-    std::string v;
-  };
+  using StructGet = Getter<std::string>;
+
   template <class T>
   struct LambdaCategory {
     List<Id> args;
     T body;
   };
   using Lambda = typename Aggregate<LambdaCategory, EXPR>::type;
-  template <class T>
+
+  template <template <class...> class IdContainer>
   struct LetCategory {
-    std::string id;
-    T expr;
-    T body;
+    template <class T>
+    struct Type {
+      IdContainer<Id> id;
+      T expr;
+      T body;
+    };
   };
-  using Let = typename Aggregate<LetCategory, EXPR>::type;
+
+  template <class T>
+  using LetCategorySingle = typename LetCategory<IdentCategory>::template Type<T>;
+  template <class T>
+  using LetCategoryTuple = typename LetCategory<List>::template Type<T>;
+
+  using Let = typename Aggregate<LetCategorySingle, EXPR>::type;
+  using LetTuple = typename Aggregate<LetCategoryTuple, EXPR>::type;
+
   template <class T>
   struct IfCategory {
     T cond;
@@ -59,9 +90,13 @@ using ExprBase = std::variant<FloatLit,
                                 BoolLit, 
                                 StringLit, 
                                 Symbol, 
-                                TupleLit, 
+                                TupleLit,
+                                TupleGet, 
                                 StructLit,
+                                StructGet,
                                 ArrayLit,
+                                ArrayGet,
+                                ArraySize,
                                 Lambda, 
                                 If, 
                                 Addtionals...>;
@@ -71,7 +106,7 @@ using ExprBase = std::variant<FloatLit,
     T callee;
     List<EXPR> args;
   };
-  using App = typename Aggregate<AppCategory, EXPR>::type;
+  using App = Wrapper<AppCategory>;
 
   // the Ast struct has to declare Expr type to use in MakeRecursive Container.
   using Expr = ExprBase<App, Let>;
@@ -121,10 +156,16 @@ struct Hast {
   using DefFnRvalue = typename Aggregate<LCategory, EXPR>::type;
   using DefFn = AssignmentProto<DefFnRvalue>;
 
-  using Statements = std::variant<Assignment, DefFn, ExprPrim::App>;
+  using Return = typename Aggregate<IdentCategory, EXPR, 1>::type;
+
+  using Statement = std::variant<Assignment, DefFn, ExprPrim::App>;
 
   //   using ExtFun;TODO
-  using Block = Aggregate<std::list, Statements>;
+  struct Block {
+    Aggregate<std::list, Statement> statements;
+    std::optional<Return> ret;
+  };
+
   using Expr = ExprPrim::ExprBase<Infix, Schedule, EnvVar, App, Block>;
 };
 
