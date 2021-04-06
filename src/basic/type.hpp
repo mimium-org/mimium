@@ -281,7 +281,7 @@ template <typename T>
 constexpr bool is_primitive_type = std::is_base_of_v<PrimitiveType, std::decay_t<T>>;
 
 inline bool isPrimitive(const Value& v) {
-  return std::visit(overloaded{[](auto&& a) { return is_primitive_type<decltype(a)>; },
+  return std::visit(overloaded_rec{[](auto&& a) { return is_primitive_type<decltype(a)>; },
                                [](Alias const& a) { return isPrimitive(a.target); }},
                     v);
 }

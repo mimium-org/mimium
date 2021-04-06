@@ -16,7 +16,7 @@ namespace mir {
 
 inline types::Value lowerType(types::Value const& t) {
   return std::visit(
-      overloaded{
+      overloaded_rec{
           [](auto const& i) {
             assert(types::is_primitive_type<decltype(i)>);
             return types::Value{i};

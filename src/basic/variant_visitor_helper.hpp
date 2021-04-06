@@ -14,6 +14,7 @@ struct overloaded : Ts... {
 template <class... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
 
+
 namespace mimium {
 // recursive variant
 
@@ -44,6 +45,31 @@ bool operator!=(const Box<T>& t1, const Box<T>& t2) {
   return !(t1 == t2);
 }
 
+template <class T>
+constexpr bool isBoxed(T /*v*/) {
+  return false;
+}
+template <class T>
+constexpr bool isBoxed(Box<T> /*v*/) {
+  return true;
+}
+template <typename T>
+using boxenabler = std::enable_if_t<isBoxed(T())>;
+
+template <class... Ts>
+struct overloaded_rec : Ts... {
+  using Ts::operator()...;
+  template <typename T>
+  decltype(auto) operator()(Box<T> a) {
+    return (*this)(a.getraw());
+  }
+  template <typename T, boxenabler<T>>
+  decltype(auto) operator()(T&& a) {
+    return (*this)(std::forward<decltype(a)>(a.getraw()));
+  }
+};
+template <class... Ts>
+overloaded_rec(Ts...) -> overloaded_rec<Ts...>;
 
 namespace rv {
 
