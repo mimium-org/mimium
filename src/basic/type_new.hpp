@@ -16,8 +16,8 @@ struct Type {
   using Tuple = Aggregate<List>;
   // T1 | T2 | T3...
   using Variant = Aggregate<List, 1>;
-  // T1 -> T2 -> T3...
-  using Function = Aggregate<List, 2>;
+  // T1 -> T2 
+  using Function = Aggregate<Pair, 2>;
 
   template <class Identifier>
   struct RecordCategory {
