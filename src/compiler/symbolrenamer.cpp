@@ -8,7 +8,7 @@ namespace mimium {
 // new alphaconverter
 SymbolRenamer::SymbolRenamer() : SymbolRenamer(std::make_shared<RenameEnvironment>()) {}
 SymbolRenamer::SymbolRenamer(std::shared_ptr<RenameEnvironment> env) : env(std::move(env)) {
-  this->env->rename_map.emplace("dsp", "dsp");
+  this->env->addToMap("dsp", "dsp");
 }
 
 AstPtr SymbolRenamer::rename(ast::Statements& ast) {
@@ -23,11 +23,11 @@ std::string SymbolRenamer::generateNewName(std::string const& name) {
 }
 
 std::string SymbolRenamer::getNewName(std::string const& name) {
-  auto res = env->search(std::optional(name));
+  auto res = env->search(name);
   return res.value_or(generateNewName(name));
 }
 std::string SymbolRenamer::searchFromEnv(std::string const& name) {
-  auto res = env->search(std::optional(name));
+  auto res = env->search(name);
   if (res == std::nullopt) {
     // the variable not found, assumed to be external symbol at this stage.
     return name;
@@ -53,7 +53,7 @@ ast::Block SymbolRenamer::renameBlock(ast::Block& ast) {
   env = env->expand();
   auto newstmts = rename(ast.stmts);
   auto newexpr = ast.expr.has_value() ? std::optional(renameExpr(ast.expr.value())) : std::nullopt;
-  env = env->parent_env;
+  env = env->parent_env.value();
   return ast::Block{{{ast.debuginfo}}, *std::move(newstmts), std::move(newexpr)};
 }
 
@@ -69,7 +69,7 @@ ast::Lambda ExprRenameVisitor::renameLambda(ast::Lambda& ast) {
   renamer.env = renamer.env->expand();
   auto newargsast = renameLambdaArgs(ast.args);
   auto newbody = renamer.renameBlock(ast.body);
-  renamer.env = renamer.env->parent_env;
+  renamer.env = renamer.env->parent_env.value();
   return ast::Lambda{{{ast.debuginfo}}, std::move(newargsast), std::move(newbody), ast.ret_type};
 }
 
@@ -185,7 +185,7 @@ StatementPtr StatementRenameVisitor::operator()(ast::For& ast) {
   renamer.env = renamer.env->expand();
   auto newindex = renamer.lvar_renamevisitor.renameDeclVar(ast.index);
   auto newstmts = renamer.renameBlock(ast.statements);
-  renamer.env = renamer.env->parent_env;
+  renamer.env = renamer.env->parent_env.value();
   return ast::makeStatement(
       ast::For{{{ast.debuginfo}}, std::move(newindex), std::move(newiter), std::move(newstmts)});
 }
