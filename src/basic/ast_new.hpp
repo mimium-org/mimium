@@ -25,14 +25,11 @@ struct Ast {
 
   using TupleLit = Wrapper<List, 0>;
 
-  template <class T>
-  struct GetterCategory {
+  template <class FieldT>
+  struct Getter {
     EXPR expr;
-    T field;
+    FieldT field;
   };
-  template <class T>
-  using Getter = typename Aggregate<GetterCategory, T>::type;
-
   using TupleGet = Getter<int>;
 
   using ArrayLit = Wrapper<List, 1>;
@@ -50,12 +47,12 @@ struct Ast {
 
   using StructGet = Getter<std::string>;
 
-  template <class T>
+  template <class T, class ID>
   struct LambdaCategory {
-    List<Id> args;
+    List<ID> args;
     T body;
   };
-  using Lambda = typename Aggregate<LambdaCategory, EXPR>::type;
+  using Lambda = LambdaCategory<EXPR, Id>;
 
   template <template <class...> class IdContainer>
   struct LetCategory {
@@ -135,34 +132,37 @@ struct Hast {
     T rhs;
   };
 
-  using Infix = typename Aggregate<InfixCategory, EXPR>::type;
+  using Infix = InfixCategory<EXPR>;
   template <class T>
   struct ScheduleCategory {
     App expr;
     T time;
   };
-  using Schedule = typename Aggregate<ScheduleCategory, EXPR>::type;
+  using Schedule = ScheduleCategory<EXPR>;
   struct EnvVar {
     std::string id;
   };
-  template <class T>
+  template <class T, int tid>
   struct AssignmentProto {
     std::string id;
     T expr;
   };
-  using Assignment = AssignmentProto<EXPR>;
+  using Assignment = AssignmentProto<EXPR, 0>;
   template <class T>
-  using LCategory = ExprPrim::LambdaCategory<T>;
-  using DefFnRvalue = typename Aggregate<LCategory, EXPR>::type;
-  using DefFn = AssignmentProto<DefFnRvalue>;
+  using LCategory = ExprPrim::LambdaCategory<T, ExprPrim::Id>;
 
-  using Return = typename Aggregate<IdentCategory, EXPR, 1>::type;
+  using DefFn = AssignmentProto<LCategory<EXPR>, 0>;
+  //empty placeholder that indicates the expression point itself
+  struct RecVal {};
+  using DefFnRec = AssignmentProto<LCategory<Either<EXPR, RecVal>>, 1>;
 
-  using Statement = std::variant<Assignment, DefFn, ExprPrim::App>;
+  using Return = Aggregate<IdentCategory, EXPR, 1>;
+
+  using Statement = std::variant<Assignment, DefFn, DefFnRec, ExprPrim::App>;
 
   //   using ExtFun;TODO
   struct Block {
-    Aggregate<std::list, Statement> statements;
+    Aggregate<List, Statement> statements;
     std::optional<Return> ret;
   };
 
@@ -172,5 +172,6 @@ struct Hast {
 using HExpr = MakeRecursive<Hast>::type;
 
 struct TypeAlias;  // type name = hoge
+struct Import;     // import("")
 
 }  // namespace mimium
