@@ -61,6 +61,9 @@ struct ExprCommon {
   using IntLit = Primitive<int>;
   using BoolLit = Primitive<bool>;
   using StringLit = Primitive<std::string>;
+
+  struct SelfLit {};
+
   using Symbol = Primitive<std::string, 1>;
 
   using TupleLit = Wrapper<List, 0>;
@@ -86,16 +89,29 @@ struct ExprCommon {
     List<T> args;
   };
   using App = Wrapper<AppCategory>;
-  static SExpr toSExpr(EXPR const& v) { return std::visit(visitor, v.getraw().v); }
+  static SExpr toSExpr(EXPR const& v) { return std::visit(sexpr_visitor, v.getraw().v); }
   constexpr static auto folder = [](auto&& a, auto&& b) { return cons(a, b); };
   inline const static auto mapper = [](EXPR const& e) -> SExpr { return toSExpr(e); };
   constexpr static auto listmatcher = [](std::string const& name, auto&& a) {
     return cons(makeSExpr(name), foldl(fmap(a.v, mapper), folder));
   };
-  constexpr static auto gettermatcher = [](std::string const& name, auto&& a) {
-    return cons(makeSExpr(name), cons(toSExpr(a.expr), makeSExpr(std::to_string(a.field))));
+  constexpr static auto structmapper = [](StructKey const& k) {
+    return cons(makeSExpr(k.key), toSExpr(k.v));
   };
-  inline static auto visitor = overloaded_rec{
+  constexpr static auto structmatcher = [](std::string const& name, auto&& a) {
+    return cons(makeSExpr(name), foldl(fmap(a.v, structmapper), folder));
+  };
+  constexpr static auto gettermatcher = [](std::string const& name, auto&& a) {
+    constexpr bool is_prim = std::is_same_v<int, std::decay_t<decltype(a.field)>>;
+    std::string field;
+    if constexpr (!is_prim) {
+      field = a.field;
+    } else {
+      field = std::to_string(a.field);
+    }
+    return cons(makeSExpr(name), cons(toSExpr(a.expr), makeSExpr(field)));
+  };
+  inline const static auto sexpr_visitor = overloaded_rec{
       [](FloatLit const& a) {
         return makeSExpr({"float", std::to_string(a.v)});
       },
@@ -108,6 +124,7 @@ struct ExprCommon {
       [](StringLit const& a) {
         return makeSExpr({"string", a.v});
       },
+      [](SelfLit const& /*a*/) { return makeSExpr("self"); },
       [](Symbol const& a) {
         return makeSExpr({"symbol", a.v});
       },
@@ -115,17 +132,29 @@ struct ExprCommon {
       [](TupleGet const& a) { return gettermatcher("tupleget", a); },
       [](ArrayLit const& a) { return listmatcher("array", a); },
       [](ArrayGet const& a) { return gettermatcher("arrayget", a); },
-      [](ArraySize const& a) { return makeSExpr("arraysize"); },
-      [](StructLit const& a) { return makeSExpr("struct"); },
-      [](StructGet const& a) { return makeSExpr(""); },
+      [](ArraySize const& a) { return cons(makeSExpr("arraysize"), toSExpr(a.v)); },
+      [](StructLit const& a) { return structmatcher("struct", a); },
+      [](StructGet const& a) { return gettermatcher("structget", a); },
       [](Lambda const& a) {
         return cons(makeSExpr("lambda"),
                     foldl(fmap(a.args, [](auto&& id) { return makeSExpr(id.v); }), folder));
       },
-      [](Let const& a) { return makeSExpr(""); },
-      [](LetTuple const& a) { return makeSExpr(""); },
-      [](App const& a) { return makeSExpr(""); },
-      [](If const& a) { return makeSExpr(""); },
+      [](Let const& a) {
+        return cons(makeSExpr({"let", a.id.v}), cons(toSExpr(a.expr), toSExpr(a.body)));
+      },
+      [](LetTuple const& a) {
+        return cons(makeSExpr("let"), cons(toSExpr(a.expr), toSExpr(a.body)));
+      },
+      [](App const& a) {
+        return cons(
+            makeSExpr("app"),
+            cons(toSExpr(a.v.callee), foldl(fmap(a.v.args, [](auto&& a) { return toSExpr(a); }),
+                                            [](auto&& a, auto&& b) { return cons(a, b); })));
+      },
+      [](If const& a) {
+        auto e = (a.velse) ? toSExpr(a.velse.value()) : makeSExpr("");
+        return cons(makeSExpr("if"), cons(toSExpr(a.cond), cons(toSExpr(a.vthen), std::move(e))));
+      },
       [](auto const& a) { return makeSExpr(""); }};
   static std::string toString(EXPR const& v) { return toString(toSExpr(v)); }
 };
@@ -138,6 +167,7 @@ struct LAst {
   using BoolLit = Expr::BoolLit;
   using StringLit = Expr::StringLit;
   using Symbol = Expr::Symbol;
+  using SelfLit = Expr::SelfLit;
   using TupleLit = Expr::TupleLit;
   using TupleGet = Expr::TupleGet;
   using ArrayLit = Expr::ArrayLit;
@@ -150,8 +180,9 @@ struct LAst {
 
   using If = Expr::If;
   struct expr {
-    using type = std::variant<FloatLit, IntLit, BoolLit, StringLit, Symbol, TupleLit, TupleGet,
-                              ArrayLit, ArrayGet, ArraySize, Lambda, Let, LetTuple, App, If>;
+    using type =
+        std::variant<FloatLit, IntLit, BoolLit, StringLit, SelfLit, Symbol, TupleLit, TupleGet,
+                     ArrayLit, ArrayGet, ArraySize, Lambda, Let, LetTuple, App, If>;
     type v;
     operator type&() { return v; };        // NOLINT
     operator const type&() { return v; };  // NOLINT
@@ -202,15 +233,11 @@ struct HastCommon {
   using LCategory = typename ExprCommon<EXPR>::template LambdaCategory<T, Id>;
 
   using DefFn = AssignmentProto<LCategory<EXPR>, Id>;
-  // empty placeholder that indicates the expression point itself
-  struct RecVal {};
-  using DefFnRec = AssignmentProto<LCategory<Either<EXPR, RecVal>>, Id>;
-
   struct Return {
     std::optional<EXPR> v;
   };
 
-  using Statement = std::variant<Assignment, DefFn, DefFnRec, App, Schedule, Return>;
+  using Statement = std::variant<Assignment, DefFn, App, Schedule, Return>;
 
   //   using ExtFun;TODO
   struct Block {
@@ -227,6 +254,7 @@ struct Hast {
   using IntLit = LExpr::IntLit;
   using BoolLit = LExpr::BoolLit;
   using StringLit = LExpr::StringLit;
+  using SelfLit = LExpr::SelfLit;
   using Symbol = LExpr::Symbol;
   using TupleLit = LExpr::TupleLit;
   using TupleGet = LExpr::TupleGet;
@@ -244,9 +272,9 @@ struct Hast {
   using Return = Expr::Return;
   using Block = Expr::Block;
   struct expr {
-    using type = std::variant<FloatLit, IntLit, BoolLit, StringLit, Symbol, TupleLit, TupleGet,
-                              ArrayLit, ArrayGet, ArraySize, StructLit, StructGet, Lambda, If, App,
-                              App, Infix, EnvVar, Return, Block>;
+    using type = std::variant<FloatLit, IntLit, BoolLit, StringLit, SelfLit, Symbol, TupleLit,
+                              TupleGet, ArrayLit, ArrayGet, ArraySize, StructLit, StructGet, Lambda,
+                              If, App, App, Infix, EnvVar, Return, Block>;
     type v;
     operator type&() { return v; };        // NOLINT
     operator const type&() { return v; };  // NOLINT

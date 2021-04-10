@@ -12,7 +12,6 @@
 #include "variant_visitor_helper.hpp"
 namespace mimium {
 
-
 template <template <class...> class Category, class T, int ID = 0>
 struct CategoryWrapped {
   using type = Category<T>;
@@ -23,20 +22,17 @@ auto fmap(CategoryWrapped<Category, T, ID> const& t, F&& lambda) {
   return fmap(t.v, std::forward<F>(lambda));
 }
 
-
 template <class T>
 using IdentCategory = T;
 template <class T, class F>
 auto fmap(IdentCategory<T> const& t, F&& lambda) -> decltype(auto) {
-  return std::forward<decltype(lambda)>(lambda)(t.v);
+  return std::forward<F>(lambda)(t.v);
 }
 
 template <class T, class F>
 auto fmap(std::optional<T> const& v, F&& lambda) -> decltype(auto) {
-  return v ? std::forward<decltype(lambda)>(v) : std::nullopt;
+  return v ? std::optional(std::forward<F>(lambda)(v.value())) : std::nullopt;
 }
-
-
 
 template <class T>
 using List = std::list<T>;
@@ -85,7 +81,6 @@ auto foldl(CONTAINER<RES> const& input, LAMBDA&& lambda) {
   return std::accumulate(std::begin(input), std::end(input), RES{},
                          std::forward<decltype(lambda)>(lambda));
 }
-
 
 template <template <class...> class Container>
 std::string join(Container<std::string> const& vec, std::string const& delim) {
