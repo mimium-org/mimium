@@ -3,15 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
-#include <future>
 #include "basic/helper_functions.hpp"
 namespace mimium {
 
-//
-
 template <class From, class To>
 struct Environment : public std::enable_shared_from_this<Environment<From, To>> {
-  Map<std::string, std::string> map{};
+  Map<From, To> map{};
   using EnvPtr = std::shared_ptr<Environment>;
   std::optional<EnvPtr> parent_env = std::nullopt;
 

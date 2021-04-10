@@ -11,19 +11,32 @@
 #include <unordered_set>
 #include "variant_visitor_helper.hpp"
 namespace mimium {
-template <template <class> class C>
-struct MakeRecursive {
-  using type = C<Box<MakeRecursive>>;
-};
+
 
 template <template <class...> class Category, class T, int ID = 0>
 struct CategoryWrapped {
   using type = Category<T>;
   type v;
 };
+template <template <class...> class Category, class T, int ID, class F>
+auto fmap(CategoryWrapped<Category, T, ID> const& t, F&& lambda) {
+  return fmap(t.v, std::forward<F>(lambda));
+}
+
 
 template <class T>
 using IdentCategory = T;
+template <class T, class F>
+auto fmap(IdentCategory<T> const& t, F&& lambda) -> decltype(auto) {
+  return std::forward<decltype(lambda)>(lambda)(t.v);
+}
+
+template <class T, class F>
+auto fmap(std::optional<T> const& v, F&& lambda) -> decltype(auto) {
+  return v ? std::forward<decltype(lambda)>(v) : std::nullopt;
+}
+
+
 
 template <class T>
 using List = std::list<T>;
@@ -33,8 +46,17 @@ using Set = std::unordered_set<T>;
 template <class FROM, class TO>
 using Map = std::unordered_map<FROM, TO>;
 
-template <class T, class U>
+template <class T, class U = T>
 using Pair = std::pair<T, U>;
+template <class T, class F>
+auto fmap(Pair<T> const& v, F&& lambda) -> decltype(auto) {
+  return Pair<T>(std::forward<decltype(lambda)>(lambda(v.first)),
+                 std::forward<decltype(lambda)>(lambda(v.second)));
+}
+template <class T, class F>
+auto foldl(Pair<T> const& v, F&& lambda) {
+  return std::forward<decltype(lambda)>(v.first, v.second);
+}
 
 template <class R, class... ArgTypes>
 using Fn = std::function<R(ArgTypes...)>;
@@ -59,10 +81,11 @@ CONTAINEROUT<std::invoke_result_t<LAMBDA, ELEMENTIN>> fmap(CONTAINERIN<ELEMENTIN
 }
 
 template <template <class...> class CONTAINER, typename RES, typename LAMBDA>
-auto foldl(CONTAINER<RES> input, LAMBDA&& lambda) {
-  return std::accumulate(input.cbegin(), input.cend(), RES{},
+auto foldl(CONTAINER<RES> const& input, LAMBDA&& lambda) {
+  return std::accumulate(std::begin(input), std::end(input), RES{},
                          std::forward<decltype(lambda)>(lambda));
 }
+
 
 template <template <class...> class Container>
 std::string join(Container<std::string> const& vec, std::string const& delim) {

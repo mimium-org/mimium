@@ -74,18 +74,6 @@ struct AstStringifier : public ToStringVisitor {
   }
 };
 
-template <typename CONTAINER>
-inline std::string joinVec(const CONTAINER& vec, const std::string& delim) {
-  std::ostringstream stream;
-  if (vec.size() > 0) {
-    for (auto& elem : vec) {
-      if (&elem != &vec[0]) { stream << delim; }
-      stream << elem;
-    }
-  }
-  return stream.str();
-}
-
 namespace ast {
 
 inline std::ostream& operator<<(std::ostream& os, ast::Expr const& val) {
