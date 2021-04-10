@@ -23,10 +23,7 @@ struct ExprCommon {
     EXPR expr;
     FieldT field;
   };
-  template <class PType>
-  auto toSExpr(PType v) {
-    return makeSExpr(std::to_string(v));
-  }
+
   template <class FieldT>
   auto toSExpr(Getter<FieldT> const& v) {
     return cons(makeSExpr({"get"}), cons(toSExpr(v.expr), toSExpr(v.field)));
@@ -89,6 +86,48 @@ struct ExprCommon {
     List<T> args;
   };
   using App = Wrapper<AppCategory>;
+  static SExpr toSExpr(EXPR const& v) { return std::visit(visitor, v.getraw().v); }
+  constexpr static auto folder = [](auto&& a, auto&& b) { return cons(a, b); };
+  inline const static auto mapper = [](EXPR const& e) -> SExpr { return toSExpr(e); };
+  constexpr static auto listmatcher = [](std::string const& name, auto&& a) {
+    return cons(makeSExpr(name), foldl(fmap(a.v, mapper), folder));
+  };
+  constexpr static auto gettermatcher = [](std::string const& name, auto&& a) {
+    return cons(makeSExpr(name), cons(toSExpr(a.expr), makeSExpr(std::to_string(a.field))));
+  };
+  inline static auto visitor = overloaded_rec{
+      [](FloatLit const& a) {
+        return makeSExpr({"float", std::to_string(a.v)});
+      },
+      [](IntLit const& a) {
+        return makeSExpr({"int", std::to_string(a.v)});
+      },
+      [](BoolLit const& a) {
+        return makeSExpr({"bool", (a.v ? std::string{"true"} : "false")});
+      },
+      [](StringLit const& a) {
+        return makeSExpr({"string", a.v});
+      },
+      [](Symbol const& a) {
+        return makeSExpr({"symbol", a.v});
+      },
+      [](TupleLit const& a) { return listmatcher("tuple", a); },
+      [](TupleGet const& a) { return gettermatcher("tupleget", a); },
+      [](ArrayLit const& a) { return listmatcher("array", a); },
+      [](ArrayGet const& a) { return gettermatcher("arrayget", a); },
+      [](ArraySize const& a) { return makeSExpr("arraysize"); },
+      [](StructLit const& a) { return makeSExpr("struct"); },
+      [](StructGet const& a) { return makeSExpr(""); },
+      [](Lambda const& a) {
+        return cons(makeSExpr("lambda"),
+                    foldl(fmap(a.args, [](auto&& id) { return makeSExpr(id.v); }), folder));
+      },
+      [](Let const& a) { return makeSExpr(""); },
+      [](LetTuple const& a) { return makeSExpr(""); },
+      [](App const& a) { return makeSExpr(""); },
+      [](If const& a) { return makeSExpr(""); },
+      [](auto const& a) { return makeSExpr(""); }};
+  static std::string toString(EXPR const& v) { return toString(toSExpr(v)); }
 };
 // small set of primitives before generating mir
 struct LAst {
@@ -104,8 +143,6 @@ struct LAst {
   using ArrayLit = Expr::ArrayLit;
   using ArrayGet = Expr::ArrayGet;
   using ArraySize = Expr::ArraySize;
-  using StructLit = Expr::StructLit;
-  using StructGet = Expr::StructGet;
   using Lambda = Expr::Lambda;
   using Let = Expr::Let;
   using LetTuple = Expr::LetTuple;
@@ -113,60 +150,13 @@ struct LAst {
 
   using If = Expr::If;
   struct expr {
-    using type =
-        std::variant<FloatLit, IntLit, BoolLit, StringLit, Symbol, TupleLit, TupleGet, ArrayLit,
-                     ArrayGet, ArraySize, StructLit, StructGet, Lambda, Let, LetTuple, App, If>;
+    using type = std::variant<FloatLit, IntLit, BoolLit, StringLit, Symbol, TupleLit, TupleGet,
+                              ArrayLit, ArrayGet, ArraySize, Lambda, Let, LetTuple, App, If>;
     type v;
     operator type&() { return v; };        // NOLINT
     operator const type&() { return v; };  // NOLINT
   };
 };
-inline SExpr toSExpr(LAst::expr::type const& v) {
-  auto&& folder = [](auto&& a, auto&& b) { return cons(a, b); };
-  auto&& listmatcher = [&](std::string const& name, auto&& a) {
-    return cons(makeSExpr(name),
-                foldl(fmap(a.v, [](LAst::expr const& a) { return toSExpr(a.v); }), folder));
-  };
-  auto&& gettermatcher = [](std::string const& name, auto&& a) {
-    return cons(makeSExpr(name),
-                cons(toSExpr(a.expr.getraw().v), makeSExpr(std::to_string(a.field))));
-  };
-
-  auto&& f = overloaded_rec{
-      [](LAst::FloatLit const& a) {
-        return makeSExpr({"float", std::to_string(a.v)});
-      },
-      [](LAst::IntLit const& a) {
-        return makeSExpr({"int", std::to_string(a.v)});
-      },
-      [](LAst::BoolLit const& a) {
-        return makeSExpr({"bool", (a.v ? std::string{"true"} : "false")});
-      },
-      [](LAst::StringLit const& a) {
-        return makeSExpr({"string", a.v});
-      },
-      [](LAst::Symbol const& a) {
-        return makeSExpr({"symbol", a.v});
-      },
-      [&](LAst::TupleLit const& a) { return listmatcher("tuple", a); },
-      [&](LAst::TupleGet const& a) { return gettermatcher("tupleget", a); },
-      [&](LAst::ArrayLit const& a) { return listmatcher("array", a); },
-      [&](LAst::ArrayGet const& a) { return gettermatcher("arrayget", a); },
-      [&](LAst::ArraySize const& a) { return makeSExpr("arraysize"); },
-      [](LAst::StructLit const& a) { return makeSExpr("struct"); },
-      [](LAst::StructGet const& a) { return makeSExpr(""); },
-      [&](LAst::Lambda const& a) {
-        return cons(makeSExpr("lambda"),
-                    foldl(fmap(a.args, [](auto&& id) { return makeSExpr(id.v); }), folder));
-      },
-      [](LAst::Let const& a) { return makeSExpr(""); },
-      [](LAst::LetTuple const& a) { return makeSExpr(""); },
-      [](LAst::App const& a) { return makeSExpr(""); },
-      [](LAst::If const& a) { return makeSExpr(""); },
-      [](LAst::expr const& a) { return toSExpr(a.v); }};
-  return std::visit(f, v);
-}
-inline std::string toString(LAst::expr::type const& v) { return toString(toSExpr(v)); }
 
 // HIGH-LEVEL AST including Syntactic Sugar
 template <class EXPR>
@@ -263,7 +253,20 @@ struct Hast {
   };
 };
 
-struct TypeAlias;  // type name = hoge
-struct Import;     // import("")
+struct TopLevel {
+  using expr = Hast::expr;
+  // type name = hoge
+  using TypeAlias = Alias_t;
+  // import("")
+  struct Import {
+    std::string path;
+  };
+
+  using Statement = HastCommon<Box<expr>>::Statement;
+
+  using CompilerDirective = std::variant<TypeAlias, Import>;
+
+  using Expression = List<std::variant<Statement, CompilerDirective>>;
+};
 
 }  // namespace mimium

@@ -59,35 +59,38 @@ struct Type {
   template <class Id>
   using TypeScheme = typename CategoryWrapped<IdentifiedCategory, Id, 2>::type;
 
-  inline static SExpr toSExpr(Value const& v) { return std::visit(to_sexpr_visitor, v); }
-  inline static auto listvisithelper = [](const auto& t) {
+  inline static SExpr toSExpr(Value const& v) { return std::visit(to_sexpr_visitor, v.getraw().v); }
+  inline const static auto listvisithelper = [](const auto& t) {
     return foldl(fmap(t.v, [](Value const& a) { return toSExpr(a); }),
-                 [](SExpr const& a, SExpr const& b) { return cons(a, b); });
+                 [](auto&& a, auto&& b) { return cons(a, b); });
   };
-  inline static auto recordvisithelper = [](const auto& t) {
+  inline const static auto recordvisithelper = [](const auto& t) {
     return foldl(fmap(t.v,
                       [](RecordCategory<std::string> const& a) {
                         return cons(makeSExpr(a.key), toSExpr(a.v));
                       }),
-                 [](SExpr const& a, SExpr const& b) { return cons(a, b); });
+                 [](auto&& a, auto&& b) { return cons(a, b); });
   };
-  inline static const SExpr to_sexpr_visitor = overloaded_rec{
-      [](Unit const&) { return makeSExpr("unit"); },
-      [](Float const&) { return makeSExpr("float"); },
-      [](Int const&) { return makeSExpr("int"); },
-      [](Bool const&) { return makeSExpr("bool"); },
-      [](String const&) { return makeSExpr("String"); },
-      [](Unknown const&) { return makeSExpr("Unknown"); },
-      [](Tuple const& t) { return cons(makeSExpr("tuple", listvisithelper(t))); },
-      [](Record const& t) { return cons(makeSExpr("record", recordvisithelper(t))); },
-      [](Variant const& t) { return cons(makeSExpr("variant", listvisithelper(t))); },
-      [](Function const& t) { return cons(makeSExpr("function", listvisithelper(t))); },
-      [](Array const& t) { return cons(makeSExpr("array", toSExpr(t.v))); },
-      [](ListT const& t) { return cons(makeSExpr("list", toSExpr(t.v))); },
-      [](Pointer const& t) { return cons(makeSExpr("pointer", toSExpr(t.v))); },
+  inline const static auto to_sexpr_visitor = overloaded{
+      [](Unit const& /**/) { return makeSExpr("unit"); },
+      [](Float const& /**/) { return makeSExpr("float"); },
+      [](Int const& /**/) { return makeSExpr("int"); },
+      [](Bool const& /**/) { return makeSExpr("bool"); },
+      [](String const& /**/) { return makeSExpr("String"); },
+      [](Unknown const& /**/) { return makeSExpr("Unknown"); },
+      [](Tuple const& t) { return cons(makeSExpr("tuple"), listvisithelper(t)); },
+      [](Record const& t) { return cons(makeSExpr("record"), recordvisithelper(t)); },
+      [](Variant const& t) { return cons(makeSExpr("variant"), listvisithelper(t)); },
+      [](Function const& t) {
+        return cons(makeSExpr("function"), cons(toSExpr(t.v.first), toSExpr(t.v.second)));
+      },
+      [](Array const& t) { return cons(makeSExpr("array"), toSExpr(t.v.v)); },
+      [](ListT const& t) { return cons(makeSExpr("list"), toSExpr(t.v)); },
+      [](Pointer const& t) { return cons(makeSExpr("pointer"), toSExpr(t.v)); },
       [](Intermediate const& t) {
         return makeSExpr({"TypeVar", std::to_string(t.type_id)});
       },
+      [](Identified const& t) { return cons(makeSExpr("newtype"),toSExpr(t.v.v)); },
       [](auto const& a) { return makeSExpr(""); }};
 };
 struct IType {
@@ -110,9 +113,10 @@ struct IType {
   using type = std::variant<Unit, Bool, Int, Float, String, Variant, Tuple, Function, Array, Record,
                             Identified, ListT, Intermediate, Unknown>;
   struct Value {
+    using baset = Type<Box<Value>>;
     type v;
     operator type&() { return v; }
-    operator const type&() { return v; }
+    operator const type&() const { return v; }
   };
 };
 
@@ -135,9 +139,11 @@ struct HType {
   using type = std::variant<Unit, Bool, Int, Float, String, Variant, Tuple, Function, Array, Record,
                             Identified, ListT>;
   struct Value {
+    using baset = Type<Box<Value>>;
     type v;
+
     operator type&() { return v; }
-    operator const type&() { return v; }
+    operator const type&() const { return v; }
   };
 };
 
@@ -160,20 +166,16 @@ struct LType {
   using type =
       std::variant<Unit, Bool, Int, Float, String, Tuple, Function, Array, Identified, Pointer>;
   struct Value {
+    using baset = Type<Box<Value>>;
+
     type v;
     operator type&() { return v; }
-    operator const type&() { return v; }
+    operator const type&() const { return v; }
   };
 };
 
-// helper functions to emit sexpr for IType, HType, LType
 template <class T>
-auto toSExpr(typename T::Value const& t) {
-  return T::baset::toSExpr(t);
-}
-
-template <class T>
-auto toString(typename T::Value const& t) {
+SExpr toString(typename T::Value const& t) {
   return toString(toSExpr(t));
 }
 
@@ -184,27 +186,22 @@ struct Alias {
   using idtype = ID;
   using map = Map<ID, Value>;
   idtype id;
-  Value a;
+  using Ttype = std::variant<Value, Box<Alias<ID, Value>>>;
+  Ttype a;
+  inline static SExpr toSExprA(Ttype const& t) {
+    return std::visit(overloaded{[](const Alias& a) { return toSExpr(a); },
+                                 [](const Value& a) { return Value::baset::toSExpr(a); }},
+                      t);
+  }
+  inline static SExpr toSExpr(Alias const& t) { return cons(makeSExpr(t.id), toSExprA(t.a)); }
 };
-template <class ID, class Value>
-SExpr toSExpr(Alias<ID,Value> const& t){
-  return cons(makeSExpr(t.id),toSExpr(t.a));
-}
-
 
 using Alias_t = Alias<std::string, IType::Value>;
-using ITypeOrAlias = std::variant<Alias_t, IType::Value>;
+using ITypeOrAlias = Alias_t::Ttype;
 
-inline SExpr toSExpr(ITypeOrAlias const& t) {
-  return std::visit(overloaded{
-    [](const auto& a){return toSExpr(a);}
-  },t);
-}
+inline SExpr toSExpr(ITypeOrAlias const& t) { return Alias_t::toSExprA(t); }
 
-inline auto toString(ITypeOrAlias const& t) {
-  return toString(toSExpr(t));
-}
-
+inline auto toString(ITypeOrAlias const& t) { return toString(toSExpr(t)); }
 
 inline auto makeUnknownAlias(std::string const& name) {
   auto itype = IType::Value{IType::Unknown{}};
