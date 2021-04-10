@@ -6,26 +6,71 @@
 #include "type_new.hpp"
 
 namespace mimium {
+template <class T, class FieldT>
+struct Getter {
+  T expr;
+  FieldT field;
+};
+template <class T, class Field, class F>
+auto fmap(Getter<T, Field> const& v, F&& lambda) {
+  return Getter<decltype(lambda(v.expr)), Field>{std::forward<F>(lambda)(v.expr), v.field};
+}
+
+template <class T, class ID>
+struct LambdaCategory {
+  List<ID> args;
+  T body;
+};
+template <class T, class ID, class F>
+auto fmap(LambdaCategory<T, ID> const& v, F&& lambda) -> decltype(auto) {
+  using restype = std::invoke_result_t<F, T>;
+  return LambdaCategory<restype, ID>{v.args, std::forward<F>(lambda)(v.body)};
+}
+// template <class T, class ID, class F>
+
+// auto foldl(LambdaCategory<T, ID> const& v, F&& lambda) {
+//   return lambda(foldl(v.args, std::forward<F>(lambda)), v.body);
+// }
+
+template <template <class...> class IdContainer, class ID, class T>
+struct LetCategory {
+  IdContainer<ID> id;
+  T expr;
+  T body;
+};
+template <template <class...> class IdContainer, class ID, class T, class F>
+auto fmap(LetCategory<IdContainer, ID, T> const& v, F&& lambda) {
+  return LetCategory<IdContainer, ID, decltype(lambda(v.expr))>{fmap(v.id, std::forward<F>(lambda)),
+                                                                std::forward<F>(lambda)(v.expr),
+                                                                std::forward<F>(lambda)(v.body)};
+}
+
+template <class T>
+struct IfCategory {
+  T cond;
+  T vthen;
+  std::optional<T> velse;
+};
+template <class T, class F>
+auto fmap(IfCategory<T> const& v, F&& lambda) {
+  return IfCategory<decltype(lambda(v.cond))>{std::forward<F>(lambda)(v.cond),
+                                              std::forward<F>(lambda)(v.vthen),
+                                              fmap(v.velse, std::forward<F>(lambda))};
+}
 
 template <class EXPR>
 struct ExprCommon {
-  template <template <class...> class Category, class T, int ID = 0>
-  using Aggregate = CategoryWrapped<Category, T, ID>;
+  template <template <class...> class Category, int ID = 0, class... T>
+  using Aggregate = CategoryWrapped<Category, ID, T...>;
 
   template <template <class...> class Category, int ID = 0>
-  using Wrapper = Aggregate<Category, EXPR, ID>;
+  using Wrapper = Aggregate<Category, ID, EXPR>;
 
   template <class T, int ID = 0>
-  using Primitive = Aggregate<IdentCategory, T, ID>;
+  using Primitive = Aggregate<IdentCategory, ID, T>;
 
   template <class FieldT>
-  struct Getter {
-    EXPR expr;
-    FieldT field;
-  };
-
-  template <class FieldT>
-  auto toSExpr(Getter<FieldT> const& v) {
+  auto toSExpr(Getter<EXPR, FieldT> const& v) {
     return cons(makeSExpr({"get"}), cons(toSExpr(v.expr), toSExpr(v.field)));
   }
 
@@ -38,25 +83,6 @@ struct ExprCommon {
     EXPR v;
   };
 
-  template <class T, class ID>
-  struct LambdaCategory {
-    List<ID> args;
-    T body;
-  };
-  template <template <class...> class IdContainer>
-  struct LetCategory {
-    IdContainer<Id> id;
-    EXPR expr;
-    EXPR body;
-  };
-
-  template <class Cond, class T>
-  struct IfCategory {
-    Cond cond;
-    T vthen;
-    std::optional<T> velse;
-  };
-
   using FloatLit = Primitive<float>;
   using IntLit = Primitive<int>;
   using BoolLit = Primitive<bool>;
@@ -67,27 +93,28 @@ struct ExprCommon {
   using Symbol = Primitive<std::string, 1>;
 
   using TupleLit = Wrapper<List, 0>;
-  using TupleGet = Getter<int>;
+  using TupleGet = Getter<EXPR, int>;
 
   using ArrayLit = Wrapper<List, 1>;
-  using ArrayGet = Getter<float>;
+  using ArrayGet = Getter<EXPR, float>;
   using ArraySize = Wrapper<IdentCategory, 2>;
 
-  using StructLit = Aggregate<List, StructKey>;
-  using StructGet = Getter<std::string>;
+  using StructLit = Aggregate<List, 0, StructKey>;
+  using StructGet = Getter<EXPR, std::string>;
 
-  using Lambda = LambdaCategory<EXPR, Id>;
+  using Lambda = CategoryWrapped<LambdaCategory, 0, EXPR, Id>;
 
-  using Let = LetCategory<IdentCategory>;
-  using LetTuple = LetCategory<List>;
+  using Let = LetCategory<IdentCategory, Id, EXPR>;
+  using LetTuple = LetCategory<List, Id, EXPR>;
 
-  using If = IfCategory<EXPR, EXPR>;
+  using If = IfCategory<EXPR>;
 
   template <class T>
   struct AppCategory {
     EXPR callee;
     List<T> args;
   };
+
   using App = Wrapper<AppCategory>;
   static SExpr toSExpr(EXPR const& v) { return std::visit(sexpr_visitor, v.getraw().v); }
   constexpr static auto folder = [](auto&& a, auto&& b) { return cons(a, b); };
@@ -136,8 +163,8 @@ struct ExprCommon {
       [](StructLit const& a) { return structmatcher("struct", a); },
       [](StructGet const& a) { return gettermatcher("structget", a); },
       [](Lambda const& a) {
-        return cons(makeSExpr("lambda"),
-                    foldl(fmap(a.args, [](auto&& id) { return makeSExpr(id.v); }), folder));
+        SExpr&& args = foldl(fmap<List>(a.v.args, [](Id&& a) { return makeSExpr(a.v); }), folder);
+        return cons(makeSExpr("lambda"), cons(args, toSExpr(a.v.body)));
       },
       [](Let const& a) {
         return cons(makeSExpr({"let", a.id.v}), cons(toSExpr(a.expr), toSExpr(a.body)));
@@ -170,6 +197,10 @@ struct LAst {
   using SelfLit = Expr::SelfLit;
   using TupleLit = Expr::TupleLit;
   using TupleGet = Expr::TupleGet;
+  using StructLit = Expr::StructLit;
+  using StructGet = Expr::StructGet;
+  using StructKey = Expr::StructKey;
+
   using ArrayLit = Expr::ArrayLit;
   using ArrayGet = Expr::ArrayGet;
   using ArraySize = Expr::ArraySize;
@@ -180,9 +211,9 @@ struct LAst {
 
   using If = Expr::If;
   struct expr {
-    using type =
-        std::variant<FloatLit, IntLit, BoolLit, StringLit, SelfLit, Symbol, TupleLit, TupleGet,
-                     ArrayLit, ArrayGet, ArraySize, Lambda, Let, LetTuple, App, If>;
+    using type = std::variant<FloatLit, IntLit, BoolLit, StringLit, SelfLit, Symbol, TupleLit,
+                              TupleGet, StructLit, StructGet, ArrayLit, ArrayGet, ArraySize, Lambda,
+                              Let, LetTuple, App, If>;
     type v;
     operator type&() { return v; };        // NOLINT
     operator const type&() { return v; };  // NOLINT
@@ -193,7 +224,7 @@ struct LAst {
 template <class EXPR>
 struct HastCommon {
   template <template <class...> class T, class U, int ID = 0>
-  using Aggregate = typename ExprCommon<EXPR>::template Aggregate<T, U, ID>;
+  using Aggregate = typename ExprCommon<EXPR>::template Aggregate<T, ID, U>;
 
   struct CurryPlaceHolder {};
   using CurryArg = std::variant<EXPR, CurryPlaceHolder>;
@@ -229,10 +260,7 @@ struct HastCommon {
   using Id = typename ExprCommon<EXPR>::Id;
   using Assignment = AssignmentProto<EXPR, Id>;
 
-  template <class T>
-  using LCategory = typename ExprCommon<EXPR>::template LambdaCategory<T, Id>;
-
-  using DefFn = AssignmentProto<LCategory<EXPR>, Id>;
+  using DefFn = AssignmentProto<LambdaCategory<EXPR, Id>, Id>;
   struct Return {
     std::optional<EXPR> v;
   };
@@ -262,7 +290,9 @@ struct Hast {
   using ArrayGet = LExpr::ArrayGet;
   using ArraySize = LExpr::ArraySize;
   using StructLit = LExpr::StructLit;
+  using StructKey = LExpr::StructKey;
   using StructGet = LExpr::StructGet;
+
   using Lambda = LExpr::Lambda;
   using If = LExpr::If;
 
@@ -274,7 +304,7 @@ struct Hast {
   struct expr {
     using type = std::variant<FloatLit, IntLit, BoolLit, StringLit, SelfLit, Symbol, TupleLit,
                               TupleGet, ArrayLit, ArrayGet, ArraySize, StructLit, StructGet, Lambda,
-                              If, App, App, Infix, EnvVar, Return, Block>;
+                              If, App, Infix, EnvVar, Block>;
     type v;
     operator type&() { return v; };        // NOLINT
     operator const type&() { return v; };  // NOLINT

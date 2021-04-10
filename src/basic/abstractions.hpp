@@ -12,13 +12,13 @@
 #include "variant_visitor_helper.hpp"
 namespace mimium {
 
-template <template <class...> class Category, class T, int ID = 0>
+template <template <class...> class Category, int ID = 0, class... T>
 struct CategoryWrapped {
-  using type = Category<T>;
+  using type = Category<T...>;
   type v;
 };
-template <template <class...> class Category, class T, int ID, class F>
-auto fmap(CategoryWrapped<Category, T, ID> const& t, F&& lambda) {
+template <template <class...> class Category, int ID, class F, class... T>
+auto fmap(CategoryWrapped<Category, ID, T...> const& t, F&& lambda) {
   return fmap(t.v, std::forward<F>(lambda));
 }
 

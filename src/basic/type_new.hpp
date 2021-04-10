@@ -11,7 +11,7 @@ struct Type {
   struct Float {};
   struct String {};
   template <template <class...> class C, int ID = 0>
-  using Aggregate = CategoryWrapped<C, Value, ID>;
+  using Aggregate = CategoryWrapped<C, ID, Value>;
   // T1 x T2 x T3 ...
   using Tuple = Aggregate<List>;
   // T1 | T2 | T3...
@@ -27,14 +27,14 @@ struct Type {
   // [T]
   using Array = Aggregate<ArrayCategory>;
   // [[T]]
-  using ListT = CategoryWrapped<IdentCategory, Value, 1>;
+  using ListT = CategoryWrapped<IdentCategory, 1, Value>;
   //{key:T1,key:T2,...}
   template <class Identifier>
   struct RecordCategory {
     Identifier key;
     Value v;
   };
-  using Record = CategoryWrapped<List, RecordCategory<std::string>>;
+  using Record = CategoryWrapped<List, 0, RecordCategory<std::string>>;
 
   // my_t of int
   // mostly used for variants.
@@ -44,7 +44,7 @@ struct Type {
     ID id;
     Value v;
   };
-  using Identified = CategoryWrapped<IdentifiedCategory, int>;
+  using Identified = CategoryWrapped<IdentifiedCategory, 0, int>;
 
   struct Unknown {};
   struct Intermediate {
@@ -53,11 +53,11 @@ struct Type {
 
   // Types for MIR~LIR level expression, which contains Pointer, without variant, list and named
   // newtype.
-  using Pointer = CategoryWrapped<IdentCategory, Value, 2>;
+  using Pointer = CategoryWrapped<IdentCategory, 2, Value>;
 
   // Generic Types TBD
   template <class Id>
-  using TypeScheme = typename CategoryWrapped<IdentifiedCategory, Id, 2>::type;
+  using TypeScheme = typename CategoryWrapped<IdentifiedCategory, 2, Id>::type;
 
   inline static SExpr toSExpr(Value const& v) { return std::visit(to_sexpr_visitor, v.getraw().v); }
   inline const static auto listvisithelper = [](const auto& t) {
@@ -90,7 +90,7 @@ struct Type {
       [](Intermediate const& t) {
         return makeSExpr({"TypeVar", std::to_string(t.type_id)});
       },
-      [](Identified const& t) { return cons(makeSExpr("newtype"),toSExpr(t.v.v)); },
+      [](Identified const& t) { return cons(makeSExpr("newtype"), toSExpr(t.v.v)); },
       [](auto const& a) { return makeSExpr(""); }};
 };
 struct IType {
@@ -221,6 +221,11 @@ template <class Key, class T>
 struct Environment {
   struct Value {
     Map<Key, Pair<T, Box<Environment>>> map;
+    T get(Key const& k) {
+      auto iter = map.find(k);
+      if (iter == map.cend()) { throw std::runtime_error("Unknown Symbol " + toString(k)); }
+      return iter->second.first;
+    }
   };
 };
 template <class Expr, class T>
