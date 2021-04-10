@@ -13,6 +13,7 @@
 #include <stack>
 #include <utility>  //pair
 #include <vector>
+#include <functional>
 #include "abstractions.hpp"
 #include "export.hpp"
 
