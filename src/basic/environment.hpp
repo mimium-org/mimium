@@ -27,6 +27,10 @@ struct Environment : public std::enable_shared_from_this<Environment<From, To>> 
   std::optional<bool> isFreeVar(From const& name) {
     return metaSearch<bool>(name, THUNK(false), THUNK(std::optional(true)));
   }
+  bool existInLocal(From const& name) {
+    auto opt_isfreevar = isFreeVar(name);
+    return !(opt_isfreevar.value_or(true));
+  }
 
  private:
   template <typename T, typename Lambda1, typename Lambda2>

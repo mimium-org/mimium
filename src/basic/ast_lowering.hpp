@@ -1,6 +1,6 @@
 #pragma once
 #include "ast_new.hpp"
-
+#include "environment.hpp"
 namespace mimium {
 template <class EXPR>
 struct MacroPattern {
@@ -8,7 +8,6 @@ struct MacroPattern {
 };
 namespace lowerast {
 
-using TypeEnv = TypeEnv<Hast::expr, IType::Value>::Value;
-LAst::expr lowerHast(Hast::expr const& expr, TypeEnv const& env);
+LAst::expr lowerHast(Hast::expr const& expr);
 }  // namespace lowerast
 }  // namespace mimium

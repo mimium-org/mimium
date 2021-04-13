@@ -104,6 +104,11 @@ struct ExprCommon {
 
   using Lambda = CategoryWrapped<LambdaCategory, 0, EXPR, Id>;
 
+  // pair of expressions which is used to express a sequence of statements.
+  // the first value should be void(unit)-type Application of function.
+  struct NoOp {};
+  using Sequence = CategoryWrapped<Pair, 0, EXPR>;
+
   using Let = LetCategory<IdentCategory, Id, EXPR>;
   using LetTuple = LetCategory<List, Id, EXPR>;
 
@@ -166,6 +171,10 @@ struct ExprCommon {
         SExpr&& args = foldl(fmap<List>(a.v.args, [](Id&& a) { return makeSExpr(a.v); }), folder);
         return cons(makeSExpr("lambda"), cons(args, toSExpr(a.v.body)));
       },
+      [](NoOp const& /**/) { return makeSExpr("noop"); },
+      [](Sequence const& a) {
+        return cons(makeSExpr("sequence"), cons(toSExpr(a.v.first), toSExpr(a.v.second)));
+      },
       [](Let const& a) {
         return cons(makeSExpr({"let", a.id.v}), cons(toSExpr(a.expr), toSExpr(a.body)));
       },
@@ -205,6 +214,9 @@ struct LAst {
   using ArrayGet = Expr::ArrayGet;
   using ArraySize = Expr::ArraySize;
   using Lambda = Expr::Lambda;
+  using Sequence = Expr::Sequence;
+  using NoOp = Expr::NoOp;
+  
   using Let = Expr::Let;
   using LetTuple = Expr::LetTuple;
   using App = Expr::App;
@@ -213,7 +225,7 @@ struct LAst {
   struct expr {
     using type = std::variant<FloatLit, IntLit, BoolLit, StringLit, SelfLit, Symbol, TupleLit,
                               TupleGet, StructLit, StructGet, ArrayLit, ArrayGet, ArraySize, Lambda,
-                              Let, LetTuple, App, If>;
+                              Sequence, NoOp, Let, LetTuple, App, If>;
     type v;
     operator type&() { return v; };        // NOLINT
     operator const type&() { return v; };  // NOLINT
@@ -259,18 +271,19 @@ struct HastCommon {
   };
   using Id = typename ExprCommon<EXPR>::Id;
   using Assignment = AssignmentProto<EXPR, Id>;
+  using Lambda = typename ExprCommon<EXPR>::Lambda;
 
-  using DefFn = AssignmentProto<LambdaCategory<EXPR, Id>, Id>;
+  using DefFn = AssignmentProto<Lambda, Id>;
   struct Return {
     std::optional<EXPR> v;
   };
 
-  using Statement = std::variant<Assignment, DefFn, App, Schedule, Return>;
+  using Statement = std::variant<Assignment, DefFn, App, Schedule>;
 
   //   using ExtFun;TODO
   struct Block {
     Aggregate<List, Statement> statements;
-    std::optional<Return> ret;
+    std::optional<EXPR> ret;
   };
 };
 
