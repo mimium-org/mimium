@@ -35,6 +35,8 @@ struct Box {
   std::shared_ptr<T> t;
 };
 
+
+
 template <typename T>
 bool operator==(const Box<T>& t1, const Box<T>& t2) {
   return static_cast<const T&>(t1) == static_cast<const T&>(t2);
@@ -50,6 +52,14 @@ constexpr bool isBoxed(T /*v*/) {
 }
 template <class T>
 constexpr bool isBoxed(Box<T> /*v*/) {
+  return true;
+}
+template <class T>
+constexpr bool isBoxed(Box<T>const& /*v*/) {
+  return true;
+}
+template <class T>
+constexpr bool isBoxed(Box<T>&& /*v*/) {
   return true;
 }
 template <typename T>
@@ -69,6 +79,13 @@ struct overloaded_rec : Ts... {
 };
 template <class... Ts>
 overloaded_rec(Ts...) -> overloaded_rec<Ts...>;
+
+auto&& boxhashfn = [](auto&& a){
+  if(isBoxed(a)){
+    return std::hash(a.getraw());
+  }
+  return std::hash(a);
+};
 
 namespace rv {
 

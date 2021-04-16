@@ -2,6 +2,7 @@
 
 #include <list>
 #include "abstractions.hpp"
+#include "debuginfo.hpp"
 #include "sexpr.hpp"
 #include "type_new.hpp"
 
@@ -61,7 +62,11 @@ auto fmap(IfCategory<T> const& v, F&& lambda) {
 template <class EXPR>
 struct ExprCommon {
   template <template <class...> class Category, int ID = 0, class... T>
-  using Aggregate = CategoryWrapped<Category, ID, T...>;
+  struct CategoryWrappedExpr : public CategoryWrapped<Category, ID, T...> {
+    DebugInfo debuginfo;
+  };
+  template <template <class...> class Category, int ID = 0, class... T>
+  using Aggregate = CategoryWrappedExpr<Category, ID, T...>;
 
   template <template <class...> class Category, int ID = 0>
   using Wrapper = Aggregate<Category, ID, EXPR>;
@@ -216,7 +221,7 @@ struct LAst {
   using Lambda = Expr::Lambda;
   using Sequence = Expr::Sequence;
   using NoOp = Expr::NoOp;
-  
+
   using Let = Expr::Let;
   using LetTuple = Expr::LetTuple;
   using App = Expr::App;
@@ -227,6 +232,7 @@ struct LAst {
                               TupleGet, StructLit, StructGet, ArrayLit, ArrayGet, ArraySize, Lambda,
                               Sequence, NoOp, Let, LetTuple, App, If>;
     type v;
+    int uniqueid;
     operator type&() { return v; };        // NOLINT
     operator const type&() { return v; };  // NOLINT
   };

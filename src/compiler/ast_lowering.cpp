@@ -2,18 +2,18 @@
 namespace mimium ::lowerast {
 
 namespace {
-using Id = std::string;
-using EnvPtr = std::shared_ptr<Environment<Id, LAst::expr>>;
 using iter_t = List<Hast::Expr::Statement>::const_iterator;
 
 constexpr std::string_view store_intrinsic = "store_intrinsic";
 constexpr std::string_view schedule_intrinsic = "schedule_intrinsic";
-const auto&& mE = [](auto&& a) { return LAst::expr{a}; };
 
 }  // namespace
 
-auto lowerHStatement(Hast::Expr::Statement const& s, EnvPtr env) -> decltype(auto) {
-  using currytype = std::pair<std::function<LAst::expr(LAst::expr)>, EnvPtr>;
+std::pair<AstLowerer::exprfunction, AstLowerer::EnvPtr> AstLowerer::lowerHStatement(
+    Hast::Expr::Statement const& s, EnvPtr env) {
+  const auto&& mE = [this](auto&& a) { return makeExpr(a); };
+
+  using currytype = std::pair<exprfunction, EnvPtr>;
   // let a = A in let b = B in C... か Sequence(A,B,C)で繋いでいくことになる
 
   auto&& let_curried = [&](auto&& id, auto&& action_lower, EnvPtr env) -> currytype {
@@ -53,23 +53,29 @@ auto lowerHStatement(Hast::Expr::Statement const& s, EnvPtr env) -> decltype(aut
   return std::visit(vis, s);
 }
 
-LAst::expr lowerHStatements(const List<Hast::Expr::Statement>& stmts) {
-  auto iter = stmts.cbegin();
-  auto env = std::make_shared<Environment<Id, LAst::expr>>();
-  List<std::function<LAst::expr(LAst::expr)>> getters;
-  // like applicative.
-  while (iter != stmts.cend()) {
-    auto [getter, newenv] = lowerHStatement(*iter, env);
-    getters.emplace_back(getter);
-    env = newenv;
-  }
+LAst::expr AstLowerer::lowerHStatements(const List<Hast::Expr::Statement>& stmts) {
+  auto&& process_state = [&](auto&& runner, auto&& stmts, auto&& env_init) {
+    List<decltype(runner(*stmts.begin(), env_init).first)> res_container;
+    auto env = env_init;
+    for (auto&& s : stmts) {
+      auto [getter, newenv] = runner(s, env);
+      res_container.emplace_back(getter);
+      env = newenv;
+    }
+    return res_container;
+  };
+
+  auto getters = process_state([this](auto&& a, auto&& e) { return lowerHStatement(a, e); }, stmts,
+                               std::make_shared<Environment<Id, LAst::expr>>());
   auto res = foldl(getters, [](auto&& a, auto&& b) { return [&](auto&& c) { return a(b(c)); }; });
   return res(LAst::expr{LAst::NoOp{}});
 }
 
-LAst::expr lowerHast(const Hast::expr& expr) {
+LAst::expr AstLowerer::lowerHast(const Hast::expr& expr) {
+  const auto&& mE = [this](auto&& a) { return makeExpr(a); };
+
   auto&& seqfolder = [&](LAst::expr const& a, LAst::expr const& b) {
-    return LAst::App{mE(LAst::Symbol{"Seq"}), {a, b}};
+    return LAst::Sequence{{a, b}};
   };
   auto genmapper = [&](auto&& a) { return Box(lowerHast(a)); };
 
@@ -99,11 +105,10 @@ LAst::expr lowerHast(const Hast::expr& expr) {
       },
       [&](Hast::If const& a) { return mE(fmap(a, genmapper)); },
       [&](Hast::App const& a) {
-        auto&& check = [](auto&& a) {
-          return std::holds_alternative<Hast::Expr::CurryPlaceHolder>(a);
-        };
-        auto list_isplaceholder = fmap(a.args, [&](auto&& a) { return check(a); });
-        const bool is_partial = foldl(list_isplaceholder, [](bool a, bool b) { return a || b; });
+        using Curry_t = Hast::Expr::CurryPlaceHolder;
+        const bool is_partial =
+            foldl(fmap(a.args, [](auto&& a) { return std::holds_alternative<Curry_t>(a); }),
+                  [](bool a, bool b) { return a || b; });
         if (is_partial) {
           assert(false);  // TODO
         }
@@ -127,4 +132,22 @@ LAst::expr lowerHast(const Hast::expr& expr) {
       }};
   return std::visit(vis, expr.v);
 }
+
+LAst::expr removeSelf(LAst::expr const& expr) {
+  // appの中にselfがあったらそのfnを変換する
+  // expr(a,b,c...) -> expr(mem:type,a,b,c)
+  // lambda(a,b,c)-> lambda(mem:type,a,b,c)
+  // でもbeta変換しないとまだダメなのか？？関数をたどんないといけないもんな
+  auto&& vis = overloaded{[&](LAst::FloatLit const& a) {},  [&](LAst::IntLit const& a) {},
+                          [&](LAst::BoolLit const& a) {},   [&](LAst::StringLit const& a) {},
+                          [&](LAst::SelfLit const& a) {},   [&](LAst::Symbol const& a) {},
+                          [&](LAst::TupleLit const& a) {},  [&](LAst::TupleGet const& a) {},
+                          [&](LAst::StructLit const& a) {}, [&](LAst::StructGet const& a) {},
+                          [&](LAst::ArrayLit const& a) {},  [&](LAst::ArrayGet const& a) {},
+                          [&](LAst::ArraySize const& a) {}, [&](LAst::Lambda const& a) {},
+                          [&](LAst::Sequence const& a) {},  [&](LAst::NoOp const& a) {},
+                          [&](LAst::Let const& a) {},       [&](LAst::LetTuple const& a) {},
+                          [&](LAst::App const& a) {},       [&](LAst::If const& a) {}};
+}
+
 }  // namespace mimium::lowerast

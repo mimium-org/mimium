@@ -40,7 +40,7 @@ using List = std::list<T>;
 template <class T>
 using Set = std::unordered_set<T>;
 template <class FROM, class TO>
-using Map = std::unordered_map<FROM, TO>;
+using Map = std::unordered_map<FROM, TO, decltype(boxhashfn)>;
 
 template <class T, class U = T>
 using Pair = std::pair<T, U>;
