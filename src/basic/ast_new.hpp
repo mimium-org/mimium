@@ -7,6 +7,9 @@
 #include "type_new.hpp"
 
 namespace mimium {
+
+using mmmfloat = double;
+
 template <class T, class FieldT>
 struct Getter {
   T expr;
@@ -24,7 +27,7 @@ struct LambdaCategory {
 };
 template <class T, class ID, class F>
 auto fmap(LambdaCategory<T, ID> const& v, F&& lambda) -> decltype(auto) {
-  using restype = std::invoke_result_t<F, T>;
+  using restype = decltype(lambda(v.body));
   return LambdaCategory<restype, ID>{v.args, std::forward<F>(lambda)(v.body)};
 }
 // template <class T, class ID, class F>
@@ -81,43 +84,50 @@ struct ExprCommon {
 
   struct Id {
     std::string v;
-    std::optional<ITypeOrAlias> type;
+    std::optional<IType::Value> type;
+    DebugInfo debuginfo;
   };
   struct StructKey {
     std::string key;
     EXPR v;
   };
 
-  using FloatLit = Primitive<float>;
+  using FloatLit = Primitive<mmmfloat>;
   using IntLit = Primitive<int>;
   using BoolLit = Primitive<bool>;
   using StringLit = Primitive<std::string>;
 
-  struct SelfLit {};
+  struct SelfLit {
+    DebugInfo debuginfo;
+  };
 
   using Symbol = Primitive<std::string, 1>;
 
   using TupleLit = Wrapper<List, 0>;
-  using TupleGet = Getter<EXPR, int>;
+  using TupleGet = Aggregate<Getter, 0, EXPR, int>;
 
   using ArrayLit = Wrapper<List, 1>;
-  using ArrayGet = Getter<EXPR, float>;
+  using ArrayGet = Aggregate<Getter, 0, EXPR, EXPR>;
   using ArraySize = Wrapper<IdentCategory, 2>;
-
   using StructLit = Aggregate<List, 0, StructKey>;
-  using StructGet = Getter<EXPR, std::string>;
+  using StructGet = Aggregate<Getter, 0, EXPR, std::string>;
 
-  using Lambda = CategoryWrapped<LambdaCategory, 0, EXPR, Id>;
+  using Lambda = CategoryWrappedExpr<LambdaCategory, 0, EXPR, Id>;
 
   // pair of expressions which is used to express a sequence of statements.
   // the first value should be void(unit)-type Application of function.
   struct NoOp {};
-  using Sequence = CategoryWrapped<Pair, 0, EXPR>;
+  using Sequence = CategoryWrappedExpr<Pair, 0, EXPR>;
 
-  using Let = LetCategory<IdentCategory, Id, EXPR>;
-  using LetTuple = LetCategory<List, Id, EXPR>;
+  template <class T, class ID>
+  using LetCategoryIdent = LetCategory<IdentCategory, T, ID>;
+  template <class T, class ID>
+  using LetCategoryList = LetCategory<List, T, ID>;
 
-  using If = IfCategory<EXPR>;
+  using Let = CategoryWrappedExpr<LetCategoryIdent, 0, Id, EXPR>;
+  using LetTuple = CategoryWrappedExpr<LetCategoryList, 0, Id, EXPR>;
+
+  using If = CategoryWrappedExpr<IfCategory, 0, EXPR>;
 
   template <class T>
   struct AppCategory {
@@ -139,16 +149,21 @@ struct ExprCommon {
     return cons(makeSExpr(name), foldl(fmap(a.v, structmapper), folder));
   };
   constexpr static auto gettermatcher = [](std::string const& name, auto&& a) {
-    constexpr bool is_prim = std::is_same_v<int, std::decay_t<decltype(a.field)>>;
-    std::string field;
-    if constexpr (!is_prim) {
-      field = a.field;
+    constexpr bool is_prim = std::is_same_v<int, std::decay_t<decltype(a.v.field)>>;
+    constexpr bool is_expr = std::is_same_v<EXPR, std::decay_t<decltype(a.v.field)>>;
+    if constexpr (is_expr) {
+      return cons(makeSExpr(name), cons(toSExpr(a.v.expr), toSExpr(a.v.field)));
     } else {
-      field = std::to_string(a.field);
+      std::string field;
+      if constexpr (!is_prim) {
+        field = a.v.field;
+      } else {
+        field = std::to_string(a.v.field);
+      }
+      return cons(makeSExpr(name), cons(toSExpr(a.v.expr), makeSExpr(field)));
     }
-    return cons(makeSExpr(name), cons(toSExpr(a.expr), makeSExpr(field)));
   };
-  inline const static auto sexpr_visitor = overloaded_rec{
+  inline const static auto sexpr_visitor = overloaded{
       [](FloatLit const& a) {
         return makeSExpr({"float", std::to_string(a.v)});
       },
@@ -173,7 +188,7 @@ struct ExprCommon {
       [](StructLit const& a) { return structmatcher("struct", a); },
       [](StructGet const& a) { return gettermatcher("structget", a); },
       [](Lambda const& a) {
-        SExpr&& args = foldl(fmap<List>(a.v.args, [](Id&& a) { return makeSExpr(a.v); }), folder);
+        SExpr&& args = foldl(fmap(a.v.args, [](Id const& a) { return makeSExpr(a.v); }), folder);
         return cons(makeSExpr("lambda"), cons(args, toSExpr(a.v.body)));
       },
       [](NoOp const& /**/) { return makeSExpr("noop"); },
@@ -181,20 +196,23 @@ struct ExprCommon {
         return cons(makeSExpr("sequence"), cons(toSExpr(a.v.first), toSExpr(a.v.second)));
       },
       [](Let const& a) {
-        return cons(makeSExpr({"let", a.id.v}), cons(toSExpr(a.expr), toSExpr(a.body)));
+        return cons(makeSExpr({"let", a.v.id.v}), cons(toSExpr(a.v.expr), toSExpr(a.v.body)));
       },
       [](LetTuple const& a) {
-        return cons(makeSExpr("let"), cons(toSExpr(a.expr), toSExpr(a.body)));
+        return cons(makeSExpr({"lettuple"}),
+                    cons(foldl(fmap(a.v.id, [](Id const& a) { return makeSExpr(a.v); }), folder),
+                         cons(toSExpr(a.v.expr), toSExpr(a.v.body))));
       },
       [](App const& a) {
-        return cons(
-            makeSExpr("app"),
-            cons(toSExpr(a.v.callee), foldl(fmap(a.v.args, [](auto&& a) { return toSExpr(a); }),
-                                            [](auto&& a, auto&& b) { return cons(a, b); })));
+        return cons(makeSExpr("app"),
+                    cons(toSExpr(a.v.callee), foldl(fmap(a.v.args, mapper), [](auto&& a, auto&& b) {
+                           return cons(a, b);
+                         })));
       },
       [](If const& a) {
-        auto e = (a.velse) ? toSExpr(a.velse.value()) : makeSExpr("");
-        return cons(makeSExpr("if"), cons(toSExpr(a.cond), cons(toSExpr(a.vthen), std::move(e))));
+        auto e = (a.v.velse) ? toSExpr(a.v.velse.value()) : makeSExpr("");
+        return cons(makeSExpr("if"),
+                    cons(toSExpr(a.v.cond), cons(toSExpr(a.v.vthen), std::move(e))));
       },
       [](auto const& a) { return makeSExpr(""); }};
   static std::string toString(EXPR const& v) { return toString(toSExpr(v)); }
@@ -218,6 +236,7 @@ struct LAst {
   using ArrayLit = Expr::ArrayLit;
   using ArrayGet = Expr::ArrayGet;
   using ArraySize = Expr::ArraySize;
+  using Id = Expr::Id;
   using Lambda = Expr::Lambda;
   using Sequence = Expr::Sequence;
   using NoOp = Expr::NoOp;
@@ -241,13 +260,14 @@ struct LAst {
 // HIGH-LEVEL AST including Syntactic Sugar
 template <class EXPR>
 struct HastCommon {
-  template <template <class...> class T, class U, int ID = 0>
-  using Aggregate = typename ExprCommon<EXPR>::template Aggregate<T, ID, U>;
+  template <template <class...> class C, int ID = 0, class... T>
+  using Aggregate = typename ExprCommon<EXPR>::template Aggregate<C, ID, T...>;
 
   struct CurryPlaceHolder {};
   using CurryArg = std::variant<EXPR, CurryPlaceHolder>;
-
-  using App = typename ExprCommon<EXPR>::template AppCategory<CurryArg>;
+  template <class T>
+  using AppCategory = typename ExprCommon<EXPR>::template AppCategory<T>;
+  using App = Aggregate<AppCategory, 0, CurryArg>;
 
   struct Op {
     std::string v;
@@ -259,13 +279,13 @@ struct HastCommon {
     T rhs;
   };
 
-  using Infix = InfixCategory<EXPR>;
+  using Infix = Aggregate<InfixCategory, 0, EXPR>;
   template <class T>
   struct ScheduleCategory {
     App expr;
     T time;
   };
-  using Schedule = ScheduleCategory<EXPR>;
+  using Schedule = Aggregate<ScheduleCategory, 0, EXPR>;
   struct EnvVar {
     std::string id;
   };
@@ -276,21 +296,23 @@ struct HastCommon {
     T expr;
   };
   using Id = typename ExprCommon<EXPR>::Id;
-  using Assignment = AssignmentProto<EXPR, Id>;
+  using Assignment = Aggregate<AssignmentProto, 0, EXPR, Id>;
+  using LetTuple = Aggregate<AssignmentProto, 0, EXPR, List<Id>>;
+
   using Lambda = typename ExprCommon<EXPR>::Lambda;
+  using DefFn = Aggregate<AssignmentProto, 0, Lambda, Id>;
+  using Return = Aggregate<std::optional, 0, EXPR>;
 
-  using DefFn = AssignmentProto<Lambda, Id>;
-  struct Return {
-    std::optional<EXPR> v;
-  };
-
-  using Statement = std::variant<Assignment, DefFn, App, Schedule>;
-
+  using If = typename ExprCommon<EXPR>::If;
+  using Statement = std::variant<Assignment, LetTuple, DefFn, App, If, Schedule>;
+  using Statements = Aggregate<List, 0, Statement>;
   //   using ExtFun;TODO
-  struct Block {
-    Aggregate<List, Statement> statements;
-    std::optional<EXPR> ret;
+  template <class T, class U>
+  struct BlockCategory {
+    List<T> statements;
+    std::optional<U> ret;
   };
+  using Block = Aggregate<BlockCategory, 0, Statement, EXPR>;
 };
 
 struct Hast {
@@ -311,15 +333,24 @@ struct Hast {
   using StructLit = LExpr::StructLit;
   using StructKey = LExpr::StructKey;
   using StructGet = LExpr::StructGet;
-
+  using Id = LExpr::Id;
   using Lambda = LExpr::Lambda;
   using If = LExpr::If;
 
   using App = Expr::App;
+  using CurryArg = Expr::CurryArg;
   using Infix = Expr::Infix;
+  using Op = Expr::Op;
   using EnvVar = Expr::EnvVar;
   using Return = Expr::Return;
   using Block = Expr::Block;
+  using DefFn = Expr::DefFn;
+  using Assignment = Expr::Assignment;
+  using LetTuple = Expr::LetTuple;
+  using Schedule = Expr::Schedule;
+  using Statement = Expr::Statement;
+  using Statements = Expr::Statements;
+
   struct expr {
     using type = std::variant<FloatLit, IntLit, BoolLit, StringLit, SelfLit, Symbol, TupleLit,
                               TupleGet, ArrayLit, ArrayGet, ArraySize, StructLit, StructGet, Lambda,
@@ -328,22 +359,37 @@ struct Hast {
     operator type&() { return v; };        // NOLINT
     operator const type&() { return v; };  // NOLINT
   };
+
+  template <class LOCATION>
+  static auto processReturn(Statements& s, LOCATION const& loc) {
+    const auto& lastline = s.v.back();
+    std::optional<Box<expr>> optexpr = std::nullopt;
+    if (std::holds_alternative<App>(lastline)) {
+      optexpr = expr{std::get<App>(lastline)};
+      s.v.pop_back();
+    } else if (std::holds_alternative<If>(lastline)) {
+      optexpr = expr{std::get<If>(lastline)};
+      s.v.pop_back();
+    }
+    return Block{std::move(s).v, std::move(optexpr), {loc, "block"}};
+  }
 };
 
 struct TopLevel {
   using expr = Hast::expr;
   // type name = hoge
-  using TypeAlias = Alias_t;
+  using TypeAlias = Pair<std::string, IType::Value>;
+  using AliasMap_t = Map<std::string, IType::Value>;
   // import("")
   struct Import {
     std::string path;
   };
 
-  using Statement = HastCommon<Box<expr>>::Statement;
+  // using Statement = Hast::Statement;
 
   using CompilerDirective = std::variant<TypeAlias, Import>;
-
-  using Expression = List<std::variant<Statement, CompilerDirective>>;
+  using Statement = std::variant<Hast::Statement, CompilerDirective>;
+  using Expression = List<Statement>;
 };
 
 }  // namespace mimium
