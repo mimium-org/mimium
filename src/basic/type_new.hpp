@@ -51,7 +51,7 @@ struct Type {
 
   struct Unknown {};
   struct Intermediate {
-    int type_id;
+    std::shared_ptr<int> type_id;
   };
 
   // Types for MIR~LIR level expression, which contains Pointer, without variant, list and named
@@ -91,7 +91,7 @@ struct Type {
       [](ListT const& t) { return cons(makeSExpr("list"), toSExpr(t.v)); },
       [](Pointer const& t) { return cons(makeSExpr("pointer"), toSExpr(t.v)); },
       [](Intermediate const& t) {
-        return makeSExpr({"TypeVar", std::to_string(t.type_id)});
+        return makeSExpr({"TypeVar", std::to_string(*t.type_id)});
       },
       [](Identified const& t) { return cons(makeSExpr("newtype"), toSExpr(t.v.v)); },
       [](Alias const& t) { return cons(makeSExpr("alias"), toSExpr(t.v.v)); },
@@ -143,9 +143,11 @@ struct HType {
   using Record = baset::Record;
   using ListT = baset::ListT;
   using Identified = baset::Identified;
+  using Alias = baset::Alias;
+
   // Intermediate, Unknown type are removed.
   using type = std::variant<Unit, Bool, Int, Float, String, Variant, Tuple, Function, Array, Record,
-                            Identified, ListT>;
+                            Identified, Alias, ListT>;
   struct Value {
     using baset = Type<Box<Value>>;
     type v;
@@ -193,46 +195,5 @@ inline auto makeUnknownAlias(std::string const& name) {
   auto itype = IType::Value{IType::Unknown{}};
   return IType::Value{IType::Alias{name, itype}};
 }
-struct TypeResolver {
-  // TypeIdの集合と束縛のリスト
-  template <class T>
-  using Binding = Pair<T, T>;
-
-  using Constraints = Set<Binding<IType>>;
-  using map = Map<IType, HType>;
-};
-
-// 変数と型の写像がスコープごとに
-// Memo
-// template <class AST>
-// struct TypeInferer {
-//   template <class T>
-//   using TypeEnv = TypeEnv<AST, T>;
-
-//   using InputType = Either<IType, Alias<std::string, IType>>;
-//   using InputAliasMap = Alias<std::string, IType>::map;
-//   // ASTを入れると中間変数を含む型環境とエイリアスの写像が帰ってくる
-//   using Pass1 = Pair<TypeEnv<InputType>, InputAliasMap>(AST);
-
-//   // エイリアスを全部剥がした型環境を返す
-//   using Pass2 = TypeEnv<IType>(TypeEnv<InputType>, InputAliasMap);
-//   //中間変数を含む型環境を受け取り、変数同士の制約を作る
-//   using Pass3 = TypeResolver::Constraints(TypeEnv<IType>);
-//   //変数の制約を受け取り、中間変数を含む型集合->中間変数を取り除いた型集合 の写像をつくる
-//   using Pass4 = TypeResolver::map(TypeResolver::Constraints);
-//   //中間変数を含む型環境と、中間変数を含む型集合->中間変数を取り除いた型集合の写像を受け取り、
-//   //中間変数を取り除いた型環境を返す
-//   using Pass5 = TypeEnv<HType>(TypeEnv<InputType>, TypeResolver::map);
-
-//   //入力の alias|Itype -> alias|Htype にマップし直す
-//   using OutputAlias = Alias<std::string, HType>;
-//   using OutputType = Either<HType, OutputAlias>;
-//   using OutputAliasMap = OutputAlias::map;
-//   using Pass6 = Pair<TypeEnv<OutputType>, OutputAliasMap>(TypeEnv<HType>, InputAliasMap);
-//   // 全体Ïとしては、ASTを入れると中間変数がない(型|Alias)の環境が帰ってくる
-//   using type = Pair<TypeEnv<OutputType>, OutputAliasMap>(AST);
-// };
-// struct Test {};
-// TypeInferer<Test> inferer;
 
 }  // namespace mimium

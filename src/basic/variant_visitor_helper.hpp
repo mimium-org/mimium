@@ -47,6 +47,18 @@ bool operator!=(const Box<T>& t1, const Box<T>& t2) {
 }
 
 template <class T>
+struct is_boxed{
+  using type = std::false_type;
+};
+template <class T>
+struct is_boxed<Box<T>>{
+  using type = std::true_type;
+};
+
+template <class T>
+using is_boxed_t = typename is_boxed<T>::type;
+
+template <class T>
 constexpr bool isBoxed(T /*v*/) {
   return false;
 }
