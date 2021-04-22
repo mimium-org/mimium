@@ -84,7 +84,7 @@ template <template <class...> class CONTAINERIN,
           template <class...> class CONTAINEROUT = CONTAINERIN, typename ELEMENTIN, typename LAMBDA>
 auto fmap(CONTAINERIN<ELEMENTIN>& args, LAMBDA&& lambda)
     -> CONTAINEROUT<decltype(lambda(*args.begin()))> {
-  // static_assert(std::is_invocable_v<LAMBDA, ELEMENTIN>, "the function for fmap is not invocable");
+  static_assert(std::is_invocable_v<LAMBDA, ELEMENTIN>, "the function for fmap is not invocable");
   CONTAINEROUT<decltype(lambda(*args.begin()))> res;
   std::transform(args.begin(), args.end(), std::back_inserter(res),
                  std::forward<decltype(lambda)>(lambda));
