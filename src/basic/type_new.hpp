@@ -50,17 +50,17 @@ struct Type {
   using Alias = CategoryWrapped<IdentifiedCategory, 0, std::string>;
 
   struct Unknown {};
-  struct Intermediate {
+
+  struct IntermediateV {
     std::shared_ptr<int> type_id;
+    int level = 0;
   };
+  using Intermediate = CategoryWrapped<IdentCategory, 0, IntermediateV>;
+  using TypeScheme = CategoryWrapped<IdentCategory, 1, IntermediateV>;
 
   // Types for MIR~LIR level expression, which contains Pointer, without variant, list and named
   // newtype.
   using Pointer = CategoryWrapped<IdentCategory, 2, Value>;
-
-  // Generic Types TBD
-  template <class Id>
-  using TypeScheme = typename CategoryWrapped<IdentifiedCategory, 2, Id>::type;
 
   inline static SExpr toSExpr(Value const& v) { return std::visit(to_sexpr_visitor, v.getraw().v); }
   inline const static auto listvisithelper = [](const auto& t) {
@@ -91,7 +91,10 @@ struct Type {
       [](ListT const& t) { return cons(makeSExpr("list"), toSExpr(t.v)); },
       [](Pointer const& t) { return cons(makeSExpr("pointer"), toSExpr(t.v)); },
       [](Intermediate const& t) {
-        return makeSExpr({"TypeVar", std::to_string(*t.type_id)});
+        return makeSExpr({"TypeVar", std::to_string(*t.v.type_id)});
+      },
+      [](TypeScheme const& t) {
+        return makeSExpr({"TypeScheme", std::to_string(*t.v.type_id)});
       },
       [](Identified const& t) { return cons(makeSExpr("newtype"), toSExpr(t.v.v)); },
       [](Alias const& t) { return cons(makeSExpr("alias"), toSExpr(t.v.v)); },
@@ -117,9 +120,13 @@ struct IType {
   using Alias = baset::Alias;
 
   using Intermediate = baset::Intermediate;
+  using IntermediateV = baset::IntermediateV;
+
+  using TypeScheme = baset::TypeScheme;
+
   using Unknown = baset::Unknown;
   using type = std::variant<Unit, Bool, Int, Float, String, Variant, Tuple, Function, Array, Record,
-                            Identified, ListT, Intermediate, Alias, Unknown>;
+                            Identified, ListT, Intermediate, TypeScheme, Alias, Unknown>;
   struct Value {
     using baset = Type<Box<Value>>;
     type v;
@@ -141,6 +148,8 @@ struct HType {
   using Function = baset::Function;
   using Array = baset::Array;
   using Record = baset::Record;
+  using RecordKey = baset::RecordCategory<std::string>;
+
   using ListT = baset::ListT;
   using Identified = baset::Identified;
   using Alias = baset::Alias;

@@ -29,6 +29,10 @@ template <class T, class F>
 auto fmap(IdentCategory<T> const& t, F&& lambda) -> decltype(auto) {
   return std::forward<F>(lambda)(t.v);
 }
+// template <class T, class F>
+// auto fmap(IdentCategory<T>& t, F&& lambda) -> decltype(auto) {
+//   return std::forward<F>(lambda)(t.v);
+// }
 
 template <class T, class F>
 auto fmap(std::optional<T> const& v, F&& lambda) -> decltype(auto) {
@@ -68,17 +72,33 @@ struct Nested {
 
 template <template <class...> class CONTAINERIN,
           template <class...> class CONTAINEROUT = CONTAINERIN, typename ELEMENTIN, typename LAMBDA>
-CONTAINEROUT<std::invoke_result_t<LAMBDA, ELEMENTIN>> fmap(CONTAINERIN<ELEMENTIN> const& args,
-                                                           LAMBDA&& lambda) {
+auto fmap(CONTAINERIN<ELEMENTIN> const& args, LAMBDA&& lambda)
+    -> CONTAINEROUT<decltype(lambda(*args.begin()))> {
   static_assert(std::is_invocable_v<LAMBDA, ELEMENTIN>, "the function for fmap is not invocable");
-  CONTAINEROUT<std::invoke_result_t<LAMBDA, ELEMENTIN>> res;
+  CONTAINEROUT<decltype(lambda(*args.begin()))> res;
   std::transform(args.cbegin(), args.cend(), std::back_inserter(res),
+                 std::forward<decltype(lambda)>(lambda));
+  return std::move(res);
+}
+template <template <class...> class CONTAINERIN,
+          template <class...> class CONTAINEROUT = CONTAINERIN, typename ELEMENTIN, typename LAMBDA>
+auto fmap(CONTAINERIN<ELEMENTIN>& args, LAMBDA&& lambda)
+    -> CONTAINEROUT<decltype(lambda(*args.begin()))> {
+  // static_assert(std::is_invocable_v<LAMBDA, ELEMENTIN>, "the function for fmap is not invocable");
+  CONTAINEROUT<decltype(lambda(*args.begin()))> res;
+  std::transform(args.begin(), args.end(), std::back_inserter(res),
                  std::forward<decltype(lambda)>(lambda));
   return std::move(res);
 }
 
 template <template <class...> class CONTAINER, typename RES, typename LAMBDA>
 auto foldl(CONTAINER<RES> const& input, LAMBDA&& lambda) {
+  return std::accumulate(std::cbegin(input), std::cend(input), RES{},
+                         std::forward<decltype(lambda)>(lambda));
+}
+
+template <template <class...> class CONTAINER, typename RES, typename LAMBDA>
+auto foldl(CONTAINER<RES> & input, LAMBDA&& lambda) {
   return std::accumulate(std::begin(input), std::end(input), RES{},
                          std::forward<decltype(lambda)>(lambda));
 }

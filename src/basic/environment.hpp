@@ -11,11 +11,11 @@ struct Environment : public std::enable_shared_from_this<Environment<From, To>> 
   Map<From, To> map{};
   using EnvPtr = std::shared_ptr<Environment>;
   std::optional<EnvPtr> parent_env = std::nullopt;
-
+  std::optional<EnvPtr> child_env = std::nullopt;
   EnvPtr expand() {
-    auto newenv = std::make_shared<Environment<From, To>>();
-    newenv->parent_env = this->shared_from_this();
-    return newenv;
+    child_env = std::optional(std::make_shared<Environment<From, To>>());
+    child_env.value()->parent_env = this->shared_from_this();
+    return child_env.value();
   }
   void addToMap(From const& namel, To const& namer) { map.emplace(namel, namer); }
 
