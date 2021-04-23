@@ -178,12 +178,12 @@ struct LType {
   using Function = baset::Function;
   using Array = baset::Array;
   using Identified = baset::Identified;
-
+  using Alias = baset::Alias;
   using Pointer = baset::Pointer;
   // LType does not have Record, List, variant and intermediate typevars.
   // And, Pointer type is introduced.
-  using type =
-      std::variant<Unit, Bool, Int, Float, String, Tuple, Function, Array, Identified, Pointer>;
+  using type = std::variant<Unit, Bool, Int, Float, String, Tuple, Function, Array, Identified,
+                            Pointer, Alias>;
   struct Value {
     using baset = Type<Box<Value>>;
 
