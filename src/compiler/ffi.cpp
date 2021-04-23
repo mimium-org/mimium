@@ -4,9 +4,10 @@
 
 #include "compiler/ffi.hpp"
 #include <cmath>
+#include <iostream>
 #include "sndfile.h"
 
-extern "C"{
+extern "C" {
 MIMIUM_DLL_PUBLIC void dumpaddress(void* a) { std::cerr << a << "\n"; }
 
 MIMIUM_DLL_PUBLIC void printdouble(double d) { std::cout << d; }
@@ -22,7 +23,9 @@ MIMIUM_DLL_PUBLIC double mimium_gt(double d1, double d2) { return static_cast<do
 MIMIUM_DLL_PUBLIC double mimium_lt(double d1, double d2) { return static_cast<double>(d1 < d2); }
 MIMIUM_DLL_PUBLIC double mimium_ge(double d1, double d2) { return static_cast<double>(d1 >= d2); }
 MIMIUM_DLL_PUBLIC double mimium_eq(double d1, double d2) { return static_cast<double>(d1 == d2); }
-MIMIUM_DLL_PUBLIC double mimium_noteq(double d1, double d2) { return static_cast<double>(d1 != d2); }
+MIMIUM_DLL_PUBLIC double mimium_noteq(double d1, double d2) {
+  return static_cast<double>(d1 != d2);
+}
 MIMIUM_DLL_PUBLIC double mimium_le(double d1, double d2) { return static_cast<double>(d1 <= d2); }
 MIMIUM_DLL_PUBLIC double mimium_and(double d1, double d2) {
   return static_cast<double>(mimium_dtob(d1) && mimium_dtob(d2));
@@ -49,11 +52,11 @@ struct MmmRingBuf {
   // int64_t size=5000;
   int64_t readi = 0;
   int64_t writei = 0;
-  double buf[mimium::types::fixed_delaysize]{};
+  double buf[mimium::Intrinsic::fixed_delaysize]{};
 };
 
-MIMIUM_DLL_PUBLIC double mimium_memprim(double in, double* valptr){
-  auto res= *valptr;
+MIMIUM_DLL_PUBLIC double mimium_memprim(double in, double* valptr) {
+  auto res = *valptr;
   *valptr = in;
   return res;
 }
@@ -90,67 +93,88 @@ MIMIUM_DLL_PUBLIC double* libsndfile_loadwav(char* filename) {
 }
 
 namespace mimium {
-using namespace types;//NOLINT
 using FI = BuiltinFnInfo;
-const std::unordered_map<std::string, BuiltinFnInfo> LLVMBuiltin::ftable = {
-    {"print", initBI(Function{Void{}, {Float{}}}, "printdouble")},
-    {"println", initBI(Function{Void{}, {Float{}}}, "printlndouble")},
-    {"printlnstr", initBI(Function{Void{}, {String{}}}, "printlnstr")},
+using Function = HType::Function;
 
-    {"sin", initBI(Function{Float{}, {Float{}}}, "sin")},
-    {"cos", initBI(Function{Float{}, {Float{}}}, "cos")},
-    {"tan", initBI(Function{Float{}, {Float{}}}, "tan")},
+namespace {
+auto initBI = [](HType::Function&& f, std::string_view&& n) {
+  return BuiltinFnInfo{HType::Value{std::move(f)}, n};
+};
+auto Void = []() { return HType::Value{HType::Unit{}}; };
+auto Float = []() { return HType::Value{HType::Float{}}; };
+auto String = []() { return HType::Value{HType::String{}}; };
 
-    {"asin", initBI(Function{Float{}, {Float{}}}, "asin")},
-    {"acos", initBI(Function{Float{}, {Float{}}}, "acos")},
-    {"atan", initBI(Function{Float{}, {Float{}}}, "atan")},
-    {"atan2", initBI(Function{Float{}, {Float{}, Float{}}}, "atan2")},
+auto Array = [](HType::Value&& t, int size) {
+  return HType::Value{HType::Array{std::move(t), size}};
+};
 
-    {"sinh", initBI(Function{Float{}, {Float{}}}, "sinh")},
-    {"cosh", initBI(Function{Float{}, {Float{}}}, "cosh")},
-    {"tanh", initBI(Function{Float{}, {Float{}}}, "tanh")},
-    {"exp", initBI(Function{Float{}, {Float{}}}, "exp")},
-    {"pow", initBI(Function{Float{}, {Float{}, Float{}}}, "pow")},
+auto makeFun = [](HType::Value&& r, List<Box<HType::Value>>&& as) {
+  return HType::Function{std::pair(std::move(as), std::move(r))};
+};
 
-    {"log", initBI(Function{Float{}, {Float{}}}, "log")},
-    {"log10", initBI(Function{Float{}, {Float{}}}, "log10")},
-    {"random", initBI(Function{Float{}, {}}, "mimiumrand")},
+auto&& makeFunFtoF = makeFun(Float(), {Float()});
 
-    {"sqrt", initBI(Function{Float{}, {Float{}}}, "sqrt")},
-    {"abs", initBI(Function{Float{}, {Float{}}}, "fabs")},
+}  // namespace
 
-    {"ceil", initBI(Function{Float{}, {Float{}}}, "ceil")},
-    {"floor", initBI(Function{Float{}, {Float{}}}, "floor")},
-    {"trunc", initBI(Function{Float{}, {Float{}}}, "trunc")},
-    {"round", initBI(Function{Float{}, {Float{}}}, "round")},
+const std::unordered_map<std::string_view, BuiltinFnInfo> Intrinsic::ftable = {
+    {"print", initBI(makeFun(Void(), {Float()}), "printdouble")},
+    {"println", initBI(makeFun(Void(), {Float()}), "printlndouble")},
+    {"printlnstr", initBI(makeFun(Void(), {String()}), "printlnstr")},
 
-    {"fmod", initBI(Function{Float{}, {Float{}, Float{}}}, "fmod")},
-    {"remainder", initBI(Function{Float{}, {Float{}, Float{}}}, "remainder")},
+    {"sin", initBI(makeFun(Float(), {Float()}), "sin")},
+    {"cos", initBI(makeFun(Float(), {Float()}), "cos")},
+    {"tan", initBI(makeFun(Float(), {Float()}), "tan")},
 
-    {"min", initBI(Function{Float{}, {Float{}, Float{}}}, "fmin")},
-    {"max", initBI(Function{Float{}, {Float{}, Float{}}}, "fmax")},
+    {"asin", initBI(makeFun(Float(), {Float()}), "asin")},
+    {"acos", initBI(makeFun(Float(), {Float()}), "acos")},
+    {"atan", initBI(makeFun(Float(), {Float()}), "atan")},
+    {"atan2", initBI(makeFun(Float(), {Float(), Float()}), "atan2")},
 
-    {"ge", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_ge")},
-    {"eq", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_eq")},
-    {"noteq", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_noteq")},
-    {"le", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_le")},
-    {"gt", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_gt")},
-    {"lt", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_lt")},
-    {"and", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_and")},
-    {"or", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_or")},
-    {"not", initBI(Function{Float{}, {Float{}}}, "mimium_not")},
+    {"sinh", initBI(makeFun(Float(), {Float()}), "sinh")},
+    {"cosh", initBI(makeFun(Float(), {Float()}), "cosh")},
+    {"tanh", initBI(makeFun(Float(), {Float()}), "tanh")},
+    {"exp", initBI(makeFun(Float(), {Float()}), "exp")},
+    {"pow", initBI(makeFun(Float(), {Float(), Float()}), "pow")},
 
-    {"lshift", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_lshift")},
-    {"rshift", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_rshift")},
+    {"log", initBI(makeFun(Float(), {Float()}), "log")},
+    {"log10", initBI(makeFun(Float(), {Float()}), "log10")},
+    {"random", initBI(makeFun(Float(), {}), "mimiumrand")},
 
-    {"mem", initBI(Function{Float{}, {Float{}}}, "mimium_memprim")},
-    {"delay", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_delayprim")},
+    {"sqrt", initBI(makeFun(Float(), {Float()}), "sqrt")},
+    {"abs", initBI(makeFun(Float(), {Float()}), "fabs")},
 
-    {"loadwavsize", initBI(Function{Float{}, {String{}}}, "libsndfile_loadwavsize")},
-    {"loadwav", initBI(Function{Array{Float{}, 0}, {String{}}}, "libsndfile_loadwav")},
+    {"ceil", initBI(makeFun(Float(), {Float()}), "ceil")},
+    {"floor", initBI(makeFun(Float(), {Float()}), "floor")},
+    {"trunc", initBI(makeFun(Float(), {Float()}), "trunc")},
+    {"round", initBI(makeFun(Float(), {Float()}), "round")},
+
+    {"fmod", initBI(makeFun(Float(), {Float(), Float()}), "fmod")},
+    {"remainder", initBI(makeFun(Float(), {Float(), Float()}), "remainder")},
+
+    {"min", initBI(makeFun(Float(), {Float(), Float()}), "fmin")},
+    {"max", initBI(makeFun(Float(), {Float(), Float()}), "fmax")},
+
+    {"ge", initBI(makeFun(Float(), {Float(), Float()}), "mimium_ge")},
+    {"eq", initBI(makeFun(Float(), {Float(), Float()}), "mimium_eq")},
+    {"noteq", initBI(makeFun(Float(), {Float(), Float()}), "mimium_noteq")},
+    {"le", initBI(makeFun(Float(), {Float(), Float()}), "mimium_le")},
+    {"gt", initBI(makeFun(Float(), {Float(), Float()}), "mimium_gt")},
+    {"lt", initBI(makeFun(Float(), {Float(), Float()}), "mimium_lt")},
+    {"and", initBI(makeFun(Float(), {Float(), Float()}), "mimium_and")},
+    {"or", initBI(makeFun(Float(), {Float(), Float()}), "mimium_or")},
+    {"not", initBI(makeFun(Float(), {Float()}), "mimium_not")},
+
+    {"lshift", initBI(makeFun(Float(), {Float(), Float()}), "mimium_lshift")},
+    {"rshift", initBI(makeFun(Float(), {Float(), Float()}), "mimium_rshift")},
+
+    {"mem", initBI(makeFun(Float(), {Float()}), "mimium_memprim")},
+    {"delay", initBI(makeFun(Float(), {Float(), Float()}), "mimium_delayprim")},
+
+    {"loadwavsize", initBI(makeFun(Float(), {String()}), "libsndfile_loadwavsize")},
+    {"loadwav", initBI(makeFun(Array(Float(), 0), {String()}), "libsndfile_loadwav")},
 
     {"access_array_lin_interp",
-     initBI(Function{Float{}, {Float{}, Float{}}}, "access_array_lin_interp")}
+     initBI(makeFun(Float(), {Float(), Float()}), "access_array_lin_interp")}
 
 };
 
