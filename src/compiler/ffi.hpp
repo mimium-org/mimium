@@ -15,7 +15,7 @@ namespace mimium {
 
 struct BuiltinFnInfo {
   constexpr BuiltinFnInfo() = default;
-  HType::Value mmmtype;
+  IType::Value mmmtype;
   std::string_view target_fnname;
 };
 

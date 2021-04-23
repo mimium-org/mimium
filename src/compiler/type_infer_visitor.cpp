@@ -118,7 +118,7 @@ bool TypeInferer::occurCheck(IType::Intermediate const& lv, IType::Value& rv) {
         return id == *t.v.type_id;
       },
       [&](IType::Alias& t) { return genmapper(t.v.v); },
-      [&](auto& t) { return false; },
+      [&](auto&  /*t*/) { return false; },
   };
   return std::visit(vis, rv.v);
 }
@@ -251,7 +251,7 @@ IType::TypeScheme TypeInferer::makeNewTypeScheme() {
 
 IType::Value TypeInferer::generalizeInternal(IType::Value const& t, int level,
                                              Map<int, int>& typevar_to_scheme) {
-  auto&& getTypeScheme = [&](int tv_id) {
+  auto&& get_type_scheme = [&](int tv_id) {
     if (typevar_to_scheme.count(tv_id) == 0) {
       auto newscheme = makeNewTypeScheme();
       typevar_to_scheme.emplace(tv_id, *newscheme.v.type_id);
@@ -265,7 +265,7 @@ IType::Value TypeInferer::generalizeInternal(IType::Value const& t, int level,
       [&](IType::Intermediate const& a) {
         if (a.v.level > level) {
           return IType::Value{
-              IType::TypeScheme{std::make_shared<int>(getTypeScheme(*a.v.type_id)), 0}};
+              IType::TypeScheme{std::make_shared<int>(get_type_scheme(*a.v.type_id)), 0}};
         }
         return IType::Value{a};
       }};
@@ -279,7 +279,7 @@ IType::Value TypeInferer::generalize(IType::Value const& t, int level) {
 
 IType::Value TypeInferer::instantiateInternal(IType::Value const& t, int level,
                                               Map<int, int>& scheme_to_typevar) {
-  auto&& getTypeVar = [&](int scheme_id) {
+  auto&& get_type_var = [&](int scheme_id) {
     if (scheme_to_typevar.count(scheme_id) == 0) {
       auto newtv = makeNewTypeVar(level);
       scheme_to_typevar.emplace(scheme_id, *newtv.v.type_id);
@@ -290,7 +290,7 @@ IType::Value TypeInferer::instantiateInternal(IType::Value const& t, int level,
       [&](IType::Value const& a) { return Box(instantiateInternal(a, level, scheme_to_typevar)); },
       [&](IType::TypeScheme const& a) {
         return IType::Value{
-            IType::Intermediate{std::make_shared<int>(getTypeVar(*a.v.type_id)), level}};
+            IType::Intermediate{std::make_shared<int>(get_type_var(*a.v.type_id)), level}};
       },
       [&](IType::Intermediate const& a) { return IType::Value{a}; }};
   return std::visit(vis, t.v);
@@ -308,10 +308,10 @@ IType::Value TypeInferer::inferInternal(LAst::expr& expr, std::shared_ptr<TypeEn
 
   assert(env_v != nullptr);
   auto&& vis = overloaded{
-      [&](LAst::FloatLit& a) -> IType::Value { return IType::Value{IType::Float{}}; },
-      [&](LAst::IntLit& a) -> IType::Value { return IType::Value{IType::Int{}}; },
-      [&](LAst::BoolLit& a) -> IType::Value { return IType::Value{IType::Bool{}}; },
-      [&](LAst::StringLit& a) -> IType::Value { return IType::Value{IType::String{}}; },
+      [&](LAst::FloatLit&  /*a*/) -> IType::Value { return IType::Value{IType::Float{}}; },
+      [&](LAst::IntLit&  /*a*/) -> IType::Value { return IType::Value{IType::Int{}}; },
+      [&](LAst::BoolLit&  /*a*/) -> IType::Value { return IType::Value{IType::Bool{}}; },
+      [&](LAst::StringLit&  /*a*/) -> IType::Value { return IType::Value{IType::String{}}; },
       [&](LAst::TupleLit& a) -> IType::Value {
         if (a.v.empty()) { return IType::Value{IType::Unit{}}; }
         return IType::Value{IType::Tuple{fmap(a.v, inferlambda)}};
@@ -319,13 +319,16 @@ IType::Value TypeInferer::inferInternal(LAst::expr& expr, std::shared_ptr<TypeEn
       [&](LAst::Symbol& a) -> IType::Value {
         auto t = env->search(a.v);
         if (!t.has_value()) {
-          // builtinのものを探して見つからなかったらエラー
+          auto ext_iter = Intrinsic::ftable.find(a.v);
+          if(ext_iter!=Intrinsic::ftable.cend()){
+            return instantiate(ext_iter->second.mmmtype,level);
+          }
           throw std::runtime_error("failed to look up symbol " + a.v);
         }
         return instantiate(t.value(), level);
       },
 
-      [&](LAst::SelfLit& a) {
+      [&](LAst::SelfLit&  /*a*/) {
         return this->self_t_holder;  // TODO
       },
       [&](LAst::TupleGet& a) -> IType::Value {
@@ -381,7 +384,7 @@ IType::Value TypeInferer::inferInternal(LAst::expr& expr, std::shared_ptr<TypeEn
         this->unify(first_t, unit);
         return inferlambda(a.v.second);
       },
-      [&](LAst::NoOp& a) -> IType::Value { return IType::Value{IType::Unit{}}; },
+      [&](LAst::NoOp&  /*a*/) -> IType::Value { return IType::Value{IType::Unit{}}; },
       [&](LAst::Let& a) -> IType::Value {
         auto newenv = env_v->expand();
         if (!a.v.id.type.has_value()) { a.v.id.type = IType::Value{makeNewTypeVar(level)}; }
