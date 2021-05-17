@@ -11,7 +11,7 @@ struct FunObjTree {
   mir::valueptr fname;
   bool hasself = false;
   std::list<std::shared_ptr<FunObjTree>> memobjs;
-  types::Value objtype;
+  LType::Value objtype;
 };
 
 using funobjmap = std::unordered_map<mir::valueptr, std::shared_ptr<FunObjTree>>;
@@ -42,14 +42,14 @@ class MemoryObjsCollector {
     MemoryObjsCollector& M;
     struct ResultT {
       std::list<std::shared_ptr<FunObjTree>> objs = {};
-      types::Value objtype = types::Alias{"", types::Tuple{}};
+      LType::Value objtype = LType::Value{LType::Alias{"", LType::Value{LType::Tuple{}}}};
       bool hasself = false;
     };
 
     ResultT operator()(minst::Ref& i);
     ResultT operator()(minst::Load& i);
     ResultT operator()(minst::Store& i);
-    ResultT operator()(minst::Op& i);
+    // ResultT operator()(minst::Op& i);
     ResultT operator()(minst::Fcall& i);
     ResultT operator()(minst::MakeClosure& i);
     ResultT operator()(minst::Array& i);
@@ -78,7 +78,7 @@ class MemoryObjsCollector {
       return ResultT{};
     }
     ResultT visitInsts(mir::blockptr block);
-    static types::Tuple& getTupleFromAlias(types::Value& t);
+    static LType::Tuple& getTupleFromAlias(LType::Value& t);
 
    private:
     static bool isSelf(mir::valueptr val) { return std::holds_alternative<mir::Self>(*val); };

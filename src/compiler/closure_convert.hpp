@@ -15,23 +15,23 @@ namespace minst = mir::instruction;
 
 class ClosureConverter {
  public:
-  explicit ClosureConverter(TypeEnv& typeenv);
+  explicit ClosureConverter();
   ~ClosureConverter();
   mir::blockptr convert(mir::blockptr toplevel);
   void reset();
   bool hasCapture(const std::string& fname) { return fvinfo.count(fname) > 0; }
 
-  auto& getCaptureNames(const std::string& fname) { return fvinfo[fname]; }
-  auto& getCaptureType(const std::string& fname) { return clstypeenv[fname]; }
+  auto& getCaptureNames(const std::string& fname) { return fvinfo.at(fname); }
+  auto& getCaptureType(const std::string& fname) { return clstypeenv.at(fname); }
  private:
-  TypeEnv& typeenv;
+
   mir::blockptr toplevel;
   int capturecount;
   int closurecount;
   std::set<mir::valueptr> known_functions;
   std::unordered_map<std::string, std::vector<std::string>> fvinfo;
-  // fname: types::Tuple(...)
-  std::unordered_map<std::string, types::Value> clstypeenv;
+  // fname: LType::Tuple(...)
+  std::unordered_map<std::string, LType::Value> clstypeenv;
   std::unordered_map<mir::valueptr, mir::valueptr> fn_to_cls;
 
   void moveFunToTop(mir::blockptr mir);
@@ -60,7 +60,7 @@ class ClosureConverter {
     void operator()(minst::Load& i);
     void operator()(minst::Store& i);
 
-    void operator()(minst::Op& i);
+    // void operator()(minst::Op& i);
     void operator()(minst::Function& i);
     void operator()(minst::Fcall& i);
     void operator()(minst::MakeClosure& i);
@@ -86,8 +86,8 @@ class ClosureConverter {
 
    private:
     static void visitinsts(minst::Function& i, CCVisitor& ccvis);
-    minst::MakeClosure createClosureInst(mir::valueptr fnptr, std::vector<mir::valueptr> const& fvs,
-                                         types::Alias fvtype, std::string& lv_name);
+    minst::MakeClosure createClosureInst(mir::valueptr fnptr, List<mir::valueptr> const& fvs, LType::Value fvtype,
+    std::string& lv_name);
     void dump();
 
     // helper function to get pointer of actual instance in visitor function.

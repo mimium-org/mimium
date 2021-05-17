@@ -382,5 +382,5 @@ class TypeEnvProto {
 #endif
 };
 
-using TypeEnv = TypeEnvProto<std::string>;
+// using TypeEnv = TypeEnvProto<std::string>;
 }  // namespace mimium

@@ -195,6 +195,16 @@ struct LType {
   };
 };
 
+inline auto makeClosureType(LType::Pointer const& fnptr_t, LType::Value const& fvtype_t) {
+  return LType::Value{LType::Tuple{{LType::Value{fnptr_t}, fvtype_t}}};
+}
+constexpr size_t fixed_delaysize = 44100;
+inline auto getDelayStruct() {
+  auto ftype = Box(LType::Value{LType::Float{}});
+  auto atype = LType::Value{LType::Array{ftype, fixed_delaysize}};
+  return LType::Value{
+      LType::Alias{"MmmRingBuf", LType::Value{LType::Tuple{{ftype, ftype, atype}}}}};
+}
 template <class T>
 SExpr toString(typename T::Value const& t) {
   return toString(toSExpr(t));

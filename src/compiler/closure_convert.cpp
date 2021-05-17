@@ -3,10 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #include "compiler/closure_convert.hpp"
-
+#include <iostream>
+#include <vector>
 namespace mimium {
-ClosureConverter::ClosureConverter(TypeEnv& typeenv)
-    : typeenv(typeenv), capturecount(0), closurecount(0) {}
+ClosureConverter::ClosureConverter() : capturecount(0), closurecount(0) {}
 
 void ClosureConverter::reset() { capturecount = 0; }
 ClosureConverter::~ClosureConverter() = default;
@@ -52,11 +52,12 @@ mir::blockptr ClosureConverter::convert(mir::blockptr toplevel) {
 
   moveFunToTop(this->toplevel);
   if (!(clstypeenv.count("dsp") > 0)) {
-    types::Value dummycapture = types::Alias{makeCaptureName(), types::Tuple{{}}};
+    auto dummycapture =
+        LType::Value{LType::Alias{makeCaptureName(), LType::Value{LType::Tuple{{}}}}};
     clstypeenv.emplace("dsp", dummycapture);
   }
   return this->toplevel;
-} // namespace mimium
+}  // namespace mimium
 
 void ClosureConverter::CCVisitor::dump() {
   std::cerr << "----------fvset-----------\n";
@@ -66,7 +67,7 @@ void ClosureConverter::CCVisitor::dump() {
 
 void ClosureConverter::CCVisitor::checkFreeVar(const mir::valueptr val) {
   if (auto* iptr = std::get_if<mir::Instructions>(val.get())) {
-    bool isfun = std::holds_alternative<types::rFunction>(mir::getType(*iptr));
+    bool isfun = std::holds_alternative<LType::Function>(mir::getType(*iptr).v);
     bool has_different_root = mir::getParent(*iptr) != this->block_ctx;
     if (!isfun && has_different_root) { fvset.emplace(val); }
   }
@@ -127,8 +128,7 @@ void ClosureConverter::CCVisitor::operator()(minst::Function& i) {
   visitinsts(i, ccvis);
 
   // make closure
-  std::vector<types::Value> fvtype_inside;
-  fvtype_inside.reserve(ccvis.fvset.size());
+  List<Box<LType::Value>> fvtype_inside;
   auto it = std::begin(ccvis.fvset);
   for (const auto& fv : ccvis.fvset) {
     bool isrecurse = mir::toString(*fv) == i.name;
@@ -140,26 +140,28 @@ void ClosureConverter::CCVisitor::operator()(minst::Function& i) {
     }
     ++it;
   }
-  auto fvsetvec = fmap<std::set,std::vector>(ccvis.fvset,[](auto i){return i;});
+  auto fvsetvec = fmap<std::set, List>(ccvis.fvset, [](auto i) { return i; });
   i.freevariables = fvsetvec;  // copy;
   // do not use auto here, move happens...
-  types::Alias fvtype{cc.makeCaptureName(), types::Tuple{fvtype_inside}};
+  LType::Alias fvtype{cc.makeCaptureName(), LType::Value{LType::Tuple{fvtype_inside}}};
 
-  types::Function ftype = rv::get<types::Function>(i.type);
+  LType::Function ftype = std::get<LType::Function>(i.type.v);
 
-  auto makecls = std::make_shared<mir::Value>(createClosureInst(fn_ptr, fvsetvec, fvtype, i.name));
+  auto makecls = std::make_shared<mir::Value>(
+      createClosureInst(fn_ptr, fvsetvec, LType::Value{fvtype}, i.name));
   cc.fn_to_cls.emplace(fn_ptr, makecls);
   i.parent->instructions.insert(std::next(position), makecls);
 }
-minst::MakeClosure ClosureConverter::CCVisitor::createClosureInst(
-    mir::valueptr fnptr, std::vector<mir::valueptr> const& fvs, types::Alias fvtype,
-    std::string& lv_name) {
+minst::MakeClosure ClosureConverter::CCVisitor::createClosureInst(mir::valueptr fnptr,
+                                                                  List<mir::valueptr> const& fvs,
+                                                                  LType::Value fvtype,
+                                                                  std::string& lv_name) {
   auto clsname = lv_name + "_cls";
   auto ftype = mir::getType(*fnptr);
-  rv::get<types::Function>(ftype).arg_types.emplace_back(types::Ref{fvtype});
-  types::Alias clstype{cc.makeClosureTypeName(),
-                       types::Closure{types::Ref{mir::getType(*fnptr)}, fvtype}};
-  minst::MakeClosure makecls{{clsname, clstype}, fnptr, fvs};
+  std::get<LType::Function>(ftype.v).v.first.emplace_back(LType::Value{LType::Pointer{fvtype}});
+  LType::Alias clstype{cc.makeClosureTypeName(),
+                       makeClosureType(LType::Pointer{mir::getType(*fnptr)}, fvtype)};
+  minst::MakeClosure makecls{{clsname, LType::Value{clstype}}, fnptr, fvs};
   return makecls;
 }
 
@@ -167,10 +169,10 @@ void ClosureConverter::CCVisitor::operator()(minst::Ref& i) { checkVariable(i.ta
 
 void ClosureConverter::CCVisitor::operator()(minst::Load& i) { checkVariable(i.target, true); }
 void ClosureConverter::CCVisitor::operator()(minst::Store& i) { checkVariable(i.target, true); }
-void ClosureConverter::CCVisitor::operator()(minst::Op& i) {
-  if (i.lhs.has_value()) { checkVariable(i.lhs.value()); }
-  checkVariable(i.rhs);
-}
+// void ClosureConverter::CCVisitor::operator()(minst::Op& i) {
+//   if (i.lhs.has_value()) { checkVariable(i.lhs.value()); }
+//   checkVariable(i.rhs);
+// }
 
 void ClosureConverter::CCVisitor::operator()(minst::Fcall& i) {
   checkVariable(i.fname, true);
