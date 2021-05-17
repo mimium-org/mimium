@@ -164,14 +164,11 @@ struct GeneralVisitor : F, Ts... {
 template <class F, class... Ts>
 GeneralVisitor(F&& f, Ts&&... ts) -> GeneralVisitor<F, Ts...>;
 
-TypeInferer::TypeEnvH TypeInferer::infer(LAst::expr& expr) {
+TypeEnvH TypeInferer::infer(LAst::expr& expr) {
   auto env_i = std::make_shared<TypeEnvI>();
   auto toptype = inferInternal(expr, env_i, 0);
   return *substituteIntermediateVars(env_i, this->typevar_to_val);
 }
-using TypeEnvI = TypeInferer::TypeEnv<IType::Value>;
-using TypeEnvH = TypeInferer::TypeEnv<HType::Value>;
-
 template <typename... Ts>
 
 struct SubstituteVisitor : Ts... {
@@ -371,12 +368,19 @@ IType::Value TypeInferer::inferInternal(LAst::expr& expr, std::shared_ptr<TypeEn
         return IType::Value{IType::Int{}};
       },
       [&](LAst::Lambda& a) -> IType::Value {
+        auto newenv = env_v->expand();
         auto atype = fmap<List>(a.v.args, [&](LAst::Id& a) -> Box<IType::Value> {
           return Box(a.type.value_or(IType::Value{makeNewTypeVar(level)}));
         });
-        auto ret_t = inferlambda(a.v.body);
-        this->self_t_holder = ret_t;
-        return IType::Value{IType::Function{std::pair(atype, ret_t)}};
+        auto atype_iter = atype.cbegin();
+        for(auto& a: a.v.args){
+          newenv->addToMap(a.v,*atype_iter);
+          atype_iter++;
+        }
+        auto body_t = inferInternal(a.v.body, newenv, level+1);
+        auto body_t_generic = generalize(body_t, level);
+        this->self_t_holder = body_t_generic;
+        return IType::Value{IType::Function{std::pair(atype, body_t_generic)}};
       },
       [&](LAst::Sequence& a) -> IType::Value {
         auto unit = IType::Value{IType::Unit{}};

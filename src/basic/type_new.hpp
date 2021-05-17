@@ -175,6 +175,8 @@ struct LType {
   using Float = baset::Float;
   using String = baset::String;
   using Tuple = baset::Tuple;
+  using RecordCategory = baset::RecordCategory<std::string>;
+  using Record = baset::Record;
   using Function = baset::Function;
   using Array = baset::Array;
   using Identified = baset::Identified;
@@ -182,8 +184,8 @@ struct LType {
   using Pointer = baset::Pointer;
   // LType does not have Record, List, variant and intermediate typevars.
   // And, Pointer type is introduced.
-  using type = std::variant<Unit, Bool, Int, Float, String, Tuple, Function, Array, Identified,
-                            Pointer, Alias>;
+  using type = std::variant<Unit, Bool, Int, Float, String, Tuple, Record, Function, Array,
+                            Identified, Pointer, Alias>;
   struct Value {
     using baset = Type<Box<Value>>;
 
@@ -196,6 +198,16 @@ struct LType {
 template <class T>
 SExpr toString(typename T::Value const& t) {
   return toString(toSExpr(t));
+}
+
+template <class T>
+auto getRecordTypeByKey(T const& t, std::string const& key) {
+  int count = 0;
+  for (auto&& a : t.v) {
+    if (a.key == key) { return std::pair(a.v, count); }
+    count++;
+  }
+  throw std::runtime_error("the record type has not specified type " + key);
 }
 
 static_assert(std::is_copy_constructible_v<IType::Value>);

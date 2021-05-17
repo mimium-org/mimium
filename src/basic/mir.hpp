@@ -6,12 +6,13 @@
 #include <list>
 #include <utility>
 
-#include "basic/ast.hpp"
+#include "basic/type_new.hpp"
+#include "export.hpp"
 
 namespace mimium {
 
 enum FCALLTYPE { DIRECT, CLOSURE, EXTERNAL };
-static std::map<FCALLTYPE, std::string> fcalltype_str = {
+static std::unordered_map<FCALLTYPE, std::string> fcalltype_str = {
     {DIRECT, ""}, {CLOSURE, "cls"}, {EXTERNAL, "ext"}};
 
 namespace mir {
@@ -27,7 +28,7 @@ struct Allocate;
 struct Ref;
 struct Load;
 struct Store;
-struct Op;
+// struct Op;
 struct Function;
 struct Fcall;
 struct MakeClosure;
@@ -36,18 +37,18 @@ struct ArrayAccess;
 struct Field;
 struct If;
 struct Return;
-using Instructions = std::variant<Number, String, Allocate, Ref, Load, Store, Op, Function, Fcall,
+using Instructions = std::variant<Number, String, Allocate, Ref, Load, Store, Function, Fcall,
                                   MakeClosure, Array, ArrayAccess, Field, If, Return>;
 }  // namespace instruction
 struct Argument;
 // todo: more specific value
 struct ExternalSymbol {
   std::string name;
-  types::Value type;
+  LType::Value type;
 };
 
 struct Self;
-using Constants = std::variant<int, double, std::string>;
+using Constants = std::variant<int, double, bool, std::string>;
 
 using Value = std::variant<instruction::Instructions, Constants, ExternalSymbol,
                            std::shared_ptr<Argument>, Self>;
@@ -55,11 +56,11 @@ using Value = std::variant<instruction::Instructions, Constants, ExternalSymbol,
 using valueptr = std::shared_ptr<Value>;
 struct Self {
   valueptr fn;
-  types::Value type;
+  LType::Value type;
 };
 struct Argument {
   std::string name;
-  types::Value type;
+  LType::Value type;
   valueptr parentfn;
 };
 
@@ -67,13 +68,13 @@ std::string toString(Argument const& i);
 
 struct FnArgs {
   std::optional<std::shared_ptr<Argument>> ret_ptr;
-  std::list<std::shared_ptr<Argument>> args;
+  List<std::shared_ptr<Argument>> args;
 };
 
 namespace instruction {
 struct Base {  // base class for MIR instruction
   std::string name;
-  types::Value type;
+  LType::Value type;
   blockptr parent = nullptr;
 };
 
@@ -107,13 +108,13 @@ struct Store : public Base {
 };
 std::string toString(Store const& i);
 
-struct Op : public Base {
- public:
-  ast::OpId op;
-  std::optional<valueptr> lhs;
-  valueptr rhs;
-};
-std::string toString(Op const& i);
+// struct Op : public Base {
+//  public:
+//   ast::OpId op;
+//   std::optional<valueptr> lhs;
+//   valueptr rhs;
+// };
+// std::string toString(Op const& i);
 
 struct Function : public Base {
   FnArgs args;
@@ -123,8 +124,8 @@ struct Function : public Base {
   // introduced after closure conversion;
   // contains self & delay, and fcall which
   // has self&delay
-  std::vector<valueptr> freevariables = {};
-  std::vector<valueptr> memory_objects = {};
+  List<valueptr> freevariables = {};
+  List<valueptr> memory_objects = {};
   bool ccflag = false;  // utility for closure conversion
 };
 std::string toString(Function const& i);
@@ -139,12 +140,12 @@ std::string toString(Fcall const& i);
 
 struct MakeClosure : public Base {
   valueptr fname;
-  std::vector<valueptr> captures;
+  List<valueptr> captures;
 };
 std::string toString(MakeClosure const& i);
 
 struct Array : public Base {
-  std::vector<valueptr> args;
+  List<valueptr> args;
 };
 std::string toString(Array const& i);
 
@@ -238,8 +239,8 @@ inline blockptr makeBlock(std::string const& label, int indent = 0) {
 
 MIMIUM_DLL_PUBLIC std::string toString(blockptr block);
 
-inline std::shared_ptr<mir::Value> addInstToBlock(Instructions&& inst, blockptr block) {
-  auto ptr = std::make_shared<Value>(std::move(inst));
+inline std::shared_ptr<mir::Value> addInstToBlock(Instructions const& inst, blockptr block) {
+  auto ptr = std::make_shared<Value>(inst);
   std::visit([&](auto& i) mutable { i.parent = block; }, std::get<Instructions>(*ptr));
   block->instructions.emplace_back(ptr);
   return ptr;
@@ -253,16 +254,19 @@ inline blockptr getParent(Instructions const& v) {
   return std::visit([](auto const& i) { return i.parent; }, v);
 }
 
-inline types::Value getType(Constants const& v) {
-  return std::visit(
-      overloaded{[](std::string const& /*s*/) -> types::Value { return types::String{}; },
-                 [](const double /*i*/) -> types::Value { return types::Float{}; }},
-      v);
+inline LType::Value getType(Constants const& v) {
+  return std::visit(overloaded{
+                        [](std::string const& /*s*/) { return LType::Value{LType::String{}}; },
+                        [](const double /*i*/) { return LType::Value{LType::Float{}}; },
+                        [](const int /*i*/) { return LType::Value{LType::Int{}}; },
+                        [](const bool /*i*/) { return LType::Value{LType::Bool{}}; },
+                    },
+                    v);
 }
-inline types::Value getType(Instructions const& v) {
+inline LType::Value getType(Instructions const& v) {
   return std::visit([](auto const& i) { return i.type; }, v);
 }
-inline types::Value getType(Value const& v) {
+inline LType::Value getType(Value const& v) {
   return std::visit(overloaded{[](Instructions const& i) { return getType(i); },
                                [](Constants const& i) { return getType(i); },
                                [](std::shared_ptr<Argument> i) { return i->type; },

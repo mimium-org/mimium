@@ -12,7 +12,11 @@
 // variable has unique name regardless its scope)
 
 namespace mimium {
+template <class T>
+using TypeEnv = Environment<decltype(LAst::Id::v), T>;
 
+using TypeEnvI = TypeEnv<IType::Value>;
+using TypeEnvH = TypeEnv<HType::Value>;
 struct TypeResolver {
   // TypeIdの集合と束縛のリスト
   template <class T>
@@ -27,11 +31,6 @@ struct TypeInferer {
   template <typename...>
   friend struct UnifyVisitor;
   using InputType = IType;
-  template <class T>
-  using TypeEnv = Environment<decltype(LAst::Id::v), T>;
-
-  using TypeEnvI = TypeEnv<IType::Value>;
-    using TypeEnvH = TypeEnv<HType::Value>;
 
   using InputAliasMap = Map<std::string, IType>;
   // ASTを入れると中間変数を含む型環境とエイリアスの写像が帰ってくる
@@ -65,8 +64,7 @@ struct TypeInferer {
   IType::Value instantiate(IType::Value const& t, int level);
   IType::Value instantiateInternal(IType::Value const& t, int level,
                                    Map<int, int>& scheme_to_typevar);
-  static HType::Value lowerIType(IType::Value const& v,
-                                 Map<int, IType::Value> const& typevar_map);
+  static HType::Value lowerIType(IType::Value const& v, Map<int, IType::Value> const& typevar_map);
   static std::shared_ptr<TypeEnv<HType::Value>> substituteIntermediateVars(
       std::shared_ptr<TypeEnvI> env, Map<int, IType::Value> const& typevar_map);
 
