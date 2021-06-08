@@ -8,6 +8,8 @@
 
 namespace mimium {
 Driver::Driver() : parser(nullptr), scanner(nullptr) {}
+Driver::~Driver() = default;
+
 Driver::expr Driver::parse(std::istream& is) {
   scanner = std::make_unique<MimiumScanner>(is);
   parser = std::make_unique<MimiumParser>(*scanner, *this);
@@ -45,20 +47,20 @@ std::optional<Driver::expr> Driver::processCompilerDirectives(
         return std::nullopt;
       },
       [&](TopLevel::Import const& t) -> res_t { return std::optional(parseFile(t.path)); }};
-   return std::visit(vis, e);
+  return std::visit(vis, e);
 }
 
 Driver::expr Driver::lowerToplevel(TopLevel::Expression const& e) {
   using res_t = std::optional<Hast::Statement>;
   Hast::Block res;
   for (const auto& line : e) {
-    auto s = std::visit(
-        overloaded{[&](TopLevel::CompilerDirective const& a) -> res_t {
-                     processCompilerDirectives(a);
-                     return std::nullopt;
-                   },
-                   [](Hast::Statement const& e) -> res_t { return std::optional(e); }},
-        line);
+    auto s =
+        std::visit(overloaded{[&](TopLevel::CompilerDirective const& a) -> res_t {
+                                processCompilerDirectives(a);
+                                return std::nullopt;
+                              },
+                              [](Hast::Statement const& e) -> res_t { return std::optional(e); }},
+                   line);
     if (s) { res.v.statements.emplace_back(s.value()); }
   }
   return Hast::expr{res};

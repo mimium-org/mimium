@@ -9,16 +9,16 @@
 #include "compiler/ffi.hpp"
 
 namespace mimium {
-using OpId = ast::OpId;
-const std::unordered_map<OpId, std::string> CodeGenVisitor::opid_to_ffi = {
-    // names are declared in ffi.cpp
+// using OpId = ast::OpId;
+// const std::unordered_map<OpId, std::string> CodeGenVisitor::opid_to_ffi = {
+//     // names are declared in ffi.cpp
 
-    {OpId::Exponent, "pow"},  {OpId::Mod, "fmod"},       {OpId::GreaterEq, "ge"},
-    {OpId::LessEq, "le"},     {OpId::GreaterThan, "gt"}, {OpId::LessThan, "lt"},
-    {OpId::Equal, "eq"},      {OpId::NotEq, "noteq"},    {OpId::And, "and"},
-    {OpId::BitAnd, "and"},    {OpId::Or, "or"},          {OpId::BitOr, "or"},
-    {OpId::LShift, "lshift"}, {OpId::RShift, "rshift"},
-};
+//     {OpId::Exponent, "pow"},  {OpId::Mod, "fmod"},       {OpId::GreaterEq, "ge"},
+//     {OpId::LessEq, "le"},     {OpId::GreaterThan, "gt"}, {OpId::LessThan, "lt"},
+//     {OpId::Equal, "eq"},      {OpId::NotEq, "noteq"},    {OpId::And, "and"},
+//     {OpId::BitAnd, "and"},    {OpId::Or, "or"},          {OpId::BitOr, "or"},
+//     {OpId::LShift, "lshift"}, {OpId::RShift, "rshift"},
+// };
 
 // Creates Allocation instruction or call malloc function depends on context
 CodeGenVisitor::CodeGenVisitor(LLVMGenerator& g, const funobjmap* funobj_map)
@@ -104,10 +104,10 @@ llvm::Value* CodeGenVisitor::getLlvmVal(mir::valueptr mirval) {
 llvm::Value* CodeGenVisitor::getLlvmValForFcallArgs(mir::valueptr mirval) {
   auto atype = mir::getType(*mirval);
   bool is_variablesize_array = false;
-  if (rv::holds_alternative<types::Pointer>(atype)) {
-    auto etype = rv::get<types::Pointer>(atype).val;
-    if (rv::holds_alternative<types::Array>(etype)) {
-      is_variablesize_array = types::isArraySizeVariable(rv::get<types::Array>(etype));
+  if (std::holds_alternative<LType::Pointer>(atype.v)) {
+    auto etype = std::get<LType::Pointer>(atype.v).v;
+    if (std::holds_alternative<LType::Array>(etype.getraw().v)) {
+      // is_variablesize_array = types::isArraySizeVariable(rv::get<types::Array>(etype));
     }
   }
   auto* val = getLlvmVal(mirval);
@@ -129,9 +129,9 @@ std::vector<llvm::Value*> CodeGenVisitor::makeFcallArgs(llvm::Type* ft,
     auto* targettype = *ft_iter;
     auto callargtype = mir::getType(*a);
     auto* llval = getLlvmVal(a);
-    if (rv::holds_alternative<types::Pointer>(callargtype)) {
-      auto etype = rv::get<types::Pointer>(callargtype).val;
-      if (rv::holds_alternative<types::Array>(etype)) {
+    if (std::holds_alternative<LType::Pointer>(callargtype.v)) {
+      auto etype = std::get<LType::Pointer>(callargtype.v).v;
+      if (std::holds_alternative<LType::Array>(etype.getraw().v)) {
         auto* targetetype = llvm::cast<llvm::PointerType>(targettype)->getElementType();
         assert(targetetype->isArrayTy());
         auto* arrtype = llvm::cast<llvm::ArrayType>(targetetype);
@@ -162,6 +162,44 @@ llvm::Value* CodeGenVisitor::createAllocation(bool isglobal, llvm::Type* type,
   return G.builder->CreateAlloca(type, array_size, "ptr_" + name);
 }
 
+const std::unordered_map<std::string_view, CodeGenVisitor::LlvmOp> CodeGenVisitor::fname_to_op = {
+    {"mimium_add", CodeGenVisitor::LlvmOp::Add},
+    {"mimium_sub", CodeGenVisitor::LlvmOp::Sub},
+    {"mimium_mul", CodeGenVisitor::LlvmOp::Mul},
+    {"mimium_div", CodeGenVisitor::LlvmOp::Div}};
+
+std::optional<CodeGenVisitor::LlvmOp> CodeGenVisitor::getPrimitiveOp(mir::valueptr fname) {
+  if (mir::isExternalSymbol(*fname)) {
+    auto sym = std::get<mir::ExternalSymbol>(*fname);
+    const auto iter = CodeGenVisitor::fname_to_op.find(sym.name);
+    if (iter != CodeGenVisitor::fname_to_op.cend()) { return iter->second; }
+  }
+  return std::nullopt;
+}
+llvm::Value* CodeGenVisitor::generatePrimitiveBinOp(LlvmOp op, const std::string& name,
+                                                    mir::valueptr lhs, mir::valueptr rhs) {
+  using Op = CodeGenVisitor::LlvmOp;
+  auto ll_lhs = getLlvmVal(lhs);
+  auto ll_rhs = getLlvmVal(rhs);
+  switch (op) {
+    case Op::Add: return G.builder->CreateFAdd(ll_lhs, ll_rhs, name); break;
+    case Op::Sub: return G.builder->CreateFSub(ll_lhs, ll_rhs, name); break;
+    case Op::Mul: return G.builder->CreateFMul(ll_lhs, ll_rhs, name); break;
+    case Op::Div: return G.builder->CreateFDiv(ll_lhs, ll_rhs, name); break;
+    default: assert(false); return nullptr;
+  }
+}
+llvm::Value* CodeGenVisitor::generatePrimitiveUniOp(LlvmOp op, const std::string& name,
+                                                    mir::valueptr rhs) {
+  using Op = CodeGenVisitor::LlvmOp;
+  auto ll_rhs = getLlvmVal(rhs);
+  switch (op) {
+    case Op::Sub: return G.builder->CreateUnOp(llvm::Instruction::UnaryOps::FNeg, ll_rhs, name);
+    // TODO:not operation
+    default: assert(false); return nullptr;
+  }
+}
+
 llvm::Value* CodeGenVisitor::operator()(minst::Number& i) {
   return llvm::ConstantFP::get(G.ctx, llvm::APFloat(i.val));
 }
@@ -177,9 +215,9 @@ llvm::Value* CodeGenVisitor::operator()(minst::String& i) {
   return bitcast;
 }
 llvm::Value* CodeGenVisitor::operator()(minst::Allocate& i) {
-  auto ptype = types::getIf<types::rPointer>(i.type);
-  assert(ptype.has_value());
-  auto alloctype = ptype.value().getraw().val;
+  assert(std::holds_alternative<LType::Pointer>(i.type.v));
+  auto ptype = std::get<LType::Pointer>(i.type.v);
+  auto alloctype = ptype.v;
   auto* res = createAllocation(isglobal, G.getType(alloctype), nullptr, i.name);
   registerLlvmVal(getValPtr(&i), res);
   return res;
@@ -200,43 +238,43 @@ llvm::Value* CodeGenVisitor::operator()(minst::Store& i) {
   return G.builder->CreateStore(val, target, false);
 }
 
-llvm::Value* CodeGenVisitor::operator()(minst::Op& i) {
-  if (!i.lhs.has_value()) { return createUniOp(i); }
-  return createBinOp(i);
-}
+// llvm::Value* CodeGenVisitor::operator()(minst::Op& i) {
+//   if (!i.lhs.has_value()) { return createUniOp(i); }
+//   return createBinOp(i);
+// }
 
-llvm::Value* CodeGenVisitor::createUniOp(minst::Op& i) {
-  auto* rhs = getLlvmVal(i.rhs);
-  switch (i.op) {
-    case ast::OpId::Sub:
-      return G.builder->CreateUnOp(llvm::Instruction::UnaryOps::FNeg, rhs, i.name);
-      break;
-    case ast::OpId::Not:
-      return G.builder->CreateCall(G.getForeignFunction("not"), {rhs}, i.name);
-      break;
-    default: return G.builder->CreateUnreachable(); break;
-  }
-}
+// llvm::Value* CodeGenVisitor::createUniOp(minst::Op& i) {
+//   auto* rhs = getLlvmVal(i.rhs);
+//   switch (i.op) {
+//     case ast::OpId::Sub:
+//       return G.builder->CreateUnOp(llvm::Instruction::UnaryOps::FNeg, rhs, i.name);
+//       break;
+//     case ast::OpId::Not:
+//       return G.builder->CreateCall(G.getForeignFunction("not"), {rhs}, i.name);
+//       break;
+//     default: return G.builder->CreateUnreachable(); break;
+//   }
+// }
 
-llvm::Value* CodeGenVisitor::createBinOp(minst::Op& i) {
-  auto* lhs = getLlvmVal(i.lhs.value());
-  auto* rhs = getLlvmVal(i.rhs);
-  switch (i.op) {
-    case ast::OpId::Add: return G.builder->CreateFAdd(lhs, rhs, i.name); break;
-    case ast::OpId::Sub: return G.builder->CreateFSub(lhs, rhs, i.name); break;
-    case ast::OpId::Mul: return G.builder->CreateFMul(lhs, rhs, i.name); break;
-    case ast::OpId::Div: return G.builder->CreateFDiv(lhs, rhs, i.name); break;
-    default: {
-      if (opid_to_ffi.count(i.op) > 0) {
-        auto fname = opid_to_ffi.find(i.op)->second;
-        return G.builder->CreateCall(G.getForeignFunction(fname), {lhs, rhs}, i.name);
-      }
+// llvm::Value* CodeGenVisitor::createBinOp(minst::Op& i) {
+//   auto* lhs = getLlvmVal(i.lhs.value());
+//   auto* rhs = getLlvmVal(i.rhs);
+//   switch (i.op) {
+//     case ast::OpId::Add: return G.builder->CreateFAdd(lhs, rhs, i.name); break;
+//     case ast::OpId::Sub: return G.builder->CreateFSub(lhs, rhs, i.name); break;
+//     case ast::OpId::Mul: return G.builder->CreateFMul(lhs, rhs, i.name); break;
+//     case ast::OpId::Div: return G.builder->CreateFDiv(lhs, rhs, i.name); break;
+//     default: {
+//       if (opid_to_ffi.count(i.op) > 0) {
+//         auto fname = opid_to_ffi.find(i.op)->second;
+//         return G.builder->CreateCall(G.getForeignFunction(fname), {lhs, rhs}, i.name);
+//       }
 
-      return G.builder->CreateUnreachable();
-      break;
-    }
-  }
-}
+//       return G.builder->CreateUnreachable();
+//       break;
+//     }
+//   }
+// }
 llvm::Value* CodeGenVisitor::operator()(minst::Function& i) {
   mirfv_to_llvm.clear();
   memobj_to_llvm.clear();
@@ -270,11 +308,12 @@ llvm::FunctionType* CodeGenVisitor::createDspFnType(minst::Function& i, bool has
                                                     bool hasmemobj) {
   // arguments of dsp function should be always (time, cls_ptr, memobj_ptr) regardless of
   // existences of capture &memobj.
-  auto dummytype = types::Ref{types::Void{}};
-  auto mmmfntype = rv::get<types::Function>(i.type);
-  auto& argtypes = mmmfntype.arg_types;
+  auto dummytype = LType::Value{LType::Pointer{LType::Value{LType::Unit{}}}};
+  auto mmmfnptrtype = std::get<LType::Pointer>(i.type.v);
+  auto mmmfntype = std::get<LType::Function>(mmmfnptrtype.v.getraw().v);
+  auto argtypes = mmmfntype.v.first;
   auto insertpoint = std::next(argtypes.begin());
-  if (!std::holds_alternative<types::Void>(mmmfntype.ret_type)) {
+  if (!std::holds_alternative<LType::Unit>(mmmfntype.v.second.getraw().v)) {
     insertpoint = std::next(insertpoint);
   }
   if (i.args.args.empty()) { argtypes.insert(insertpoint, dummytype); }
@@ -289,14 +328,7 @@ llvm::FunctionType* CodeGenVisitor::createDspFnType(minst::Function& i, bool has
 }
 
 llvm::FunctionType* CodeGenVisitor::createFunctionType(minst::Function& i) {
-  auto mmmfntype = rv::get<types::Function>(i.type);
-  auto& argtypes = mmmfntype.arg_types;
-
-  // convert function type to function pointer type for high order function
-  for (auto& atype : argtypes) {
-    if (std::holds_alternative<types::rFunction>(atype)) { atype = types::Pointer{atype}; }
-  }
-  return llvm::cast<llvm::FunctionType>((*G.typeconverter)(mmmfntype));
+  return llvm::cast<llvm::FunctionType>(G.typeconverter->convertType(i.type));
 }
 
 llvm::Function* CodeGenVisitor::createFunction(llvm::FunctionType* type, minst::Function& i) {
@@ -462,7 +494,7 @@ llvm::Value* CodeGenVisitor::getClsFun(minst::Fcall const& i) {
 }
 llvm::Value* CodeGenVisitor::getExtFun(minst::Fcall const& i) {
   auto fun = std::get<mir::ExternalSymbol>(*i.fname);
-  if (LLVMBuiltin::ftable.count(fun.name) > 0) { return G.getForeignFunction(fun.name); }
+  if (Intrinsic::ftable.count(fun.name) > 0) { return G.getForeignFunction(fun.name); }
   if (G.runtime_fun_names.count(fun.name) > 0) { return G.getRuntimeFunction(fun.name); }
   assert(false);
   return nullptr;
@@ -476,8 +508,6 @@ llvm::Value* CodeGenVisitor::popMemobjInContext() {
 
 // store the capture address to memory
 llvm::Value* CodeGenVisitor::operator()(minst::MakeClosure& i) {
-  // auto& capturenames = G.cc.getCaptureNames(i.fname);
-  assert(types::isClosure(i.type) && "closure type is invalid");
   auto* targetf = getLlvmVal(i.fname);
   const bool isdsp = targetf->getName() == "dsp";
   auto* closuretype = G.getType(i.type);
@@ -507,8 +537,8 @@ llvm::Value* CodeGenVisitor::operator()(minst::MakeClosure& i) {
 llvm::Value* CodeGenVisitor::operator()(minst::Array& i) {
   auto* atype = G.getArrayType(i.type);
   auto* gvalue = llvm::cast<llvm::GlobalVariable>(G.module->getOrInsertGlobal(i.name, atype));
-  auto values =
-      fmap(i.args, [&](mir::valueptr v) { return llvm::cast<llvm::Constant>(getLlvmVal(v)); });
+  auto values = fmap<List, std::vector>(
+      i.args, [&](mir::valueptr v) { return llvm::cast<llvm::Constant>(getLlvmVal(v)); });
   auto* constantarray = llvm::ConstantArray::get(atype, values);
   gvalue->setInitializer(constantarray);
   return gvalue;
@@ -536,7 +566,7 @@ llvm::Value* CodeGenVisitor::operator()(minst::Field& i) {
         llvm::cast<llvm::PointerType>(target->getType())->getElementType(), target, index,
         "tupleaccess");
   }
-  if (std::holds_alternative<types::Float>(mir::getType(*i.index))) {
+  if (std::holds_alternative<LType::Float>(mir::getType(*i.index).v)) {
     auto* index_ll = getLlvmVal(i.index);
     auto* intindex = G.builder->CreateFPToSI(index_ll, G.builder->getInt32Ty());
     return G.builder->CreateInBoundsGEP(target, {G.getZero(), intindex}, "arrayassignptr");
@@ -558,7 +588,6 @@ llvm::Value* CodeGenVisitor::operator()(minst::If& i) {
   auto* cond = getLlvmVal(i.cond);
   auto* cmp = G.builder->CreateFCmpOGT(cond, llvm::ConstantFP::get(G.ctx, llvm::APFloat(0.0)));
   auto* endbb = llvm::BasicBlock::Create(G.ctx, i.name + "_end", G.curfunc);
-
   auto* thenbb = llvm::BasicBlock::Create(G.ctx, i.name + "_then", G.curfunc, endbb);
   G.builder->SetInsertPoint(thenbb);
   auto* thenret = createIfBody(i.thenblock);
@@ -575,7 +604,7 @@ llvm::Value* CodeGenVisitor::operator()(minst::If& i) {
   G.builder->CreateBr(endbb);
   G.builder->SetInsertPoint(endbb);
   auto& ifrettype = i.type;
-  bool isvoid = std::holds_alternative<types::Void>(ifrettype);
+  bool isvoid = std::holds_alternative<LType::Unit>(ifrettype.v);
   llvm::Value* res = nullptr;
   if (!isvoid) {
     assert(elseret != nullptr && thenret != nullptr);

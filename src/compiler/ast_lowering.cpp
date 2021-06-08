@@ -161,21 +161,21 @@ LAst::expr AstLowerer::lowerHast(const Hast::expr& expr) {
   return std::visit(vis, expr.v);
 }
 
-LAst::expr removeSelf(LAst::expr const& expr) {
-  // appの中にselfがあったらそのfnを変換する
-  // expr(a,b,c...) -> expr(mem:type,a,b,c)
-  // lambda(a,b,c)-> lambda(mem:type,a,b,c)
-  // でもbeta変換しないとまだダメなのか？？関数をたどんないといけないもんな
-  auto&& vis = overloaded{[&](LAst::FloatLit const& a) {},  [&](LAst::IntLit const& a) {},
-                          [&](LAst::BoolLit const& a) {},   [&](LAst::StringLit const& a) {},
-                          [&](LAst::SelfLit const& a) {},   [&](LAst::Symbol const& a) {},
-                          [&](LAst::TupleLit const& a) {},  [&](LAst::TupleGet const& a) {},
-                          [&](LAst::StructLit const& a) {}, [&](LAst::StructGet const& a) {},
-                          [&](LAst::ArrayLit const& a) {},  [&](LAst::ArrayGet const& a) {},
-                          [&](LAst::ArraySize const& a) {}, [&](LAst::Lambda const& a) {},
-                          [&](LAst::Sequence const& a) {},  [&](LAst::NoOp const& a) {},
-                          [&](LAst::Let const& a) {},       [&](LAst::LetTuple const& a) {},
-                          [&](LAst::App const& a) {},       [&](LAst::If const& a) {}};
-}
+// LAst::expr removeSelf(LAst::expr const& expr) {
+//   // appの中にselfがあったらそのfnを変換する
+//   // expr(a,b,c...) -> expr(mem:type,a,b,c)
+//   // lambda(a,b,c)-> lambda(mem:type,a,b,c)
+//   // でもbeta変換しないとまだダメなのか？？関数をたどんないといけないもんな
+//   auto&& vis = overloaded{[&](LAst::FloatLit const& a) {},  [&](LAst::IntLit const& a) {},
+//                           [&](LAst::BoolLit const& a) {},   [&](LAst::StringLit const& a) {},
+//                           [&](LAst::SelfLit const& a) {},   [&](LAst::Symbol const& a) {},
+//                           [&](LAst::TupleLit const& a) {},  [&](LAst::TupleGet const& a) {},
+//                           [&](LAst::StructLit const& a) {}, [&](LAst::StructGet const& a) {},
+//                           [&](LAst::ArrayLit const& a) {},  [&](LAst::ArrayGet const& a) {},
+//                           [&](LAst::ArraySize const& a) {}, [&](LAst::Lambda const& a) {},
+//                           [&](LAst::Sequence const& a) {},  [&](LAst::NoOp const& a) {},
+//                           [&](LAst::Let const& a) {},       [&](LAst::LetTuple const& a) {},
+//                           [&](LAst::App const& a) {},       [&](LAst::If const& a) {}};
+// }
 
 }  // namespace mimium::lowerast

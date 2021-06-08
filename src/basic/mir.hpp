@@ -249,6 +249,7 @@ inline std::shared_ptr<mir::Value> addInstToBlock(Instructions const& inst, bloc
 inline void addIndentToBlock(blockptr block, int level = 0) { block->indent_level += level; }
 
 inline bool isConstant(Value const& v) { return std::holds_alternative<Constants>(v); }
+inline bool isExternalSymbol(Value const& v) { return std::holds_alternative<ExternalSymbol>(v); }
 
 inline blockptr getParent(Instructions const& v) {
   return std::visit([](auto const& i) { return i.parent; }, v);

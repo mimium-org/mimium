@@ -215,7 +215,9 @@ struct ExprCommon {
                     cons(toSExpr(a.v.cond), cons(toSExpr(a.v.vthen), std::move(e))));
       },
       [](auto const& a) { return makeSExpr(""); }};
-  static std::string toString(EXPR const& v) { return toString(toSExpr(v)); }
+  static std::string toString(EXPR const& v) { 
+    SExpr se = toSExpr(v);
+    return mimium::toString(se); }
 };
 // small set of primitives before generating mir
 struct LAst {
@@ -391,5 +393,11 @@ struct TopLevel {
   using Statement = std::variant<Hast::Statement, CompilerDirective>;
   using Expression = List<Statement>;
 };
+
+template <class T>
+static std::string toString(typename T::expr const& e) {
+  auto be = Box<typename T::expr>(e);
+  return ExprCommon<Box<typename T::expr>>::toString(be);
+}
 
 }  // namespace mimium

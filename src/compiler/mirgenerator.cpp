@@ -253,10 +253,11 @@ MirGenerator(Ts&&... ts) -> MirGenerator<Ts...>;
 // valueptrを生成しながら副作用としてblockを生成しているわけで、、、
 // blockを引数に受け取るgenrateinstructionみたいなのを作るのがいいのか
 
-mir::valueptr generateMir(const LAst::expr& expr, const TypeEnvH& typeenv) {
+mir::blockptr generateMir(const LAst::expr& expr, const TypeEnvH& typeenv) {
   auto main = mir::makeBlock("main");
   MirGenerator<> mirgen;
-  return mirgen.generateInst(expr, typeenv, main, nullptr);
+  mirgen.generateInst(expr, typeenv, main, nullptr);
+  return main;
 }
 
 }  // namespace mimium

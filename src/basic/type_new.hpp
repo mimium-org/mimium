@@ -206,8 +206,9 @@ inline auto getDelayStruct() {
       LType::Alias{"MmmRingBuf", LType::Value{LType::Tuple{{ftype, ftype, atype}}}}};
 }
 template <class T>
-SExpr toString(typename T::Value const& t) {
-  return toString(toSExpr(t));
+std::string toString(T const& t) {
+  Box<T> bt{t};
+  return toString(Type<Box<T>>::toSExpr(bt));
 }
 
 template <class T>

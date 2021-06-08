@@ -84,7 +84,8 @@ template <template <class...> class CONTAINERIN,
           template <class...> class CONTAINEROUT = CONTAINERIN, typename ELEMENTIN, typename LAMBDA>
 auto fmap(CONTAINERIN<ELEMENTIN>& args, LAMBDA&& lambda)
     -> CONTAINEROUT<decltype(lambda(*args.begin()))> {
-  static_assert(std::is_invocable_v<LAMBDA, ELEMENTIN>, "the function for fmap is not invocable");
+  static_assert(std::is_invocable_v<decltype(lambda), decltype(*args.begin())>,
+                "the function for fmap is not invocable");
   CONTAINEROUT<decltype(lambda(*args.begin()))> res;
   std::transform(args.begin(), args.end(), std::back_inserter(res),
                  std::forward<decltype(lambda)>(lambda));
@@ -98,7 +99,7 @@ auto foldl(CONTAINER<RES> const& input, LAMBDA&& lambda) {
 }
 
 template <template <class...> class CONTAINER, typename RES, typename LAMBDA>
-auto foldl(CONTAINER<RES> & input, LAMBDA&& lambda) {
+auto foldl(CONTAINER<RES>& input, LAMBDA&& lambda) {
   return std::accumulate(std::begin(input), std::end(input), RES{},
                          std::forward<decltype(lambda)>(lambda));
 }

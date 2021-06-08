@@ -6,6 +6,7 @@
 
 #include "type.hpp"
 #include "debuginfo.hpp"
+
 using mmmfloat = double;
 
 namespace mimium::ast {

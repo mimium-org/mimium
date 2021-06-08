@@ -12,6 +12,6 @@ namespace mimium {
 
 using optvalptr = std::optional<mir::valueptr>;
 
-mir::valueptr generateMir(LAst::expr const& expr, TypeEnvH const& typeenv);
+mir::blockptr generateMir(LAst::expr const& expr, TypeEnvH const& typeenv);
 
 }  // namespace mimium

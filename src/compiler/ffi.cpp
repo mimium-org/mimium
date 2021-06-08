@@ -8,6 +8,7 @@
 #include "sndfile.h"
 
 extern "C" {
+
 MIMIUM_DLL_PUBLIC void dumpaddress(void* a) { std::cerr << a << "\n"; }
 
 MIMIUM_DLL_PUBLIC void printdouble(double d) { std::cout << d; }
@@ -19,6 +20,12 @@ MIMIUM_DLL_PUBLIC double mimiumrand() { return ((double)rand() / RAND_MAX) * 2 -
 
 MIMIUM_DLL_PUBLIC bool mimium_dtob(double d) { return d > 0; }
 MIMIUM_DLL_PUBLIC int64_t mimium_dtoi(double d) { return static_cast<int64_t>(d); }
+
+
+MIMIUM_DLL_PUBLIC double mimium_add(double d1, double d2) { return d1 + d2; }
+MIMIUM_DLL_PUBLIC double mimium_sub(double d1, double d2) { return d1 - d2; }
+MIMIUM_DLL_PUBLIC double mimium_mul(double d1, double d2) { return d1 * d2; }
+MIMIUM_DLL_PUBLIC double mimium_div(double d1, double d2) { return d1 / d2; }
 MIMIUM_DLL_PUBLIC double mimium_gt(double d1, double d2) { return static_cast<double>(d1 > d2); }
 MIMIUM_DLL_PUBLIC double mimium_lt(double d1, double d2) { return static_cast<double>(d1 < d2); }
 MIMIUM_DLL_PUBLIC double mimium_ge(double d1, double d2) { return static_cast<double>(d1 >= d2); }
@@ -114,6 +121,7 @@ const auto make_fun = [](IType::Value&& r, List<Box<IType::Value>>&& as) {
 }  // namespace
 
 const std::unordered_map<std::string_view, BuiltinFnInfo> Intrinsic::ftable = {
+
     {"print", init_bi(make_fun(unit(), {float_t()}), "printdouble")},
     {"println", init_bi(make_fun(unit(), {float_t()}), "printlndouble")},
     {"printlnstr", init_bi(make_fun(unit(), {string_t()}), "printlnstr")},
@@ -150,6 +158,14 @@ const std::unordered_map<std::string_view, BuiltinFnInfo> Intrinsic::ftable = {
 
     {"min", init_bi(make_fun(float_t(), {float_t(), float_t()}), "fmin")},
     {"max", init_bi(make_fun(float_t(), {float_t(), float_t()}), "fmax")},
+
+    // These primitive operations are called from C library difined above if no intrinsic are find in code generator for each backends.
+    // If they can, they will be replaced with primitive operations.
+
+    {"add",init_bi(make_fun(float_t(), {float_t()}), "mimium_add") },
+    {"sub",init_bi(make_fun(float_t(), {float_t()}), "mimium_sub") },
+    {"mul",init_bi(make_fun(float_t(), {float_t()}), "mimium_mul") },
+    {"div",init_bi(make_fun(float_t(), {float_t()}), "mimium_div") },
 
     {"ge", init_bi(make_fun(float_t(), {float_t(), float_t()}), "mimium_ge")},
     {"eq", init_bi(make_fun(float_t(), {float_t(), float_t()}), "mimium_eq")},

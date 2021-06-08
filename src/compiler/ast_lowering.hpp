@@ -25,7 +25,7 @@ class AstLowerer {
   int uniqueid = 0;
 };
 
-LAst::expr removeSelf(LAst::expr const& expr);
+// LAst::expr removeSelf(LAst::expr const& expr);
 
 }  // namespace lowerast
 }  // namespace mimium

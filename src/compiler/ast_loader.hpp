@@ -26,6 +26,7 @@ class Driver {
 
  public:
   Driver();
+  ~Driver();
   expr parse(std::istream& is);
   expr parseString(const std::string& source);
   expr parseFile(const std::string& filename);

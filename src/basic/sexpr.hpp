@@ -46,10 +46,9 @@ inline auto makeSExpr(std::initializer_list<std::string> list) {
   return makeSExpr(list.begin(), list.end()).value().getraw();
 }
 
-auto test = makeSExpr({"1", "2", "4"});
 
-auto& head(SExpr const& s) { return s.x; }
-auto& tail(SExpr const& s) { return s.xs; }
+inline auto& head(SExpr const& s) { return s.x; }
+inline auto& tail(SExpr const& s) { return s.xs; }
 
 inline auto toString(std::string const& s) { return s; }
 

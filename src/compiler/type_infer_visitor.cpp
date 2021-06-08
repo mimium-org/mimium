@@ -107,7 +107,7 @@ bool TypeInferer::occurCheck(IType::Intermediate const& lv, IType::Value& rv) {
       [&](IType::Function& t) {
         return foldl(fmap(t.v.first, genmapper), folder) || genmapper(t.v.second);
       },
-      [&](IType::Array& t) { return genmapper(t.v.v); },
+      [&](IType::Array& t) {return genmapper(t.v.v); },
       [&](IType::Record& t) {
         return foldl(fmap(t.v, [&](IType::RecordKey& a) { return occurCheck(lv, a.v); }), folder);
       },
@@ -337,9 +337,10 @@ IType::Value TypeInferer::inferInternal(LAst::expr& expr, std::shared_ptr<TypeEn
         throw std::runtime_error("type check error in Tuple getter");
       },
       [&](LAst::StructLit& a) -> IType::Value {
-        return IType::Value{IType::Record{fmap(a.v, [&](LAst::StructKey& e) {
-          return IType::RecordKey{e.key, inferlambda(e.v)};
-        })}};
+        auto list = fmap(a.v, [&](LAst::StructKey& e) {
+          return IType::RecordKey{e.key, inferlambda(e.v).getraw()};
+        });
+        return IType::Value{IType::Record{list}};
       },
       [&](LAst::StructGet& a) -> IType::Value {
         auto ttype = inferlambda(a.v.expr).getraw();
@@ -369,7 +370,7 @@ IType::Value TypeInferer::inferInternal(LAst::expr& expr, std::shared_ptr<TypeEn
       },
       [&](LAst::Lambda& a) -> IType::Value {
         auto newenv = env_v->expand();
-        auto atype = fmap<List>(a.v.args, [&](LAst::Id& a) -> Box<IType::Value> {
+        auto atype = fmap(a.v.args, [&](LAst::Id const& a) -> Box<IType::Value> {
           return Box(a.type.value_or(IType::Value{makeNewTypeVar(level)}));
         });
         auto atype_iter = atype.cbegin();

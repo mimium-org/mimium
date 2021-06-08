@@ -49,10 +49,14 @@ add_library(mimium_compiler
 symbolrenamer.cpp 
 mirgenerator.cpp 
 ast_lowering.cpp
+type_lowering.cpp
+ast_loader.cpp
 type_infer_visitor.cpp 
 closure_convert.cpp 
 collect_memoryobjs.cpp 
-compiler.cpp)
+compiler.cpp
+
+)
 
 target_include_directories(mimium_compiler
 PRIVATE
