@@ -26,6 +26,7 @@ struct Type {
     T v;
     int size;
   };
+
   // [T]
   using Array = Aggregate<ArrayCategory>;
   // [[T]]
@@ -100,6 +101,12 @@ struct Type {
       [](Alias const& t) { return cons(makeSExpr("alias"), toSExpr(t.v.v)); },
       [](auto const& a) { return makeSExpr(""); }};
 };
+
+template <class Value, class T>
+bool operator==(typename Type<Value>::template ArrayCategory<T> const& t1,
+                typename Type<Value>::template ArrayCategory<T> const& t2) {
+  return t1.v == t2.v && t2.size == t1.size;
+}
 struct IType {
   struct Value;
   using baset = Type<Box<Value>>;
@@ -227,5 +234,6 @@ inline auto makeUnknownAlias(std::string const& name) {
   auto itype = IType::Value{IType::Unknown{}};
   return IType::Value{IType::Alias{name, itype}};
 }
+
 
 }  // namespace mimium

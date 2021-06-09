@@ -395,7 +395,7 @@ struct TopLevel {
 };
 
 template <class T>
-static std::string toString(typename T::expr const& e) {
+std::string toString(typename T::expr const& e) {
   auto be = Box<typename T::expr>(e);
   return ExprCommon<Box<typename T::expr>>::toString(be);
 }

@@ -18,6 +18,12 @@ struct CategoryWrapped {
   constexpr CategoryWrapped() = default;
   type v;
 };
+template <template <class...> class Category, int ID = 0, class... T>
+bool operator==(CategoryWrapped<Category,ID,T...> const& t1,CategoryWrapped<Category,ID,T...> const& t2){
+  return t1.v==t2.v;
+}
+
+
 template <template <class...> class Category, int ID, class F, class... T>
 auto fmap(CategoryWrapped<Category, ID, T...> const& t, F&& lambda) {
   return fmap(t.v, std::forward<F>(lambda));
