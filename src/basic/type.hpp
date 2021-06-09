@@ -281,8 +281,8 @@ template <typename T>
 constexpr bool is_primitive_type = std::is_base_of_v<PrimitiveType, std::decay_t<T>>;
 
 inline bool isPrimitive(const Value& v) {
-  return std::visit(overloaded_rec{[](auto& a) { return is_primitive_type<decltype(a)>; },
-                                   [](Alias const& a) { return isPrimitive(a.target); }},
+  return std::visit(overloaded_rec{[](auto&& a) { return is_primitive_type<decltype(a)>; },
+                               [](Alias const& a) { return isPrimitive(a.target); }},
                     v);
 }
 
@@ -296,8 +296,8 @@ inline bool isIntermediate(const Value& v) {
 template <typename T>
 constexpr bool is_aggregate = !is_primitive_type<T> && !is_intermediate_type<T>;
 inline bool isAggregate(const Value& v) {
-  return std::visit(overloaded_rec{[](Alias& a) { return isAggregate(a.target); },
-                                   [](auto& a) { return is_aggregate<decltype(a)>; }},
+  return std::visit(overloaded{[](Alias const& a) { return isAggregate(a.target); },
+                               [](auto&& a) { return is_aggregate<decltype(a)>; }},
                     v);
 }
 
@@ -382,5 +382,5 @@ class TypeEnvProto {
 #endif
 };
 
-using TypeEnv = TypeEnvProto<std::string>;
+// using TypeEnv = TypeEnvProto<std::string>;
 }  // namespace mimium

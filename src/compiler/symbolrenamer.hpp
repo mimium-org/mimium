@@ -21,7 +21,7 @@ class SymbolRenamer {
   explicit SymbolRenamer(std::shared_ptr<RenameEnvironment> env);
   AstPtr rename(ast::Statements& ast);
 
-  struct ExprRenameVisitor : public VisitorBase<ast::ExprPtr> {
+  struct ExprRenameVisitor {
     explicit ExprRenameVisitor(SymbolRenamer& parent) : renamer(parent){};
     SymbolRenamer& renamer;
     ast::ExprPtr operator()(ast::Op& ast);
@@ -56,7 +56,7 @@ class SymbolRenamer {
     ast::DeclVar renameLambdaArgVar(ast::DeclVar& ast);
     ast::Lvar rename(ast::Lvar& ast) { return std::visit(*this, ast); }
   };
-  struct StatementRenameVisitor : public VisitorBase<StatementPtr> {
+  struct StatementRenameVisitor {
     explicit StatementRenameVisitor(SymbolRenamer& parent) : renamer(parent){};
     SymbolRenamer& renamer;
     StatementPtr operator()(ast::Assign& ast);

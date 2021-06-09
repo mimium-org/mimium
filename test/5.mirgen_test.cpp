@@ -1,27 +1,26 @@
-#include "basic/ast_to_string.hpp"
 #include "basic/mir.hpp"
 #include "compiler/ast_loader.hpp"
+#include "compiler/ast_lowering.hpp"
 #include "compiler/mirgenerator.hpp"
 #include "compiler/scanner.hpp"
-#include "compiler/symbolrenamer.hpp"
 #include "compiler/type_infer_visitor.hpp"
 #include "gtest/gtest.h"
 #include "gtest/internal/gtest-port.h"
 #include "mimium_parser.hpp"
 
-#define PREP(FILENAME)                                                          \
-  Driver driver{};                                                              \
-  ast::Statements& ast = *driver.parseFile(TEST_ROOT_DIR "/" #FILENAME ".mmm"); \
-  SymbolRenamer renamer;                                                        \
-  auto newast = renamer.rename(ast);                                            \
-  TypeInferer inferer;                                                          \
-  auto& env = inferer.infer(*newast);                                           \
-  MirGenerator mirgenerator(env);
+#define PREP(FILENAME)                                             \
+  Driver driver{};                                                 \
+  auto ast = driver.parseFile(TEST_ROOT_DIR "/" #FILENAME ".mmm"); \
+  lowerast::AstLowerer lowerer;                                    \
+  auto newast = lowerer.lowerHast(ast);                            \
+  TypeInferer inferer;                                             \
+  auto env = inferer.infer(newast);
+
 namespace mimium {
 
 TEST(mirgen, basic) {  // NOLINT
   PREP(test_localvar)
-  auto mir = mirgenerator.generate(*newast);
+  auto mir = mimium::generateMir(newast, env);
   std::string target = R"(root:
   hoge0 = fun x1 , y2
   hoge0:

@@ -18,16 +18,14 @@ ADD_FLEX_BISON_DEPENDENCY(TestScanner TestParser)
 set (MIMIUM_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src)
 set (GOOGLETEST_DIR ${CMAKE_SOURCE_DIR}/test/googletest/googletest)
 add_library(TestLib STATIC 
-${MIMIUM_SOURCE_DIR}/basic/ast.cpp 
 ${MIMIUM_SOURCE_DIR}/basic/mir.cpp
-${MIMIUM_SOURCE_DIR}/basic/type.cpp
-${MIMIUM_SOURCE_DIR}/basic/ast_to_string.cpp
 ${MIMIUM_SOURCE_DIR}/basic/filereader.cpp
 ${FLEX_TestScanner_OUTPUTS}
 ${BISON_TestParser_OUTPUTS}
 ${MIMIUM_SOURCE_DIR}/compiler/ast_loader.cpp
 ${MIMIUM_SOURCE_DIR}/compiler/scanner.cpp
-${MIMIUM_SOURCE_DIR}/compiler/symbolrenamer.cpp
+${MIMIUM_SOURCE_DIR}/compiler/ast_lowering.cpp
+${MIMIUM_SOURCE_DIR}/compiler/type_lowering.cpp
 ${MIMIUM_SOURCE_DIR}/compiler/type_infer_visitor.cpp
 ${MIMIUM_SOURCE_DIR}/compiler/mirgenerator.cpp
 # ${MIMIUM_SOURCE_DIR}/frontend/genericapp.cpp

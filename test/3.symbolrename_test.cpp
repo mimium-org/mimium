@@ -1,8 +1,7 @@
-#include "basic/ast_to_string.hpp"
-#include "compiler/ast_loader.hpp"
+
 #include "mimium_parser.hpp"
 #include "compiler/scanner.hpp"
-#include "compiler/symbolrenamer.hpp"
+#include "compiler/ast_lowering.hpp"
 #include "gtest/gtest.h"
 #include "gtest/internal/gtest-port.h"
 
@@ -10,10 +9,10 @@ namespace mimium {
 TEST(symbolrename, astcomplete) {//NOLINT
   Driver driver{};
   auto ast = driver.parseFile(TEST_ROOT_DIR "/ast_complete.mmm");
-  SymbolRenamer renamer;
-  auto newast = renamer.rename(*ast);
-  std::ostringstream ss;
-  ss << *newast;
+  lowerast::AstLowerer lowerer;
+  auto newast = lowerer.lowerHast(ast);
+  auto res = toString<LAst>(newast);
+
   std::string target =
 R"((assign (lvar myvar0 float) (Mod (Exponent (Add 100 (Div (Mul (Sub 200 300) 20) 15)) 2) 30.2))
 (assign (lvar inlinefn1 unspecified) (lambda ((lvar myarg2 float))(Mul myarg2 2)))
@@ -32,7 +31,7 @@ R"((assign (lvar myvar0 float) (Mod (Exponent (Add 100 (Div (Mul (Sub 200 300) 2
 (if (LessThan hoge18 20) (funcall println (hoge18)))
 (if (GreaterThan hoge18 25) (funcall println ((Mul hoge18 100))) (funcall println ((Mul hoge18 1000))))))
 )";
-  EXPECT_STRCASEEQ(ss.str().c_str(), target.c_str());
+  EXPECT_STRCASEEQ(res.c_str(), target.c_str());
 }
 
 }  // namespace mimium

@@ -12,11 +12,10 @@
 #include "mimium_parser.hpp"
 
 namespace mimium {
-class MimiumParser;
 class MimiumScanner : public yyFlexLexer {
  public:
   explicit MimiumScanner(std::istream& in);
-  ~MimiumScanner() override = default;
+  ~MimiumScanner() override;
 
   virtual int yylex(MimiumParser::semantic_type* lval, MimiumParser::location_type* location);
   void LexerError(const char* msg) override { throw std::runtime_error(msg); }

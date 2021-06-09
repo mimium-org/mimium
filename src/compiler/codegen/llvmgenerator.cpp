@@ -8,6 +8,7 @@
 #include "compiler/codegen/llvm_header.hpp"
 #include "compiler/codegen/typeconverter.hpp"
 #include "compiler/ffi.hpp"
+#include "compiler/type_lowering.hpp"
 
 namespace mimium {
 
@@ -48,14 +49,14 @@ void LLVMGenerator::dropAllReferences() {
   if (module != nullptr) { module->dropAllReferences(); }
 }
 
-llvm::Type* LLVMGenerator::getType(types::Value const& type) {
-  return std::visit(*typeconverter, type);
+llvm::Type* LLVMGenerator::getType(LType::Value const& type) {
+  return typeconverter->convertType(type);
 }
 
-llvm::ArrayType* LLVMGenerator::getArrayType(types::Value const& type) {
-  assert(rv::holds_alternative<types::Array>(type));
-  const auto& atype = rv::get<types::Array>(type);
-  return llvm::ArrayType::get(std::visit(*typeconverter, atype.elem_type), atype.size);
+llvm::ArrayType* LLVMGenerator::getArrayType(LType::Value const& type) {
+  assert(std::holds_alternative<LType::Array>(type.v));
+  const auto& atype = std::get<LType::Array>(type.v);
+  return llvm::ArrayType::get(typeconverter->convertType(atype.v.v), atype.v.size);
 }
 
 llvm::Type* LLVMGenerator::getDoubleTy() { return llvm::Type::getDoubleTy(ctx); }
@@ -70,12 +71,13 @@ llvm::Value* LLVMGenerator::getConstDouble(double v) {
 
 llvm::Value* LLVMGenerator::getZero(const int bitsize) { return getConstInt(0, bitsize); }
 
-llvm::Type* LLVMGenerator::getClosureToFunType(types::Value& type) {
-  auto aliasty = rv::get<types::Alias>(type);
-  auto clsty = rv::get<types::Closure>(aliasty.target);
+llvm::Type* LLVMGenerator::getClosureToFunType(LType::Value& type) {
+  auto aliasty = std::get<LType::Alias>(type.v);
+  auto clsty = std::get<LType::Tuple>(aliasty.v.v.getraw().v);
 
-  auto fty = rv::get<types::Function>(clsty.fun.val);
-  fty.arg_types.emplace_back(types::Ref{clsty.captures});
+  auto fty = std::get<LType::Function>(clsty.v.cbegin()->getraw().v);
+  fty.v.first.emplace_back(
+      LType::Value{LType::Pointer{LType::Value{std::next(clsty.v.cbegin(), 1)->getraw().v}}});
   return (*typeconverter)(fty);
 }
 void LLVMGenerator::switchToMainFun() {
@@ -85,22 +87,27 @@ void LLVMGenerator::switchToMainFun() {
   curfunc = mainentry->getParent();
 }
 llvm::Function* LLVMGenerator::getForeignFunction(const std::string& name) {
-  const auto& [type, targetname] = LLVMBuiltin::ftable.find(name)->second;
-  auto ftype = rv::get<types::Function>(type);
-  if (name == "delay") { ftype.arg_types.emplace_back(types::Ref{types::getDelayStruct()}); }
-  if (name == "mem") { ftype.arg_types.emplace_back(types::Ref{types::Float{}}); }
-  if (!types::isPrimitive(ftype.ret_type)) {
-    // for loadwavfile
-    ftype.ret_type = types::Ref{ftype.ret_type};
+  const auto& [type, targetname] = Intrinsic::ftable.find(name)->second;
+  auto ftype = std::get<LType::Function>(lowerType(type).v);
+  if (name == "delay") {
+    ftype.v.first.emplace_back(
+        LType::Value{LType::Pointer{LType::Value{mimium::getDelayStruct()}}});
   }
-  return getFunction(targetname, getType(ftype));
+  if (name == "mem") {
+    ftype.v.first.emplace_back(LType::Value{LType::Pointer{LType::Value{LType::Float{}}}});
+  }
+  // if (!isAggregate(ftype)) {
+  //   // for loadwavfile
+  //   ftype.ret_type = LType::Ref{ftype.ret_type};
+  // }
+  return getFunction(targetname, getType(LType::Value{ftype}));
 }
 llvm::Function* LLVMGenerator::getRuntimeFunction(const std::string& name) {
   const auto& type = runtime_fun_names.at(name);
   return getFunction(name, type);
 }
 
-llvm::Function* LLVMGenerator::getFunction(const std::string& name, llvm::Type* type) {
+llvm::Function* LLVMGenerator::getFunction(std::string_view name, llvm::Type* type) {
   auto* funtype = llvm::cast<llvm::FunctionType>(type);
   auto fnc = module->getOrInsertFunction(name, funtype);
   auto* fn = llvm::cast<llvm::Function>(fnc.getCallee());
@@ -175,27 +182,27 @@ void LLVMGenerator::createNewBasicBlock(std::string name, llvm::Function* f) {
   builder->SetInsertPoint(bb);
   currentblock = bb;
 }
-std::optional<int> LLVMGenerator::getDspFnChannelNumForType(types::Value const& t) {
-  // if (std::holds_alternative<types::Float>(t)) { return 1; }
-  if (rv::holds_alternative<types::Pointer>(t)) {
-    const auto& ptype = rv::get<types::Pointer>(t);
-    if (rv::holds_alternative<types::Tuple>(ptype.val)) {
-      const auto& ttype = rv::get<types::Tuple>(ptype.val);
-      for (const auto& at : ttype.arg_types) {
-        if (!std::holds_alternative<types::Float>(at)) { return std::nullopt; }
+std::optional<int> LLVMGenerator::getDspFnChannelNumForType(LType::Value const& t) {
+  // if (std::holds_alternative<LType::Float>(t)) { return 1; }
+  if (std::holds_alternative<LType::Pointer>(t.v)) {
+    const auto& ptype = std::get<LType::Pointer>(t.v);
+    if (std::holds_alternative<LType::Tuple>(ptype.v.getraw().v)) {
+      const auto& ttype = std::get<LType::Tuple>(ptype.v.getraw().v);
+      for (const auto& at : ttype.v) {
+        if (!std::holds_alternative<LType::Float>(at.getraw().v)) { return std::nullopt; }
       }
-      return ttype.arg_types.size();
+      return ttype.v.size();
     }
   }
-  if (std::holds_alternative<types::Void>(t)) { return 0; }
+  if (std::holds_alternative<LType::Unit>(t.v)) { return 0; }
   return std::nullopt;
 }
 
 void LLVMGenerator::checkDspFunctionType(minst::Function const& i) {
   assert(i.name == "dsp");
-  assert(rv::holds_alternative<types::Function>(i.type));
-  auto rettype = rv::get<types::Function>(i.type).ret_type;
-  auto argtype = rv::get<types::Function>(i.type).arg_types;
+  assert(std::holds_alternative<LType::Function>(i.type.v));
+  auto rettype = std::get<LType::Function>(i.type.v).v.second;
+  auto argtype = std::get<LType::Function>(i.type.v).v.first;
 
   std::optional<int> outchs = std::nullopt;
   std::optional<int> inchs = std::nullopt;
@@ -210,7 +217,7 @@ void LLVMGenerator::checkDspFunctionType(minst::Function const& i) {
     case 0: inchs = 0; break;
     case 1: {
       auto inputargidx = i.args.ret_ptr ? 1 : 0;
-      inchs = getDspFnChannelNumForType(argtype.at(inputargidx));
+      inchs = getDspFnChannelNumForType(*std::next(argtype.cbegin(), inputargidx));
     } break;
     default:
       throw std::runtime_error("Number of Arguments for dsp function must be 0 or 1.");

@@ -59,11 +59,11 @@ class MIMIUM_DLL_PUBLIC LLVMGenerator {
   std::unique_ptr<TypeConverter> typeconverter;
   std::shared_ptr<CodeGenVisitor> codegenvisitor;
 
-  llvm::Type* getType(types::Value const& type);
+  llvm::Type* getType(LType::Value const& type);
   // Used for getting Arraytype which is not pointer of elementtype
-  llvm::ArrayType* getArrayType(types::Value const& type);
+  llvm::ArrayType* getArrayType(LType::Value const& type);
 
-  llvm::Type* getClosureToFunType(types::Value& type);
+  llvm::Type* getClosureToFunType(LType::Value& type);
   const std::unordered_map<std::string, llvm::Type*> runtime_fun_names;
 
   struct {
@@ -78,12 +78,12 @@ class MIMIUM_DLL_PUBLIC LLVMGenerator {
   void preprocess();
   llvm::Function* getForeignFunction(const std::string& name);
   llvm::Function* getRuntimeFunction(const std::string& name);
-  llvm::Function* getFunction(const std::string& name, llvm::Type* type);
+  llvm::Function* getFunction(std::string_view name, llvm::Type* type);
 
   void createMiscDeclarations();
   void createRuntimeSetDspFn(llvm::Type* memobjtype);
   void checkDspFunctionType(minst::Function const& i);
-  static std::optional<int> getDspFnChannelNumForType(types::Value const& t);
+  static std::optional<int> getDspFnChannelNumForType(LType::Value const& t);
   void createMainFun();
   void createTaskRegister(bool isclosure);
   void createNewBasicBlock(std::string name, llvm::Function* f);
