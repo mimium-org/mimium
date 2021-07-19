@@ -100,7 +100,7 @@ auto fmap(CONTAINERIN<ELEMENTIN>& args, LAMBDA&& lambda)
 
 template <template <class...> class CONTAINER, typename RES, typename LAMBDA>
 auto foldl(CONTAINER<RES> const& input, LAMBDA&& lambda) {
-  return std::accumulate(std::cbegin(input), std::cend(input), RES{},
+  return std::accumulate(std::next(std::cbegin(input)), std::cend(input), *std::cbegin(input),
                          std::forward<decltype(lambda)>(lambda));
 }
 
