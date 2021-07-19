@@ -70,7 +70,9 @@ struct TypeInferer {
 
   int typevar_count = 0;
   int typescheme_count = 0;
-  Map<int, int> typescheme_to_typevar;
+  Map<int, int> scheme_to_typevar;
+  Map<int, int> typevar_to_scheme;
+
   Map<int, IType::Value> typevar_to_val;
   IType::Intermediate makeNewTypeVar(int level);
   IType::TypeScheme makeNewTypeScheme();

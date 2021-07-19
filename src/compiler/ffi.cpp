@@ -107,7 +107,7 @@ namespace {
 const auto init_bi = [](IType::Function&& f, std::string_view&& n) {
   return BuiltinFnInfo{IType::Value{std::move(f)}, n};
 };
-const auto unit = []() { return IType::Value{IType::Unit{}}; };
+const auto unit_t = []() { return IType::Value{IType::Unit{}}; };
 const auto float_t = []() { return IType::Value{IType::Float{}}; };
 const auto string_t = []() { return IType::Value{IType::String{}}; };
 
@@ -122,9 +122,9 @@ const auto make_fun = [](IType::Value&& r, List<Box<IType::Value>>&& as) {
 
 const std::unordered_map<std::string_view, BuiltinFnInfo> Intrinsic::ftable = {
 
-    {"print", init_bi(make_fun(unit(), {float_t()}), "printdouble")},
-    {"println", init_bi(make_fun(unit(), {float_t()}), "printlndouble")},
-    {"printlnstr", init_bi(make_fun(unit(), {string_t()}), "printlnstr")},
+    {"print", init_bi(make_fun(unit_t(), {float_t()}), "printdouble")},
+    {"println", init_bi(make_fun(unit_t(), {float_t()}), "printlndouble")},
+    {"printlnstr", init_bi(make_fun(unit_t(), {string_t()}), "printlnstr")},
 
     {"sin", init_bi(make_fun(float_t(), {float_t()}), "sin")},
     {"cos", init_bi(make_fun(float_t(), {float_t()}), "cos")},
@@ -161,6 +161,9 @@ const std::unordered_map<std::string_view, BuiltinFnInfo> Intrinsic::ftable = {
 
     // These primitive operations are called from C library difined above if no intrinsic are find in code generator for each backends.
     // If they can, they will be replaced with primitive operations.
+
+    {"store_intrinsic",init_bi(make_fun(unit_t(), {float_t(),float_t()}), "mimium_store_intrinsic") },
+
 
     {"add",init_bi(make_fun(float_t(), {float_t()}), "mimium_add") },
     {"sub",init_bi(make_fun(float_t(), {float_t()}), "mimium_sub") },

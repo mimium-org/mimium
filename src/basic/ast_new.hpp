@@ -24,7 +24,7 @@ template <class T, class ID>
 struct LambdaCategory {
   List<ID> args;
   T body;
-  std::optional<IType::Value> ret_type=std::nullopt;
+  std::optional<IType::Value> ret_type = std::nullopt;
 };
 template <class T, class ID, class F>
 auto fmap(LambdaCategory<T, ID> const& v, F&& lambda) -> decltype(auto) {
@@ -137,6 +137,12 @@ struct ExprCommon {
   };
 
   using App = Wrapper<AppCategory>;
+
+  struct Store {
+    Id id;
+    EXPR expr;
+  };
+
   static SExpr toSExpr(EXPR const& v) { return std::visit(sexpr_visitor, v.getraw().v); }
   constexpr static auto folder = [](const SExpr& a, const SExpr& b) { return cons(a, b); };
   inline const static auto mapper = [](EXPR const& e) -> SExpr { return toSExpr(e); };
@@ -185,38 +191,38 @@ struct ExprCommon {
       [](TupleGet const& a) { return gettermatcher("tupleget", a); },
       [](ArrayLit const& a) { return listmatcher("array", a); },
       [](ArrayGet const& a) { return gettermatcher("arrayget", a); },
-      [](ArraySize const& a) { return cons(makeSExpr("arraysize"), toSExpr(a.v)); },
+      [](ArraySize const& a) { return cons("arraysize", toSExpr(a.v)); },
       [](StructLit const& a) { return structmatcher("struct", a); },
       [](StructGet const& a) { return gettermatcher("structget", a); },
       [](Lambda const& a) {
         SExpr&& args = foldl(fmap(a.v.args, [](Id const& a) { return makeSExpr(a.v); }), folder);
-        return cons(makeSExpr("lambda"), cons(args, toSExpr(a.v.body)));
+        return cons("lambda", cons(args, toSExpr(a.v.body)));
       },
       [](NoOp const& /**/) { return makeSExpr("noop"); },
       [](Sequence const& a) {
-        return cons(makeSExpr("sequence"), cons(toSExpr(a.v.first), toSExpr(a.v.second)));
+        return cons("sequence", cons(toSExpr(a.v.first), toSExpr(a.v.second)));
       },
       [](Let const& a) {
-        return cons(makeSExpr({"let", a.v.id.v}), cons(toSExpr(a.v.expr), toSExpr(a.v.body)));
+        return cons("let", cons(a.v.id.v, cons(toSExpr(a.v.expr), toSExpr(a.v.body))));
       },
       [](LetTuple const& a) {
-        return cons(makeSExpr({"lettuple"}),
+        return cons("lettuple",
                     cons(foldl(fmap(a.v.id, [](Id const& a) { return makeSExpr(a.v); }), folder),
                          cons(toSExpr(a.v.expr), toSExpr(a.v.body))));
       },
       [](App const& a) {
-        return cons(makeSExpr("app"),
-                    cons(toSExpr(a.v.callee), foldl(fmap(a.v.args, mapper), folder)));
+        return cons("app", cons(toSExpr(a.v.callee), foldl(fmap(a.v.args, mapper), folder)));
       },
       [](If const& a) {
         auto e = (a.v.velse) ? toSExpr(a.v.velse.value()) : makeSExpr("");
-        return cons(makeSExpr("if"),
-                    cons(toSExpr(a.v.cond), cons(toSExpr(a.v.vthen), std::move(e))));
+        return cons("if", cons(toSExpr(a.v.cond), cons(toSExpr(a.v.vthen), std::move(e))));
       },
+      [](Store const& a) { return cons("store", cons(makeSExpr(a.id.v), toSExpr(a.expr))); },
       [](auto const& a) { return makeSExpr(""); }};
-  static std::string toString(EXPR const& v) { 
+  static std::string toString(EXPR const& v) {
     SExpr se = toSExpr(v);
-    return mimium::toString(se); }
+    return mimium::toString(se);
+  }
 };
 // small set of primitives before generating mir
 struct LAst {
@@ -247,10 +253,12 @@ struct LAst {
   using App = Expr::App;
 
   using If = Expr::If;
+  using Store = Expr::Store;
+
   struct expr {
     using type = std::variant<FloatLit, IntLit, BoolLit, StringLit, SelfLit, Symbol, TupleLit,
                               TupleGet, StructLit, StructGet, ArrayLit, ArrayGet, ArraySize, Lambda,
-                              Sequence, NoOp, Let, LetTuple, App, If>;
+                              Sequence, NoOp, Let, LetTuple, App, If, Store>;
     type v;
     int uniqueid;
     operator type&() { return v; };        // NOLINT
@@ -305,7 +313,7 @@ struct HastCommon {
   using Return = Aggregate<std::optional, 0, EXPR>;
 
   using If = typename ExprCommon<EXPR>::If;
-  using Statement = std::variant<Assignment, LetTuple, DefFn, App, If, Schedule>;
+  using Statement = std::variant<Assignment, LetTuple, DefFn, App, If, Schedule,Return>;
   using Statements = Aggregate<List, 0, Statement>;
   //   using ExtFun;TODO
   template <class T, class U>

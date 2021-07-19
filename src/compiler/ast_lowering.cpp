@@ -21,26 +21,27 @@ LAst::expr AstLowerer::lowerHStatement(Hast::Expr::Statement const& s,
 
   auto&& let_curried = [&](Hast::Id const& id, Hast::expr const& expr, EnvPtr env) {
     auto lexpr = lowerHast(expr, env);
-    auto newenv = env->expand();
-    newenv->addToMap(id.v, lexpr);
+    env = env->expand();
+    env->addToMap(id.v, lexpr);
     LAst::Id newid = {id.v, id.type, id.debuginfo};
-    return mE(LAst::Let{{newid, lexpr, next_v_getter(newenv)}});
+    return mE(LAst::Let{{newid, lexpr, next_v_getter(env)}});
   };
-  auto&& seq_curried = [&](const auto& a, EnvPtr env) {
-    return mE(LAst::Sequence{{std::pair(a, next_v_getter(env))}});
+  auto&& seq_curried = [&](const auto& a, EnvPtr const env) -> LAst::expr {
+    auto b = next_v_getter(env);
+    if (std::holds_alternative<LAst::Sequence>(b.v)) { return a; }
+    return mE(LAst::Sequence{{std::pair(a, b)}});
   };
   auto&& vis = overloaded{
       [&](Hast::Expr::Assignment const& a) {
         const bool isnewvar = !env->existInLocal(a.v.id.v);
         if (isnewvar) { return let_curried(a.v.id, a.v.expr, env); }
-
-        return seq_curried(mE(LAst::App{{mE(LAst::Symbol{{std::string(store_intrinsic)}}),
-                                         std::list{Box(lowerHast(a.v.expr, env))}}}),
-                           env);
+        auto stored_v = lowerHast(a.v.expr, env);
+        return seq_curried(
+            Box(mE(LAst::Store{{a.v.id.v, a.v.id.type, a.v.id.debuginfo}, stored_v})), env);
       },
-      [&](Hast::Expr::LetTuple const& a)  {
+      [&](Hast::Expr::LetTuple const& a) {
         int count = 0;
-        LAst::expr lexpr = lowerHast(a.v.expr,env);
+        LAst::expr lexpr = lowerHast(a.v.expr, env);
         auto newenv = env;
         for (auto&& id : a.v.id) {
           newenv = env->expand();
@@ -50,43 +51,47 @@ LAst::expr AstLowerer::lowerHStatement(Hast::Expr::Statement const& s,
         List<LAst::Id> newid = fmap(a.v.id, [](Hast::Id const& i) {
           return LAst::Id{i.v, i.type, i.debuginfo};
         });
-        return  mE(LAst::LetTuple{{newid, lexpr, next_v_getter(newenv)}});
+        return mE(LAst::LetTuple{{newid, lexpr, next_v_getter(newenv)}});
       },
-      [&](Hast::Expr::DefFn const& a)  {
-        return let_curried(a.v.id, Hast::expr{a.v.expr}, env);
+      [&](Hast::Expr::DefFn const& a) { return let_curried(a.v.id, Hast::expr{a.v.expr}, env); },
+      [&](Hast::Expr::App const& a) {
+        return seq_curried(Box(lowerHast(Hast::expr{a}, env)), env);
       },
-      [&](Hast::Expr::App const& a)  {
-        return seq_curried(Box(lowerHast(Hast::expr{a},env)), env);
+      [&](Hast::Expr::If const& a) { return seq_curried(Box(lowerHast(Hast::expr{a}, env)), env); },
+      [&](Hast::Expr::Schedule const& a) {
+        return seq_curried(mE(LAst::App{{mE(LAst::Symbol{{std::string(schedule_intrinsic)}}),
+                                         {Box(lowerHast(Hast::expr{a.v.expr}, env)),
+                                          Box(lowerHast(a.v.time, env))}}}),
+                           env);
       },
-      [&](Hast::Expr::If const& a) {
-        return seq_curried(Box(lowerHast(Hast::expr{a},env)), env);
-      },
-      [&](Hast::Expr::Schedule const& a)  {
-        return seq_curried(
-            mE(LAst::App{{mE(LAst::Symbol{{std::string(schedule_intrinsic)}}),
-                          {Box(lowerHast(Hast::expr{a.v.expr},env)), Box(lowerHast(a.v.time,env))}}}),
-            env);
-      }};
+      [&](Hast::Expr::Return const& a) { return lowerHast(a.v.value(), env); }};
   return std::visit(vis, s);
 }
 
 LAst::expr AstLowerer::lowerHStatements(const List<Hast::Expr::Statement>& stmts,
                                         AstLowerer::EnvPtr env) {
-  auto env_init = std::make_shared<Environment<Id, LAst::expr>>();
   List<exprfunction> res_container;
-  auto e = env;
-  stmt_iter_t first_elem = std::cbegin(stmts);
-  auto res = lowerHStatement(*first_elem,std::next(first_elem),std::cend(stmts),env);
-;
+  auto first_elem = std::cbegin(stmts);
+  auto res = lowerHStatement(*first_elem, std::next(first_elem), std::cend(stmts), env);
+  if (std::holds_alternative<LAst::Sequence>(res.v)) {
+    auto& seq = std::get<LAst::Sequence>(res.v);
+    if (std::holds_alternative<LAst::NoOp>(seq.v.second.getraw().v)) { return seq.v.first; }
+  }
+  // if (std::holds_alternative<LAst::Let>(res.v)) {
+  //   auto& let = std::get<LAst::Let>(res.v);
+  //   assert(std::holds_alternative<LAst::NoOp>(let.v.body.getraw().v));
+  //   if (opt_ret.has_value()) { let.v.body = lowerHast(opt_ret.value(), env); }
+  // }
+  // if (std::holds_alternative<LAst::LetTuple>(res.v)) {
+  //   auto& let = std::get<LAst::LetTuple>(res.v);
+  //   assert(std::holds_alternative<LAst::NoOp>(let.v.body.getraw().v));
+  //   if (opt_ret.has_value()) { let.v.body = lowerHast(opt_ret.value(), env); }
+  // }
   return res;
 }
 
-LAst::expr AstLowerer::lowerHast(const Hast::expr& expr, AstLowerer::EnvPtr env) {
+LAst::expr AstLowerer::lowerHast(const Hast::expr& expr, AstLowerer::EnvPtr& env) {
   const auto&& mE = [this](auto&& a) { return LAst::expr{Box(std::move(a)), uniqueid++}; };
-
-  auto&& seqfolder = [](LAst::expr const& a, LAst::expr const& b) {
-    return LAst::expr{LAst::Sequence{{std::pair(a, b)}}};
-  };
   auto genmapper = [&](auto&& a) { return Box(lowerHast(a, env)); };
 
   auto&& vis = overloaded{
@@ -138,8 +143,10 @@ LAst::expr AstLowerer::lowerHast(const Hast::expr& expr, AstLowerer::EnvPtr env)
         return mE(LAst::App{{mE(LAst::Symbol{{"getEnv"}}), {mE(LAst::StringLit{{a.id}})}}});
       },
       [&](Hast::Block const& a) -> LAst::expr {
-        LAst::expr res = lowerHStatements(a.v.statements, env);
-        if (a.v.ret) { return seqfolder(res, lowerHast(a.v.ret.value(), env)); }
+        auto e_init = env;
+        auto stmts = a.v.statements;
+        if (a.v.ret) { stmts.emplace_back(Box(Hast::Statement{Hast::Return{{a.v.ret}}})); }
+        LAst::expr res = lowerHStatements(stmts, env);
         return res;
       }};
   return std::visit(vis, expr.v);

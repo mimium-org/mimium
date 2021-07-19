@@ -15,7 +15,8 @@ TEST(astlower, basic) {  // NOLINT
     auto stmts = List<decltype(statement)>{statement,statement2};
     auto top = Hast::expr{Hast::Block{stmts}};
     lowerast::AstLowerer lowerer;
-    auto res = lowerer.lowerHast(top,std::make_shared<lowerast::AstLowerer::Env>());
+    auto  env = std::make_shared<lowerast::AstLowerer::Env>();
+    auto res = lowerer.lowerHast(top,env);
     std::cout << mimium::toString<LAst>(res) <<std::endl;
 }
 }
