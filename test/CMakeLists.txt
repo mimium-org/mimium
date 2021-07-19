@@ -65,6 +65,8 @@ MakeTest(ParserTest 2.parser_test.cpp)
 MakeTest(SymbolRenameTest 3.symbolrename_test.cpp)
 MakeTest(TypeInferTest 4.typeinfer_test.cpp)
 MakeTest(MirgenTest 5.mirgen_test.cpp)
+MakeTest(AstlowererTest ast_lowering_test.cpp)
+
 add_executable(CliAppTest 6.cli_test.cpp)
 target_compile_features(CliAppTest PRIVATE cxx_std_17)
 target_compile_definitions(CliAppTest PRIVATE TEST_ROOT_DIR=\"${CMAKE_CURRENT_BINARY_DIR}\")

@@ -2,25 +2,24 @@
 #include "basic/ast_new.hpp"
 #include "basic/environment.hpp"
 namespace mimium {
-template <class EXPR>
-struct MacroPattern {
-  using matcher = bool(EXPR);
-};
+
 namespace lowerast {
 // op->関数名テーブル？
 class AstLowerer {
  public:
-  LAst::expr lowerHast(Hast::expr const& expr);
+  using Id = std::string;
+  using Env = Environment<Id, LAst::expr>;
+  using EnvPtr = std::shared_ptr<Env>;
+  LAst::expr lowerHast(Hast::expr const& expr, EnvPtr env);
   template <class T>
   LAst::expr makeExpr(T&& a) {
-    return LAst::expr{a, uniqueid++};
+    return LAst::expr{std::forward<T>(a), uniqueid++};
   };
   private:
   using exprfunction = std::function<LAst::expr(LAst::expr)>;
-  LAst::expr lowerHStatements(const List<Hast::Expr::Statement>& stmts);
-  using Id = std::string;
-  using EnvPtr = std::shared_ptr<Environment<Id, LAst::expr>>;
-  std::pair<exprfunction,EnvPtr> lowerHStatement(Hast::Expr::Statement const& s, EnvPtr env);
+  LAst::expr lowerHStatements(const List<Hast::Expr::Statement>& stmts,EnvPtr env);
+  using stmt_iter_t = List<Hast::Expr::Statement>::const_iterator;
+  LAst::expr lowerHStatement(Hast::Expr::Statement const& s, stmt_iter_t const& next_s,stmt_iter_t const& end_iter, EnvPtr env);
 
   int uniqueid = 0;
 };

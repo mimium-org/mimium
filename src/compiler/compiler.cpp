@@ -45,7 +45,7 @@ Hast::expr Compiler::loadSourceFile(const std::string& filename) {
 // Hast::expr Compiler::renameSymbols(AstPtr ast) { return symbolrenamer.rename(*ast); }
 LAst::expr  Compiler::lowerAst(Hast::expr const& ast) {
   lowerast::AstLowerer lowerer;
-  return lowerer.lowerHast(ast);
+  return lowerer.lowerHast(ast,std::make_shared<lowerast::AstLowerer::Env>());
 }
 
 TypeEnvH Compiler::typeInfer(LAst::expr& ast) { return typeinferer.infer(ast); }

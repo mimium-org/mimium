@@ -24,6 +24,7 @@ template <class T, class ID>
 struct LambdaCategory {
   List<ID> args;
   T body;
+  std::optional<IType::Value> ret_type=std::nullopt;
 };
 template <class T, class ID, class F>
 auto fmap(LambdaCategory<T, ID> const& v, F&& lambda) -> decltype(auto) {
@@ -137,7 +138,7 @@ struct ExprCommon {
 
   using App = Wrapper<AppCategory>;
   static SExpr toSExpr(EXPR const& v) { return std::visit(sexpr_visitor, v.getraw().v); }
-  constexpr static auto folder = [](auto&& a, auto&& b) { return cons(a, b); };
+  constexpr static auto folder = [](const SExpr& a, const SExpr& b) { return cons(a, b); };
   inline const static auto mapper = [](EXPR const& e) -> SExpr { return toSExpr(e); };
   constexpr static auto listmatcher = [](std::string const& name, auto&& a) {
     return cons(makeSExpr(name), foldl(fmap(a.v, mapper), folder));
@@ -205,9 +206,7 @@ struct ExprCommon {
       },
       [](App const& a) {
         return cons(makeSExpr("app"),
-                    cons(toSExpr(a.v.callee), foldl(fmap(a.v.args, mapper), [](auto&& a, auto&& b) {
-                           return cons(a, b);
-                         })));
+                    cons(toSExpr(a.v.callee), foldl(fmap(a.v.args, mapper), folder)));
       },
       [](If const& a) {
         auto e = (a.v.velse) ? toSExpr(a.v.velse.value()) : makeSExpr("");

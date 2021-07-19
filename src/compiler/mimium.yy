@@ -127,6 +127,7 @@ namespace mimium{
 
 %type <ast::expr> expr "expression"
 %type <ast::expr> expr_non_fcall "expression other than fcall"
+%type <ast::expr> expr_non_fcall_opt_ret
 %type <List<Box<ast::expr>>> exprlist "list(expr)"
 
 %type <ast::ArrayLit> array "array"
@@ -279,10 +280,10 @@ now: NOW {$$ = ast::App{ast::expr{ast::Symbol{"mimium_getnow",{ @1,"now"}}},
 
 
 lambda: OR identifierlist OR expr {
-      $$ = ast::Lambda{ std::move($2),std::move($4),{@$,"lambda"}};}
+      $$ = ast::Lambda{ std::move($2),std::move($4),std::nullopt,{@$,"lambda"}};}
 
-      //  |OR identifierlist OR ARROW types block {
-      // $$ = ast::Lambda{std::move($2),std::move($6),std::move($5),{@$,"lambda"}};}
+       |OR identifierlist OR ARROW types block {
+      $$ = ast::Lambda{std::move($2),ast::expr{std::move($6)},std::move($5),{@$,"lambda"}};}
 
 // array initialization
 
@@ -346,13 +347,14 @@ expr_non_fcall:infix          {$$ = ast::expr{Box(std::move($1))};}
             | symbol          {$$ = ast::expr{Box(std::move($1))};}
             | string_t        {$$ = ast::expr{Box(std::move($1))};}
             | num             {$$ = ast::expr{Box(std::move($1))};}      
-            | '(' expr ')'    {$$ = std::move($2);}
+           
       // | term {$$ = std::move($1);}
 
 expr:  expr_non_fcall {$$ = std::move($1);}
       |app            {$$ = ast::expr{Box(std::move($1))};} %prec FCALL
       |ifstmt         {$$ = ast::expr{Box(std::move($1))};} %prec ELSE_EXPR
       |block          {$$ = ast::expr{Box(std::move($1))};}
+       | '(' expr ')'    {$$ = std::move($2);}
 
 
 // Statements 
@@ -366,11 +368,11 @@ lettuple : identifierlist ASSIGN expr {$$= ast::LetTuple{std::move($1),std::move
 
 
 fdef: FUNC identifier '(' identifierlist ')'             block {
-      auto&& lambda = ast::Lambda{std::move($4),ast::expr{std::move($6)},{@$,"lambda"}};
+      auto&& lambda = ast::Lambda{std::move($4),ast::expr{std::move($6)},std::nullopt,{@$,"lambda"}};
       $$ = ast::DefFn{std::move($2),lambda,{@$,"fdef"}};}
-//      |FUNC identifier '(' identifierlist ')' ARROW types block {
-//       auto&& lambda = ast::Lambda{std::move($4),std::move($8),std::move($7),{@$,"lambda"}};
-//       $$ = ast::DefFn{std::move($2),lambda,{@$,"fdef"}};}
+    | FUNC identifier '(' identifierlist ')' ARROW types block {
+      auto&& lambda = ast::Lambda{std::move($4),ast::expr{std::move($8)},std::move($7),{@$,"lambda"}};
+      $$ = ast::DefFn{std::move($2),lambda,{@$,"fdef"}};}
 
 
 top:  topstatements opt_nl ENDFILE {driver.setTopLevel(std::move($1));}
@@ -396,14 +398,16 @@ statement: assign      {$$=ast::Statement{std::move($1)};}
           |ifstmt      {$$=ast::Statement{std::move($1)};}
 
 
-block:  LBRACE statements newlines expr_non_fcall opt_nl RBRACE 
+block:  LBRACE statements newlines expr_non_fcall_opt_ret opt_nl RBRACE 
                   {$$ = ast::Block{std::move($2).v,std::optional(std::move($4)),{@$,"block"}};}
-      |  LBRACE statements newlines RETURN expr_non_fcall opt_nl RBRACE 
-                  {$$ = ast::Block{std::move($2).v,std::optional(std::move($5)),{@$,"block"}};}
-      | LBRACE  opt_nl expr_non_fcall opt_nl RBRACE {$$ = ast::Block{List<ast::Statement>{},std::optional(std::move($3)),{@$,"block"}};}
+      | LBRACE  opt_nl expr_non_fcall_opt_ret opt_nl RBRACE {$$ = ast::Block{List<ast::Statement>{},std::optional(std::move($3)),{@$,"block"}};}
+
       | LBRACE statements opt_nl RBRACE { $$ = ast::processReturn($2,@$);}
-      | LBRACE statements RETURN statement opt_nl RBRACE { 
-            $2.v.emplace_back(std::move($4));
+      | LBRACE opt_nl RETURN statement opt_nl RBRACE { 
+            auto stmts = ast::Statements{List<ast::Statement>{$4}};
+            $$ = ast::processReturn(stmts,@$);}
+      | LBRACE statements opt_nl RETURN statement opt_nl RBRACE { 
+            $2.v.emplace_back(std::move($5));
             $$ = ast::processReturn($2,@$);}
 
 
@@ -413,7 +417,8 @@ newlines: newlines NEWLINE
 opt_nl:%empty
       | newlines {}
 
-
+expr_non_fcall_opt_ret: RETURN expr_non_fcall {$$=std::move($2);}
+                        | expr_non_fcall{$$=std::move($1);}
 
 // forloop: FOR '(' declvar IN expr ')' block {$$ = ast::For{{@$,"for"},std::move($3),std::move($5),std::move($7)};};
 
