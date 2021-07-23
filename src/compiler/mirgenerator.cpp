@@ -154,10 +154,12 @@ struct MirGenerator : Ts... {
                             return res;
                           })}};
           auto resptr = emplace(fun, block);
+
           auto newblock = mir::makeBlock(lvname, block->indent_level + 1);
           newblock->parent = resptr;
           auto bodyret = generateInst(a.v.body, env, newblock, resptr);
           auto& resptr_fref = mir::getInstRef<minst::Function>(resptr);
+          for (auto& a : resptr_fref.args.args) { a->parentfn = resptr; }
           resptr_fref.body = newblock;
           auto argtype = fmap(
               a.v.args, [&](auto const& a) { return Box(lowerType(env.search(a.v).value())); });
