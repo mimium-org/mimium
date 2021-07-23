@@ -37,8 +37,9 @@ struct ArrayAccess;
 struct Field;
 struct If;
 struct Return;
+struct NoOp;
 using Instructions = std::variant<Number, String, Allocate, Ref, Load, Store, Function, Fcall,
-                                  MakeClosure, Array, ArrayAccess, Field, If, Return>;
+                                  MakeClosure, Array, ArrayAccess, Field, If, Return, NoOp>;
 }  // namespace instruction
 struct Argument;
 // todo: more specific value
@@ -77,6 +78,9 @@ struct Base {  // base class for MIR instruction
   LType::Value type;
   blockptr parent = nullptr;
 };
+
+struct NoOp : public Base {};
+std::string toString(NoOp const& i);
 
 struct Number : public Base {
   double val = 0.0;

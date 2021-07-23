@@ -24,6 +24,7 @@ auto emplace = [](const auto& inst, mir::blockptr block) {
 template <class... Ts>
 struct MirGenerator : Ts... {
   using Ts::operator()...;
+  MirGenerator() : symbol_env(std::make_shared<Environment<std::string, mir::valueptr>>()) {}
   int varcounter = 0;
   std::string makeNewName() { return "k" + std::to_string(varcounter++); }
   std::optional<std::string> lvar_holder;
@@ -59,13 +60,9 @@ struct MirGenerator : Ts... {
   }
   mir::valueptr generateInst(const LAst::expr& expr, const TypeEnvH& typeenv, mir::blockptr block,
                              mir::valueptr fnctx) {
+    const bool isglobal = fnctx == nullptr;
     auto&& genmir = [&](auto&& a) { return generateInst(a, typeenv, block, fnctx); };
-    auto&& pushblock = [&](auto lvname, mir::valueptr parent, auto&& action) {
-      auto newblock = mir::makeBlock(lvname, block->indent_level + 1);
-      newblock->parent = parent;
-      auto res = action(newblock);
-      return res;
-    };
+
     auto&& vis = overloaded{
         [&](LAst::FloatLit const& a) { return makeMirVal(mir::Constants{a.v}); },
         [&](LAst::IntLit const& a) { return makeMirVal(mir::Constants{a.v}); },
@@ -124,7 +121,7 @@ struct MirGenerator : Ts... {
           return nullptr;
         },
         [&](LAst::Symbol const& a) -> mir::valueptr {
-          if (a.v == mir::getName(*fnctx)) {  // recursive call
+          if (!isglobal && a.v == mir::getName(*fnctx)) {  // recursive call
             return fnctx;
           }
           auto opt_res = symbol_env->search(a.v);
@@ -138,9 +135,7 @@ struct MirGenerator : Ts... {
           return nullptr;
         },
         [&](LAst::SelfLit const& a) {
-          if (fnctx == nullptr) {
-            throw std::runtime_error("\"self\" cannot be used in global context.");
-          }
+          if (isglobal) { throw std::runtime_error("\"self\" cannot be used in global context."); }
           auto fntype = mir::getType(*fnctx);
           auto rettype = std::get<LType::Function>(fntype.v).v.second;
           return makeMirVal(mir::Self{fnctx});
@@ -159,15 +154,17 @@ struct MirGenerator : Ts... {
                             return res;
                           })}};
           auto resptr = emplace(fun, block);
-          auto body = pushblock(lvname, resptr,
-                                [&](auto&& b) { return generateInst(a.v.body, env, b, resptr); });
-
+          auto newblock = mir::makeBlock(lvname, block->indent_level + 1);
+          newblock->parent = resptr;
+          auto bodyret = generateInst(a.v.body, env, newblock, resptr);
           auto& resptr_fref = mir::getInstRef<minst::Function>(resptr);
+          resptr_fref.body = newblock;
           auto argtype = fmap(
               a.v.args, [&](auto const& a) { return Box(lowerType(env.search(a.v).value())); });
-          LType::Value rettype = mir::getType(*body);
+          LType::Value rettype = mir::getType(*bodyret);
           resptr_fref.type = LType::Value{LType::Function{std::pair(argtype, Box(rettype))}};
-          if (!std::holds_alternative<LType::Unit>(rettype.v) && isAggregate<LType>(rettype)) {
+          auto isaggregate = isAggregate<LType>(rettype);
+          if (!std::holds_alternative<LType::Unit>(rettype.v) && isaggregate) {
             auto fref = resptr_fref;
             auto& retval = resptr;
             auto loadinst = mir::addInstToBlock(minst::Load{{lvname + "_res", rettype}, retval},
@@ -188,14 +185,24 @@ struct MirGenerator : Ts... {
           auto first = genmir(a.v.first);
           return genmir(a.v.second);
         },
+        [&](LAst::Store const& a) {
+          auto ptr = symbol_env->search(a.id.v);
+          assert(ptr.has_value());
+          auto stored_v = genmir(a.expr);
+          return emplace(
+              minst::Store{{"store", LType::Value{LType::Unit{}}}, ptr.value(), stored_v}, block);
+        },
         [&](LAst::NoOp const& a) -> mir::valueptr {
           assert(false);
           return nullptr;
         },
-        [&](LAst::Let const& a) {
+        [&](LAst::Let const& a) -> mir::valueptr {
           auto lv = genmir(a.v.expr);
           symbol_env->addToMap(a.v.id.v, lv);
           lvar_holder = a.v.id.v;
+          if (std::holds_alternative<LAst::NoOp>(a.v.body.getraw().v)) {
+            return emplace(minst::NoOp{{"nop", LType::Value{LType::Unit{}}}}, block);
+          }
           auto env = *typeenv.child_env.value();  // TODO error handling
           return generateInst(a.v.body, env, block, fnctx);
         },

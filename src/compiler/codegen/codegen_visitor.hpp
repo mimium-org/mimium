@@ -23,6 +23,7 @@ struct CodeGenVisitor {
 
   friend LLVMGenerator;
   CodeGenVisitor(LLVMGenerator& g, const funobjmap* funobj_map);
+  llvm::Value* operator()(minst::NoOp& i);
   llvm::Value* operator()(minst::Number& i);
   llvm::Value* operator()(minst::String& i);
   llvm::Value* operator()(minst::Allocate& i);
@@ -44,9 +45,10 @@ struct CodeGenVisitor {
   llvm::Value* visit(mir::valueptr val);
 
  private:
-  const static std::unordered_map<std::string_view,LlvmOp> fname_to_op;
+  const static std::unordered_map<std::string_view, LlvmOp> fname_to_op;
   std::optional<LlvmOp> getPrimitiveOp(mir::valueptr fname);
-  llvm::Value* generatePrimitiveBinOp(LlvmOp op, const std::string& name, mir::valueptr lhs, mir::valueptr rhs);
+  llvm::Value* generatePrimitiveBinOp(LlvmOp op, const std::string& name, mir::valueptr lhs,
+                                      mir::valueptr rhs);
   llvm::Value* generatePrimitiveUniOp(LlvmOp op, const std::string& name, mir::valueptr rhs);
 
   void registerLlvmVal(mir::valueptr mirval, llvm::Value* llvmval);

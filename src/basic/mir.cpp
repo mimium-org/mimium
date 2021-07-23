@@ -18,6 +18,10 @@ std::string toString(const blockptr block) {
   return ss.str();
 }
 
+std::string instruction::toString(NoOp const& i) {
+  return "nop";
+}
+
 std::string instruction::toString(Number const& i) {
   return i.name + " = " + std::to_string(i.val);
 }
