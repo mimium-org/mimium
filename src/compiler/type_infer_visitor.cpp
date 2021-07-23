@@ -27,47 +27,54 @@ struct UnifyVisitor : Ts... {
   template <class T>
   using isAlias = std::is_same<T, IType::Alias>;
 
-  template <typename T, class U>
-  void operator()(T& a, U& b) {
-    if constexpr (is_boxed_t<T>::value && is_boxed_t<T>::value) {
-      (*this)(a.getraw(), b.getraw());
-    } else if constexpr (is_boxed_t<T>::value) {
-      (*this)(a.getraw(), b);
-    } else if constexpr (is_boxed_t<U>::value) {
-      (*this)(a, b.getraw());
-    } else if constexpr (std::is_same_v<T, U>) {
-      // do nothing
-    } else if constexpr (isAlias<T>::value && isAlias<U>::value) {
-      inferer.unify(a.v.v, b.v.v);
-    } else if constexpr (isAlias<T>::value) {
-      IType::Value tmpb = IType::Value{b};
-      inferer.unify(a.v.v, tmpb);
-      b = std::get<U>(tmpb.v);
-    } else if constexpr (isAlias<U>::value) {
-      IType::Value tmpa = IType::Value{a};
-      inferer.unify(tmpa, b.v.v);
-      a = std::get<T>(tmpa.v);
-    } else if constexpr (isIntermediate<T>::value && isIntermediate<U>::value) {
-      *a.v.type_id = *b.v.type_id;  //ポインタの中身を合わせる
-      a.v.type_id = b.v.type_id;    //ポインタ自体も揃えてしまう
-    } else if constexpr (isIntermediate<T>::value) {
-      IType::Value btmp{b};
-      bool occur = TypeInferer::occurCheck(a, btmp);
-      if (!occur) { inferer.typevar_to_val.emplace(*a.v.type_id, btmp); }
-    } else if constexpr (isIntermediate<U>::value) {
-      (*this)(b, a);
+  template <class T>
+  const static bool enablehelper = isIntermediate<T>::value || isAlias<T>::value;
+
+  void operator()(IType::Intermediate& a, IType::Intermediate& b) {
+    *a.v.type_id = *b.v.type_id;  //ポインタの中身を合わせる
+    a.v.type_id = b.v.type_id;    //ポインタ自体も揃えてしまう
+  }
+
+  template <class T>
+  auto operator()(IType::Intermediate& a, T& b)
+      -> std::enable_if_t<!isIntermediate<T>::value, void> {
+    IType::Value btmp{b};
+    bool occur = TypeInferer::occurCheck(a, btmp);
+    if (occur) { throw std::runtime_error("type loop detected"); }
+    if (inferer.typevar_to_val.count(*a.v.type_id) > 0) {
+      inferer.unify(inferer.typevar_to_val.at(*a.v.type_id), btmp);
     } else {
-      throw std::runtime_error("type check error");
+      inferer.typevar_to_val.emplace(*a.v.type_id, btmp);
     }
   }
+
+  template <class T>
+  auto operator()(T& a, IType::Intermediate& b)
+      -> std::enable_if_t<!isIntermediate<T>::value, void> {
+    (*this)(b, a);
+  }
+
+  void operator()(IType::Alias& a, IType::Alias& b) { inferer.unify(a.v.v, b.v.v); }
+
+  template <class T>
+  auto operator()(IType::Alias& a, T& b) -> std::enable_if_t<!isIntermediate<T>::value, void> {
+    IType::Value tmpb = IType::Value{b};
+    inferer.unify(a.v.v, tmpb);
+    b = std::get<T>(tmpb.v);
+  }
+  template <class T>
+  auto operator()(T& a, IType::Alias& b) -> std::enable_if_t<!isIntermediate<T>::value, void> {
+    (*this)(b, a);
+  }
 };
-template <class... Ts>
-UnifyVisitor(Ts...) -> UnifyVisitor<Ts...>;
+template <class I, class... Ts>
+UnifyVisitor(I, Ts...) -> UnifyVisitor<Ts...>;
 
 void TypeInferer::unify(IType::Value& a, IType::Value& b) {
   auto&& unifylambda = [&](IType::Value& a, IType::Value& b) -> void { unify(a, b); };
   UnifyVisitor vis{
       *this,
+      [&](IType::Unknown& a, IType::Unknown& b) -> void {},
       [&](IType::Tuple& a, IType::Tuple& b) -> void { zipWith(a.v, b.v, unifylambda); },
       [&](IType::Variant& a, IType::Variant& b) -> void { zipWith(a.v, b.v, unifylambda); },
       [&](IType::Record& a, IType::Record& b) -> void {
@@ -92,6 +99,13 @@ void TypeInferer::unify(IType::Value& a, IType::Value& b) {
       [&](IType::Identified& a, IType::Identified& b) -> void {
         if (a.v.id != b.v.id) { throw std::runtime_error("identified types are different"); }
         unify(a.v.v, b.v.v);
+      },
+      [&](auto& a, auto& b) {
+        if constexpr (std::is_same_v<decltype(a), decltype(b)>) {
+          // do nothing
+        } else {
+          throw std::runtime_error("type check error");
+        }
       }};
 
   std::visit(vis, a.v, b.v);
@@ -114,7 +128,7 @@ bool TypeInferer::occurCheck(IType::Intermediate const& lv, IType::Value& rv) {
       [&](IType::Identified& t) { return genmapper(t.v.v); },
       [&](IType::ListT& t) { return genmapper(t.v); },
       [&](IType::Intermediate& t) {
-        if (*lv.v.type_id < *t.v.type_id) { *t.v.type_id = *lv.v.type_id; }
+        if (lv.v.level < t.v.level) { t.v.level = lv.v.level; }
         return id == *t.v.type_id;
       },
       [&](IType::Alias& t) { return genmapper(t.v.v); },
@@ -232,7 +246,9 @@ std::shared_ptr<TypeEnvH> TypeInferer::substituteIntermediateVars(
   auto res_tmp = res;
   std::optional<std::shared_ptr<TypeEnvI>> e = env;
   while (e.has_value()) {
-    for (auto&& [id, type] : env->map) { res_tmp->map.emplace(id, lowerIType(type, typevar_map)); }
+    for (const auto& [id, type] : e.value()->map) {
+      res_tmp->map.emplace(id, lowerIType(type, typevar_map));
+    }
     e = e.value()->child_env;
     if (e.has_value()) { res_tmp = res_tmp->expand(); }
   }
@@ -415,14 +431,17 @@ IType::Value TypeInferer::inferInternal(LAst::expr& expr, std::shared_ptr<TypeEn
       },
       [&](LAst::App& a) -> IType::Value {
         auto ftype = inferlambda(a.v.callee).getraw();
+        auto argtypes = fmap(a.v.args, inferlambda);
+
         auto argproto = List<Box<IType::Value>>{};
         for (int i = 0; i < a.v.args.size(); i++) {
           argproto.emplace_back(IType::Value{makeNewTypeVar(level)});
         }
         auto ftypeproto =
             IType::Value{IType::Function{std::pair(argproto, IType::Value{makeNewTypeVar(level)})}};
-        auto argtypes = fmap(a.v.args, inferlambda);
-        zipWith(argproto, argtypes, [&](auto& a, auto& b) { this->unify(a, b); });
+        auto argproto_ref = std::get<IType::Function>(ftypeproto.v).v.first;
+        zipWith(argproto_ref, argtypes, [&](auto& a, auto& b) { this->unify(a, b); });
+
         this->unify(ftypeproto, ftype);
         if (auto* ft_ptr = std::get_if<IType::Function>(&ftypeproto.v)) { return ft_ptr->v.second; }
         throw std::runtime_error("type check error in App");
