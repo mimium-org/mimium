@@ -5,6 +5,11 @@
 #include "compiler/type_infer_visitor.hpp"
 
 namespace mimium {
+
+using ITypePtr = TypeInferer::ITypePtr;
+
+auto makeITypePtr = [](auto&& a) { return std::make_shared<IType::Value>(IType::Value{a}); };
+
 //返り値を考慮しないvoid関数専用の簡易zipWith
 template <typename T, typename F>
 void zipWith(List<T>& a, List<T>& b, F&& lambda) {
@@ -31,8 +36,18 @@ struct UnifyVisitor : Ts... {
   const static bool enablehelper = isIntermediate<T>::value || isAlias<T>::value;
 
   void operator()(IType::Intermediate& a, IType::Intermediate& b) {
-    *a.v.type_id = *b.v.type_id;  //ポインタの中身を合わせる
-    a.v.type_id = b.v.type_id;    //ポインタ自体も揃えてしまう
+    if (a.content) {
+      auto btmp = IType::Value{b};
+      inferer.unify(a.content.value(), btmp);
+      b.content = btmp;
+    } else if (b.content) {
+      auto atmp = IType::Value{a};
+      inferer.unify(atmp, b.content.value());
+      a.content = atmp;
+    } else {
+      a.content = IType::Value{b};
+    }
+    // a.v.type_id = b.v.type_id;    //ポインタ自体も揃えてしまう
   }
 
   template <class T>
@@ -41,10 +56,10 @@ struct UnifyVisitor : Ts... {
     IType::Value btmp{b};
     bool occur = TypeInferer::occurCheck(a, btmp);
     if (occur) { throw std::runtime_error("type loop detected"); }
-    if (inferer.typevar_to_val.count(*a.v.type_id) > 0) {
-      inferer.unify(inferer.typevar_to_val.at(*a.v.type_id), btmp);
+    if (a.content) {
+      inferer.unify(a.content.value(), btmp);
     } else {
-      inferer.typevar_to_val.emplace(*a.v.type_id, btmp);
+      a.content = IType::Value{b};
     }
   }
 
@@ -53,7 +68,6 @@ struct UnifyVisitor : Ts... {
       -> std::enable_if_t<!isIntermediate<T>::value, void> {
     (*this)(b, a);
   }
-
   void operator()(IType::Alias& a, IType::Alias& b) { inferer.unify(a.v.v, b.v.v); }
 
   template <class T>
@@ -89,7 +103,7 @@ void TypeInferer::unify(IType::Value& a, IType::Value& b) {
       },
       [&](IType::Function& a, IType::Function& b) -> void {
         zipWith(a.v.first, b.v.first, unifylambda);
-        unify(a.v.second, a.v.second);
+        unify(a.v.second, b.v.second);
       },
       [&](IType::Array& a, IType::Array& b) -> void {
         if (a.v.size != b.v.size) { throw std::runtime_error("array sizes are different"); }
@@ -112,7 +126,7 @@ void TypeInferer::unify(IType::Value& a, IType::Value& b) {
 }
 
 bool TypeInferer::occurCheck(IType::Intermediate const& lv, IType::Value& rv) {
-  auto id = *lv.v.type_id;
+  auto id = *lv.type_id;
   auto&& genmapper = [&](IType::Value& t) { return occurCheck(lv, t); };
   auto&& folder = [](bool a, bool b) { return a || b; };
   auto&& vis = overloaded_rec{
@@ -128,8 +142,9 @@ bool TypeInferer::occurCheck(IType::Intermediate const& lv, IType::Value& rv) {
       [&](IType::Identified& t) { return genmapper(t.v.v); },
       [&](IType::ListT& t) { return genmapper(t.v); },
       [&](IType::Intermediate& t) {
-        if (lv.v.level < t.v.level) { t.v.level = lv.v.level; }
-        return id == *t.v.type_id;
+        if (lv.level < t.level) { t.level = lv.level; }
+        if (t.content) { return occurCheck(lv, t.content.value()); }
+        return id == *t.type_id;
       },
       [&](IType::Alias& t) { return genmapper(t.v.v); },
       [&](auto& /*t*/) { return false; },
@@ -139,40 +154,47 @@ bool TypeInferer::occurCheck(IType::Intermediate const& lv, IType::Value& rv) {
 
 template <class F, class... Ts>
 struct GeneralVisitor : F, Ts... {
-  using V = IType::Value;
+  using V = ITypePtr;
   using Ts::operator()...;
+
   template <class T>
-  V operator()(T const& a) {
-    if constexpr (is_boxed_t<T>::value) {
-      return (*this)(a.getraw());
-    } else if constexpr (std::is_empty_v<std::decay_t<T>>) {
-      return V{a};
-    }
-    assert(!std::is_empty_v<std::decay_t<T>>);
-    return V{IType::Unknown{}};
+  auto operator()(T const& a) -> std::enable_if_t<std::is_empty_v<std::decay_t<T>>, V> {
+    return makeITypePtr(a);
   }
+
   template <class T, int id>
   V operator()(CategoryWrapped<List, id, T> const& a) {
-    return V{CategoryWrapped<List, id, T>{fmap(a.v, [&](V const& v) { return F::operator()(v); })}};
+    return makeITypePtr(CategoryWrapped<List, id, T>{
+        fmap(a.v, [&](Box<IType::Value> const& v) { return Box(F::operator()(v.t)); })});
+  }
+  template <class T, int id>
+  V operator()(CategoryWrapped<IdentCategory, id, T> const& a) {
+    return makeITypePtr(a);
+  }
+
+  V operator()(IType::Array const& a) {
+    auto arr = IType::Array{Box(IType::Value{}), a.v.size};
+    arr.v.v.t = F::operator()(a.v.v.t);
+    return makeITypePtr(std::move(arr));
   }
   template <int id>
   V operator()(CategoryWrapped<List, id, IType::RecordKey> const& a) {
-    return V{CategoryWrapped<List, id, IType::RecordKey>{fmap(a.v, [&](IType::RecordKey const& a) {
-      return IType::RecordKey{a.key, F::operator()(a.v)};
-    })}};
-  }
-  template <class T, int id, std::enable_if_t<!std::is_same_v<T, IType::IntermediateV>>>
-  V operator()(CategoryWrapped<IdentCategory, id, T> const& a) {
-    return V{CategoryWrapped<IdentCategory, id, T>{F::operator()(a.v)}};
+    return makeITypePtr(
+        CategoryWrapped<List, id, IType::RecordKey>{fmap(a.v, [&](IType::RecordKey const& a) {
+          return IType::RecordKey{a.key, F::operator()(a.v.t)};
+        })});
   }
   V operator()(IType::Function const& a) {
-    return V{IType::Function{std::pair(
-        fmap(a.v.first, [&](V const& v) { return F::operator()(v); }), F::operator()(a.v.second))}};
+    return makeITypePtr(IType::Function{std::pair(
+        fmap(a.v.first, [&](Box<IType::Value> const& v) { return Box(F::operator()(v.t)); }),
+        Box(F::operator()(a.v.second.t)))});
   }
   V operator()(IType::Identified const& a) {
-    return V{IType::Identified{a.v.id, F::operator()(a.v.v)}};
+    return makeITypePtr(IType::Identified{a.v.id, F::operator()(a.v.v.t)});
   }
-  V operator()(IType::Alias const& a) { return V{IType::Alias{a.v.id, F::operator()(a.v.v)}}; }
+  V operator()(IType::Alias const& a) {
+    return makeITypePtr(IType::Alias{a.v.id, F::operator()(a.v.v.t)});
+  }
 };
 
 template <class F, class... Ts>
@@ -191,7 +213,7 @@ struct SubstituteVisitor : Ts... {
 };
 
 HType::Value TypeInferer::lowerIType(IType::Value const& v,
-                                     Map<int, IType::Value> const& typevar_map) {
+                                     Map<IntPtr, IType::Value> const& typevar_map) {
   auto&& genmapper = [&](auto const& a) { return Box(lowerIType(a, typevar_map)); };
   auto&& recordmapper = [&](IType::RecordKey const& a) {
     return HType::RecordKey{a.key, genmapper(a.v)};
@@ -217,16 +239,15 @@ HType::Value TypeInferer::lowerIType(IType::Value const& v,
       },
       [&](IType::ListT const& a) { return HType::Value{HType::ListT{genmapper(a.v)}}; },
       [&](IType::Intermediate const& a) -> HType::Value {
-        auto&& iter = typevar_map.find(*a.v.type_id);
-        if (iter == typevar_map.cend()) {
+        if (!a.content.has_value()) {
           throw std::runtime_error("failed to infer variable for typeid " +
-                                   std::to_string(*a.v.type_id));
+                                   std::to_string(*a.type_id));
         }
-        return genmapper(iter->second);
+        return genmapper(a.content.value());
       },
       [&](IType::TypeScheme const& a) {
         throw std::runtime_error("failed to instantiate type scheme for scheme-id" +
-                                 std::to_string(*a.v.type_id));
+                                 std::to_string(*a.type_id));
         return HType::Value{HType::Unit{}};
       },
       [&](IType::Alias const& a) {
@@ -241,13 +262,13 @@ HType::Value TypeInferer::lowerIType(IType::Value const& v,
 }
 
 std::shared_ptr<TypeEnvH> TypeInferer::substituteIntermediateVars(
-    const std::shared_ptr<TypeEnvI> env, Map<int, IType::Value> const& typevar_map) {
+    const std::shared_ptr<TypeEnvI> env, Map<IntPtr, IType::Value> const& typevar_map) {
   auto res = std::make_shared<TypeEnvH>();
   auto res_tmp = res;
   std::optional<std::shared_ptr<TypeEnvI>> e = env;
   while (e.has_value()) {
     for (const auto& [id, type] : e.value()->map) {
-      res_tmp->map.emplace(id, lowerIType(type, typevar_map));
+      res_tmp->map.emplace(id, std::make_shared<HType::Value>(lowerIType(*type, typevar_map)));
     }
     e = e.value()->child_env;
     if (e.has_value()) { res_tmp = res_tmp->expand(); }
@@ -256,79 +277,81 @@ std::shared_ptr<TypeEnvH> TypeInferer::substituteIntermediateVars(
 }
 
 IType::Intermediate TypeInferer::makeNewTypeVar(int level) {
-  return IType::Intermediate{std::make_shared<int>(typevar_count++), level};
+  return IType::Intermediate{std::make_shared<int>(typevar_count++), level, std::nullopt};
 }
 IType::TypeScheme TypeInferer::makeNewTypeScheme() {
   return IType::TypeScheme{std::make_shared<int>(typevar_count++), 0};
 }
 
-IType::Value TypeInferer::generalizeInternal(IType::Value const& t, int level,
-                                             Map<int, int>& typevar_to_scheme) {
-  auto&& get_type_scheme = [&](int tv_id) {
-    if (typevar_to_scheme.count(tv_id) == 0) {
-      auto newscheme = makeNewTypeScheme();
-      typevar_to_scheme.emplace(tv_id, *newscheme.v.type_id);
-    }
-    return typevar_to_scheme.at(tv_id);
+ITypePtr TypeInferer::generalizeInternal(ITypePtr const& t, int level,
+                                         Map<int, IntPtr>& typevar_to_scheme) {
+  auto&& vis = GeneralVisitor{
+      [&](ITypePtr const& a) -> ITypePtr { return generalize(a, level); },
+      [&](IType::TypeScheme const& a) -> ITypePtr { return t; },
+      [&](IType::Intermediate const& a) -> ITypePtr {
+        if (a.content) { return generalize(a.content.value().t, level); }
+        if (a.level > level) {
+          auto tv_id = *a.type_id;
+          if (typevar_to_scheme.count(tv_id) == 0) {
+            auto newscheme = makeNewTypeScheme();
+            typevar_to_scheme.emplace(tv_id, newscheme.type_id);
+            return makeITypePtr(newscheme);
+          }
+          return makeITypePtr(IType::TypeScheme{typevar_to_scheme.at(tv_id)});
+        }
+        return t;
+      }  // namespace mimium
   };
-
-  auto&& vis = overloaded{[&](auto const& a) { return IType::Value{a}; },
-                          [&](IType::Intermediate const& a) {
-                            if (a.v.level > level) {
-                              return IType::Value{IType::TypeScheme{
-                                  std::make_shared<int>(get_type_scheme(*a.v.type_id)), 0}};
-                            }
-                            return IType::Value{a};
-                          }};
-  return std::visit(vis, t.v);
+  return std::visit(vis, t->v);
 }
 
-IType::Value TypeInferer::generalize(IType::Value const& t, int level) {
+ITypePtr TypeInferer::generalize(ITypePtr const& t, int level) {
   return generalizeInternal(t, level, this->typevar_to_scheme);
 }
 
-IType::Value TypeInferer::instantiateInternal(IType::Value const& t, int level,
-                                              Map<int, int>& scheme_to_typevar) {
-  auto&& get_type_var = [&](int scheme_id) {
-    if (scheme_to_typevar.count(scheme_id) == 0) {
-      auto newtv = makeNewTypeVar(level);
-      scheme_to_typevar.emplace(scheme_id, *newtv.v.type_id);
-    }
-    return scheme_to_typevar.at(scheme_id);
-  };
-  auto&& vis = overloaded{[&](auto const& a) { return IType::Value{a}; },
-                          [&](IType::TypeScheme const& a) {
-                            return IType::Value{IType::Intermediate{
-                                std::make_shared<int>(get_type_var(*a.v.type_id)), level}};
-                          }};
-  return std::visit(vis, t.v);
+ITypePtr TypeInferer::instantiateInternal(ITypePtr const& t, int level,
+                                          Map<int, IntPtr>& scheme_to_typevar) {
+  auto&& vis = GeneralVisitor{[&](ITypePtr const& a) { return instantiate(a, level); },
+                              [&](IType::Intermediate const& a) -> ITypePtr {
+                                if (a.content) { return instantiate(a.content.value().t, level); }
+                                return t;
+                              },
+                              [&](IType::TypeScheme const& a) -> ITypePtr {
+                                auto scheme_id = *a.type_id;
+                                if (scheme_to_typevar.count(scheme_id) == 0) {
+                                  auto newtv = makeNewTypeVar(level);
+                                  scheme_to_typevar.emplace(scheme_id, newtv.type_id);
+                                }
+                                return makeITypePtr(IType::Intermediate{
+                                    scheme_to_typevar.at(scheme_id), level, std::nullopt});
+                              }};
+  return std::visit(vis, t->v);
 }
 
-IType::Value TypeInferer::instantiate(IType::Value const& t, int level) {
+ITypePtr TypeInferer::instantiate(ITypePtr const& t, int level) {
   return instantiateInternal(t, level, this->scheme_to_typevar);
 }
 
-IType::Value TypeInferer::inferInternal(LAst::expr& expr, std::shared_ptr<TypeEnvI> env,
-                                        int level) {
+ITypePtr TypeInferer::inferInternal(LAst::expr& expr, std::shared_ptr<TypeEnvI> env, int level) {
   auto&& inferlambda = [&](LAst::expr& e) { return Box(inferInternal(e, env, level)); };
   decltype(env) env_v = env;
 
   assert(env_v != nullptr);
   auto&& vis = overloaded{
-      [&](LAst::FloatLit& /*a*/) -> IType::Value { return IType::Value{IType::Float{}}; },
-      [&](LAst::IntLit& /*a*/) -> IType::Value { return IType::Value{IType::Int{}}; },
-      [&](LAst::BoolLit& /*a*/) -> IType::Value { return IType::Value{IType::Bool{}}; },
-      [&](LAst::StringLit& /*a*/) -> IType::Value { return IType::Value{IType::String{}}; },
-      [&](LAst::TupleLit& a) -> IType::Value {
-        if (a.v.empty()) { return IType::Value{IType::Unit{}}; }
-        return IType::Value{IType::Tuple{fmap(a.v, inferlambda)}};
+      [&](LAst::FloatLit& /*a*/) -> ITypePtr { return makeITypePtr(IType::Float{}); },
+      [&](LAst::IntLit& /*a*/) -> ITypePtr { return makeITypePtr(IType::Int{}); },
+      [&](LAst::BoolLit& /*a*/) -> ITypePtr { return makeITypePtr(IType::Bool{}); },
+      [&](LAst::StringLit& /*a*/) -> ITypePtr { return makeITypePtr(IType::String{}); },
+      [&](LAst::TupleLit& a) -> ITypePtr {
+        if (a.v.empty()) { return makeITypePtr(IType::Unit{}); }
+        return makeITypePtr(IType::Tuple{fmap(a.v, inferlambda)});
       },
-      [&](LAst::Symbol& a) -> IType::Value {
+      [&](LAst::Symbol& a) -> ITypePtr {
         auto t = env->search(a.v);
         if (!t.has_value()) {
           auto ext_iter = Intrinsic::ftable.find(a.v);
           if (ext_iter != Intrinsic::ftable.cend()) {
-            return instantiate(ext_iter->second.mmmtype, level);
+            return instantiate(std::make_shared<IType::Value>(ext_iter->second.mmmtype), level);
           }
           throw std::runtime_error("failed to look up symbol " + a.v);
         }
@@ -338,86 +361,97 @@ IType::Value TypeInferer::inferInternal(LAst::expr& expr, std::shared_ptr<TypeEn
       [&](LAst::SelfLit& /*a*/) {
         return this->self_t_holder;  // TODO
       },
-      [&](LAst::TupleGet& a) -> IType::Value {
+      [&](LAst::TupleGet& a) -> ITypePtr {
         auto ttype = inferlambda(a.v.expr).getraw();
         if (auto* tup = std::get_if<IType::Tuple>(&ttype.v)) {
           auto iter = std::next(tup->v.begin(), a.v.field);
-          return *iter;
+          return iter->t;
         }
         throw std::runtime_error("type check error in Tuple getter");
       },
-      [&](LAst::StructLit& a) -> IType::Value {
+      [&](LAst::StructLit& a) -> ITypePtr {
         auto list = fmap(a.v, [&](LAst::StructKey& e) {
           return IType::RecordKey{e.key, inferlambda(e.v).getraw()};
         });
-        return IType::Value{IType::Record{list}};
+        return makeITypePtr(IType::Record{list});
       },
-      [&](LAst::StructGet& a) -> IType::Value {
+      [&](LAst::StructGet& a) -> ITypePtr {
         auto ttype = inferlambda(a.v.expr).getraw();
         if (auto* rec = std::get_if<IType::Record>(&ttype.v)) {
           auto iter = std::find_if(rec->v.begin(), rec->v.end(),
                                    [&](IType::RecordKey const& k) { return k.key == a.v.field; });
-          if (iter != rec->v.end()) { return iter->v; }
+          if (iter != rec->v.end()) { return iter->v.t; }
         }
         throw std::runtime_error("type check error in Record Type getter");
       },
-      [&](LAst::ArrayLit& a) -> IType::Value {
+      [&](LAst::ArrayLit& a) -> ITypePtr {
         List<Box<IType::Value>> arglist = fmap(a.v, inferlambda);
         foldl(arglist, [&](IType::Value& a, IType::Value& b) {
           this->unify(a, b);
           return b;
         });
-        return IType::Value{IType::Array{*arglist.begin(), static_cast<int>(arglist.size())}};
+        return makeITypePtr(
+            IType::Array{Box(*arglist.begin()->t), static_cast<int>(arglist.size())});
       },
-      [&](LAst::ArrayGet& a) -> IType::Value {
+      [&](LAst::ArrayGet& a) -> ITypePtr {
         auto ttype = inferlambda(a.v.expr).getraw();
-        if (auto* rec = std::get_if<IType::Array>(&ttype.v)) { return rec->v.v; }
+        if (auto* rec = std::get_if<IType::Array>(&ttype.v)) { return rec->v.v.t; }
         throw std::runtime_error("type check error in Array Type getter");
       },
-      [&](LAst::ArraySize& a) -> IType::Value {
+      [&](LAst::ArraySize& a) -> ITypePtr {
         inferlambda(a.v);
-        return IType::Value{IType::Int{}};
+        return makeITypePtr(IType::Int{});
       },
-      [&](LAst::Lambda& a) -> IType::Value {
+      [&](LAst::Lambda& a) -> ITypePtr {
         auto newenv = env_v->expand();
         auto atype = fmap(a.v.args, [&](LAst::Id const& a) -> Box<IType::Value> {
           return Box(a.type.value_or(IType::Value{makeNewTypeVar(level)}));
         });
         auto atype_iter = atype.cbegin();
         for (auto& a : a.v.args) {
-          newenv->addToMap(a.v, *atype_iter);
+          newenv->addToMap(a.v, atype_iter->t);
           atype_iter++;
         }
         auto body_t = inferInternal(a.v.body, newenv, level + 1);
+
         auto body_t_generic = generalize(body_t, level);
+        {
+          auto atype_iter = atype.begin();
+          for (auto& a : a.v.args) {
+            atype_iter->t = newenv->map.at(a.v);
+            atype_iter++;
+          }
+        }
         this->self_t_holder = body_t_generic;
-        return IType::Value{IType::Function{std::pair(atype, body_t_generic)}};
+        return makeITypePtr(IType::Function{std::pair(atype, Box(body_t_generic))});
       },
-      [&](LAst::Sequence& a) -> IType::Value {
+      [&](LAst::Sequence& a) -> ITypePtr {
         auto unit = IType::Value{IType::Unit{}};
         auto first_t = inferlambda(a.v.first);
         this->unify(first_t, unit);
-        return inferlambda(a.v.second);
+        return inferlambda(a.v.second).t;
       },
-      [&](LAst::NoOp& /*a*/) -> IType::Value { return IType::Value{IType::Unit{}}; },
-      [&](LAst::Let& a) -> IType::Value {
+      [&](LAst::NoOp& /*a*/) -> ITypePtr { return makeITypePtr(IType::Unit{}); },
+      [&](LAst::Let& a) -> ITypePtr {
         auto newenv = env_v->expand();
-        if (!a.v.id.type.has_value()) { a.v.id.type = IType::Value{makeNewTypeVar(level)}; }
-        newenv->addToMap(a.v.id.v, a.v.id.type.value());
-        auto exprtype = inferInternal(a.v.expr, env, level + 1);
-        this->unify(a.v.id.type.value(), exprtype);
+        auto lvtype = a.v.id.type.has_value() ? std::make_shared<IType::Value>(a.v.id.type.value())
+                                              : makeITypePtr(makeNewTypeVar(level));
+        newenv->addToMap(a.v.id.v, lvtype);
+        auto exprtype = inferInternal(a.v.expr, newenv, level + 1);
+        auto exprtype_general = generalize(exprtype, level);
+        this->unify(*lvtype, *exprtype_general);
         auto rvaluet = inferInternal(a.v.body, newenv, level);
-        auto rvaluet_generic = generalize(rvaluet, level);
-        return rvaluet_generic;
+        return rvaluet;
       },
-      [&](LAst::LetTuple& a) -> IType::Value {
+      [&](LAst::LetTuple& a) -> ITypePtr {
         auto newenv = env_v->expand();
         for (auto&& arg : a.v.id) {
-          if (!arg.type) { arg.type = IType::Value{makeNewTypeVar(level)}; }
-          newenv->addToMap(arg.v, arg.type.value());
+          auto lvtype = arg.type.has_value() ? std::make_shared<IType::Value>(arg.type.value())
+                                             : makeITypePtr(makeNewTypeVar(level));
+          newenv->addToMap(arg.v, lvtype);
         }
         auto exprtype = inferInternal(a.v.expr, env, level + 1);
-        if (auto* tup = std::get_if<IType::Tuple>(&exprtype.v)) {
+        if (auto* tup = std::get_if<IType::Tuple>(&exprtype->v)) {
           auto&& iter = tup->v.begin();
           for (auto&& arg : a.v.id) {
             this->unify(arg.type.value(), *iter);
@@ -429,7 +463,7 @@ IType::Value TypeInferer::inferInternal(LAst::expr& expr, std::shared_ptr<TypeEn
         }
         throw std::runtime_error("type check error in LetTuple");
       },
-      [&](LAst::App& a) -> IType::Value {
+      [&](LAst::App& a) -> ITypePtr {
         auto ftype = inferlambda(a.v.callee).getraw();
         auto argtypes = fmap(a.v.args, inferlambda);
 
@@ -439,33 +473,35 @@ IType::Value TypeInferer::inferInternal(LAst::expr& expr, std::shared_ptr<TypeEn
         }
         auto ftypeproto =
             IType::Value{IType::Function{std::pair(argproto, IType::Value{makeNewTypeVar(level)})}};
-        auto argproto_ref = std::get<IType::Function>(ftypeproto.v).v.first;
+        auto& argproto_ref = std::get<IType::Function>(ftypeproto.v).v.first;
         zipWith(argproto_ref, argtypes, [&](auto& a, auto& b) { this->unify(a, b); });
 
         this->unify(ftypeproto, ftype);
-        if (auto* ft_ptr = std::get_if<IType::Function>(&ftypeproto.v)) { return ft_ptr->v.second; }
+        if (auto* ft_ptr = std::get_if<IType::Function>(&ftypeproto.v)) {
+          return ft_ptr->v.second.t;
+        }
         throw std::runtime_error("type check error in App");
       },
-      [&](LAst::If& a) -> IType::Value {
+      [&](LAst::If& a) -> ITypePtr {
         auto condtype = inferlambda(a.v.cond);
         auto ftype = IType::Value{IType::Float{}};
         this->unify(condtype, ftype);
-        IType::Value thentype = inferlambda(a.v.vthen);
+        auto thentype = inferlambda(a.v.vthen);
         if (a.v.velse.has_value()) {
           auto elsetype = inferlambda(a.v.velse.value());
           this->unify(thentype, elsetype);
-          return thentype;
+          return thentype.t;
         }
-        auto voidt = IType::Value{IType::Unit{}};
-        this->unify(thentype, voidt);
+        auto voidt = makeITypePtr(IType::Unit{});
+        this->unify(thentype, *voidt);
         return voidt;
       },
-      [&](LAst::Store& a) -> IType::Value {
-        auto voidt = IType::Value{IType::Unit{}};
+      [&](LAst::Store& a) -> ITypePtr {
+        auto voidt = makeITypePtr(IType::Unit{});
         auto id_t = env->search(a.id.v);
         assert(id_t.has_value());
         auto expr_t = inferlambda(a.expr);
-        this->unify(expr_t, id_t.value());
+        this->unify(expr_t.getraw(), *id_t.value());
         return voidt;
       }};
   return std::visit(vis, expr.v);

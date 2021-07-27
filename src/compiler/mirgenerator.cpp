@@ -29,9 +29,12 @@ struct MirGenerator : Ts... {
   std::string makeNewName() { return "k" + std::to_string(varcounter++); }
   std::optional<std::string> lvar_holder;
   std::string getOrMakeName() {
-    auto res = lvar_holder.value_or(this->makeNewName());
-    if (lvar_holder) { lvar_holder = std::nullopt; }
-    return res;
+    if (lvar_holder.has_value()) {
+      auto tmp = lvar_holder.value();
+      lvar_holder = std::nullopt;
+      return tmp;
+    }
+    return this->makeNewName();
   }
 
   std::shared_ptr<Environment<std::string, mir::valueptr>> symbol_env;
@@ -40,7 +43,7 @@ struct MirGenerator : Ts... {
 
   mir::valueptr makeTuple(List<mir::valueptr> const& values, const TypeEnvH& typeenv,
                           mir::blockptr block) {
-    auto lvname = this->makeNewName();
+    auto lvname = this->getOrMakeName();
     auto tlist = fmap(values, [](mir::valueptr v) { return Box(mir::getType(*v)); });
     auto tupletype = LType::Value{LType::Tuple{tlist}};
     mir::valueptr lvar =
@@ -48,7 +51,7 @@ struct MirGenerator : Ts... {
     int count = 0;
     auto type_iter = tlist.cbegin();
     for (auto const& elem : values) {
-      auto newlvname = this->makeNewName();
+      auto newlvname = this->getOrMakeName();
       auto index = std::make_shared<mir::Value>(mir::Constants{count});
       auto ptrtostore =
           emplace(minst::Field{{newlvname, *type_iter}, lvar, std::move(index)}, block);
@@ -70,7 +73,7 @@ struct MirGenerator : Ts... {
         [&](LAst::StringLit const& a) { return makeMirVal(mir::Constants{a.v}); },
         [&](LAst::TupleLit const& a) { return makeTuple(fmap(a.v, genmir), typeenv, block); },
         [&](LAst::TupleGet const& a) {
-          auto newname = makeNewName();
+          auto newname = getOrMakeName();
           auto index = a.v.field;
           auto expr = genmir(a.v.expr);
           auto type = mir::getType(*expr);
@@ -84,7 +87,7 @@ struct MirGenerator : Ts... {
                            typeenv, block);
         },
         [&](LAst::StructGet const& a) {
-          auto newname = makeNewName();
+          auto newname = getOrMakeName();
           auto key = a.v.field;
           auto expr = genmir(a.v.expr);
           auto type = mir::getType(*expr);
@@ -94,7 +97,7 @@ struct MirGenerator : Ts... {
                          block);
         },
         [&](LAst::ArrayLit const& a) {
-          auto newname = makeNewName();
+          auto newname = getOrMakeName();
           auto newelems = fmap(a.v, genmir);
           mir::valueptr firstelem = *newelems.cbegin();
           auto type = LType::Array{mir::getType(*firstelem), static_cast<int>(newelems.size())};
@@ -113,7 +116,7 @@ struct MirGenerator : Ts... {
           } else {
             throw std::runtime_error("[] operator cannot be used for other than array type");
           }
-          auto newname = makeNewName();
+          auto newname = getOrMakeName();
           return emplace(minst::ArrayAccess{{newname, rettype}, array, index}, block);
         },
         [&](LAst::ArraySize const& a) -> mir::valueptr {
@@ -147,7 +150,7 @@ struct MirGenerator : Ts... {
           auto fun = minst::Function{
               {lvname, LType::Value{LType::Unit{}}},
               mir::FnArgs{std::nullopt, fmap(a.v.args, [&](auto const& arg) {
-                            auto type = env.search(arg.v).value();
+                            auto type = *env.search(arg.v).value();
                             auto a = mir::Argument{arg.v, lowerType(type), mir::valueptr(nullptr)};
                             auto res = std::make_shared<mir::Argument>(std::move(a));
                             symbol_env->addToMap(arg.v, makeMirVal(res));
@@ -162,7 +165,7 @@ struct MirGenerator : Ts... {
           for (auto& a : resptr_fref.args.args) { a->parentfn = resptr; }
           resptr_fref.body = newblock;
           auto argtype = fmap(
-              a.v.args, [&](auto const& a) { return Box(lowerType(env.search(a.v).value())); });
+              a.v.args, [&](auto const& a)->Box<LType::Value> { return Box(lowerType(*env.search(a.v).value())); });
           LType::Value rettype = mir::getType(*bodyret);
           resptr_fref.type = LType::Value{LType::Function{std::pair(argtype, Box(rettype))}};
           auto isaggregate = isAggregate<LType>(rettype);
@@ -199,13 +202,29 @@ struct MirGenerator : Ts... {
           return nullptr;
         },
         [&](LAst::Let const& a) -> mir::valueptr {
-          auto lv = genmir(a.v.expr);
-          symbol_env->addToMap(a.v.id.v, lv);
+          auto val_to_store = genmir(a.v.expr);
+
           lvar_holder = a.v.id.v;
           if (std::holds_alternative<LAst::NoOp>(a.v.body.getraw().v)) {
             return emplace(minst::NoOp{{"nop", LType::Value{LType::Unit{}}}}, block);
           }
-          auto env = *typeenv.child_env.value();  // TODO error handling
+          symbol_env = symbol_env->expand();
+          auto newname = getOrMakeName();
+          auto env = *typeenv.child_env.value();
+          auto vtype = env.search(a.v.id.v);
+          auto lvtype = lowerType(*vtype.value());
+          if(!std::holds_alternative<LType::Function>(lvtype.v)){
+
+          auto ptype = LType::Value{LType::Pointer{lvtype}};
+          mir::valueptr lvarptr = emplace(minst::Allocate{{a.v.id.v + "_ptr", ptype}}, block);
+          mir::valueptr lvar = emplace(
+              minst::Store{{"store", LType::Value{LType::Unit{}}}, lvarptr, val_to_store}, block);
+
+          mir::valueptr res = emplace(minst::Load{{a.v.id.v, lvtype}, lvarptr}, block);
+          symbol_env->addToMap(a.v.id.v, res);
+          }else{
+          symbol_env->addToMap(a.v.id.v, val_to_store);
+          }
           return generateInst(a.v.body, env, block, fnctx);
         },
         [&](LAst::LetTuple const& a) {
@@ -214,14 +233,14 @@ struct MirGenerator : Ts... {
           symbol_env = symbol_env->expand();
           for (auto& args : a.v.id) {
             // allocate
-            auto newname = makeNewName();
-            auto type = env.search(args.v);
-            auto vtype = lowerType(type.value());
-            auto ptype = LType::Value{LType::Pointer{vtype}};
+            auto newname = getOrMakeName();
+            auto vtype = env.search(args.v);
+            auto lvtype = lowerType(*vtype.value());
+            auto ptype = LType::Value{LType::Pointer{lvtype}};
             mir::valueptr lvarptr = emplace(minst::Allocate{{args.v + "_ptr", ptype}}, block);
 
             mir::valueptr field = emplace(minst::Field{{args.v + "_ptr", ptype}}, block);
-            mir::valueptr lvar = emplace(minst::Load{{args.v, vtype}, field}, block);
+            mir::valueptr lvar = emplace(minst::Load{{args.v, lvtype}, field}, block);
             symbol_env->addToMap(args.v, lvar);
           }
           auto res = generateInst(a.v.body, env, block, fnctx);
@@ -229,7 +248,7 @@ struct MirGenerator : Ts... {
           return res;
         },
         [&](LAst::App const& a) {
-          auto newname = makeNewName();
+          auto newname = getOrMakeName();
           auto callee = genmir(a.v.callee);
           auto fntype = mir::getType(*callee);
           auto rettype = std::get<LType::Function>(fntype.v).v.second;
@@ -243,7 +262,7 @@ struct MirGenerator : Ts... {
             auto res = generateInst(a, typeenv, newblock, fnctx);
             return std::pair(newblock, res);
           };
-          auto lvname = makeNewName();
+          auto lvname = getOrMakeName();
           auto cond = genmir(a.v.cond);
           auto [thenblock, thenres] = gen_if_block(a.v.vthen, lvname + "$then");
 

@@ -52,13 +52,23 @@ struct Type {
 
   struct Unknown {};
 
-  struct IntermediateV {
+  //直接インスタンス化しない
+  // struct IntermediateV {
+  //   std::shared_ptr<int> type_id;
+  //   int level = 0;
+  //   auto& getTypeId() const { return *type_id; }
+  // };
+  struct Intermediate {
     std::shared_ptr<int> type_id;
     int level = 0;
+    std::optional<Value> content;
+    auto& getTypeId() const { return *type_id; }
   };
-  using Intermediate = CategoryWrapped<IdentCategory, 0, IntermediateV>;
-  using TypeScheme = CategoryWrapped<IdentCategory, 1, IntermediateV>;
-
+  struct TypeScheme {
+    std::shared_ptr<int> type_id;
+    int level = 0;
+    auto& getTypeId() const { return *type_id; }
+  };
   // Types for MIR~LIR level expression, which contains Pointer, without variant, list and named
   // newtype.
   using Pointer = CategoryWrapped<IdentCategory, 2, Value>;
@@ -92,10 +102,10 @@ struct Type {
       [](ListT const& t) { return cons(makeSExpr("list"), toSExpr(t.v)); },
       [](Pointer const& t) { return cons(makeSExpr("pointer"), toSExpr(t.v)); },
       [](Intermediate const& t) {
-        return makeSExpr({"TypeVar", std::to_string(*t.v.type_id)});
+        return makeSExpr({"TypeVar", std::to_string(t.getTypeId())});
       },
       [](TypeScheme const& t) {
-        return makeSExpr({"TypeScheme", std::to_string(*t.v.type_id)});
+        return makeSExpr({"TypeScheme", std::to_string(t.getTypeId())});
       },
       [](Identified const& t) { return cons(makeSExpr("newtype"), toSExpr(t.v.v)); },
       [](Alias const& t) { return cons(makeSExpr("alias"), toSExpr(t.v.v)); },
@@ -118,6 +128,10 @@ struct IType {
   using Variant = baset::Variant;
   using Tuple = baset::Tuple;
   using Function = baset::Function;
+
+  template <class T>
+  using ArrayCategory = baset::ArrayCategory<T>;
+
   using Array = baset::Array;
   using Record = baset::Record;
   using RecordKey = baset::RecordCategory<std::string>;
@@ -127,7 +141,7 @@ struct IType {
   using Alias = baset::Alias;
 
   using Intermediate = baset::Intermediate;
-  using IntermediateV = baset::IntermediateV;
+  // using IntermediateV = baset::IntermediateV;
 
   using TypeScheme = baset::TypeScheme;
 
@@ -234,6 +248,5 @@ inline auto makeUnknownAlias(std::string const& name) {
   auto itype = IType::Value{IType::Unknown{}};
   return IType::Value{IType::Alias{name, itype}};
 }
-
 
 }  // namespace mimium

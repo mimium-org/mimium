@@ -22,6 +22,7 @@ struct Box {
   // construct from an existing object
   Box() = default;
   Box(T rt) : t(std::make_shared<T>(std::move(rt))) {}  // NOLINT
+  Box(std::shared_ptr<T> rptr):t(std::move(rptr)){}//NOLINT
   template <class U>
   using enabler = std::enable_if_t<std::is_same_v<std::decay_t<U>, T>>;
   template <typename U, enabler<U>>

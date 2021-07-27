@@ -12,8 +12,9 @@
 // variable has unique name regardless its scope)
 
 namespace mimium {
+using IntPtr = std::shared_ptr<int>;
 template <class T>
-using TypeEnv = Environment<decltype(LAst::Id::v), T>;
+using TypeEnv = Environment<decltype(LAst::Id::v), std::shared_ptr<T>>;
 
 using TypeEnvI = TypeEnv<IType::Value>;
 using TypeEnvH = TypeEnv<HType::Value>;
@@ -49,31 +50,33 @@ struct TypeInferer {
   // 全体としては、ASTを入れると中間変数がない(型|Alias)の環境が帰ってくる
   using type = TypeEnv<HType>(LAst::expr);
 
+
+  using ITypePtr = std::shared_ptr<IType::Value>;
   TypeEnvH infer(LAst::expr& expr);
-  IType::Value inferInternal(LAst::expr& expr, std::shared_ptr<TypeEnvI> env, int level);
+  ITypePtr inferInternal(LAst::expr& expr, std::shared_ptr<TypeEnvI> env, int level);
   void unify(IType::Value& a, IType::Value& b);
   static bool occurCheck(IType::Intermediate const& lv, IType::Value& rv);
 
  private:
-  IType::Value self_t_holder = IType::Value{IType::Unknown{}};
+  ITypePtr self_t_holder = nullptr;
 
-  IType::Value generalize(IType::Value const& t, int level);
-  IType::Value generalizeInternal(IType::Value const& t, int level,
-                                  Map<int, int>& typevar_to_scheme);
+  ITypePtr generalize(ITypePtr const& t, int level);
+  ITypePtr generalizeInternal(ITypePtr const& t, int level,
+                                  Map<int, IntPtr>& typevar_to_scheme);
 
-  IType::Value instantiate(IType::Value const& t, int level);
-  IType::Value instantiateInternal(IType::Value const& t, int level,
-                                   Map<int, int>& scheme_to_typevar);
-  static HType::Value lowerIType(IType::Value const& v, Map<int, IType::Value> const& typevar_map);
-  static std::shared_ptr<TypeEnv<HType::Value>> substituteIntermediateVars(
-      std::shared_ptr<TypeEnvI> env, Map<int, IType::Value> const& typevar_map);
+  ITypePtr instantiate(ITypePtr const& t, int level);
+  ITypePtr instantiateInternal(ITypePtr const& t, int level,
+                                   Map<int, IntPtr>& scheme_to_typevar);
+  HType::Value lowerIType(IType::Value const& v, Map<IntPtr, IType::Value> const& typevar_map);
+  std::shared_ptr<TypeEnv<HType::Value>> substituteIntermediateVars(
+      std::shared_ptr<TypeEnvI> env, Map<IntPtr, IType::Value> const& typevar_map);
 
   int typevar_count = 0;
   int typescheme_count = 0;
-  Map<int, int> scheme_to_typevar;
-  Map<int, int> typevar_to_scheme;
+  Map<int, IntPtr> scheme_to_typevar;
+  Map<int, IntPtr> typevar_to_scheme;
 
-  Map<int, IType::Value> typevar_to_val;
+  Map<IntPtr, IType::Value> typevar_to_val;
   IType::Intermediate makeNewTypeVar(int level);
   IType::TypeScheme makeNewTypeScheme();
 };
