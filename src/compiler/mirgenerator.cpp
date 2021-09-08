@@ -124,12 +124,12 @@ struct MirGenerator : Ts... {
           return nullptr;
         },
         [&](LAst::Symbol const& a) -> mir::valueptr {
-          if (!isglobal && a.v == mir::getName(*fnctx)) {  // recursive call
+          if (!isglobal && a.v.v == mir::getName(*fnctx)) {  // recursive call
             return fnctx;
           }
-          auto opt_res = symbol_env->search(a.v);
+          auto opt_res = symbol_env->search(a.v.v);
           if (opt_res) { return opt_res.value(); }
-          auto ext_res_iter = Intrinsic::ftable.find(a.v);
+          auto ext_res_iter = Intrinsic::ftable.find(a.v.v);
           if (ext_res_iter == Intrinsic::ftable.cend()) {
             auto fn = ext_res_iter->second;
             return makeMirVal(
@@ -149,11 +149,12 @@ struct MirGenerator : Ts... {
           symbol_env = symbol_env->expand();
           auto fun = minst::Function{
               {lvname, LType::Value{LType::Unit{}}},
-              mir::FnArgs{std::nullopt, fmap(a.v.args, [&](auto const& arg) {
-                            auto type = *env.search(arg.v).value();
-                            auto a = mir::Argument{arg.v, lowerType(type), mir::valueptr(nullptr)};
+              mir::FnArgs{std::nullopt, fmap(a.v.args, [&](LAst::Lvar const& arg) {
+                            auto type = *env.search(arg.id.getUniqueName()).value();
+                            auto a = mir::Argument{arg.id.getUniqueName(), lowerType(type),
+                                                   mir::valueptr(nullptr)};
                             auto res = std::make_shared<mir::Argument>(std::move(a));
-                            symbol_env->addToMap(arg.v, makeMirVal(res));
+                            symbol_env->addToMap(arg.id.getUniqueName(), makeMirVal(res));
                             return res;
                           })}};
           auto resptr = emplace(fun, block);
@@ -164,8 +165,9 @@ struct MirGenerator : Ts... {
           auto& resptr_fref = mir::getInstRef<minst::Function>(resptr);
           for (auto& a : resptr_fref.args.args) { a->parentfn = resptr; }
           resptr_fref.body = newblock;
-          auto argtype = fmap(
-              a.v.args, [&](auto const& a)->Box<LType::Value> { return Box(lowerType(*env.search(a.v).value())); });
+          auto argtype = fmap(a.v.args, [&](LAst::Lvar const& a) -> Box<LType::Value> {
+            return Box(lowerType(*env.search(a.id.getUniqueName()).value()));
+          });
           LType::Value rettype = mir::getType(*bodyret);
           resptr_fref.type = LType::Value{LType::Function{std::pair(argtype, Box(rettype))}};
           auto isaggregate = isAggregate<LType>(rettype);
@@ -204,26 +206,27 @@ struct MirGenerator : Ts... {
         [&](LAst::Let const& a) -> mir::valueptr {
           auto val_to_store = genmir(a.v.expr);
 
-          lvar_holder = a.v.id.v;
+          lvar_holder = a.v.id.id.getUniqueName();
           if (std::holds_alternative<LAst::NoOp>(a.v.body.getraw().v)) {
             return emplace(minst::NoOp{{"nop", LType::Value{LType::Unit{}}}}, block);
           }
           symbol_env = symbol_env->expand();
           auto newname = getOrMakeName();
           auto env = *typeenv.child_env.value();
-          auto vtype = env.search(a.v.id.v);
+          auto vtype = env.search(a.v.id.id.getUniqueName());
           auto lvtype = lowerType(*vtype.value());
-          if(!std::holds_alternative<LType::Function>(lvtype.v)){
+          if (!std::holds_alternative<LType::Function>(lvtype.v)) {
+            auto ptype = LType::Value{LType::Pointer{lvtype}};
+            mir::valueptr lvarptr =
+                emplace(minst::Allocate{{a.v.id.id.getUniqueName() + "_ptr", ptype}}, block);
+            mir::valueptr lvar = emplace(
+                minst::Store{{"store", LType::Value{LType::Unit{}}}, lvarptr, val_to_store}, block);
 
-          auto ptype = LType::Value{LType::Pointer{lvtype}};
-          mir::valueptr lvarptr = emplace(minst::Allocate{{a.v.id.v + "_ptr", ptype}}, block);
-          mir::valueptr lvar = emplace(
-              minst::Store{{"store", LType::Value{LType::Unit{}}}, lvarptr, val_to_store}, block);
-
-          mir::valueptr res = emplace(minst::Load{{a.v.id.v, lvtype}, lvarptr}, block);
-          symbol_env->addToMap(a.v.id.v, res);
-          }else{
-          symbol_env->addToMap(a.v.id.v, val_to_store);
+            mir::valueptr res =
+                emplace(minst::Load{{a.v.id.id.getUniqueName(), lvtype}, lvarptr}, block);
+            symbol_env->addToMap(a.v.id.id.getUniqueName(), res);
+          } else {
+            symbol_env->addToMap(a.v.id.id.getUniqueName(), val_to_store);
           }
           return generateInst(a.v.body, env, block, fnctx);
         },
@@ -231,17 +234,20 @@ struct MirGenerator : Ts... {
           auto lv = genmir(a.v.expr);
           auto env = *typeenv.child_env.value();  // TODO error handling
           symbol_env = symbol_env->expand();
-          for (auto& args : a.v.id) {
+          for (const auto& args : a.v.id) {
             // allocate
             auto newname = getOrMakeName();
-            auto vtype = env.search(args.v);
+            auto vtype = env.search(args.id.getUniqueName());
             auto lvtype = lowerType(*vtype.value());
             auto ptype = LType::Value{LType::Pointer{lvtype}};
-            mir::valueptr lvarptr = emplace(minst::Allocate{{args.v + "_ptr", ptype}}, block);
+            mir::valueptr lvarptr =
+                emplace(minst::Allocate{{args.id.getUniqueName() + "_ptr", ptype}}, block);
 
-            mir::valueptr field = emplace(minst::Field{{args.v + "_ptr", ptype}}, block);
-            mir::valueptr lvar = emplace(minst::Load{{args.v, lvtype}, field}, block);
-            symbol_env->addToMap(args.v, lvar);
+            mir::valueptr field =
+                emplace(minst::Field{{args.id.getUniqueName() + "_ptr", ptype}}, block);
+            mir::valueptr lvar =
+                emplace(minst::Load{{args.id.getUniqueName(), lvtype}, field}, block);
+            symbol_env->addToMap(args.id.getUniqueName(), lvar);
           }
           auto res = generateInst(a.v.body, env, block, fnctx);
           symbol_env = symbol_env->parent_env.value();

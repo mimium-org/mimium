@@ -10,6 +10,24 @@ namespace mimium {
 
 using mmmfloat = double;
 
+struct Identifier {
+  std::string v;
+  int64_t uniqueid = 0;
+  auto getUniqueName() const { return v + std::to_string(uniqueid); }
+};
+
+}  // namespace mimium
+
+namespace std {
+template <>
+struct hash<mimium::Identifier> {
+  size_t operator()(const mimium::Identifier& x) const {
+    return std::hash<std::string>{}(x.getUniqueName());
+  }
+};
+}  // namespace std
+
+namespace mimium {
 template <class T, class FieldT>
 struct Getter {
   T expr;
@@ -83,11 +101,12 @@ struct ExprCommon {
     return cons(makeSExpr({"get"}), cons(toSExpr(v.expr), toSExpr(v.field)));
   }
 
-  struct Id {
-    std::string v;
+  struct Lvar {
+    Identifier id;
     std::optional<IType::Value> type;
     DebugInfo debuginfo;
   };
+
   struct StructKey {
     std::string key;
     EXPR v;
@@ -102,7 +121,7 @@ struct ExprCommon {
     DebugInfo debuginfo;
   };
 
-  using Symbol = Primitive<std::string, 1>;
+  using Symbol = Primitive<Identifier>;
 
   using TupleLit = Wrapper<List, 0>;
   using TupleGet = Aggregate<Getter, 0, EXPR, int>;
@@ -113,7 +132,7 @@ struct ExprCommon {
   using StructLit = Aggregate<List, 0, StructKey>;
   using StructGet = Aggregate<Getter, 0, EXPR, std::string>;
 
-  using Lambda = CategoryWrappedExpr<LambdaCategory, 0, EXPR, Id>;
+  using Lambda = CategoryWrappedExpr<LambdaCategory, 0, EXPR, Lvar>;
 
   // pair of expressions which is used to express a sequence of statements.
   // the first value should be void(unit)-type Application of function.
@@ -125,8 +144,8 @@ struct ExprCommon {
   template <class T, class ID>
   using LetCategoryList = LetCategory<List, T, ID>;
 
-  using Let = CategoryWrappedExpr<LetCategoryIdent, 0, Id, EXPR>;
-  using LetTuple = CategoryWrappedExpr<LetCategoryList, 0, Id, EXPR>;
+  using Let = CategoryWrappedExpr<LetCategoryIdent, 0, Lvar, EXPR>;
+  using LetTuple = CategoryWrappedExpr<LetCategoryList, 0, Lvar, EXPR>;
 
   using If = CategoryWrappedExpr<IfCategory, 0, EXPR>;
 
@@ -139,11 +158,20 @@ struct ExprCommon {
   using App = Wrapper<AppCategory>;
 
   struct Store {
-    Id id;
+    Identifier id;
     EXPR expr;
   };
 
   static SExpr toSExpr(EXPR const& v) { return std::visit(sexpr_visitor, v.getraw().v); }
+
+  static SExpr toSExpr(Identifier const& id) {
+    return cons("Id", cons(id.v, makeSExpr(std::to_string(id.uniqueid))));
+  }
+  static SExpr toSExpr(Lvar const& lv) {
+    return cons("lvar", cons(toSExpr(lv.id),
+                             mimium::toSExpr(lv.type.value_or(IType::Value{IType::Unknown{}}))));
+  }
+
   constexpr static auto folder = [](const SExpr& a, const SExpr& b) { return cons(a, b); };
   inline const static auto mapper = [](EXPR const& e) -> SExpr { return toSExpr(e); };
   constexpr static auto listmatcher = [](std::string const& name, auto&& a) {
@@ -184,9 +212,7 @@ struct ExprCommon {
         return makeSExpr({"string", a.v});
       },
       [](SelfLit const& /*a*/) { return makeSExpr("self"); },
-      [](Symbol const& a) {
-        return makeSExpr({"symbol", a.v});
-      },
+      [](Symbol const& a) { return cons("symbol", toSExpr(a.v)); },
       [](TupleLit const& a) { return listmatcher("tuple", a); },
       [](TupleGet const& a) { return gettermatcher("tupleget", a); },
       [](ArrayLit const& a) { return listmatcher("array", a); },
@@ -195,7 +221,7 @@ struct ExprCommon {
       [](StructLit const& a) { return structmatcher("struct", a); },
       [](StructGet const& a) { return gettermatcher("structget", a); },
       [](Lambda const& a) {
-        SExpr&& args = foldl(fmap(a.v.args, [](Id const& a) { return makeSExpr(a.v); }), folder);
+        SExpr&& args = foldl(fmap(a.v.args, [](Lvar const& a) { return toSExpr(a); }), folder);
         return cons("lambda", cons(args, toSExpr(a.v.body)));
       },
       [](NoOp const& /**/) { return makeSExpr("noop"); },
@@ -203,11 +229,11 @@ struct ExprCommon {
         return cons("sequence", cons(toSExpr(a.v.first), toSExpr(a.v.second)));
       },
       [](Let const& a) {
-        return cons("let", cons(a.v.id.v, cons(toSExpr(a.v.expr), toSExpr(a.v.body))));
+        return cons("let", cons(toSExpr(a.v.id), cons(toSExpr(a.v.expr), toSExpr(a.v.body))));
       },
       [](LetTuple const& a) {
         return cons("lettuple",
-                    cons(foldl(fmap(a.v.id, [](Id const& a) { return makeSExpr(a.v); }), folder),
+                    cons(foldl(fmap(a.v.id, [](Lvar const& a) { return toSExpr(a); }), folder),
                          cons(toSExpr(a.v.expr), toSExpr(a.v.body))));
       },
       [](App const& a) {
@@ -243,7 +269,7 @@ struct LAst {
   using ArrayLit = Expr::ArrayLit;
   using ArrayGet = Expr::ArrayGet;
   using ArraySize = Expr::ArraySize;
-  using Id = Expr::Id;
+  using Lvar = Expr::Lvar;
   using Lambda = Expr::Lambda;
   using Sequence = Expr::Sequence;
   using NoOp = Expr::NoOp;
@@ -304,16 +330,16 @@ struct HastCommon {
     ID id;
     T expr;
   };
-  using Id = typename ExprCommon<EXPR>::Id;
-  using Assignment = Aggregate<AssignmentProto, 0, EXPR, Id>;
-  using LetTuple = Aggregate<AssignmentProto, 0, EXPR, List<Id>>;
+  using Lvar = typename ExprCommon<EXPR>::Lvar;
+  using Assignment = Aggregate<AssignmentProto, 0, EXPR, Lvar>;
+  using LetTuple = Aggregate<AssignmentProto, 0, EXPR, List<Lvar>>;
 
   using Lambda = typename ExprCommon<EXPR>::Lambda;
-  using DefFn = Aggregate<AssignmentProto, 0, Lambda, Id>;
+  using DefFn = Aggregate<AssignmentProto, 0, Lambda, Lvar>;
   using Return = Aggregate<std::optional, 0, EXPR>;
 
   using If = typename ExprCommon<EXPR>::If;
-  using Statement = std::variant<Assignment, LetTuple, DefFn, App, If, Schedule,Return>;
+  using Statement = std::variant<Assignment, LetTuple, DefFn, App, If, Schedule, Return>;
   using Statements = Aggregate<List, 0, Statement>;
   //   using ExtFun;TODO
   template <class T, class U>
@@ -342,7 +368,7 @@ struct Hast {
   using StructLit = LExpr::StructLit;
   using StructKey = LExpr::StructKey;
   using StructGet = LExpr::StructGet;
-  using Id = LExpr::Id;
+  using Lvar = LExpr::Lvar;
   using Lambda = LExpr::Lambda;
   using If = LExpr::If;
 

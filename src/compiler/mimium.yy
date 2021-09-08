@@ -109,8 +109,8 @@ namespace mimium{
 %type <IType::RecordKey> strutypearg
 %type <TopLevel::TypeAlias> typedecl
 
-%type <ast::Id> identifier "Identifier"
-%type <List<ast::Id>> identifierlist  "arguments"
+%type <ast::Lvar> identifier "Identifier"
+%type <List<ast::Lvar>> identifierlist  "arguments"
 
 %type <ast::FloatLit> num "number"
 %type <ast::SelfLit> self "self"
@@ -222,17 +222,17 @@ self:     SELF   { @$ = @1;
                    $$ = ast::SelfLit{{@$,"self"}};}
 
 symbol: SYMBOL { @$ = @1;
-                  $$ = ast::Symbol{$1,{@$,$1}};}
+                  $$ = ast::Symbol{Identifier{$1},{@$,$1}};}
 
 
 identifier: SYMBOL TYPE_DELIM types {
-            $$ = ast::Id{$1,std::optional(std::move($3)),{@$,"declvar"}};}
+            $$ = ast::Lvar{Identifier{$1},std::optional(std::move($3)),{@$,"declvar"}};}
       |     SYMBOL {
-            $$ = ast::Id{$1,std::nullopt                ,{@$,"declvar"}};}
+            $$ = ast::Lvar{Identifier{$1},std::nullopt                ,{@$,"declvar"}};}
 
 identifierlist : identifierlist ',' identifier { $1.push_back(std::move($3));
                                           $$ = std::move($1); }%prec LIST
-            |    identifier {$$ = List<ast::Id>{std::move($1)}; } 
+            |    identifier {$$ = List<ast::Lvar>{std::move($1)}; } 
 
 typeargs:  typeargs ',' types { $1.push_back(std::move($3));
                                 $$ = std::move($1); }
@@ -275,7 +275,7 @@ app: expr '(' exprlist ')' {
 schedule: app AT expr      {$$ = ast::Schedule{std::move($1),std::move($3),{@$,""}};}
       
 // now: syntax sugar to fcall;
-now: NOW {$$ = ast::App{ast::expr{ast::Symbol{"mimium_getnow",{ @1,"now"}}},
+now: NOW {$$ = ast::App{ast::expr{ast::Symbol{Identifier{"mimium_getnow"},{ @1,"now"}}},
                          List<ast::CurryArg>{},{@1,"now"}};}
 
 

@@ -50,8 +50,8 @@ using List = std::list<T>;
 
 template <class T>
 using Set = std::unordered_set<T>;
-template <class FROM, class TO>
-using Map = std::unordered_map<FROM, TO>;
+template <class FROM, class TO,class HASH=std::hash<FROM>>
+using Map = std::unordered_map<FROM, TO, HASH>;
 
 template <class T, class U = T>
 using Pair = std::pair<T, U>;

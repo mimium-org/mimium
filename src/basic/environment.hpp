@@ -6,9 +6,9 @@
 #include "basic/helper_functions.hpp"
 namespace mimium {
 
-template <class From, class To>
-struct Environment : public std::enable_shared_from_this<Environment<From, To>> {
-  Map<From, To> map{};
+template <class From, class To, class Hash = std::hash<From>>
+struct Environment : public std::enable_shared_from_this<Environment<From, To, Hash>> {
+  Map<From, To, Hash> map{};
   using EnvPtr = std::shared_ptr<Environment>;
   std::optional<EnvPtr> parent_env = std::nullopt;
   std::optional<EnvPtr> child_env = std::nullopt;
