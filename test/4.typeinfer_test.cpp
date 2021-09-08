@@ -10,7 +10,8 @@
   Driver driver{};                                                               \
   auto ast = driver.parseFile(TEST_ROOT_DIR "/typeinference/" #FILENAME ".mmm"); \
   lowerast::AstLowerer lowerer;                                                  \
-  auto newast = lowerer.lowerHast(ast);                                          \
+  auto env = std::make_shared<lowerast::AstLowerer::Env>();                      \
+  auto newast = lowerer.lowerHast(ast, env);                                     \
   TypeInferer inferer;                                                           \
   auto FType = HType::Value{HType::Float{}};
 namespace mimium {
@@ -44,18 +45,18 @@ TEST(typeinfer, function) {  // NOLINT
   auto muladd_c = tenv.search("c6").value();
   auto res = tenv.search("result7").value();
 
-  EXPECT_TRUE(std::holds_alternative<HType::Float>(add_a.v));
-  EXPECT_TRUE(std::holds_alternative<HType::Float>(add_b.v));
-  EXPECT_TRUE(std::holds_alternative<HType::Function>(add.v));
+  EXPECT_TRUE(std::holds_alternative<HType::Float>(add_a->v));
+  EXPECT_TRUE(std::holds_alternative<HType::Float>(add_b->v));
+  EXPECT_TRUE(std::holds_alternative<HType::Function>(add->v));
   // EXPECT_TRUE((std::get<HType::Function>(add.v).v ==
   //              std::pair(List<Box<HType::Value>>{FType, FType}, Box(FType))));
-  EXPECT_TRUE(std::holds_alternative<HType::Float>(muladd_a.v));
-  EXPECT_TRUE(std::holds_alternative<HType::Float>(muladd_b.v));
-  EXPECT_TRUE(std::holds_alternative<HType::Float>(muladd_c.v));
-  EXPECT_TRUE(std::holds_alternative<HType::Function>(muladd.v));
+  EXPECT_TRUE(std::holds_alternative<HType::Float>(muladd_a->v));
+  EXPECT_TRUE(std::holds_alternative<HType::Float>(muladd_b->v));
+  EXPECT_TRUE(std::holds_alternative<HType::Float>(muladd_c->v));
+  EXPECT_TRUE(std::holds_alternative<HType::Function>(muladd->v));
   // EXPECT_TRUE((std::get<HType::Function>(muladd.v).v ==
   //              std::pair(List<Box<HType::Value>>{FType, FType, FType}, Box(FType))));
-  EXPECT_TRUE(std::holds_alternative<HType::Float>(res.v));
+  EXPECT_TRUE(std::holds_alternative<HType::Float>(res->v));
 }
 // TEST(typeinfer, highorderfunction) {  // NOLINT
 //   PREP(highorderfunction)

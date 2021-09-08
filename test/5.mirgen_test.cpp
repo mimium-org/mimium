@@ -2,6 +2,8 @@
 #include "compiler/ast_loader.hpp"
 #include "compiler/ast_lowering.hpp"
 #include "compiler/mirgenerator.hpp"
+#include "compiler/type_lowering.hpp"
+
 #include "compiler/scanner.hpp"
 #include "compiler/type_infer_visitor.hpp"
 #include "gtest/gtest.h"
@@ -12,11 +14,18 @@
   Driver driver{};                                                 \
   auto ast = driver.parseFile(TEST_ROOT_DIR "/" #FILENAME ".mmm"); \
   lowerast::AstLowerer lowerer;                                    \
-  auto newast = lowerer.lowerHast(ast);                            \
+  auto h_env = std::make_shared<lowerast::AstLowerer::Env>();        \
+  auto newast = lowerer.lowerHast(ast, h_env);                       \
   TypeInferer inferer;                                             \
   auto env = inferer.infer(newast);
 
 namespace mimium {
+
+TEST(type, aggregatetype_check) {
+  LType::Float ftype;
+  LType::Value a{ftype};
+  EXPECT_FALSE(isAggregate<LType>(a));
+}
 
 TEST(mirgen, basic) {  // NOLINT
   PREP(test_localvar)
