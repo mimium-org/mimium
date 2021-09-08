@@ -51,7 +51,6 @@ class MIMIUM_DLL_PUBLIC Compiler {
 
   std::unique_ptr<llvm::LLVMContext> llvmctx;
   Driver driver;
-  SymbolRenamer symbolrenamer;
   TypeInferer typeinferer;
   std::shared_ptr<ClosureConverter> closureconverter;
   MemoryObjsCollector memobjcollector;

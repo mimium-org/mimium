@@ -46,7 +46,7 @@ $<BUILD_INTERFACE:${PARSER_HEADER_DIR}>
 )
 
 add_library(mimium_compiler
-symbolrenamer.cpp 
+
 mirgenerator.cpp 
 ast_lowering.cpp
 type_lowering.cpp

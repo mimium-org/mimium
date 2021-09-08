@@ -21,7 +21,7 @@ struct Environment : public std::enable_shared_from_this<Environment<From, To, H
 
 #define THUNK(VAL) [&]() { return VAL; }  // NOLINT
 
-  std::optional<To> search(From const& name) {
+  std::optional<To> search(From const& name) const {
     return metaSearch<To>(name, THUNK(map.at(name)), THUNK(parent_env.value()->search(name)));
   }
   std::optional<bool> isFreeVar(From const& name) {
@@ -34,7 +34,8 @@ struct Environment : public std::enable_shared_from_this<Environment<From, To, H
 
  private:
   template <typename T, typename Lambda1, typename Lambda2>
-  std::optional<T> metaSearch(From const& name, Lambda1&& cont_local, Lambda2&& cont_freevar) {
+  std::optional<T> metaSearch(From const& name, Lambda1&& cont_local,
+                              Lambda2&& cont_freevar) const {
     if (map.count(name) > 0) { return std::forward<decltype(cont_local)>(cont_local)(); }
     if (parent_env.has_value()) { return std::forward<decltype(cont_freevar)>(cont_freevar)(); }
     return std::nullopt;

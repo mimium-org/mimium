@@ -201,9 +201,10 @@ llvm::Value* CodeGenVisitor::generatePrimitiveUniOp(LlvmOp op, const std::string
 }
 
 llvm::Value* CodeGenVisitor::operator()(minst::NoOp& i) {
-  auto* donothing_inst = llvm::Intrinsic::getDeclaration(G.module.get(), llvm::Intrinsic::donothing,
-                                                         G.builder->getVoidTy());
-  return G.builder->CreateCall(donothing_inst, {}, "nop");
+  // auto* donothing_inst = llvm::Intrinsic::getDeclaration(G.module.get(),
+  // llvm::Intrinsic::donothing,
+  //                                                        G.builder->getVoidTy());
+  return nullptr;
 }
 
 llvm::Value* CodeGenVisitor::operator()(minst::Number& i) {

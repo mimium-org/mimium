@@ -127,13 +127,22 @@ struct MirGenerator : Ts... {
           if (!isglobal && a.v.v == mir::getName(*fnctx)) {  // recursive call
             return fnctx;
           }
-          auto opt_res = symbol_env->search(a.v.v);
-          if (opt_res) { return opt_res.value(); }
+          auto opt_res = symbol_env->search(a.v.getUniqueName());
+          if (opt_res) {
+            auto ptrv = opt_res.value();
+            auto ptrt = mir::getType(*ptrv).v;
+            if (std::holds_alternative<LType::Pointer>(ptrt)) {
+              auto vtype = std::get<LType::Pointer>(ptrt).v;
+              auto res = emplace(minst::Load{{a.v.getUniqueName(), vtype}, opt_res.value()}, block);
+              return res;
+            }
+            return opt_res.value();
+          }
           auto ext_res_iter = Intrinsic::ftable.find(a.v.v);
-          if (ext_res_iter == Intrinsic::ftable.cend()) {
+          if (ext_res_iter != Intrinsic::ftable.cend()) {
             auto fn = ext_res_iter->second;
             return makeMirVal(
-                mir::ExternalSymbol{std::string(fn.target_fnname), lowerType(fn.mmmtype)});
+                mir::ExternalSymbol{std::string(a.v.v), lowerType(fn.mmmtype)});
           }
           return nullptr;
         },
@@ -145,12 +154,11 @@ struct MirGenerator : Ts... {
         },
         [&](LAst::Lambda const& a) {
           auto lvname = getOrMakeName();
-          auto env = *typeenv.child_env.value();  // TODO error handling
-          symbol_env = symbol_env->expand();
+
           auto fun = minst::Function{
               {lvname, LType::Value{LType::Unit{}}},
               mir::FnArgs{std::nullopt, fmap(a.v.args, [&](LAst::Lvar const& arg) {
-                            auto type = *env.search(arg.id.getUniqueName()).value();
+                            auto type = *typeenv.search(arg.id.getUniqueName()).value();
                             auto a = mir::Argument{arg.id.getUniqueName(), lowerType(type),
                                                    mir::valueptr(nullptr)};
                             auto res = std::make_shared<mir::Argument>(std::move(a));
@@ -161,21 +169,22 @@ struct MirGenerator : Ts... {
 
           auto newblock = mir::makeBlock(lvname, block->indent_level + 1);
           newblock->parent = resptr;
-          auto bodyret = generateInst(a.v.body, env, newblock, resptr);
+          auto bodyret = generateInst(a.v.body, typeenv, newblock, resptr);
           auto& resptr_fref = mir::getInstRef<minst::Function>(resptr);
           for (auto& a : resptr_fref.args.args) { a->parentfn = resptr; }
           resptr_fref.body = newblock;
           auto argtype = fmap(a.v.args, [&](LAst::Lvar const& a) -> Box<LType::Value> {
-            return Box(lowerType(*env.search(a.id.getUniqueName()).value()));
+            return Box(lowerType(*typeenv.search(a.id.getUniqueName()).value()));
           });
           LType::Value rettype = mir::getType(*bodyret);
           resptr_fref.type = LType::Value{LType::Function{std::pair(argtype, Box(rettype))}};
-          auto isaggregate = isAggregate<LType>(rettype);
-          if (!std::holds_alternative<LType::Unit>(rettype.v) && isaggregate) {
-            auto fref = resptr_fref;
-            auto& retval = resptr;
-            auto loadinst = mir::addInstToBlock(minst::Load{{lvname + "_res", rettype}, retval},
-                                                resptr_fref.body);
+
+          const bool ispassbyref =
+              !std::holds_alternative<LType::Unit>(rettype.v) && isAggregate<LType>(rettype);
+          auto fref = resptr_fref;
+          if (ispassbyref) {
+            auto loadinst =
+                mir::addInstToBlock(minst::Load{{lvname + "_res", rettype}, resptr}, fref.body);
             fref.args.ret_ptr = std::make_shared<mir::Argument>(
                 mir::Argument{lvname + "_retptr", LType::Value{LType::Pointer{rettype}}, resptr});
             fref.body->instructions.pop_back();
@@ -184,8 +193,11 @@ struct MirGenerator : Ts... {
                              std::make_shared<mir::Value>(fref.args.ret_ptr.value()),
                              loadinst},
                 fref.body);
+          } else {
+            mir::addInstToBlock(
+                minst::Return{{"ret_" + mir::getName(*bodyret), mir::getType(*bodyret)}, bodyret},
+                fref.body);
           }
-          symbol_env = symbol_env->parent_env.value();
           return resptr;
         },
         [&](LAst::Sequence const& a) {
@@ -193,7 +205,7 @@ struct MirGenerator : Ts... {
           return genmir(a.v.second);
         },
         [&](LAst::Store const& a) {
-          auto ptr = symbol_env->search(a.id.v);
+          auto ptr = symbol_env->search(a.id.getUniqueName());
           assert(ptr.has_value());
           auto stored_v = genmir(a.expr);
           return emplace(
@@ -204,40 +216,37 @@ struct MirGenerator : Ts... {
           return nullptr;
         },
         [&](LAst::Let const& a) -> mir::valueptr {
+          const auto id = a.v.id.id.getUniqueName();
+          lvar_holder = id;
           auto val_to_store = genmir(a.v.expr);
-
-          lvar_holder = a.v.id.id.getUniqueName();
           if (std::holds_alternative<LAst::NoOp>(a.v.body.getraw().v)) {
             return emplace(minst::NoOp{{"nop", LType::Value{LType::Unit{}}}}, block);
           }
-          symbol_env = symbol_env->expand();
+
           auto newname = getOrMakeName();
-          auto env = *typeenv.child_env.value();
-          auto vtype = env.search(a.v.id.id.getUniqueName());
+
+          auto vtype = typeenv.search(id);
           auto lvtype = lowerType(*vtype.value());
           if (!std::holds_alternative<LType::Function>(lvtype.v)) {
             auto ptype = LType::Value{LType::Pointer{lvtype}};
-            mir::valueptr lvarptr =
-                emplace(minst::Allocate{{a.v.id.id.getUniqueName() + "_ptr", ptype}}, block);
+            mir::valueptr lvarptr = emplace(minst::Allocate{{id + "_ptr", ptype}}, block);
             mir::valueptr lvar = emplace(
                 minst::Store{{"store", LType::Value{LType::Unit{}}}, lvarptr, val_to_store}, block);
 
-            mir::valueptr res =
-                emplace(minst::Load{{a.v.id.id.getUniqueName(), lvtype}, lvarptr}, block);
-            symbol_env->addToMap(a.v.id.id.getUniqueName(), res);
+            mir::valueptr res = emplace(minst::Load{{id, lvtype}, lvarptr}, block);
+            symbol_env->addToMap(id, lvarptr);
           } else {
-            symbol_env->addToMap(a.v.id.id.getUniqueName(), val_to_store);
+            symbol_env->addToMap(id, val_to_store);
           }
-          return generateInst(a.v.body, env, block, fnctx);
+          return generateInst(a.v.body, typeenv, block, fnctx);
         },
         [&](LAst::LetTuple const& a) {
           auto lv = genmir(a.v.expr);
-          auto env = *typeenv.child_env.value();  // TODO error handling
-          symbol_env = symbol_env->expand();
+
           for (const auto& args : a.v.id) {
             // allocate
             auto newname = getOrMakeName();
-            auto vtype = env.search(args.id.getUniqueName());
+            auto vtype = typeenv.search(args.id.getUniqueName());
             auto lvtype = lowerType(*vtype.value());
             auto ptype = LType::Value{LType::Pointer{lvtype}};
             mir::valueptr lvarptr =
@@ -247,19 +256,19 @@ struct MirGenerator : Ts... {
                 emplace(minst::Field{{args.id.getUniqueName() + "_ptr", ptype}}, block);
             mir::valueptr lvar =
                 emplace(minst::Load{{args.id.getUniqueName(), lvtype}, field}, block);
-            symbol_env->addToMap(args.id.getUniqueName(), lvar);
+            symbol_env->addToMap(args.id.getUniqueName(), lvarptr);
           }
-          auto res = generateInst(a.v.body, env, block, fnctx);
-          symbol_env = symbol_env->parent_env.value();
+          auto res = generateInst(a.v.body, typeenv, block, fnctx);
           return res;
         },
         [&](LAst::App const& a) {
           auto newname = getOrMakeName();
           auto callee = genmir(a.v.callee);
+          auto calltype = mir::isExternalSymbol(*callee) ? FCALLTYPE::EXTERNAL : FCALLTYPE::CLOSURE;
           auto fntype = mir::getType(*callee);
           auto rettype = std::get<LType::Function>(fntype.v).v.second;
           auto args = fmap(a.v.args, genmir);
-          return emplace(minst::Fcall{{newname, rettype}, callee, args}, block);
+          return emplace(minst::Fcall{{newname, rettype}, callee, args, calltype}, block);
         },
         [&](LAst::If const& a) {
           auto gen_if_block = [&](auto&& a, std::string const& name) {

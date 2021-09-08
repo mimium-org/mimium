@@ -403,22 +403,21 @@ ITypePtr TypeInferer::inferInternal(LAst::expr& expr, std::shared_ptr<TypeEnvI> 
         return makeITypePtr(IType::Int{});
       },
       [&](LAst::Lambda& a) -> ITypePtr {
-        auto newenv = env_v->expand();
         auto atype = fmap(a.v.args, [&](LAst::Lvar const& a) -> Box<IType::Value> {
           return Box(a.type.value_or(IType::Value{makeNewTypeVar(level)}));
         });
         auto atype_iter = atype.cbegin();
         for (auto& a : a.v.args) {
-          newenv->addToMap(a.id.getUniqueName(), atype_iter->t);
+          env->addToMap(a.id.getUniqueName(), atype_iter->t);
           atype_iter++;
         }
-        auto body_t = inferInternal(a.v.body, newenv, level + 1);
+        auto body_t = inferInternal(a.v.body, env, level + 1);
 
         auto body_t_generic = generalize(body_t, level);
         {
           auto atype_iter = atype.begin();
           for (auto& a : a.v.args) {
-            atype_iter->t = newenv->map.at(a.id.getUniqueName());
+            atype_iter->t = env->map.at(a.id.getUniqueName());
             atype_iter++;
           }
         }
@@ -433,22 +432,22 @@ ITypePtr TypeInferer::inferInternal(LAst::expr& expr, std::shared_ptr<TypeEnvI> 
       },
       [&](LAst::NoOp& /*a*/) -> ITypePtr { return makeITypePtr(IType::Unit{}); },
       [&](LAst::Let& a) -> ITypePtr {
-        auto newenv = env_v->expand();
+
         auto lvtype = a.v.id.type.has_value() ? std::make_shared<IType::Value>(a.v.id.type.value())
                                               : makeITypePtr(makeNewTypeVar(level));
-        newenv->addToMap(a.v.id.id.getUniqueName(), lvtype);
-        auto exprtype = inferInternal(a.v.expr, newenv, level + 1);
+        env->addToMap(a.v.id.id.getUniqueName(), lvtype);
+        auto exprtype = inferInternal(a.v.expr, env, level + 1);
         auto exprtype_general = generalize(exprtype, level);
         this->unify(*lvtype, *exprtype_general);
-        auto rvaluet = inferInternal(a.v.body, newenv, level);
+        auto rvaluet = inferInternal(a.v.body, env, level);
         return rvaluet;
       },
       [&](LAst::LetTuple& a) -> ITypePtr {
-        auto newenv = env_v->expand();
+
         for (auto&& arg : a.v.id) {
           auto lvtype = arg.type.has_value() ? std::make_shared<IType::Value>(arg.type.value())
                                              : makeITypePtr(makeNewTypeVar(level));
-          newenv->addToMap(arg.id.getUniqueName(), lvtype);
+          env->addToMap(arg.id.getUniqueName(), lvtype);
         }
         auto exprtype = inferInternal(a.v.expr, env, level + 1);
         if (auto* tup = std::get_if<IType::Tuple>(&exprtype->v)) {
@@ -457,7 +456,7 @@ ITypePtr TypeInferer::inferInternal(LAst::expr& expr, std::shared_ptr<TypeEnvI> 
             this->unify(arg.type.value(), *iter);
             std::advance(iter, 1);
           }
-          auto rvaluet = inferInternal(a.v.body, newenv, level);
+          auto rvaluet = inferInternal(a.v.body, env, level);
           auto rvaluet_generic = generalize(rvaluet, level);
           return rvaluet_generic;
         }

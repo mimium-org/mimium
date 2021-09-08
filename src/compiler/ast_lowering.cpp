@@ -117,8 +117,8 @@ LAst::expr AstLowerer::lowerHast(const Hast::expr& expr, AstLowerer::EnvPtr& env
       [&](Hast::SelfLit const& /**/) { return mE(LAst::SelfLit{}); },
       [&](Hast::Symbol const& a) {
         auto newid = env->search(a.v.v);
-        assert(newid.has_value());
-        return mE(LAst::Symbol{{newid.value()}});
+        if (newid.has_value()) { return mE(LAst::Symbol{{newid.value()}}); }
+        return mE(LAst::Symbol{{a.v.v}});  // in case of external symbol
       },
       [&](Hast::TupleLit const& a) { return mE(LAst::TupleLit{{fmap(a.v, genmapper)}}); },
       [&](Hast::TupleGet const& a) { return mE(LAst::TupleGet{{fmap(a.v, genmapper)}}); },

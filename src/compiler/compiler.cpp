@@ -10,7 +10,6 @@ namespace mimium {
 Compiler::Compiler()
     : llvmctx(std::make_unique<llvm::LLVMContext>()),
       driver(),
-      symbolrenamer(std::make_shared<RenameEnvironment>()),
       typeinferer(),
       // mirgenerator(typeinferer.getTypeEnv()),
       closureconverter(std::make_shared<ClosureConverter>()),
@@ -19,7 +18,6 @@ Compiler::Compiler()
 Compiler::Compiler(std::unique_ptr<llvm::LLVMContext> ctx)
     : llvmctx(std::move(ctx)),
       driver(),
-      symbolrenamer(std::make_shared<RenameEnvironment>()),
       typeinferer(),
       // mirgenerator(typeinferer.getTypeEnv()),
       closureconverter(std::make_shared<ClosureConverter>()),
