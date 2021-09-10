@@ -141,8 +141,7 @@ struct MirGenerator : Ts... {
           auto ext_res_iter = Intrinsic::ftable.find(a.v.v);
           if (ext_res_iter != Intrinsic::ftable.cend()) {
             auto fn = ext_res_iter->second;
-            return makeMirVal(
-                mir::ExternalSymbol{std::string(a.v.v), lowerType(fn.mmmtype)});
+            return makeMirVal(mir::ExternalSymbol{std::string(a.v.v), lowerType(fn.mmmtype)});
           }
           return nullptr;
         },
@@ -242,21 +241,19 @@ struct MirGenerator : Ts... {
         },
         [&](LAst::LetTuple const& a) {
           auto lv = genmir(a.v.expr);
-
+          int idx = 0;
           for (const auto& args : a.v.id) {
             // allocate
             auto newname = getOrMakeName();
             auto vtype = typeenv.search(args.id.getUniqueName());
             auto lvtype = lowerType(*vtype.value());
             auto ptype = LType::Value{LType::Pointer{lvtype}};
-            mir::valueptr lvarptr =
-                emplace(minst::Allocate{{args.id.getUniqueName() + "_ptr", ptype}}, block);
-
             mir::valueptr field =
-                emplace(minst::Field{{args.id.getUniqueName() + "_ptr", ptype}}, block);
-            mir::valueptr lvar =
-                emplace(minst::Load{{args.id.getUniqueName(), lvtype}, field}, block);
-            symbol_env->addToMap(args.id.getUniqueName(), lvarptr);
+                emplace(minst::Field{{args.id.getUniqueName() + "_ptr", ptype},
+                                     lv,
+                                     std::make_shared<mir::Value>(mir::Constants{idx++})},
+                        block);
+            symbol_env->addToMap(args.id.getUniqueName(), field);
           }
           auto res = generateInst(a.v.body, typeenv, block, fnctx);
           return res;

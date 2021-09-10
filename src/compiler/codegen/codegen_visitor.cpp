@@ -592,7 +592,7 @@ llvm::Value* CodeGenVisitor::operator()(minst::Field& i) {
                    *constant);
     return G.builder->CreateStructGEP(
         llvm::cast<llvm::PointerType>(target->getType())->getElementType(), target, index,
-        "tupleaccess");
+        i.name + "_" + std::to_string(index));
   }
   if (std::holds_alternative<LType::Float>(mir::getType(*i.index).v)) {
     auto* index_ll = getLlvmVal(i.index);

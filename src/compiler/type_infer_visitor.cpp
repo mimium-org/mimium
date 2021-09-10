@@ -11,8 +11,8 @@ using ITypePtr = TypeInferer::ITypePtr;
 auto makeITypePtr = [](auto&& a) { return std::make_shared<IType::Value>(IType::Value{a}); };
 
 //返り値を考慮しないvoid関数専用の簡易zipWith
-template <typename T, typename F>
-void zipWith(List<T>& a, List<T>& b, F&& lambda) {
+template <typename T, typename U, typename F>
+void zipWith(List<T>& a, List<U>& b, F&& lambda) {
   assert(a.size() == b.size());
   auto&& iter_a = std::begin(a);
   auto&& iter_b = std::begin(b);
@@ -432,7 +432,6 @@ ITypePtr TypeInferer::inferInternal(LAst::expr& expr, std::shared_ptr<TypeEnvI> 
       },
       [&](LAst::NoOp& /*a*/) -> ITypePtr { return makeITypePtr(IType::Unit{}); },
       [&](LAst::Let& a) -> ITypePtr {
-
         auto lvtype = a.v.id.type.has_value() ? std::make_shared<IType::Value>(a.v.id.type.value())
                                               : makeITypePtr(makeNewTypeVar(level));
         env->addToMap(a.v.id.id.getUniqueName(), lvtype);
@@ -443,19 +442,18 @@ ITypePtr TypeInferer::inferInternal(LAst::expr& expr, std::shared_ptr<TypeEnvI> 
         return rvaluet;
       },
       [&](LAst::LetTuple& a) -> ITypePtr {
-
+        List<std::shared_ptr<IType::Value>> argtype;
         for (auto&& arg : a.v.id) {
           auto lvtype = arg.type.has_value() ? std::make_shared<IType::Value>(arg.type.value())
                                              : makeITypePtr(makeNewTypeVar(level));
           env->addToMap(arg.id.getUniqueName(), lvtype);
+          argtype.emplace_back(lvtype);
         }
         auto exprtype = inferInternal(a.v.expr, env, level + 1);
         if (auto* tup = std::get_if<IType::Tuple>(&exprtype->v)) {
-          auto&& iter = tup->v.begin();
-          for (auto&& arg : a.v.id) {
-            this->unify(arg.type.value(), *iter);
-            std::advance(iter, 1);
-          }
+          zipWith(argtype, tup->v, [&](std::shared_ptr<IType::Value> lv, IType::Value& rv) {
+            this->unify(*lv, rv);
+          });
           auto rvaluet = inferInternal(a.v.body, env, level);
           auto rvaluet_generic = generalize(rvaluet, level);
           return rvaluet_generic;
@@ -474,7 +472,7 @@ ITypePtr TypeInferer::inferInternal(LAst::expr& expr, std::shared_ptr<TypeEnvI> 
             IType::Value{IType::Function{std::pair(argproto, IType::Value{makeNewTypeVar(level)})}};
         auto& argproto_ref = std::get<IType::Function>(ftypeproto.v).v.first;
 
-        this->unify(ftypeproto, ftype);//do this first before unify arguments
+        this->unify(ftypeproto, ftype);  // do this first before unify arguments
         zipWith(argproto_ref, argtypes, [&](auto& a, auto& b) { this->unify(a, b); });
         if (auto* ft_ptr = std::get_if<IType::Function>(&ftypeproto.v)) {
           return ft_ptr->v.second.t;

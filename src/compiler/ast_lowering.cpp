@@ -54,10 +54,9 @@ LAst::expr AstLowerer::lowerHStatement(Hast::Expr::Statement const& s,
       [&](Hast::Expr::LetTuple const& a) {
         int count = 0;
         LAst::expr lexpr = lowerHast(a.v.expr, env);
-        auto newenv = env;
+        auto newenv = env->expand();
         List<LAst::Lvar> newlvs = {};
         for (auto&& lv : a.v.id) {
-          newenv = env->expand();
           auto texpr = LAst::TupleGet{{lexpr, count++}};
           auto newlv = lowerLvar(lv);
           newenv->addToMap(lv.id.v, newlv.id);
