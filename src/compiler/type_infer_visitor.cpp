@@ -473,9 +473,9 @@ ITypePtr TypeInferer::inferInternal(LAst::expr& expr, std::shared_ptr<TypeEnvI> 
         auto ftypeproto =
             IType::Value{IType::Function{std::pair(argproto, IType::Value{makeNewTypeVar(level)})}};
         auto& argproto_ref = std::get<IType::Function>(ftypeproto.v).v.first;
-        zipWith(argproto_ref, argtypes, [&](auto& a, auto& b) { this->unify(a, b); });
 
-        this->unify(ftypeproto, ftype);
+        this->unify(ftypeproto, ftype);//do this first before unify arguments
+        zipWith(argproto_ref, argtypes, [&](auto& a, auto& b) { this->unify(a, b); });
         if (auto* ft_ptr = std::get_if<IType::Function>(&ftypeproto.v)) {
           return ft_ptr->v.second.t;
         }
