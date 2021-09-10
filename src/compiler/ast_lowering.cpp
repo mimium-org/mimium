@@ -37,7 +37,7 @@ LAst::expr AstLowerer::lowerHStatement(Hast::Expr::Statement const& s,
   };
   auto&& seq_curried = [&](const auto& a, EnvPtr const env) -> LAst::expr {
     auto b = next_v_getter(env);
-    if (std::holds_alternative<LAst::Sequence>(b.v)) { return a; }
+    if (std::holds_alternative<LAst::NoOp>(b.v)) { return a; }
     return mE(LAst::Sequence{{std::pair(a, b)}});
   };
   auto&& vis = overloaded{
@@ -85,7 +85,7 @@ LAst::expr AstLowerer::lowerHStatement(Hast::Expr::Statement const& s,
 
 LAst::expr AstLowerer::lowerHStatements(const List<Hast::Expr::Statement>& stmts,
                                         AstLowerer::EnvPtr env) {
-  List<exprfunction> res_container;
+  // List<exprfunction> res_container;
   auto first_elem = std::cbegin(stmts);
   auto res = lowerHStatement(*first_elem, std::next(first_elem), std::cend(stmts), env);
   if (std::holds_alternative<LAst::Sequence>(res.v)) {
