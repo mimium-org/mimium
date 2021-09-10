@@ -2,8 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#include "compiler/codegen/typeconverter.hpp"
+#include "compiler/type_lowering.hpp"  //for isAggregate Function
+
 #include "compiler/codegen/llvm_header.hpp"
+#include "compiler/codegen/typeconverter.hpp"
 
 namespace mimium {
 
@@ -35,7 +37,7 @@ llvm::Type* TypeConverter::operator()(LType::Function const& i) {
     ret = llvm::PointerType::get(ret, 0);
   }
   for (auto a : i.v.first) {
-    if (std::holds_alternative<LType::Tuple>(a.getraw().v)) { a = LType::Value{LType::Pointer{a}}; }
+    if (isAggregate<LType>(a.getraw())) { a = LType::Value{LType::Pointer{a}}; }
     ar.push_back(convertType(a));
   }
   return llvm::FunctionType::get(ret, ar, false);
