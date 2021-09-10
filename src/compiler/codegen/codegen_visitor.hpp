@@ -80,8 +80,11 @@ struct CodeGenVisitor {
   llvm::Value* getClsFun(minst::Fcall const& i);
   llvm::Value* getExtFun(minst::Fcall const& i);
   llvm::Value* popMemobjInContext();
-  llvm::FunctionType* createFunctionType(minst::Function& i);
-  llvm::FunctionType* createDspFnType(minst::Function& i, bool hascapture, bool hasmemobj);
+  llvm::FunctionType* createFunctionType(
+      minst::Function const& i, bool hascapture,
+      std::optional<std::shared_ptr<FunObjTree>> const& memobjtype);
+  llvm::FunctionType* createDspFnType(minst::Function const& i, bool hascapture,
+                                      std::optional<std::shared_ptr<FunObjTree>> const& memobjtype);
 
   llvm::Function* createFunction(llvm::FunctionType* type, minst::Function& i);
   void addArgstoMap(llvm::Function* f, minst::Function& i, bool hascapture, bool hasmemobj);

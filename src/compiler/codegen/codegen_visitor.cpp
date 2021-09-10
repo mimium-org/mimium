@@ -289,14 +289,13 @@ llvm::Value* CodeGenVisitor::operator()(minst::Function& i) {
   bool hascapture = !i.freevariables.empty();
 
   auto fobjtree = funobj_map->find(getValPtr(&i));
-  bool hasmemobj = false;
-  if (fobjtree != funobj_map->end()) {
-    context_hasself = fobjtree->second->hasself;
-    hasmemobj = !fobjtree->second->memobjs.empty() || context_hasself;
-  }
+  bool hasmemobj = fobjtree != funobj_map->cend();
+
+  auto fobjtree_opt = (hasmemobj) ? std::optional(fobjtree->second) : std::nullopt;
   bool isdsp = i.name == "dsp";
   if (isdsp) { G.checkDspFunctionType(i); }
-  auto* ft = !isdsp ? createFunctionType(i) : createDspFnType(i, hascapture, hasmemobj);
+  auto* ft = !isdsp ? createFunctionType(i, hascapture, fobjtree_opt)
+                    : createDspFnType(i, hascapture, fobjtree_opt);
   auto* f = createFunction(ft, i);
   recursivefn_ptr = &i;
   G.curfunc = f;
@@ -311,31 +310,48 @@ llvm::Value* CodeGenVisitor::operator()(minst::Function& i) {
   G.switchToMainFun();
   return f;
 }
-llvm::FunctionType* CodeGenVisitor::createDspFnType(minst::Function& i, bool hascapture,
-                                                    bool hasmemobj) {
+llvm::FunctionType* CodeGenVisitor::createDspFnType(
+    minst::Function const& i, bool hascapture,
+    std::optional<std::shared_ptr<FunObjTree>> const& memobjtype) {
   // arguments of dsp function should be always (time, cls_ptr, memobj_ptr) regardless of
   // existences of capture &memobj.
-  auto dummytype = LType::Value{LType::Pointer{LType::Value{LType::Unit{}}}};
-  auto mmmfnptrtype = std::get<LType::Pointer>(i.type.v);
-  auto mmmfntype = std::get<LType::Function>(mmmfnptrtype.v.getraw().v);
+
+  auto mmmfntype = std::get<LType::Function>(i.type.v);
   auto argtypes = mmmfntype.v.first;
-  auto insertpoint = std::next(argtypes.begin());
-  if (!std::holds_alternative<LType::Unit>(mmmfntype.v.second.getraw().v)) {
-    insertpoint = std::next(insertpoint);
-  }
-  if (i.args.args.empty()) { argtypes.insert(insertpoint, dummytype); }
-  if (!hascapture && !hasmemobj) {
+  auto dummytype = LType::Value{LType::Pointer{LType::Value{LType::Unit{}}}};
+
+  if (hascapture) {
+    auto typelist =
+        fmap(i.freevariables, [](mir::valueptr vptr) { return Box(mir::getType(*vptr)); });
+    auto fvtype = LType::Value{LType::Pointer{LType::Value{LType::Tuple{typelist}}}};
+    argtypes.emplace_back(fvtype);
+  } else {
     argtypes.emplace_back(dummytype);
+  }
+  if (memobjtype.has_value()) {
+    argtypes.emplace_back(memobjtype.value()->objtype);
+  } else {
     argtypes.emplace_back(dummytype);
   }
-  if (!hasmemobj && hascapture) { argtypes.emplace_back(dummytype); }
-  if (hasmemobj && !hascapture) { argtypes.insert(std::prev(argtypes.end()), dummytype); }
 
   return llvm::cast<llvm::FunctionType>((*G.typeconverter)(mmmfntype));
 }
 
-llvm::FunctionType* CodeGenVisitor::createFunctionType(minst::Function& i) {
-  return llvm::cast<llvm::FunctionType>(G.typeconverter->convertType(i.type));
+llvm::FunctionType* CodeGenVisitor::createFunctionType(
+    minst::Function const& i, bool hascapture,
+    std::optional<std::shared_ptr<FunObjTree>> const& memobjtype) {
+  auto mmmfntype = std::get<LType::Function>(i.type.v);
+
+  auto& argtypes = mmmfntype.v.first;
+  // if (hascapture) {
+  //   auto typelist =
+  //       fmap(i.freevariables, [](mir::valueptr vptr) { return Box(mir::getType(*vptr)); });
+  //   auto fvtype = LType::Value{LType::Tuple{typelist}};
+  //   argtypes.emplace_back(fvtype);
+  // }
+  if (memobjtype.has_value()) { argtypes.emplace_back(memobjtype.value()->objtype); }
+
+  return llvm::cast<llvm::FunctionType>(G.typeconverter->convertType(LType::Value{mmmfntype}));
 }
 
 llvm::Function* CodeGenVisitor::createFunction(llvm::FunctionType* type, minst::Function& i) {
@@ -517,9 +533,14 @@ llvm::Value* CodeGenVisitor::popMemobjInContext() {
 llvm::Value* CodeGenVisitor::operator()(minst::MakeClosure& i) {
   auto* targetf = getLlvmVal(i.fname);
   const bool isdsp = targetf->getName() == "dsp";
+
   auto* closuretype = G.getType(i.type);
+  // overwrite capture types in arguments
+  auto* clstype_corrected = llvm::StructType::create(
+      G.builder->getContext(), {targetf->getType(), closuretype->getStructElementType(1)},
+      mir::getName(*i.fname) + "_closure");
   // // always heap allocation!
-  auto* closure_ptr = createAllocation(true, closuretype, nullptr, i.name);
+  auto* closure_ptr = createAllocation(true, clstype_corrected, nullptr, i.name);
   if (!isdsp) {
     auto* fun_ptr = G.builder->CreateStructGEP(closure_ptr, 0, i.name + "_fun_ptr");
     G.builder->CreateStore(targetf, fun_ptr);

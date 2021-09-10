@@ -325,7 +325,7 @@ operators: ADD {$$ = ast::Op{"+"};}
       |    OPERATORS {$$ = ast::Op{std::move($1)};}
 
 infix:expr operators expr{$$ = ast::Infix{std::move($2), std::move($1),std::move($3),{@$,"op"}};} %prec INFIX
-     |     SUB expr     {$$ = ast::Infix{ ast::Op{"-"},std::nullopt, std::move($2),{@$,"op"}};} %prec UMINUS
+     |     SUB expr     {$$ = ast::Infix{ ast::Op{"-"},ast::expr{ast::FloatLit{0,{@$,"unary_minus"}}}, std::move($2),{@$,"op"}};} %prec UMINUS
      |     NOT expr     {$$ = ast::Infix{ ast::Op{"!"},std::nullopt, std::move($2),{@$,"op"}};} %prec UMINUS
 
 
