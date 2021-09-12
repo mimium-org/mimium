@@ -299,7 +299,10 @@ structconstruct: LBRACE structkeylist RBRACE {$$ =ast::StructLit{std::move($2),{
 
 structaccess: expr '.' SYMBOL {$$ = ast::StructGet{std::move($1),std::move($3),{@$,"structget"}};}
 
-tuple: '(' exprlist ')' { $$ = ast::TupleLit{std::move($2),{@$,"tuple"}};}
+
+tuple: '('  expr ',' exprlist ')' { 
+      $4.push_front(std::move($2));
+      $$ = ast::TupleLit{std::move($4),{@$,"tuple"}};}
       |'(' expr ',' ')' { $$ = ast::TupleLit{List<Box<ast::expr>>{std::move($2)},{@$,"tuple"}};}
 
 
@@ -366,6 +369,8 @@ expr:  expr_non_fcall {$$ = std::move($1);}
 assign   : identifier     ASSIGN expr {$$ = ast::Assignment{std::move($1),std::move($3),{@$,"assign"}};}
 
 lettuple : identifierlist ASSIGN expr {$$= ast::LetTuple{std::move($1),std::move($3),{@$,"assign"}};}
+// arrayassign : array_access ASSIGN expr {$$= ast::LetTuple{std::move($1),std::move($3),{@$,"assign"}};}
+
 // function definition (syntax sugar to assignment of lambda function to variable)
 
 
