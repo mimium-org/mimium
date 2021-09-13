@@ -221,7 +221,10 @@ struct ExprCommon {
       [](StructLit const& a) { return structmatcher("struct", a); },
       [](StructGet const& a) { return gettermatcher("structget", a); },
       [](Lambda const& a) {
-        SExpr&& args = foldl(fmap(a.v.args, [](Lvar const& a) { return toSExpr(a); }), folder);
+        SExpr&& args =
+            a.v.args.empty()
+                ? makeSExpr("")
+                : foldl(fmap(a.v.args, [](Lvar const& a) { return toSExpr(a); }), folder);
         return cons("lambda", cons(args, toSExpr(a.v.body)));
       },
       [](NoOp const& /**/) { return makeSExpr("noop"); },
@@ -237,7 +240,9 @@ struct ExprCommon {
                          cons(toSExpr(a.v.expr), toSExpr(a.v.body))));
       },
       [](App const& a) {
-        return cons("app", cons(toSExpr(a.v.callee), foldl(fmap(a.v.args, mapper), folder)));
+        return cons("app",
+                    cons(toSExpr(a.v.callee),
+                         a.v.args.empty() ? makeSExpr("") : foldl(fmap(a.v.args, mapper), folder)));
       },
       [](If const& a) {
         auto e = (a.v.velse) ? toSExpr(a.v.velse.value()) : makeSExpr("");
