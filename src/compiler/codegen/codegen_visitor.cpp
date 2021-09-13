@@ -535,12 +535,8 @@ llvm::Value* CodeGenVisitor::operator()(minst::MakeClosure& i) {
   const bool isdsp = targetf->getName() == "dsp";
 
   auto* closuretype = G.getType(i.type);
-  // overwrite capture types in arguments
-  auto* clstype_corrected = llvm::StructType::create(
-      G.builder->getContext(), {targetf->getType(), closuretype->getStructElementType(1)},
-      mir::getName(*i.fname) + "_closure");
   // // always heap allocation!
-  auto* closure_ptr = createAllocation(true, clstype_corrected, nullptr, i.name);
+  auto* closure_ptr = createAllocation(true, closuretype, nullptr, i.name);
   if (!isdsp) {
     auto* fun_ptr = G.builder->CreateStructGEP(closure_ptr, 0, i.name + "_fun_ptr");
     G.builder->CreateStore(targetf, fun_ptr);
@@ -555,7 +551,9 @@ llvm::Value* CodeGenVisitor::operator()(minst::MakeClosure& i) {
     if (gepelemty != capval->getType() && !isvalclosure) {
       capval = G.builder->CreateBitCast(capval, gepelemty);
     }
-    if (isvalclosure) { capval = G.builder->CreateLoad(capval); }
+    if (isvalclosure) {
+      capval = G.builder->CreateLoad(capval);
+    }
     G.builder->CreateStore(capval, gep);
   }
 

@@ -42,14 +42,14 @@ LAst::expr AstLowerer::lowerHStatement(Hast::Expr::Statement const& s,
   };
   auto&& vis = overloaded{
       [&](Hast::Expr::Assignment const& a) {
-        const bool isnewvar = !env->existInLocal(a.v.id.id.v);
-        if (isnewvar) {
-          auto lv = lowerLvar(a.v.id);
-          return let_curried(lv, a.v.expr, env);
+        auto opt_var = env->search(a.v.id.id.v);
+        if (opt_var.has_value()) {
+          auto stored_v = lowerHast(a.v.expr, env);
+          auto id = env->search(a.v.id.id.v);
+          return seq_curried(Box(mE(LAst::Store{opt_var.value(), stored_v})), env);
         }
-        auto stored_v = lowerHast(a.v.expr, env);
-        auto id = env->search(a.v.id.id.v);
-        return seq_curried(Box(mE(LAst::Store{id.value(), stored_v})), env);
+        auto lv = lowerLvar(a.v.id);
+        return let_curried(lv, a.v.expr, env);
       },
       [&](Hast::Expr::LetTuple const& a) {
         int count = 0;

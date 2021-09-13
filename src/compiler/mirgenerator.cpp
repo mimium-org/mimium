@@ -192,9 +192,9 @@ struct MirGenerator : Ts... {
                              std::make_shared<mir::Value>(fref.args.ret_ptr.value()),
                              loadinst},
                 fref.body);
-          } else {
+          } else if(!std::holds_alternative<LType::Unit>(rettype.v)) {
             mir::addInstToBlock(
-                minst::Return{{"ret_" + mir::getName(*bodyret), mir::getType(*bodyret)}, bodyret},
+                minst::Return{{"ret_" + mir::getName(*bodyret), rettype}, bodyret},
                 fref.body);
           }
           return resptr;
@@ -282,7 +282,10 @@ struct MirGenerator : Ts... {
             auto newblock = mir::makeBlock(name, block->indent_level + 1);
             newblock->parent = fnctx;
             auto res = generateInst(a, typeenv, newblock, fnctx);
-            auto ret = mir::addInstToBlock(minst::Return{{"ret_" + name,mir::getType(*res)}, res}, newblock);
+            auto rettype = mir::getType(*res);
+            if (std::holds_alternative<LType::Unit>(rettype.v)) { return std::pair(newblock, res); }
+            auto ret = mir::addInstToBlock(minst::Return{{"ret_" + name, mir::getType(*res)}, res},
+                                           newblock);
             return std::pair(newblock, ret);
           };
           auto lvname = getOrMakeName();
