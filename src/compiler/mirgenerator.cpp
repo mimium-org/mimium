@@ -176,26 +176,29 @@ struct MirGenerator : Ts... {
             return Box(lowerType(*typeenv.search(a.id.getUniqueName()).value()));
           });
           LType::Value rettype = mir::getType(*bodyret);
-          resptr_fref.type = LType::Value{LType::Function{std::pair(argtype, Box(rettype))}};
-
           const bool ispassbyref =
               !std::holds_alternative<LType::Unit>(rettype.v) && isAggregate<LType>(rettype);
-          auto fref = resptr_fref;
+
+          if (!ispassbyref) {
+            resptr_fref.type = LType::Value{LType::Function{std::pair(argtype, Box(rettype))}};
+          }
           if (ispassbyref) {
-            auto loadinst =
-                mir::addInstToBlock(minst::Load{{lvname + "_res", rettype}, resptr}, fref.body);
-            fref.args.ret_ptr = std::make_shared<mir::Argument>(
+            argtype.push_front(rettype);
+            resptr_fref.type =
+                LType::Value{LType::Function{std::pair(argtype, LType::Value{LType::Unit{}})}};
+
+            auto loadinst = mir::addInstToBlock(minst::Load{{lvname + "_res", rettype}, bodyret},
+                                                resptr_fref.body);
+            resptr_fref.args.ret_ptr = std::make_shared<mir::Argument>(
                 mir::Argument{lvname + "_retptr", LType::Value{LType::Pointer{rettype}}, resptr});
-            fref.body->instructions.pop_back();
             mir::addInstToBlock(
                 minst::Store{{"store", LType::Value{LType::Unit{}}},
-                             std::make_shared<mir::Value>(fref.args.ret_ptr.value()),
+                             std::make_shared<mir::Value>(resptr_fref.args.ret_ptr.value()),
                              loadinst},
-                fref.body);
-          } else if(!std::holds_alternative<LType::Unit>(rettype.v)) {
-            mir::addInstToBlock(
-                minst::Return{{"ret_" + mir::getName(*bodyret), rettype}, bodyret},
-                fref.body);
+                resptr_fref.body);
+          } else if (!std::holds_alternative<LType::Unit>(rettype.v)) {
+            mir::addInstToBlock(minst::Return{{"ret_" + mir::getName(*bodyret), rettype}, bodyret},
+                                resptr_fref.body);
           }
           return resptr;
         },
