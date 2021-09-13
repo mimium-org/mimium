@@ -124,7 +124,7 @@ struct MirGenerator : Ts... {
           return nullptr;
         },
         [&](LAst::Symbol const& a) -> mir::valueptr {
-          if (!isglobal && a.v.v == mir::getName(*fnctx)) {  // recursive call
+          if (!isglobal && a.v.getUniqueName() == mir::getName(*fnctx)) {  // recursive call
             return fnctx;
           }
           auto opt_res = symbol_env->search(a.v.getUniqueName());
@@ -261,8 +261,18 @@ struct MirGenerator : Ts... {
         [&](LAst::App const& a) {
           auto newname = getOrMakeName();
           auto callee = genmir(a.v.callee);
+          const bool isrecursive = callee == fnctx;
           auto calltype = mir::isExternalSymbol(*callee) ? FCALLTYPE::EXTERNAL : FCALLTYPE::CLOSURE;
-          auto fntype = mir::getType(*callee);
+          LType::Value fntype;
+          if (isrecursive) {
+            mir::getInstRef<minst::Function>(fnctx).isrecursive = true;
+            auto fname = mir::getName(*callee);
+            auto ftype_opt = typeenv.search(fname);
+            assert(ftype_opt.has_value());
+            fntype = lowerType(*ftype_opt.value());
+          } else {
+            fntype = mir::getType(*callee);
+          }
           auto rettype = std::get<LType::Function>(fntype.v).v.second;
           auto args = fmap(a.v.args, genmir);
           return emplace(minst::Fcall{{newname, rettype}, callee, args, calltype}, block);
@@ -272,7 +282,8 @@ struct MirGenerator : Ts... {
             auto newblock = mir::makeBlock(name, block->indent_level + 1);
             newblock->parent = fnctx;
             auto res = generateInst(a, typeenv, newblock, fnctx);
-            return std::pair(newblock, res);
+            auto ret = mir::addInstToBlock(minst::Return{{"ret_" + name,mir::getType(*res)}, res}, newblock);
+            return std::pair(newblock, ret);
           };
           auto lvname = getOrMakeName();
           auto cond = genmir(a.v.cond);
@@ -280,8 +291,8 @@ struct MirGenerator : Ts... {
 
           auto opt_elseblock =
               fmap(a.v.velse, [&](auto&& a) { return gen_if_block(a, lvname + "$else").first; });
-          return emplace(
-              minst::If{{lvname, mir::getType(*thenres)}, cond, thenblock, opt_elseblock}, block);
+          auto ltype = mir::getType(*thenres);
+          return emplace(minst::If{{lvname, ltype}, cond, thenblock, opt_elseblock}, block);
         }};
     return std::visit(vis, expr.v);
   }
