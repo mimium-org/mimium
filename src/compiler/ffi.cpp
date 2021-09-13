@@ -185,6 +185,8 @@ const std::unordered_map<std::string_view, BuiltinFnInfo> Intrinsic::ftable = {
     {"<<", init_bi(make_fun(float_t(), {float_t(), float_t()}), "mimium_lshift")},
     {">>", init_bi(make_fun(float_t(), {float_t(), float_t()}), "mimium_rshift")},
 
+    {"%",init_bi(make_fun(float_t(), {float_t(),float_t()}), "fmod") },
+
     {"mem", init_bi(make_fun(float_t(), {float_t()}), "mimium_memprim")},
     {"delay", init_bi(make_fun(float_t(), {float_t(), float_t()}), "mimium_delayprim")},
 
