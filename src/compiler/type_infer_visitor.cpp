@@ -412,7 +412,7 @@ ITypePtr TypeInferer::inferInternal(LAst::expr& expr, std::shared_ptr<TypeEnvI> 
           atype_iter++;
         }
         auto body_t = inferInternal(a.v.body, env, level + 1);
-
+        if (a.v.ret_type.has_value()) { unify(a.v.ret_type.value(), *body_t); }
         auto body_t_generic = generalize(body_t, level);
         {
           auto atype_iter = atype.begin();
@@ -442,23 +442,18 @@ ITypePtr TypeInferer::inferInternal(LAst::expr& expr, std::shared_ptr<TypeEnvI> 
         return rvaluet;
       },
       [&](LAst::LetTuple& a) -> ITypePtr {
-        List<std::shared_ptr<IType::Value>> argtype;
+        List<Box<IType::Value>> argtype;
         for (auto&& arg : a.v.id) {
-          auto lvtype = arg.type.has_value() ? std::make_shared<IType::Value>(arg.type.value())
-                                             : makeITypePtr(makeNewTypeVar(level));
-          env->addToMap(arg.id.getUniqueName(), lvtype);
+          Box<IType::Value> lvtype = arg.type.value_or(IType::Value{makeNewTypeVar(level)});
+          env->addToMap(arg.id.getUniqueName(), lvtype.t);
           argtype.emplace_back(lvtype);
         }
+        auto ttype = Box(IType::Value{IType::Tuple{argtype}});
         auto exprtype = inferInternal(a.v.expr, env, level + 1);
-        if (auto* tup = std::get_if<IType::Tuple>(&exprtype->v)) {
-          zipWith(argtype, tup->v, [&](std::shared_ptr<IType::Value> lv, IType::Value& rv) {
-            this->unify(*lv, rv);
-          });
-          auto rvaluet = inferInternal(a.v.body, env, level);
-          auto rvaluet_generic = generalize(rvaluet, level);
-          return rvaluet_generic;
-        }
-        throw std::runtime_error("type check error in LetTuple");
+        unify(ttype, *exprtype);
+        auto rvaluet = inferInternal(a.v.body, env, level);
+        auto rvaluet_generic = generalize(rvaluet, level);
+        return rvaluet_generic;
       },
       [&](LAst::App& a) -> ITypePtr {
         auto ftype = inferlambda(a.v.callee).getraw();
