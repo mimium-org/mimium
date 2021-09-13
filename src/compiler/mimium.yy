@@ -110,7 +110,9 @@ namespace mimium{
 %type <TopLevel::TypeAlias> typedecl
 
 %type <ast::Lvar> identifier "Identifier"
-%type <List<ast::Lvar>> identifierlist  "arguments"
+%type <List<ast::Lvar>> identifierlist 
+%type <List<ast::Lvar>> identifierlistproto 
+
 
 %type <ast::FloatLit> num "number"
 %type <ast::SelfLit> self "self"
@@ -230,9 +232,12 @@ identifier: SYMBOL TYPE_DELIM types {
       |     SYMBOL {
             $$ = ast::Lvar{Identifier{$1},std::nullopt                ,{@$,"declvar"}};}
 
-identifierlist : identifierlist ',' identifier { $1.push_back(std::move($3));
+identifierlistproto: identifierlistproto ',' identifier { $1.push_back(std::move($3));
                                           $$ = std::move($1); }%prec LIST
             |    identifier {$$ = List<ast::Lvar>{std::move($1)}; } 
+
+identifierlist : identifierlistproto {$$ = std::move($1);}
+            |    %empty              {$$ = List<ast::Lvar>{};}
 
 typeargs:  typeargs ',' types { $1.push_back(std::move($3));
                                 $$ = std::move($1); }
