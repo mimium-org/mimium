@@ -37,7 +37,9 @@ llvm::Type* TypeConverter::operator()(LType::Function const& i) {
     ret = llvm::PointerType::get(ret, 0);
   }
   for (auto a : i.v.first) {
-    if (isAggregate<LType>(a.getraw())) { a = LType::Value{LType::Pointer{a}}; }
+    if (std::holds_alternative<LType::Function>(a.getraw().v)) {
+      a = LType::Value{LType::Pointer{a}};
+    }
     ar.push_back(convertType(a));
   }
   return llvm::FunctionType::get(ret, ar, false);
