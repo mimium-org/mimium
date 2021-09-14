@@ -71,15 +71,6 @@ llvm::Value* LLVMGenerator::getConstDouble(double v) {
 
 llvm::Value* LLVMGenerator::getZero(const int bitsize) { return getConstInt(0, bitsize); }
 
-llvm::Type* LLVMGenerator::getClosureToFunType(LType::Value& type) {
-  auto aliasty = LType::getCanonicalType<LType::Alias>(type);
-  auto clsty = LType::getCanonicalType<LType::Tuple>(aliasty.v.v.getraw());
-
-  auto fty = LType::getCanonicalType<LType::Function>(clsty.v.cbegin()->getraw());
-  fty.v.first.emplace_back(
-      LType::Value{LType::Pointer{LType::Value{std::next(clsty.v.cbegin(), 1)->getraw().v}}});
-  return (*typeconverter)(fty);
-}
 void LLVMGenerator::switchToMainFun() {
   setBB(mainentry);
   currentblock = mainentry;
@@ -183,7 +174,6 @@ void LLVMGenerator::createNewBasicBlock(std::string name, llvm::Function* f) {
   currentblock = bb;
 }
 std::optional<int> LLVMGenerator::getDspFnChannelNumForType(LType::Value const& t) {
-  // if (std::holds_alternative<LType::Float>(t)) { return 1; }
   if (LType::canonicalCheck<LType::Pointer>(t)) {
     const auto& ptype = LType::getCanonicalType<LType::Pointer>(t);
     if (LType::canonicalCheck<LType::Tuple>(ptype.v.getraw())) {

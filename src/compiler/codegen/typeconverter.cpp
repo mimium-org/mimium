@@ -33,13 +33,11 @@ llvm::Type* TypeConverter::operator()(LType::Pointer const& i) {
 llvm::Type* TypeConverter::operator()(LType::Function const& i) {
   std::vector<llvm::Type*> ar;
   llvm::Type* ret = convertType(i.v.second);
-  if (std::holds_alternative<LType::Function>(i.v.second.getraw().v)) {
+  if (LType::canonicalCheck<LType::Function>(i.v.second.getraw())) {
     ret = llvm::PointerType::get(ret, 0);
   }
   for (auto a : i.v.first) {
-    if (std::holds_alternative<LType::Function>(a.getraw().v)) {
-      a = LType::Value{LType::Pointer{a}};
-    }
+    if (LType::canonicalCheck<LType::Function>(a.getraw())) { a = LType::Value{LType::Pointer{a}}; }
     ar.push_back(convertType(a));
   }
   return llvm::FunctionType::get(ret, ar, false);
@@ -58,8 +56,12 @@ llvm::Type* TypeConverter::operator()(LType::Array const& i) {
 llvm::Type* TypeConverter::convertTypeArray(std::vector<llvm::Type*>&& tarray) {
   if (tmpname.empty()) { return llvm::StructType::get(builder.getContext(), tarray); }
   auto n = consumeAlias();
+  
+
   return tryGetNamedType(n).value_or(
-      llvm::StructType::create(builder.getContext(), tarray, n, false));
+      llvm::StructType::get(builder.getContext(),tarray)
+      //  llvm::StructType::create(builder.getContext(), n , tarray,false)
+      );
 }
 
 llvm::Type* TypeConverter::operator()(LType::Record const& i) {
@@ -93,11 +95,11 @@ llvm::Type* TypeConverter::operator()(LType::Alias const& i) {
   if (it == aliasmap.end()) {
     tmpname = i.v.id;
     res = convertType(i.v.v);
+    assert(tmpname.empty());
     aliasmap.emplace(i.v.id, res);
-  } else {
-    res = it->second;
+    return res;
   }
-  return res;
+  return it->second;
 }
 llvm::Type* TypeConverter::operator()(LType::Identified const& i) { return convertType(i.v.v); }
 
@@ -105,9 +107,10 @@ std::string TypeConverter::consumeAlias() {
   std::string t = tmpname;
   tmpname = "";
   return t;
+
 }
 
-std::optional<llvm::Type*> TypeConverter::tryGetNamedType(std::string& name) const {
+std::optional<llvm::Type*> TypeConverter::tryGetNamedType(std::string const& name) const {
   auto* res = module.getTypeByName(name);
   return (res != nullptr) ? std::optional(res) : std::nullopt;
 }

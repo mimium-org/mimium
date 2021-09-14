@@ -62,8 +62,6 @@ class MIMIUM_DLL_PUBLIC LLVMGenerator {
   llvm::Type* getType(LType::Value const& type);
   // Used for getting Arraytype which is not pointer of elementtype
   llvm::ArrayType* getArrayType(LType::Value const& type);
-
-  llvm::Type* getClosureToFunType(LType::Value& type);
   const std::unordered_map<std::string, llvm::Type*> runtime_fun_names;
 
   struct {

@@ -104,7 +104,7 @@ llvm::Value* CodeGenVisitor::getLlvmVal(mir::valueptr mirval) {
 llvm::Value* CodeGenVisitor::getLlvmValForFcallArgs(mir::valueptr mirval) {
   auto atype = mir::getType(*mirval);
   bool is_variablesize_array = false;
-  if (std::holds_alternative<LType::Pointer>(atype.v)) {
+  if (LType::canonicalCheck<LType::Pointer>(atype)) {
     auto etype = LType::getCanonicalType<LType::Pointer>(atype).v;
     if (LType::canonicalCheck<LType::Array>(etype.getraw())) {
       // is_variablesize_array = types::isArraySizeVariable(rv::get<types::Array>(etype));
@@ -129,7 +129,7 @@ std::vector<llvm::Value*> CodeGenVisitor::makeFcallArgs(llvm::Type* ft,
     auto* targettype = *ft_iter;
     auto callargtype = mir::getType(*a);
     auto* llval = getLlvmVal(a);
-    if (std::holds_alternative<LType::Pointer>(callargtype.v)) {
+    if (LType::canonicalCheck<LType::Pointer>(callargtype)) {
       auto etype = LType::getCanonicalType<LType::Pointer>(callargtype).v;
       if (LType::canonicalCheck<LType::Array>(etype.getraw())) {
         auto* targetetype = llvm::cast<llvm::PointerType>(targettype)->getElementType();
@@ -222,10 +222,11 @@ llvm::Value* CodeGenVisitor::operator()(minst::String& i) {
   return bitcast;
 }
 llvm::Value* CodeGenVisitor::operator()(minst::Allocate& i) {
-  assert(std::holds_alternative<LType::Pointer>(i.type.v));
-  auto ptype = LType::getCanonicalType<LType::Pointer>(i.type);
-  auto alloctype = ptype.v;
-  auto* res = createAllocation(isglobal, G.getType(alloctype), nullptr, i.name);
+  assert(LType::canonicalCheck<LType::Pointer>(i.type));
+  // take pointer element after conversion because it may be named struct;
+  auto* ptype = G.getType(i.type);
+  auto* res =
+      createAllocation(isglobal, ((llvm::PointerType*)(ptype))->getElementType(), nullptr, i.name);
   registerLlvmVal(getValPtr(&i), res);
   return res;
 }
@@ -588,7 +589,7 @@ llvm::Value* CodeGenVisitor::operator()(minst::Field& i) {
                    *constant);
     return G.builder->CreateStructGEP(target, index, i.name + "_" + std::to_string(index));
   }
-  if (std::holds_alternative<LType::Float>(mir::getType(*i.index).v)) {
+  if (LType::canonicalCheck<LType::Float>(mir::getType(*i.index))) {
     auto* index_ll = getLlvmVal(i.index);
     auto* intindex = G.builder->CreateFPToSI(index_ll, G.builder->getInt32Ty());
     return G.builder->CreateInBoundsGEP(target, {G.getZero(), intindex}, "arrayassignptr");
@@ -626,7 +627,7 @@ llvm::Value* CodeGenVisitor::operator()(minst::If& i) {
   G.builder->CreateBr(endbb);
   G.builder->SetInsertPoint(endbb);
   auto& ifrettype = i.type;
-  bool isvoid = std::holds_alternative<LType::Unit>(ifrettype.v);
+  bool isvoid = LType::canonicalCheck<LType::Unit>(ifrettype);
   llvm::Value* res = nullptr;
   if (!isvoid) {
     assert(elseret != nullptr && thenret != nullptr);
