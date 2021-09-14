@@ -551,9 +551,7 @@ llvm::Value* CodeGenVisitor::operator()(minst::MakeClosure& i) {
     if (gepelemty != capval->getType() && !isvalclosure) {
       capval = G.builder->CreateBitCast(capval, gepelemty);
     }
-    if (isvalclosure) {
-      capval = G.builder->CreateLoad(capval);
-    }
+    if (isvalclosure) { capval = G.builder->CreateLoad(capval); }
     G.builder->CreateStore(capval, gep);
   }
 
@@ -588,9 +586,7 @@ llvm::Value* CodeGenVisitor::operator()(minst::Field& i) {
                               },
                               [](const auto& v) { return (int)v; }},
                    *constant);
-    return G.builder->CreateStructGEP(
-        llvm::cast<llvm::PointerType>(target->getType())->getElementType(), target, index,
-        i.name + "_" + std::to_string(index));
+    return G.builder->CreateStructGEP(target, index, i.name + "_" + std::to_string(index));
   }
   if (std::holds_alternative<LType::Float>(mir::getType(*i.index).v)) {
     auto* index_ll = getLlvmVal(i.index);

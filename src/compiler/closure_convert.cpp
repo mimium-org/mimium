@@ -146,7 +146,7 @@ void ClosureConverter::CCVisitor::operator()(minst::Function& i) {
   LType::Alias fvtype{cc.makeCaptureName(), LType::Value{LType::Tuple{fvtype_inside}}};
 
   auto& ftype = std::get<LType::Function>(i.type.v);
-  ftype.v.first.emplace_back(LType::Value{fvtype});
+  ftype.v.first.emplace_back(LType::Value{LType::Pointer{LType::Value{fvtype}}});
   auto makecls = std::make_shared<mir::Value>(
       createClosureInst(fn_ptr, fvsetvec, LType::Value{fvtype}, i.name));
   cc.fn_to_cls.emplace(fn_ptr, makecls);
