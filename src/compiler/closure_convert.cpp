@@ -67,7 +67,7 @@ void ClosureConverter::CCVisitor::dump() {
 
 void ClosureConverter::CCVisitor::checkFreeVar(const mir::valueptr val) {
   if (auto* iptr = std::get_if<mir::Instructions>(val.get())) {
-    bool isfun = std::holds_alternative<LType::Function>(mir::getType(*iptr).v);
+    bool isfun = LType::canonicalCheck<LType::Function>(mir::getType(*iptr));
     bool has_different_root = mir::getParent(*iptr) != this->block_ctx;
     if (!isfun && has_different_root) { fvset.emplace(val); }
   }
@@ -145,7 +145,7 @@ void ClosureConverter::CCVisitor::operator()(minst::Function& i) {
   // do not use auto here, move happens...
   LType::Alias fvtype{cc.makeCaptureName(), LType::Value{LType::Tuple{fvtype_inside}}};
 
-  auto& ftype = std::get<LType::Function>(i.type.v);
+  auto& ftype = LType::getCanonicalType<LType::Function>(i.type);
   ftype.v.first.emplace_back(LType::Value{LType::Pointer{LType::Value{fvtype}}});
   auto makecls = std::make_shared<mir::Value>(
       createClosureInst(fn_ptr, fvsetvec, LType::Value{fvtype}, i.name));
@@ -158,7 +158,7 @@ minst::MakeClosure ClosureConverter::CCVisitor::createClosureInst(mir::valueptr 
                                                                   std::string& lv_name) {
   auto clsname = lv_name + "_cls";
   auto ftype = mir::getType(*fnptr);
-  std::get<LType::Function>(ftype.v).v.first.emplace_back(LType::Value{LType::Pointer{fvtype}});
+  LType::getCanonicalType<LType::Function>(ftype).v.first.emplace_back(LType::Value{LType::Pointer{fvtype}});
   LType::Alias clstype{cc.makeClosureTypeName(),
                        makeClosureType(LType::Pointer{mir::getType(*fnptr)}, fvtype)};
   minst::MakeClosure makecls{{clsname, LType::Value{clstype}}, fnptr, fvs};

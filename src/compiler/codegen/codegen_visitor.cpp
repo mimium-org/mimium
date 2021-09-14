@@ -105,8 +105,8 @@ llvm::Value* CodeGenVisitor::getLlvmValForFcallArgs(mir::valueptr mirval) {
   auto atype = mir::getType(*mirval);
   bool is_variablesize_array = false;
   if (std::holds_alternative<LType::Pointer>(atype.v)) {
-    auto etype = std::get<LType::Pointer>(atype.v).v;
-    if (std::holds_alternative<LType::Array>(etype.getraw().v)) {
+    auto etype = LType::getCanonicalType<LType::Pointer>(atype).v;
+    if (LType::canonicalCheck<LType::Array>(etype.getraw())) {
       // is_variablesize_array = types::isArraySizeVariable(rv::get<types::Array>(etype));
     }
   }
@@ -130,8 +130,8 @@ std::vector<llvm::Value*> CodeGenVisitor::makeFcallArgs(llvm::Type* ft,
     auto callargtype = mir::getType(*a);
     auto* llval = getLlvmVal(a);
     if (std::holds_alternative<LType::Pointer>(callargtype.v)) {
-      auto etype = std::get<LType::Pointer>(callargtype.v).v;
-      if (std::holds_alternative<LType::Array>(etype.getraw().v)) {
+      auto etype = LType::getCanonicalType<LType::Pointer>(callargtype).v;
+      if (LType::canonicalCheck<LType::Array>(etype.getraw())) {
         auto* targetetype = llvm::cast<llvm::PointerType>(targettype)->getElementType();
         assert(targetetype->isArrayTy());
         auto* arrtype = llvm::cast<llvm::ArrayType>(targetetype);
@@ -223,7 +223,7 @@ llvm::Value* CodeGenVisitor::operator()(minst::String& i) {
 }
 llvm::Value* CodeGenVisitor::operator()(minst::Allocate& i) {
   assert(std::holds_alternative<LType::Pointer>(i.type.v));
-  auto ptype = std::get<LType::Pointer>(i.type.v);
+  auto ptype = LType::getCanonicalType<LType::Pointer>(i.type);
   auto alloctype = ptype.v;
   auto* res = createAllocation(isglobal, G.getType(alloctype), nullptr, i.name);
   registerLlvmVal(getValPtr(&i), res);
@@ -316,7 +316,7 @@ llvm::FunctionType* CodeGenVisitor::createDspFnType(
   // arguments of dsp function should be always (time, cls_ptr, memobj_ptr) regardless of
   // existences of capture &memobj.
 
-  auto mmmfntype = std::get<LType::Function>(i.type.v);
+  auto mmmfntype = LType::getCanonicalType<LType::Function>(i.type);
   auto argtypes = mmmfntype.v.first;
   auto dummytype = LType::Value{LType::Pointer{LType::Value{LType::Unit{}}}};
 
@@ -340,7 +340,7 @@ llvm::FunctionType* CodeGenVisitor::createDspFnType(
 llvm::FunctionType* CodeGenVisitor::createFunctionType(
     minst::Function const& i, bool hascapture,
     std::optional<std::shared_ptr<FunObjTree>> const& memobjtype) {
-  auto mmmfntype = std::get<LType::Function>(i.type.v);
+  auto mmmfntype = LType::getCanonicalType<LType::Function>(i.type);
 
   auto& argtypes = mmmfntype.v.first;
   // if (hascapture) {

@@ -33,14 +33,14 @@ std::shared_ptr<FunObjTree> MemoryObjsCollector::traverseFunTree(mir::valueptr f
   CollectMemVisitor visitor(*this);
   auto res = visitor.visitInsts(f.body);
   if (res.hasself) {
-    const auto& rettype = std::get<LType::Function>(f.type.v).v.second;
+    const auto& rettype = LType::getCanonicalType<LType::Function>(f.type).v.second;
     auto& resulttype = CollectMemVisitor::getTupleFromAlias(res.objtype);
     resulttype.v.emplace_back(rettype);
   }
   auto objptr = std::make_shared<FunObjTree>(FunObjTree{fun, res.hasself, res.objs, res.objtype});
   if (res.hasself || !res.objs.empty()) {
     result_map.emplace(fun, objptr);
-    auto& ftype = std::get<LType::Function>(f.type.v);
+    auto& ftype = LType::getCanonicalType<LType::Function>(f.type);
     ftype.v.first.emplace_back(LType::Value{LType::Pointer{objptr->objtype}});
   }
   return objptr;
@@ -104,9 +104,9 @@ using ResultT = MemoryObjsCollector::CollectMemVisitor::ResultT;
 
 LType::Tuple& MemoryObjsCollector::CollectMemVisitor::getTupleFromAlias(LType::Value& t) {
   assert(std::holds_alternative<LType::Alias>(t.v));
-  auto& atype = std::get<LType::Alias>(t.v);
-  assert(std::holds_alternative<LType::Tuple>(atype.v.v.getraw().v));
-  return std::get<LType::Tuple>(atype.v.v.getraw().v);
+  auto& atype = LType::getCanonicalType<LType::Alias>(t);
+  assert(LType::canonicalCheck<LType::Tuple>(atype.v.v.getraw()));
+  return LType::getCanonicalType<LType::Tuple>(atype.v.v.getraw());
 }
 
 ResultT MemoryObjsCollector::CollectMemVisitor::makeResfromHasSelf(bool hasself) {

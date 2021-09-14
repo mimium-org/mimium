@@ -77,7 +77,7 @@ struct MirGenerator : Ts... {
           auto index = a.v.field;
           auto expr = genmir(a.v.expr);
           auto type = mir::getType(*expr);
-          auto tuptype = std::get<LType::Tuple>(type.v);
+          auto tuptype = LType::getCanonicalType<LType::Tuple>(type);
           auto valtype = *std::next(tuptype.v.cbegin(), index);
           return emplace(minst::Field{{newname, valtype}, expr, makeMirVal(mir::Constants{index})},
                          block);
@@ -91,7 +91,7 @@ struct MirGenerator : Ts... {
           auto key = a.v.field;
           auto expr = genmir(a.v.expr);
           auto type = mir::getType(*expr);
-          auto sttype = std::get<LType::Record>(type.v);
+          auto sttype = LType::getCanonicalType<LType::Record>(type);
           auto [valtype, index] = getRecordTypeByKey(sttype, key);
           return emplace(minst::Field{{newname, valtype}, expr, makeMirVal(mir::Constants{index})},
                          block);
@@ -107,11 +107,11 @@ struct MirGenerator : Ts... {
           auto array = genmir(a.v.expr);
           auto index = genmir(a.v.field);
           LType::Value const& type = mir::getType(*array);
-          LType::Value const& vtype = std::get<LType::Pointer>(type.v).v;
+          LType::Value const& vtype = LType::getCanonicalType<LType::Pointer>(type).v;
           LType::Value rettype;
-          if (std::holds_alternative<LType::Array>(vtype.v)) {
-            rettype.v = std::get<LType::Array>(vtype.v);
-          } else if (std::holds_alternative<LType::Float>(vtype.v)) {
+          if (LType::canonicalCheck<LType::Array>(vtype)) {
+            rettype.v = LType::getCanonicalType<LType::Array>(vtype);
+          } else if (LType::canonicalCheck<LType::Float>(vtype)) {
             rettype.v = vtype;
           } else {
             throw std::runtime_error("[] operator cannot be used for other than array type");
@@ -130,9 +130,9 @@ struct MirGenerator : Ts... {
           auto opt_res = symbol_env->search(a.v.getUniqueName());
           if (opt_res) {
             auto ptrv = opt_res.value();
-            auto ptrt = mir::getType(*ptrv).v;
-            if (std::holds_alternative<LType::Pointer>(ptrt)) {
-              auto vtype = std::get<LType::Pointer>(ptrt).v;
+            auto ptrt = mir::getType(*ptrv);
+            if (LType::canonicalCheck<LType::Pointer>(ptrt)) {
+              auto vtype = LType::getCanonicalType<LType::Pointer>(ptrt).v;
               if (isAggregate<LType>(vtype)) { return ptrv; }
               auto res = emplace(minst::Load{{a.v.getUniqueName(), vtype}, opt_res.value()}, block);
               return res;
@@ -149,7 +149,7 @@ struct MirGenerator : Ts... {
         [&](LAst::SelfLit const& a) {
           if (isglobal) { throw std::runtime_error("\"self\" cannot be used in global context."); }
           auto fntype = mir::getType(*fnctx);
-          auto rettype = std::get<LType::Function>(fntype.v).v.second;
+          auto rettype = LType::getCanonicalType<LType::Function>(fntype).v.second;
           return makeMirVal(mir::Self{fnctx});
         },
         [&](LAst::Lambda const& a) {
@@ -178,13 +178,13 @@ struct MirGenerator : Ts... {
           });
           LType::Value rettype = mir::getType(*bodyret);
           const bool ispassbyref =
-              !std::holds_alternative<LType::Unit>(rettype.v) && isAggregate<LType>(rettype);
+              !LType::canonicalCheck<LType::Unit>(rettype) && isAggregate<LType>(rettype);
 
           if (!ispassbyref) {
             resptr_fref.type = LType::Value{LType::Function{std::pair(argtype, Box(rettype))}};
           }
           if (ispassbyref) {
-            if (!std::holds_alternative<LType::Pointer>(rettype.v)) {  // workaround
+            if (!LType::canonicalCheck<LType::Pointer>(rettype)) {  // workaround
               rettype = LType::Value{LType::Pointer{rettype}};
             }
             argtype.push_front(rettype);
@@ -200,7 +200,7 @@ struct MirGenerator : Ts... {
                              std::make_shared<mir::Value>(resptr_fref.args.ret_ptr.value()),
                              loadinst},
                 resptr_fref.body);
-          } else if (!std::holds_alternative<LType::Unit>(rettype.v)) {
+          } else if (!LType::canonicalCheck<LType::Unit>(rettype)) {
             mir::addInstToBlock(minst::Return{{"ret_" + mir::getName(*bodyret), rettype}, bodyret},
                                 resptr_fref.body);
           }
@@ -280,12 +280,12 @@ struct MirGenerator : Ts... {
           } else {
             fntype = mir::getType(*callee);
           }
-          auto& fntype_f = std::get<LType::Function>(fntype.v);
+          auto& fntype_f = LType::getCanonicalType<LType::Function>(fntype);
           LType::Value rettype = fntype_f.v.second;
           auto args = fmap(a.v.args, genmir);
           if (args.size() == fntype_f.v.first.size() - 1) {
             rettype = fntype_f.v.first.front();
-            assert(std::holds_alternative<LType::Pointer>(rettype.v));
+            assert(LType::canonicalCheck<LType::Pointer>(rettype));
             auto resptr = emplace(minst::Allocate{{newname + "_ret", rettype}}, block);
             args.push_front(resptr);
             emplace(minst::Fcall{{makeNewName(), rettype}, callee, args, calltype}, block);
@@ -299,7 +299,7 @@ struct MirGenerator : Ts... {
             newblock->parent = fnctx;
             auto res = generateInst(a, typeenv, newblock, fnctx);
             auto rettype = mir::getType(*res);
-            if (std::holds_alternative<LType::Unit>(rettype.v)) { return std::pair(newblock, res); }
+            if (LType::canonicalCheck<LType::Pointer>(rettype)) { return std::pair(newblock, res); }
             auto ret = mir::addInstToBlock(minst::Return{{"ret_" + name, mir::getType(*res)}, res},
                                            newblock);
             return std::pair(newblock, ret);

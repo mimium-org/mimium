@@ -54,8 +54,8 @@ llvm::Type* LLVMGenerator::getType(LType::Value const& type) {
 }
 
 llvm::ArrayType* LLVMGenerator::getArrayType(LType::Value const& type) {
-  assert(std::holds_alternative<LType::Array>(type.v));
-  const auto& atype = std::get<LType::Array>(type.v);
+  assert(LType::canonicalCheck<LType::Array>(type));
+  const auto& atype = LType::getCanonicalType<LType::Array>(type);
   return llvm::ArrayType::get(typeconverter->convertType(atype.v.v), atype.v.size);
 }
 
@@ -72,10 +72,10 @@ llvm::Value* LLVMGenerator::getConstDouble(double v) {
 llvm::Value* LLVMGenerator::getZero(const int bitsize) { return getConstInt(0, bitsize); }
 
 llvm::Type* LLVMGenerator::getClosureToFunType(LType::Value& type) {
-  auto aliasty = std::get<LType::Alias>(type.v);
-  auto clsty = std::get<LType::Tuple>(aliasty.v.v.getraw().v);
+  auto aliasty = LType::getCanonicalType<LType::Alias>(type);
+  auto clsty = LType::getCanonicalType<LType::Tuple>(aliasty.v.v.getraw());
 
-  auto fty = std::get<LType::Function>(clsty.v.cbegin()->getraw().v);
+  auto fty = LType::getCanonicalType<LType::Function>(clsty.v.cbegin()->getraw());
   fty.v.first.emplace_back(
       LType::Value{LType::Pointer{LType::Value{std::next(clsty.v.cbegin(), 1)->getraw().v}}});
   return (*typeconverter)(fty);
@@ -88,7 +88,7 @@ void LLVMGenerator::switchToMainFun() {
 }
 llvm::Function* LLVMGenerator::getForeignFunction(const std::string& name) {
   const auto& [type, targetname] = Intrinsic::ftable.find(name)->second;
-  auto ftype = std::get<LType::Function>(lowerType(type).v);
+  auto ftype = LType::getCanonicalType<LType::Function>(lowerType(type));
   if (name == "delay") {
     ftype.v.first.emplace_back(
         LType::Value{LType::Pointer{LType::Value{mimium::getDelayStruct()}}});
@@ -184,25 +184,25 @@ void LLVMGenerator::createNewBasicBlock(std::string name, llvm::Function* f) {
 }
 std::optional<int> LLVMGenerator::getDspFnChannelNumForType(LType::Value const& t) {
   // if (std::holds_alternative<LType::Float>(t)) { return 1; }
-  if (std::holds_alternative<LType::Pointer>(t.v)) {
-    const auto& ptype = std::get<LType::Pointer>(t.v);
-    if (std::holds_alternative<LType::Tuple>(ptype.v.getraw().v)) {
-      const auto& ttype = std::get<LType::Tuple>(ptype.v.getraw().v);
+  if (LType::canonicalCheck<LType::Pointer>(t)) {
+    const auto& ptype = LType::getCanonicalType<LType::Pointer>(t);
+    if (LType::canonicalCheck<LType::Tuple>(ptype.v.getraw())) {
+      const auto& ttype = LType::getCanonicalType<LType::Tuple>(ptype.v.getraw());
       for (const auto& at : ttype.v) {
-        if (!std::holds_alternative<LType::Float>(at.getraw().v)) { return std::nullopt; }
+        if (!LType::canonicalCheck<LType::Float>(at.getraw())) { return std::nullopt; }
       }
       return ttype.v.size();
     }
   }
-  if (std::holds_alternative<LType::Unit>(t.v)) { return 0; }
+  if (LType::canonicalCheck<LType::Unit>(t)) { return 0; }
   return std::nullopt;
 }
 
 void LLVMGenerator::checkDspFunctionType(minst::Function const& i) {
   assert(i.name == "dsp");
-  assert(std::holds_alternative<LType::Function>(i.type.v));
-  auto rettype = std::get<LType::Function>(i.type.v).v.second;
-  auto argtype = std::get<LType::Function>(i.type.v).v.first;
+  assert(LType::canonicalCheck<LType::Function>(i.type));
+  auto rettype = LType::getCanonicalType<LType::Function>(i.type).v.second;
+  auto argtype = LType::getCanonicalType<LType::Function>(i.type).v.first;
 
   std::optional<int> outchs = std::nullopt;
   std::optional<int> inchs = std::nullopt;

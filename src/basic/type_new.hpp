@@ -214,6 +214,29 @@ struct LType {
     operator type&() { return v; }
     operator const type&() const { return v; }
   };
+
+  // utility function which aquires internal type if the type was alias
+  template <class T>
+  static bool canonicalCheck(Value const& t) {
+    if (std::holds_alternative<Alias>(t.v)) {
+      return std::holds_alternative<T>(std::get<Alias>(t.v).v.v.getraw().v);
+    }
+    return std::holds_alternative<T>(t.v);
+  }
+  template <class T>
+  static T& getCanonicalType(Value& t) {
+    if (std::holds_alternative<Alias>(t.v)) {
+      return std::get<T>(std::get<Alias>(t.v).v.v.getraw().v);
+    }
+    return std::get<T>(t.v);
+  }
+  template <class T>
+  static const T& getCanonicalType(Value const& t) {
+    if (std::holds_alternative<Alias>(t.v)) {
+      return std::get<T>(std::get<Alias>(t.v).v.v.getraw().v);
+    }
+    return std::get<T>(t.v);
+  }
 };
 
 inline auto makeClosureType(LType::Pointer const& fnptr_t, LType::Value const& fvtype_t) {

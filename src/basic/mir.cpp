@@ -66,7 +66,7 @@ std::string instruction::toString(MakeClosure const& i) {
 }
 std::string instruction::toString(Fcall const& i) {
   std::string s;
-  if (!std::holds_alternative<LType::Unit>(i.type.v)) { s = i.name + " = "; }
+  if (!LType::canonicalCheck<LType::Unit>(i.type)) { s = i.name + " = "; }
   auto timestr = (i.time) ? "@" + mir::getName(*i.time.value()) : "";
   s += "app" + fcalltype_str[i.ftype] + " " + mir::getName(*i.fname) + " " + join(i.args, " , ") +
        timestr;

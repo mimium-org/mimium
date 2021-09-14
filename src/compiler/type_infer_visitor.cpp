@@ -68,10 +68,20 @@ struct UnifyVisitor : Ts... {
       -> std::enable_if_t<!isIntermediate<T>::value, void> {
     (*this)(b, a);
   }
-  void operator()(IType::Alias& a, IType::Alias& b) { inferer.unify(a.v.v, b.v.v); }
+  void makeAliasIntermediate(IType::Alias& a){
+    if (std::holds_alternative<IType::Unknown>(a.v.v.getraw().v)) {
+      a.v.v = IType::Value{inferer.makeNewTypeVar(0)};
+    }
+  }
+  void operator()(IType::Alias& a, IType::Alias& b) {
+    makeAliasIntermediate(a);
+    makeAliasIntermediate(b);
+    inferer.unify(a.v.v, b.v.v);
+  }
 
   template <class T>
   auto operator()(IType::Alias& a, T& b) -> std::enable_if_t<!isIntermediate<T>::value, void> {
+    makeAliasIntermediate(a);
     IType::Value tmpb = IType::Value{b};
     inferer.unify(a.v.v, tmpb);
     b = std::get<T>(tmpb.v);
