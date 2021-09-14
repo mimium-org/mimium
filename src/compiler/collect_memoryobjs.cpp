@@ -103,10 +103,8 @@ void MemoryObjsCollector::dump() const {
 using ResultT = MemoryObjsCollector::CollectMemVisitor::ResultT;
 
 LType::Tuple& MemoryObjsCollector::CollectMemVisitor::getTupleFromAlias(LType::Value& t) {
-  assert(std::holds_alternative<LType::Alias>(t.v));
-  auto& atype = LType::getCanonicalType<LType::Alias>(t);
-  assert(LType::canonicalCheck<LType::Tuple>(atype.v.v.getraw()));
-  return LType::getCanonicalType<LType::Tuple>(atype.v.v.getraw());
+  assert(LType::canonicalCheck<LType::Tuple>(t));
+  return LType::getCanonicalType<LType::Tuple>(t);
 }
 
 ResultT MemoryObjsCollector::CollectMemVisitor::makeResfromHasSelf(bool hasself) {
