@@ -300,9 +300,11 @@ struct MirGenerator : Ts... {
             auto res = generateInst(a, typeenv, newblock, fnctx);
             auto rettype = mir::getType(*res);
             if (LType::canonicalCheck<LType::Pointer>(rettype)) { return std::pair(newblock, res); }
-            auto ret = mir::addInstToBlock(minst::Return{{"ret_" + name, mir::getType(*res)}, res},
-                                           newblock);
-            return std::pair(newblock, ret);
+            if (!LType::canonicalCheck<LType::Unit>(rettype)) {
+              res = mir::addInstToBlock(minst::Return{{"ret_" + name, mir::getType(*res)}, res},
+                                        newblock);
+            }
+            return std::pair(newblock, res);
           };
           auto lvname = getOrMakeName();
           auto cond = genmir(a.v.cond);
