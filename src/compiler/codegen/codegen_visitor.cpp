@@ -28,19 +28,6 @@ CodeGenVisitor::CodeGenVisitor(LLVMGenerator& g, const funobjmap* funobj_map)
       context_hasself(false),
       recursivefn_ptr(nullptr) {}
 
-llvm::Value* CodeGenVisitor::visit(mir::valueptr val) {
-  instance_holder = val;
-  return std::visit(
-      overloaded{
-          [&](mir::Instructions& inst) { return std::visit(*this, inst); },
-          [](mir::Constants& c) -> llvm::Value* { return nullptr; },                 // TODO
-          [](std::shared_ptr<mir::Argument> a) -> llvm::Value* { return nullptr; },  // TODO
-          [](mir::ExternalSymbol& a) -> llvm::Value* { return nullptr; },            // TODO
-          [](mir::Self& a) -> llvm::Value* { return nullptr; },                      // TODO
-
-      },
-      *val);
-}
 
 void CodeGenVisitor::registerLlvmVal(mir::valueptr mirval, llvm::Value* llvmval) {
   mir_to_llvm.emplace(mirval, llvmval);
@@ -53,10 +40,20 @@ void CodeGenVisitor::registerLlvmValforFreeVar(mir::valueptr mirval, llvm::Value
 }
 llvm::Value* CodeGenVisitor::getConstant(const mir::Constants& val) {
   return std::visit(overloaded{
-                        [&](int v) { return (llvm::Value*)G.getConstInt(v); },
-                        [&](double v) { return (llvm::Value*)G.getConstDouble(v); },
+                        [&](int v) -> llvm::Value* { return G.getConstInt(v); },
+                        [&](double v) -> llvm::Value* { return G.getConstDouble(v); },
                         // todo
-                        [](const std::string& v) { return (llvm::Value*)nullptr; },
+                        [&](const std::string& v) -> llvm::Value* {
+                          auto* cstr = llvm::ConstantDataArray::getString(G.ctx, v);
+                          auto* i8ptrty = G.builder->getInt8PtrTy();
+                          auto* gvalue = llvm::cast<llvm::GlobalVariable>(
+                              G.module->getOrInsertGlobal(v, cstr->getType()));
+                          gvalue->setInitializer(cstr);
+                          gvalue->setLinkage(llvm::GlobalValue::InternalLinkage);
+                          // gvalue->setName(i.name);
+                          auto* bitcast = G.builder->CreateBitCast(gvalue, i8ptrty);
+                          return bitcast;
+                        },
                     },
                     val);
 }

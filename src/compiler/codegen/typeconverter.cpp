@@ -21,7 +21,7 @@ llvm::Type* TypeConverter::operator()(LType::Unit const& /*i*/) { return builder
 llvm::Type* TypeConverter::operator()(LType::Bool const& /*i*/) { return builder.getInt1Ty(); }
 llvm::Type* TypeConverter::operator()(LType::Int const& /*i*/) { return builder.getInt32Ty(); }
 llvm::Type* TypeConverter::operator()(LType::Float const& /*i*/) { return builder.getDoubleTy(); }
-llvm::Type* TypeConverter::operator()(LType::String const& /*i*/) { return builder.getInt8PtrTy(); }
+llvm::Type* TypeConverter::operator()(LType::String const& /*i*/) { return builder.getInt8Ty(); }
 // llvm::Type* TypeConverter::operator()(LType::Ref const& i) {
 //   auto* elemty = convertType( i.val);
 //   if (elemty->isVoidTy()) { elemty = builder.getInt8Ty(); }

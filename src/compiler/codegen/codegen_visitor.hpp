@@ -42,7 +42,6 @@ struct CodeGenVisitor {
   llvm::Value* operator()(minst::Field& i);
   llvm::Value* operator()(minst::If& i);
   llvm::Value* operator()(minst::Return& i);
-  llvm::Value* visit(mir::valueptr val);
 
  private:
   const static std::unordered_map<std::string_view, LlvmOp> fname_to_op;
