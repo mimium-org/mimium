@@ -35,6 +35,15 @@ Driver::expr Driver::parseFile(const std::string& filename) {
   auto src = reader.loadFile(filename);
   return parseString(src.source);
 }
+void Driver::addAlias(std::string const& name, IType::Value const& type) {
+  alias_map.emplace(name, type);
+}
+
+std::optional<IType::Value> Driver::tryfindAliasType(std::string const& name) {
+  auto iter = alias_map.find(name);
+  if (iter == alias_map.cend()) { return std::nullopt; }
+  return IType::Value{IType::Alias{name, iter->second}};
+}
 
 void Driver::setTopLevel(TopLevel::Expression const& toplevel) { this->toplevel = toplevel; }
 
@@ -59,7 +68,7 @@ Driver::expr Driver::lowerToplevel(TopLevel::Expression const& e) {
                                 processCompilerDirectives(a);
                                 return std::nullopt;
                               },
-                              [](Hast::Statement const& e) -> res_t { return std::optional(e); }},
+                              [&](Hast::Statement const& s) -> res_t { return std::optional(s); }},
                    line);
     if (s) { res.v.statements.emplace_back(s.value()); }
   }

@@ -257,14 +257,21 @@ types:  TYPEFLOAT {$$ = IType::Value{IType::Float{}};}
             $$ = IType::Value{IType::Function{std::pair(Box(std::move($2)),Box(std::move($5)) ) }};}
       | '(' typeargs ')' { $$ = IType::Value{Box(IType::Tuple{std::move($2)})}; }
       | LBRACE strutypeargs RBRACE { $$ = IType::Value{IType::Record{std::move($2)}}; }
-      | SYMBOL     { $$=makeUnknownAlias(std::move($1));}
+      | SYMBOL     { 
+            auto t = driver.tryfindAliasType($1);
+            if(t){
+                  $$ = t.value();
+            }else{
+                  $$=makeUnknownAlias(std::move($1));//should we make it an error?
+            }
+            }
 
 // Type Declaration
 
-typedecl: TYPEIDENT SYMBOL ASSIGN types {$$ = TopLevel::TypeAlias{std::move($2),std::move($4)}; }
-
-
-
+typedecl: TYPEIDENT SYMBOL ASSIGN types {
+      driver.addAlias(std::move($2), std::move($4));
+      // $$ = TopLevel::TypeAlias{std::move($2),std::move($4)};
+      }
 // function call ()
 
 exprlist:  exprlist ',' expr { $1.emplace_back(std::move($3));

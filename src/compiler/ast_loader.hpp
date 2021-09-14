@@ -29,6 +29,8 @@ class Driver {
   expr parse(std::istream& is);
   expr parseString(const std::string& source);
   expr parseFile(const std::string& filename);
+  void addAlias(std::string const& name,IType::Value const& type);
+  std::optional<IType::Value> tryfindAliasType(std::string const& name);
   //main interface for getting ast from bison.
   void setTopLevel(TopLevel::Expression const& toplevel);
  private:
@@ -37,6 +39,7 @@ class Driver {
   std::optional<TopLevel::Expression> toplevel;
   TopLevel::AliasMap_t alias_map;
   std::optional<expr> processCompilerDirectives(TopLevel::CompilerDirective const& e);
+
   expr lowerToplevel(TopLevel::Expression const& e);
 };
 
