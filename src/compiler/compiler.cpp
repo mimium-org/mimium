@@ -4,25 +4,23 @@
 
 #include "compiler/compiler.hpp"
 #include "codegen/llvm_header.hpp"
-#include "compiler/scanner.hpp"
+// #include "compiler/scanner.hpp"
 
 namespace mimium {
 Compiler::Compiler()
     : llvmctx(std::make_unique<llvm::LLVMContext>()),
       driver(),
-      symbolrenamer(std::make_shared<RenameEnvironment>()),
       typeinferer(),
-      mirgenerator(typeinferer.getTypeEnv()),
-      closureconverter(std::make_shared<ClosureConverter>(typeinferer.getTypeEnv())),
+      // mirgenerator(typeinferer.getTypeEnv()),
+      closureconverter(std::make_shared<ClosureConverter>()),
       memobjcollector(),
       llvmgenerator(*llvmctx) {}
 Compiler::Compiler(std::unique_ptr<llvm::LLVMContext> ctx)
     : llvmctx(std::move(ctx)),
       driver(),
-      symbolrenamer(std::make_shared<RenameEnvironment>()),
       typeinferer(),
-      mirgenerator(typeinferer.getTypeEnv()),
-      closureconverter(std::make_shared<ClosureConverter>(typeinferer.getTypeEnv())),
+      // mirgenerator(typeinferer.getTypeEnv()),
+      closureconverter(std::make_shared<ClosureConverter>()),
       memobjcollector(),
       llvmgenerator(*ctx) {}
 Compiler::~Compiler() = default;
@@ -32,20 +30,27 @@ void Compiler::setFilePath(std::string path) {
 }
 void Compiler::setDataLayout(const llvm::DataLayout& dl) { llvmgenerator.setDataLayout(dl); }
 
-AstPtr Compiler::loadSource(std::istream& source) { return driver.parse(source); }
+Hast::expr Compiler::loadSource(std::istream& source) { return driver.parse(source); }
 
-AstPtr Compiler::loadSource(const std::string& source) {
-  AstPtr ast = driver.parseString(source);
+Hast::expr Compiler::loadSource(const std::string& source) {
+  auto ast = driver.parseString(source);
   return ast;
 }
-AstPtr Compiler::loadSourceFile(const std::string& filename) {
-  AstPtr ast = driver.parseFile(filename);
+Hast::expr Compiler::loadSourceFile(const std::string& filename) {
+  auto ast = driver.parseFile(filename);
   return ast;
 }
-AstPtr Compiler::renameSymbols(AstPtr ast) { return symbolrenamer.rename(*ast); }
-TypeEnv& Compiler::typeInfer(AstPtr ast) { return typeinferer.infer(*ast); }
+// Hast::expr Compiler::renameSymbols(AstPtr ast) { return symbolrenamer.rename(*ast); }
+LAst::expr  Compiler::lowerAst(Hast::expr const& ast) {
+  lowerast::AstLowerer lowerer;
+  auto env = std::make_shared<lowerast::AstLowerer::Env>();
+  return lowerer.lowerHast(ast,env);
+}
 
-mir::blockptr Compiler::generateMir(AstPtr ast) { return mirgenerator.generate(*ast); }
+TypeEnvH Compiler::typeInfer(LAst::expr& ast) { return typeinferer.infer(ast); }
+
+mir::blockptr Compiler::generateMir(LAst::expr const& ast, TypeEnvH const& tenv) { return mimium::generateMir(ast,tenv); }
+
 mir::blockptr Compiler::closureConvert(mir::blockptr mir) { return closureconverter->convert(mir); }
 
 funobjmap Compiler::collectMemoryObjs(mir::blockptr mir) { return memobjcollector.process(mir); }

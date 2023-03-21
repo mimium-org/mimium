@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #include "genericapp.hpp"
-#include "basic/ast_to_string.hpp"
+#include "basic/ast_new.hpp"
 #include "compiler/codegen/llvm_header.hpp"
 #include "runtime/executionengine/executionengine.hpp"
 #include "preprocessor/preprocessor.hpp"
@@ -82,20 +82,20 @@ bool GenericApp::compileMainLoop(Compiler& compiler, const CompileOption& option
   std::ostream& out = output_path ? fout : std::cout;
 
   if (stage == CompileStage::Parse) {
-    out << *ast << std::endl;
+    out << toString<Hast>(ast) << std::endl;
     return false;
   }
-  auto ast_u = compiler.renameSymbols(ast);
+  auto ast_u = compiler.lowerAst(ast);
   if (stage == CompileStage::SymbolRename) {
-    out << *ast_u << std::endl;
+    out << toString<LAst>(ast_u) << std::endl;
     return false;
   }
-  auto& typeinfos = compiler.typeInfer(ast_u);
+  auto typeinfos = compiler.typeInfer(ast_u);
   if (stage == CompileStage::TypeInference) {
-    out << typeinfos.toString() << std::endl;
+    // out << typeinfos.toString() << std::endl;
     return false;
   }
-  mir::blockptr mir = compiler.generateMir(ast_u);
+  mir::blockptr mir = Compiler::generateMir(ast_u,typeinfos);
   if (stage == CompileStage::MirEmit) {
     out << mir::toString(mir) << std::endl;
     return false;

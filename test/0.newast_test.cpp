@@ -1,30 +1,23 @@
-#include "basic/ast.hpp"
+#include "basic/ast_new.hpp"
 #include "gtest/gtest.h"
-#include "gtest/internal/gtest-port.h" 
+#include "gtest/internal/gtest-port.h"
 namespace mimium {
 
-TEST(newast, basic) {//NOLINT
-  ast::DebugInfo dbg;
-  ast::Number num1 = {{dbg}, 1};
-  auto numptr = makeExpr(ast::Number{{dbg}, 1});
-  auto strptr = makeExpr(ast::String{{{dbg},"test!"}});
-  ast::String str{{{dbg}, "test"}};
-  ast::Op opast = {{dbg}, ast::OpId::Add, numptr, strptr};
-  auto variant = *opast.lhs.value();
-  EXPECT_TRUE(std::holds_alternative<ast::Number>(variant));
-  double target = std::get<ast::Number>(variant).value;
+
+
+TEST(newast, basic) {  // NOLINT
+  DebugInfo dbg;
+
+  auto opast = Hast::Infix{"+", Hast::expr{Hast::FloatLit{1.0, dbg}},
+                           Hast::expr{Hast::StringLit{"test!", dbg}}, dbg};
+  auto variant = opast.v.lhs.value();
+  EXPECT_TRUE(std::holds_alternative<Hast::FloatLit>(variant.getraw().v));
+  double target = std::get<Hast::FloatLit>(variant.getraw().v).v;
   EXPECT_EQ(target, 1.0);
-  auto str_answer = std::get<ast::String>(*opast.rhs).value;
+  auto str_answer = std::get<Hast::StringLit>(opast.v.rhs.getraw().v).v;
   std::string str_target = "test!";
   EXPECT_EQ(str_answer, str_target);
 }
-TEST(newast, statement) {//NOLINT
-  ast::DebugInfo dbg;
-  auto statement = ast::makeStatement(
-      ast::Assign{{dbg}, ast::DeclVar{{dbg}, ast::Symbol{{dbg}, "leftvar"}, types::Float{}},
-                  ast::makeExpr(ast::Number{{dbg}, 1})});
-  EXPECT_TRUE(std::holds_alternative<ast::Assign>(*statement));
-  // EXPECT_EQ(std::get<ast::Assign>(*statement).lvar.type.value() ,types::Value(types::Float{}));
-}
+// TODO: more tests
 
 }  // namespace mimium

@@ -20,8 +20,9 @@ namespace mimium {
 template <typename T>
 struct Box {
   // construct from an existing object
-  Box() = delete;
+  Box() = default;
   Box(T rt) : t(std::make_shared<T>(std::move(rt))) {}  // NOLINT
+  Box(std::shared_ptr<T> rptr):t(std::move(rptr)){}//NOLINT
   template <class U>
   using enabler = std::enable_if_t<std::is_same_v<std::decay_t<U>, T>>;
   template <typename U, enabler<U>>
@@ -35,6 +36,8 @@ struct Box {
   std::shared_ptr<T> t;
 };
 
+
+
 template <typename T>
 bool operator==(const Box<T>& t1, const Box<T>& t2) {
   return static_cast<const T&>(t1) == static_cast<const T&>(t2);
@@ -43,12 +46,33 @@ template <typename T>
 bool operator!=(const Box<T>& t1, const Box<T>& t2) {
   return !(t1 == t2);
 }
+
+template <class T>
+struct is_boxed{
+  using type = std::false_type;
+};
+template <class T>
+struct is_boxed<Box<T>>{
+  using type = std::true_type;
+};
+
+template <class T>
+using is_boxed_t = typename is_boxed<T>::type;
+
 template <class T>
 constexpr bool isBoxed(T /*v*/) {
   return false;
 }
 template <class T>
 constexpr bool isBoxed(Box<T> /*v*/) {
+  return true;
+}
+template <class T>
+constexpr bool isBoxed(Box<T>const& /*v*/) {
+  return true;
+}
+template <class T>
+constexpr bool isBoxed(Box<T>&& /*v*/) {
   return true;
 }
 template <typename T>
@@ -69,29 +93,23 @@ struct overloaded_rec : Ts... {
 template <class... Ts>
 overloaded_rec(Ts...) -> overloaded_rec<Ts...>;
 
-template <typename RETTYPE>
-class VisitorBase {
- public:
-  template <typename T>
-  auto operator()(Box<T> ast) -> decltype(auto) {
-    return (*this)(ast.getraw());
+auto&& boxhashfn = [](auto&& a){
+  if(isBoxed(a)){
+    return std::hash(a.getraw());
   }
-  template <typename T, boxenabler<T>>
-  auto operator()(T&& ast) -> decltype(auto) {
-    return (*this)(std::forward<decltype(ast)>(ast).getraw());
-  }
+  return std::hash(a);
 };
 
 namespace rv {
 
 template <class T, class VARIANT>
 constexpr bool holds_alternative(VARIANT&& v) {
-  return std::holds_alternative<Box<T>>(v);
+  return std::holds_alternative<Box<T>>(std::forward<decltype(v)>(v));
 }
 
 template <class T, class VARIANT>
 constexpr auto get(VARIANT&& v) -> decltype(auto) {
-  return std::get<Box<T>>(v).getraw();
+  return std::get<Box<T>>(std::forward<decltype(v)>(v)).getraw();
 }
 
 }  // namespace rv

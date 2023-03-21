@@ -3,9 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #include "basic/mir.hpp"
-
-#include "basic/ast_to_string.hpp"
-
+#include <sstream>
+#include "basic/type_new.hpp"
 namespace mimium::mir {
 
 std::string toString(const blockptr block) {
@@ -19,13 +18,17 @@ std::string toString(const blockptr block) {
   return ss.str();
 }
 
+std::string instruction::toString(NoOp const& i) {
+  return "nop";
+}
+
 std::string instruction::toString(Number const& i) {
   return i.name + " = " + std::to_string(i.val);
 }
 std::string instruction::toString(String const& i) { return i.name + " = " + i.val; }
 
 std::string instruction::toString(Allocate const& i) {
-  return "allocate " + i.name + " : " + types::toString(i.type);
+  return "allocate " + i.name + " : " + toString(i.type);
 }
 std::string instruction::toString(Ref const& i) {
   return i.name + " = ref " + mir::getName(*i.target);
@@ -38,11 +41,11 @@ std::string instruction::toString(Store const& i) {
   return "store " + mir::getName(*i.value) + " to " + mir::getName(*i.target);
 }
 
-std::string instruction::toString(Op const& i) {
-  auto opstr = std::string(ast::getOpString(i.op));
-  return i.name + " = " + opstr + " " + (i.lhs.has_value() ? mir::getName(*i.lhs.value()) : "") +
-         " " + mir::getName(*i.rhs);
-}
+// std::string instruction::toString(Op const& i) {
+//   auto opstr = std::string(ast::getOpString(i.op));
+//   return i.name + " = " + opstr + " " + (i.lhs.has_value() ? mir::getName(*i.lhs.value()) : "") +
+//          " " + mir::getName(*i.rhs);
+// }
 
 std::string toString(Argument const& i) { return i.name; }
 
@@ -63,7 +66,7 @@ std::string instruction::toString(MakeClosure const& i) {
 }
 std::string instruction::toString(Fcall const& i) {
   std::string s;
-  if (!std::holds_alternative<types::Void>(i.type)) { s = i.name + " = "; }
+  if (!LType::canonicalCheck<LType::Unit>(i.type)) { s = i.name + " = "; }
   auto timestr = (i.time) ? "@" + mir::getName(*i.time.value()) : "";
   s += "app" + fcalltype_str[i.ftype] + " " + mir::getName(*i.fname) + " " + join(i.args, " , ") +
        timestr;

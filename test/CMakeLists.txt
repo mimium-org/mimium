@@ -18,16 +18,14 @@ ADD_FLEX_BISON_DEPENDENCY(TestScanner TestParser)
 set (MIMIUM_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src)
 set (GOOGLETEST_DIR ${CMAKE_SOURCE_DIR}/test/googletest/googletest)
 add_library(TestLib STATIC 
-${MIMIUM_SOURCE_DIR}/basic/ast.cpp 
 ${MIMIUM_SOURCE_DIR}/basic/mir.cpp
-${MIMIUM_SOURCE_DIR}/basic/type.cpp
-${MIMIUM_SOURCE_DIR}/basic/ast_to_string.cpp
 ${MIMIUM_SOURCE_DIR}/basic/filereader.cpp
 ${FLEX_TestScanner_OUTPUTS}
 ${BISON_TestParser_OUTPUTS}
 ${MIMIUM_SOURCE_DIR}/compiler/ast_loader.cpp
 ${MIMIUM_SOURCE_DIR}/compiler/scanner.cpp
-${MIMIUM_SOURCE_DIR}/compiler/symbolrenamer.cpp
+${MIMIUM_SOURCE_DIR}/compiler/ast_lowering.cpp
+${MIMIUM_SOURCE_DIR}/compiler/type_lowering.cpp
 ${MIMIUM_SOURCE_DIR}/compiler/type_infer_visitor.cpp
 ${MIMIUM_SOURCE_DIR}/compiler/mirgenerator.cpp
 # ${MIMIUM_SOURCE_DIR}/frontend/genericapp.cpp
@@ -67,6 +65,8 @@ MakeTest(ParserTest 2.parser_test.cpp)
 MakeTest(SymbolRenameTest 3.symbolrename_test.cpp)
 MakeTest(TypeInferTest 4.typeinfer_test.cpp)
 MakeTest(MirgenTest 5.mirgen_test.cpp)
+MakeTest(AstlowererTest ast_lowering_test.cpp)
+
 add_executable(CliAppTest 6.cli_test.cpp)
 target_compile_features(CliAppTest PRIVATE cxx_std_17)
 target_compile_definitions(CliAppTest PRIVATE TEST_ROOT_DIR=\"${CMAKE_CURRENT_BINARY_DIR}\")

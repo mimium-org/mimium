@@ -3,37 +3,44 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
-// #define MIMIUM_PARSER_DEBUG
 #ifdef MIMIUM_PARSER_DEBUG
 #define DEBUG_LEVEL 4
 #else
 #define DEBUG_LEVEL 0
 #endif
 
-#include "utils/include_filesystem.hpp"
 #include <fstream>
 #include <iostream>
+#include "utils/include_filesystem.hpp"
 
-#include "basic/ast.hpp"
+#include "basic/ast_new.hpp"
 namespace mimium {
 
 class MimiumScanner;
 class MimiumParser;
 // Ast loader class to bridge between parser and ast.
-using AstPtr = std::shared_ptr<ast::Statements>;
 
 class Driver {
- public:
- Driver ();
-  AstPtr parse(std::istream& is);
-  AstPtr parseString(const std::string& source);
-  AstPtr parseFile(const std::string& filename);
-  void setTopAst(AstPtr top);
+  using expr = TopLevel::expr;
 
+ public:
+  Driver();
+  ~Driver();
+  expr parse(std::istream& is);
+  expr parseString(const std::string& source);
+  expr parseFile(const std::string& filename);
+  void addAlias(std::string const& name,IType::Value const& type);
+  std::optional<IType::Value> tryfindAliasType(std::string const& name);
+  //main interface for getting ast from bison.
+  void setTopLevel(TopLevel::Expression const& toplevel);
  private:
-  AstPtr ast_top;
   std::unique_ptr<MimiumParser> parser;
   std::unique_ptr<MimiumScanner> scanner;
+  std::optional<TopLevel::Expression> toplevel;
+  TopLevel::AliasMap_t alias_map;
+  std::optional<expr> processCompilerDirectives(TopLevel::CompilerDirective const& e);
+
+  expr lowerToplevel(TopLevel::Expression const& e);
 };
 
 }  // namespace mimium

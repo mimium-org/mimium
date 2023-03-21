@@ -3,40 +3,43 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
-#include <future>
-#include <memory>
-#include <unordered_map>
-#include <utility>
-
 #include "basic/helper_functions.hpp"
-#include "basic/variant_visitor_helper.hpp"
 namespace mimium {
-struct RenameEnvironment : public std::enable_shared_from_this<RenameEnvironment> {
-  std::unordered_map<std::string, std::string> rename_map{};
-  std::shared_ptr<RenameEnvironment> parent_env = nullptr;
 
-  std::shared_ptr<RenameEnvironment> expand() {
-    auto newenv = std::make_shared<RenameEnvironment>();
-    newenv->parent_env = shared_from_this();
-    return newenv;
+template <class From, class To, class Hash = std::hash<From>>
+struct Environment : public std::enable_shared_from_this<Environment<From, To, Hash>> {
+  Map<From, To, Hash> map{};
+  using EnvPtr = std::shared_ptr<Environment>;
+  std::optional<EnvPtr> parent_env = std::nullopt;
+  std::optional<EnvPtr> child_env = std::nullopt;
+  EnvPtr expand() {
+    child_env = std::optional(std::make_shared<Environment<From, To>>());
+    child_env.value()->parent_env = this->shared_from_this();
+    return child_env.value();
   }
-  void addToMap(std::string const& namel, std::string const& namer) {
-    rename_map.emplace(namel, namer);
+  void addToMap(From const& namel, To const& namer) { map.emplace(namel, namer); }
+
+#define THUNK(VAL) [&]() { return VAL; }  // NOLINT
+
+  std::optional<To> search(From const& name) const {
+    return metaSearch<To>(name, THUNK(map.at(name)), THUNK(parent_env.value()->search(name)));
   }
-  template <typename T>
-  std::optional<T> metaSearch(std::optional<std::string> const& name, std::future<T>&& ret_local,
-                              std::future<std::optional<T>>&& ret_freevar) {
-    if (name && rename_map.count(name.value()) > 0) { return ret_local.get(); }
-    if (name && parent_env != nullptr) { return ret_freevar.get(); }
+  std::optional<bool> isFreeVar(From const& name) {
+    return metaSearch<bool>(name, THUNK(false), THUNK(std::optional(true)));
+  }
+  bool existInLocal(From const& name) {
+    auto opt_isfreevar = isFreeVar(name);
+    return !(opt_isfreevar.value_or(true));
+  }
+
+ private:
+  template <typename T, typename Lambda1, typename Lambda2>
+  std::optional<T> metaSearch(From const& name, Lambda1&& cont_local,
+                              Lambda2&& cont_freevar) const {
+    if (map.count(name) > 0) { return std::forward<decltype(cont_local)>(cont_local)(); }
+    if (parent_env.has_value()) { return std::forward<decltype(cont_freevar)>(cont_freevar)(); }
     return std::nullopt;
   }
-#define THUNK(VAL) std::async(std::launch::deferred, [&]() { return VAL; })  // NOLINT
-
-  std::optional<std::string> search(std::optional<std::string> const& name) {
-    return metaSearch(name, THUNK(rename_map.at(name.value())), THUNK(parent_env->search(name)));
-  }
-  std::optional<bool> isFreeVar(std::string const& name) {
-    return metaSearch(name, THUNK(false), THUNK(std::optional(true)));
-  }
 };
+using RenameEnvironment = Environment<std::string, std::string>;
 }  // namespace mimium

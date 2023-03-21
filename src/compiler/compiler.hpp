@@ -12,6 +12,7 @@
 #include "basic/type.hpp"
 
 #include "compiler/ast_loader.hpp"
+#include "compiler/ast_lowering.hpp"
 #include "compiler/closure_convert.hpp"
 #include "compiler/codegen/llvmgenerator.hpp"
 #include "compiler/collect_memoryobjs.hpp"
@@ -27,16 +28,17 @@ class MIMIUM_DLL_PUBLIC Compiler {
   explicit Compiler(std::unique_ptr<llvm::LLVMContext> ctx);
   virtual ~Compiler();
 
-  AstPtr loadSource(std::istream& source);
-  AstPtr loadSource(const std::string& source);
-  AstPtr loadSourceFile(const std::string& filename);
+  Hast::expr loadSource(std::istream& source);
+  Hast::expr loadSource(const std::string& source);
+  Hast::expr loadSourceFile(const std::string& filename);
   void setFilePath(std::string path);
   void setDataLayout(const llvm::DataLayout& dl);
   void setDataLayout();
 
-  AstPtr renameSymbols(AstPtr ast);
-  TypeEnv& typeInfer(AstPtr ast);
-  mir::blockptr generateMir(AstPtr ast);
+  // AstPtr renameSymbols(Hast::expr ast);
+  static LAst::expr lowerAst(Hast::expr const& ast);
+  TypeEnvH typeInfer(LAst::expr& ast);
+  static mir::blockptr generateMir(LAst::expr const& ast, TypeEnvH const& tenv);
   mir::blockptr closureConvert(mir::blockptr mir);
   funobjmap collectMemoryObjs(mir::blockptr mir);
 
@@ -46,11 +48,10 @@ class MIMIUM_DLL_PUBLIC Compiler {
   std::unique_ptr<llvm::Module> moveLLVMModule() ;
 
  private:
+
   std::unique_ptr<llvm::LLVMContext> llvmctx;
   Driver driver;
-  SymbolRenamer symbolrenamer;
   TypeInferer typeinferer;
-  MirGenerator mirgenerator;
   std::shared_ptr<ClosureConverter> closureconverter;
   MemoryObjsCollector memobjcollector;
   LLVMGenerator llvmgenerator;
