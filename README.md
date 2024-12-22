@@ -1,4 +1,6 @@
-# mimium
+# mimium(v0.x)
+
+***This Repository is an archived repository. Now the newer version of the compiler is developed on [mimium-org/mimium-rs](https://github.com/mimium-org/mimium-rs).***
 
 a programming language as an infrastructure for sound and music
 
