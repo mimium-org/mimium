@@ -6,14 +6,10 @@
 %require "3.3"
 %debug 
 
-
-
 %defines
-
 %define api.parser.class {MimiumParser}
 %define api.namespace{mimium}
-%define api.location.type {ast::SourceLoc}
-
+%define api.location.type {mimium::SourceLoc}
 %token-table
 
 %{
@@ -30,21 +26,19 @@
 %code requires{
 #include <memory>
 #include <sstream>
-
-#include "basic/ast.hpp"
-#include "basic/helper_functions.hpp"
+#include "basic/ast_new.hpp"
 #include "compiler/ast_loader.hpp"
-
+using ast = mimium::Hast;
+using type_t = mimium::IType::Value;
 namespace mimium{
  class MimiumScanner;
 }
 
 
 #define YYDEBUG 1
-
 }
 %parse-param { mimium::MimiumScanner &scanner  }
-%parse-param { Driver  &driver  }
+%parse-param { mimium::Driver  &driver  }
 
 %code {
   using namespace mimium;
@@ -54,163 +48,137 @@ namespace mimium{
   #define yylex scanner.yylex
 }
 %define api.value.type variant
- %define parse.assert /* commented out assertion because of bison bug?*/
+%define parse.assert /* commented out assertion because of bison bug?*/
+
 %define parse.error verbose
-%token
-   ADD "+"
-   SUB "-"
-   MOD "%"
-   MUL "*"
-   DIV "/"
-   EXPONENT "^"
-   AND "&"
-   OR "|"
-   BITAND "&&"
-   BITOR "||"
-   NEQ "!="
-   EQ "=="
-   NOT "!"
-   LT "<"
-   GT ">"
-   LE "<="
-   GE ">="
-   LSHIFT "<<"
-   RSHIFT ">>"
-   
-   NOW "now_token"
 
-   ASSIGN "="
-   AT "@"
-   
-   LBRACE "{"
-   RBRACE "}"
-
-
-   FUNC "fn"
-
-   IF "if"
-   ELSE "else"
-
-   FOR "for"
-   IN "in"
-
-   TYPE_DELIM ":"
-   TYPEFLOAT "typeid:float"
-   TYPEVOID "typeid:void"
-   TYPEFN "typeid:fn"
-   TYPESTRING "typeid:string"
-   TYPEIDENT "type identifier"
-
-   INCLUDE "include"
-
-   /*END "end_token"*/
-   RETURN "return"
-
-   ENDFILE    0     "end of file"
-   NEWLINE "line break"
-;
-// %token <double> NOW "now_token"
-%token <mmmfloat> NUM "number_token"
-%token  <std::string> SYMBOL "symbol_token"
-
-%token  SELF "self_token"
-%token  <std::string> STRING "string_token"
-
-%type <types::Value> types "types"
-%type <types::Value> primtypes "primitive types"
+%token ADD 
+%token SUB 
+%token MOD 
+%token MUL 
+%token DIV 
+%token EXPONENT 
+%token AND 
+%token OR 
+%token BITAND 
+%token BITOR 
+%token NEQ 
+%token EQ 
+%token NOT 
+%token LT 
+%token GT 
+%token LE 
+%token GE 
+%token LSHIFT 
+%token RSHIFT 
+%token NOW 
+%token ASSIGN 
+%token AT 
+%token LBRACE 
+%token RBRACE 
+%token FUNC 
+%token IF 
+%token ELSE 
+%token FOR 
+%token IN 
+%token TYPE_DELIM 
+%token TYPEFLOAT 
+%token TYPEVOID 
+%token TYPEFN
+%token TYPESTRING
+%token TYPEIDENT
+%token INCLUDE
+/* %token   END "end_token"*/
+%token   RETURN
+%token   ENDFILE    0     "end of file"
+%token   NEWLINE "line break"
 
 
-%type <types::Value> fntype "fn type"
-%type <types::Value> reftype "ref type"
-%type <types::Value> tupletype "tuple type"
-%type <types::Value> structtype "struct type"
-%type <std::vector<types::Value>> typeargs "typeargs"
-%type <std::vector<types::Struct::Keytype>> strutypeargs "struct args"
-%type <types::Struct::Keytype> strutypearg "struct arg"
-%type <ast::TypeAssign> typedecl "typedecl"
+%token <mmmfloat> NUM 
+%token <std::string> SYMBOL 
 
-%type <ast::Number> num "number"
+%token  SELF
+%token  <std::string> STRING 
 
-%type <ast::DeclVar> declvar "lvar variable declaration"
-%type <ast::ArrayLvar> arrayLvar "array access lvar"
-%type <ast::StructLvar> structLvar "struct access lvar"
+%token <std::string> OPERATORS
 
-%type <std::deque<ast::DeclVar>> tuplelvar_args "tuplelvar_args"
-%type <ast::TupleLvar> tupleLvar "tuple unpack"
+%type <type_t> types "types"
+
+%type <List<Box<type_t>>> typeargs 
+%type <List<IType::RecordKey>> strutypeargs 
+%type <IType::RecordKey> strutypearg
+%type <TopLevel::TypeAlias> typedecl
+
+%type <ast::Lvar> identifier "Identifier"
+%type <List<ast::Lvar>> identifierlist 
+%type <List<ast::Lvar>> identifierlistproto 
 
 
-%type <ast::Lvar> lvar "left value"
-
+%type <ast::FloatLit> num "number"
+%type <ast::SelfLit> self "self"
+%type <ast::StringLit> string_t "string" 
 %type <ast::Symbol> symbol "symbol"
-%type <ast::Self> self "self"
 
-%type <ast::String> string "string" 
+%type <ast::App> now "now"
 
-%type <ast::Fcall> now "now"
-
-
-%type <ast::ExprPtr> single "symbol or number"
-%type <ast::Op> op "operator"
-
-%type <ast::ExprPtr> expr "expression"
-%type <ast::ExprPtr> expr_non_fcall "expression other than fcall"
-
-// %type <AST_Ptr> term_time "term @ something"
-// %type <ast::ExprPtr> term "primary"
+%type <ast::Op> operators "operators"
+%type <ast::Infix> infix "infix"
 
 %type <ast::Lambda> lambda "lambda"
-%type <ast::LambdaArgs> arguments_top "arguments top"
-%type <std::deque<ast::DeclVar>> arguments "arguments for fdef and tupleLvar" 
+%type <ast::App> app "app"
 
-// %type <AST_Ptr> declaration "declaration"
-// %type <AST_Ptr> include "include declaration"
+%type <ast::expr> expr "expression"
+%type <ast::expr> expr_non_fcall "expression other than fcall"
+%type <ast::expr> expr_non_fcall_opt_ret
+%type <List<Box<ast::expr>>> exprlist "list(expr)"
 
+%type <ast::ArrayLit> array "array"
+%type <ast::ArrayGet> array_access "array access"
 
-%type <ast::FcallArgs> fcallargs "arguments for fcall"
-%type <ast::Fcall> fcall "fcall"
-
-%type <ast::Time> fcalltime "fcall with time"
-
-
-%type <ast::ArrayInit> array "array"
-%type <ast::Tuple> tuple "tuple"
-%type <std::deque<ast::ExprPtr>> tupleargs "tupleargs"
-
-%type <std::deque<ast::ExprPtr>> arrayelems "arrayelems"
+%type <ast::TupleLit> tuple "tuple"
 
 
-%type <ast::ArrayAccess> array_access "array access"
-%type <ast::Struct> structconstruct "struct"
-%type <ast::StructAccess> structaccess "struct access"
+%type <ast::StructKey> structkey 
+%type <List<ast::StructKey>> structkeylist
+%type <ast::StructLit> structconstruct "struct"
+%type <ast::StructGet> structaccess "struct access"
 
-%type <ast::Assign> assign "assign"
-// Syntax Sugar 
-%type <ast::Fdef> fdef "fdef"
+%type <ast::If> ifstmt "if"
+%type <ast::expr> cond "if condition"
 
+// %type <ast::EnvVar> envvar "envvar"
 
-%type <ast::ExprPtr> cond "if condition"
-%type <ast::If> ifstmt "ifstmt"
-%type <ast::For> forloop "forloop"
-
-
-%type <std::shared_ptr<ast::Statement>> statement "single statement"
-
-%type <ast::Statements> statements "statements"
 %type <ast::Block> block "block"
-%type <ast::Statements> top "top"
 
 
+// Statements
+%type <ast::Assignment> assign "assign"
+%type <ast::LetTuple> lettuple "lettuple"
+// %type <ast::App> arrayput "arrayput"
+
+%type <ast::DefFn> fdef "fdef"
+
+%type <ast::Schedule> schedule "fcall with time"
+
+// %type <ast::For> forloop "forloop"
 
 
+%type <ast::Statement> statement
+%type <ast::Statements> statements
 
+%type <TopLevel::Statement> topstatement 
+%type <TopLevel::Expression> topstatements
+
+%type <TopLevel::Expression> top "top"
 %locations
 
-
 %nonassoc COND
-%nonassoc ELSE_EXPR
-%nonassoc IF IF_EXPR
+%left ELSE_EXPR
+%nonassoc IF 
+%left IF_EXPR
 %left ARROW
-
+%left INFIX
+%left OPERATORS 
 %left PIPE
 %left LSHIFT RSHIFT
 %left LE GE GT LT
@@ -224,12 +192,13 @@ namespace mimium{
 
 %left  AT
 %right NOT 
-
 %right '('
 %left  ')'
 %right '['
 %left  ']'
 %left TUPLE
+%left TUPLESINGLE
+
 %left FCALL
 
 
@@ -237,6 +206,7 @@ namespace mimium{
 %left '&'
 %left '.'
 
+%left LIST
 %nonassoc '{' '}'
 
 %right ASSIGN
@@ -248,256 +218,217 @@ namespace mimium{
 
 // primitive declaration
 
-string: STRING {
-            $$ = ast::String{{{@1,$1} ,$1}};}
+string_t: STRING { $$ = ast::StringLit{$1,DebugInfo{@$,$1}};}
+num:      NUM    { $$ = ast::FloatLit{$1,{@1 ,std::to_string($1)}};}
+self:     SELF   { @$ = @1;
+                   $$ = ast::SelfLit{{@$,"self"}};}
 
-num:  NUM {
-            $$ = ast::Number{{@1 ,std::to_string($1)} ,$1};}
-
-
-declvar: symbol TYPE_DELIM types {
-            $$ = ast::DeclVar{{@$,"declvar"},$1,std::move($3)};}
-      |symbol {
-            $$ = ast::DeclVar{{@$,"declvar"},$1,std::nullopt };}
-
-arrayLvar: expr '[' expr ']' {
-      $$ = ast::ArrayLvar{{@$,"arraylvar"},std::move($1),std::move($3)};}
-
-tuplelvar_args: declvar ',' declvar {$$ = std::deque<ast::DeclVar>{std::move($1),std::move($3)};}
-      |     tuplelvar_args ',' declvar {$1.emplace_back(std::move($3));
-      $$ = std::move($1);}
-
-tupleLvar: tuplelvar_args {
-      $$ = ast::TupleLvar{{@$,"tuplelvar"},std::move($1)};}
-      |    declvar ',' {
-      auto arg = std::deque<ast::DeclVar>{std::move($1)};
-      $$ = ast::TupleLvar{{@$,"tuplelvar"},std::move(arg)};}
-
-structLvar: expr '.' symbol {
-      $$ = ast::StructLvar{{@$,"structlvar"},std::move($1),std::move($3)};}      
+symbol: SYMBOL { @$ = @1;
+                  $$ = ast::Symbol{Identifier{$1},{@$,$1}};}
 
 
-lvar: declvar    { $$ = std::move($1);}
-     | arrayLvar { $$ = std::move($1);}
-     | tupleLvar { $$ = std::move($1);}
-     | structLvar{ $$ = std::move($1);}
+identifier: SYMBOL TYPE_DELIM types {
+            $$ = ast::Lvar{Identifier{$1},std::optional(std::move($3)),{@$,"declvar"}};}
+      |     SYMBOL {
+            $$ = ast::Lvar{Identifier{$1},std::nullopt                ,{@$,"declvar"}};}
 
-symbol: SYMBOL {
-            @$ = @1;
-            $$ = ast::Symbol{{@$,$1} ,$1};}
+identifierlistproto: identifierlistproto ',' identifier { $1.push_back(std::move($3));
+                                          $$ = std::move($1); }%prec LIST
+            |    identifier {$$ = List<ast::Lvar>{std::move($1)}; } 
 
-self: SELF {
-            @$ = @1;
-            $$ = ast::Self{@$,"self"};}
+identifierlist : identifierlistproto {$$ = std::move($1);}
+            |    %empty              {$$ = List<ast::Lvar>{};}
 
-// type specifiers
-
-
-primtypes:   TYPEFLOAT {$$ =types::Float{};}
-           | TYPEVOID  {$$ = types::Void{};}
-           | TYPESTRING  {$$ = types::String{};}
-
-reftype: types AND {$$ = types::Ref{std::move($1)};} 
-
-fntype: '(' typeargs ')' ARROW types { $$ = types::Function{std::move($5),std::move($2)};}
-tupletype: '(' typeargs ')' { $$ = types::Tuple{std::move($2)}; }
-
-typeargs:  typeargs ',' types { $1.emplace_back(std::move($3));
+typeargs:  typeargs ',' types { $1.push_back(std::move($3));
                                 $$ = std::move($1); }
-      |    types { $$ = std::vector<types::Value>{$1};}
+      |    types { $$ = List<Box<type_t>>{$1};}
       
-structtype: LBRACE strutypeargs RBRACE { $$ = types::Struct{std::move($2)}; }
 
-strutypeargs : strutypeargs ',' strutypearg { $1.emplace_back(std::move($3));$$ = std::move($1); }
-            | strutypearg {$$ = std::vector<types::Struct::Keytype>{$1}; }
-strutypearg : SYMBOL TYPE_DELIM types { $$ = types::Struct::Keytype{std::move($1),std::move($3)}; }
+strutypeargs : strutypeargs ',' strutypearg { $1.push_back(std::move($3));$$ = std::move($1); }
+            | strutypearg {auto res = List<IType::RecordKey>{};
+                        res.emplace_back(std::move($1));
+                        $$ = std::move(res); }
+strutypearg : SYMBOL TYPE_DELIM types { $$ = IType::RecordKey{std::move($1),std::move($3)}; }
 
-types: 
-        primtypes  { $$=std::move($1);}
-      | reftype    { $$=std::move($1);}
-      | fntype     { $$=std::move($1);}
-      | tupletype  { $$=std::move($1);}
-      | structtype { $$=std::move($1);}
-      | SYMBOL     { $$=types::Alias{std::move($1),types::None{}};}
+types:  TYPEFLOAT {$$ = IType::Value{IType::Float{}};}
+      | TYPEVOID  {$$ = IType::Value{IType::Unit{}};}
+      | TYPESTRING{$$ = IType::Value{IType::String{}};}
+      | '(' typeargs ')' ARROW types { 
+            $$ = IType::Value{IType::Function{std::pair(Box(std::move($2)),Box(std::move($5)) ) }};}
+      | '(' typeargs ')' { $$ = IType::Value{Box(IType::Tuple{std::move($2)})}; }
+      | LBRACE strutypeargs RBRACE { $$ = IType::Value{IType::Record{std::move($2)}}; }
+      | SYMBOL     { 
+            auto t = driver.tryfindAliasType($1);
+            if(t){
+                  $$ = t.value();
+            }else{
+                  $$=makeUnknownAlias(std::move($1));//should we make it an error?
+            }
+            }
 
 // Type Declaration
 
-typedecl: TYPEIDENT SYMBOL ASSIGN types {$$ = ast::TypeAssign{{@$,"typeassign"},std::move($2),std::move($4)}; }
-
-// Expression Section
-// temporarily debug symbol for aggregate ast is disabled
-
-single:   
-       self   {$$=ast::makeExpr($1);}
-      |now    {$$=ast::makeExpr($1);}
-      |symbol   {$$=ast::makeExpr($1);}
-      |string {$$=ast::makeExpr($1);}
-      |num    {$$=ast::makeExpr($1);}
-
+typedecl: TYPEIDENT SYMBOL ASSIGN types {
+      driver.addAlias(std::move($2), std::move($4));
+      // $$ = TopLevel::TypeAlias{std::move($2),std::move($4)};
+      }
 // function call ()
 
-fcallargs: 
-       fcallargs ',' expr  
-                { $1.args.push_back(std::move($3));
-                  $$ = std::move($1); }
-      |expr   {$$ = ast::FcallArgs{ {@1,""}, {std::move($1)} };}
-      |%empty {$$ = ast::FcallArgs{ {}, {} };}
+exprlist:  exprlist ',' expr { $1.emplace_back(std::move($3));
+                               $$ = std::move($1); }%prec LIST
+          |expr              {$$ = List<Box<ast::expr>>{std::move($1)}; } 
 
-fcall: expr '(' fcallargs ')' {$$ = ast::Fcall{{@$,""},std::move($1),std::move($3)};}
-      |expr  PIPE expr        {
-                              auto arg = ast::FcallArgs{{@1,"pipe"},{std::move($1)}};
-                              $$ = ast::Fcall{{@$,"pipe"},std::move($3),std::move(arg)};}
 
-fcalltime: fcall AT expr      {$$ = ast::Time{{@$,""},std::move($1),std::move($3)};;}
+app: expr '(' exprlist ')' {
+      $$ = ast::App{std::move($1),fmap(std::move($3),[](auto&& a){ return ast::CurryArg{a};}),{@$,"app"}};}
+    |expr '('          ')' {$$ = ast::App{std::move($1),{           },{@$,"app"}};} 
+
+
+schedule: app AT expr      {$$ = ast::Schedule{std::move($1),std::move($3),{@$,""}};}
       
 // now: syntax sugar to fcall;
-now: NOW { 
-      $$ = ast::Fcall{{@1,"now"},
-                         ast::makeExpr(ast::Symbol{ { @1,"now"} ,"mimium_getnow"}),
-                         ast::FcallArgs{ { @1,"now"},{}}};
-      }
-
-// lambda
-
-lambda: OR arguments OR block {
-      auto args = ast::LambdaArgs{{@2,"args"},std::move($2)};
-      $$ = ast::Lambda{{@$,"lambda"} ,std::move(args),std::move($4),std::nullopt};}
-       |OR arguments OR ARROW types block {
-      auto args = ast::LambdaArgs{{@2,"args"},std::move($2)};
-      $$ = ast::Lambda{{@$,"lambda"},std::move(args),std::move($6),std::move($5)};}
+now: NOW {$$ = ast::App{ast::expr{ast::Symbol{Identifier{"mimium_getnow"},{ @1,"now"}}},
+                         List<ast::CurryArg>{},{@1,"now"}};}
 
 
+lambda: OR identifierlist OR expr {
+      $$ = ast::Lambda{ std::move($2),std::move($4),std::nullopt,{@$,"lambda"}};}
+
+       |OR identifierlist OR ARROW types block {
+      $$ = ast::Lambda{std::move($2),ast::expr{std::move($6)},std::move($5),{@$,"lambda"}};}
 
 // array initialization
 
-array: '[' arrayelems ']' { 
-      // @$ = {@1.first_line,@1.first_col,@3.last_line,@3.last_col};
-      $$ = ast::ArrayInit{{@$,"array"} ,std::move($2)};}
-
-arrayelems: expr ',' arrayelems   {
-                                    $3.push_front(std::move($1));
-                                    $$ = std::move($3); }
-         |  expr {$$ = std::deque<ast::ExprPtr>{std::move($1)};}
-
+array: '[' exprlist ']' {$$ = ast::ArrayLit{std::move($2),{@$,"array"} };}
 // array access
-array_access: expr '[' expr ']' {
-      // @$ = {@1.first_line,@1.first_col,@4.last_line,@4.last_col};
-      $$ = ast::ArrayAccess{{@$,"arrayaccess"},std::move($1),std::move($3)};}
+array_access: expr '[' expr ']' {$$ = ast::ArrayGet{std::move($1),std::move($3),{@$,"arrayaccess"}};}
 
-structconstruct: SYMBOL LBRACE tupleargs RBRACE {$$ =ast::Struct{{@$,"struct"},std::move($1),std::move($3)};}
-            |SYMBOL LBRACE expr RBRACE  {$$ =ast::Struct{{@$,"struct"},std::move($1),std::deque<ast::ExprPtr>{std::move($3)}};}
-structaccess: expr '.' SYMBOL {$$ = ast::StructAccess{{@$,"structaccess"},std::move($1),std::move($3)};}
+structkey: SYMBOL TYPE_DELIM expr {$$ = ast::StructKey{std::move($1),std::move($3)}; }
+structkeylist : structkeylist ',' structkey {$1.emplace_back(std::move($3));$$ = std::move($1);}
+            |   structkey {$$ = List<ast::StructKey>{std::move($1)}; }
 
-tupleargs: expr ',' expr {$$ = std::deque<ast::ExprPtr>{std::move($1),std::move($3)};}
-      |     tupleargs ',' expr {$1.emplace_back(std::move($3));
-                              $$ = std::move($1);}%prec TUPLE
+structconstruct: LBRACE structkeylist RBRACE {$$ =ast::StructLit{std::move($2),{@$,"struct"}};}
 
-tuple: '(' tupleargs ')'{
-      $$ = ast::Tuple{{@$,"tuple"},std::move($2)};}
-      |'(' expr ',' ')' {
-      auto arg = std::deque<ast::ExprPtr>{std::move($2)};
-      $$ = ast::Tuple{{@$,"tuple"},std::move(arg)};}
+structaccess: expr '.' SYMBOL {$$ = ast::StructGet{std::move($1),std::move($3),{@$,"structget"}};}
 
 
-op:   expr ADD    expr   {$$ = ast::Op{{@$,"op"},ast::OpId::Add,        std::move($1),std::move($3)};}
-     |expr SUB    expr   {$$ = ast::Op{{@$,"op"},ast::OpId::Sub,        std::move($1),std::move($3)};}
-     |expr MUL    expr   {$$ = ast::Op{{@$,"op"},ast::OpId::Mul,        std::move($1),std::move($3)};}
-     |expr DIV    expr   {$$ = ast::Op{{@$,"op"},ast::OpId::Div,        std::move($1),std::move($3)};}
-     |expr MOD    expr   {$$ = ast::Op{{@$,"op"},ast::OpId::Mod,        std::move($1),std::move($3)};}
-     |expr EXPONENT expr {$$ = ast::Op{{@$,"op"},ast::OpId::Exponent,   std::move($1),std::move($3)};}
-     |expr OR     expr   {$$ = ast::Op{{@$,"op"},ast::OpId::Or,         std::move($1),std::move($3)};}
-     |expr AND    expr   {$$ = ast::Op{{@$,"op"},ast::OpId::And,        std::move($1),std::move($3)};}
-     |expr BITOR  expr   {$$ = ast::Op{{@$,"op"},ast::OpId::BitOr,      std::move($1),std::move($3)};}
-     |expr BITAND expr   {$$ = ast::Op{{@$,"op"},ast::OpId::BitAnd,     std::move($1),std::move($3)};}
-     |expr GT expr       {$$ = ast::Op{{@$,"op"},ast::OpId::GreaterThan,std::move($1),std::move($3)};}
-     |expr LT expr       {$$ = ast::Op{{@$,"op"},ast::OpId::LessThan,   std::move($1),std::move($3)};}
-     |expr GE expr       {$$ = ast::Op{{@$,"op"},ast::OpId::GreaterEq,  std::move($1),std::move($3)};}
-     |expr LE expr       {$$ = ast::Op{{@$,"op"},ast::OpId::LessEq,     std::move($1),std::move($3)};}
-     |expr LSHIFT expr   {$$ = ast::Op{{@$,"op"},ast::OpId::LShift,     std::move($1),std::move($3)};}
-     |expr RSHIFT expr   {$$ = ast::Op{{@$,"op"},ast::OpId::RShift,     std::move($1),std::move($3)};}
-     |expr EQ expr      {$$ = ast::Op{{@$,"op"},ast::OpId::Equal,      std::move($1),std::move($3)};}
-     |expr NEQ expr      {$$ = ast::Op{{@$,"op"},ast::OpId::NotEq,      std::move($1),std::move($3)};}
-     |SUB expr           {$$ = ast::Op{{@$,"op"},ast::OpId::Sub,        std::nullopt, std::move($2)};} %prec UMINUS
-     |NOT expr           {$$ = ast::Op{{@$,"op"},ast::OpId::Not,        std::nullopt, std::move($2)};} %prec UMINUS
+tuple: '('  expr ',' exprlist ')' { 
+      $4.push_front(std::move($2));
+      $$ = ast::TupleLit{std::move($4),{@$,"tuple"}};}
+      |'(' expr ',' ')' { $$ = ast::TupleLit{List<Box<ast::expr>>{std::move($2)},{@$,"tuple"}};}
+
+
+operators: ADD {$$ = ast::Op{"+"};}
+      |    SUB {$$ = ast::Op{"-"};}
+      |    MUL {$$ = ast::Op{"*"};}
+      |    DIV {$$ = ast::Op{"/"};}
+      |    MOD {$$ = ast::Op{"%"};}
+      |    EXPONENT  {$$ = ast::Op{"^"};}
+      |    OR  {$$ = ast::Op{"|"};}
+      |    AND  {$$ = ast::Op{"&"};}
+      |    BITOR  {$$ = ast::Op{"||"};}
+      |    BITAND  {$$ = ast::Op{"&&"};}
+      |    GT  {$$ = ast::Op{">"};}
+      |    LT  {$$ = ast::Op{"<"};}
+      |    GE  {$$ = ast::Op{">="};}
+      |    LE  {$$ = ast::Op{"<="};}
+      |    LSHIFT  {$$ = ast::Op{"<<"};}
+      |    RSHIFT  {$$ = ast::Op{">>"};}
+      |    EQ  {$$ = ast::Op{"=="};}
+      |    NEQ  {$$ = ast::Op{"!="};}
+      |    PIPE {$$ = ast::Op{"|>"};}
+      |    OPERATORS {$$ = ast::Op{std::move($1)};}
+
+infix:expr operators expr{$$ = ast::Infix{std::move($2), std::move($1),std::move($3),{@$,"op"}};} %prec INFIX
+     |     SUB expr     {$$ = ast::Infix{ ast::Op{"-"},ast::expr{ast::FloatLit{0,{@$,"unary_minus"}}}, std::move($2),{@$,"op"}};} %prec UMINUS
+     |     NOT expr     {$$ = ast::Infix{ ast::Op{"!"},std::nullopt, std::move($2),{@$,"op"}};} %prec UMINUS
+
 
 
 cond:  '(' expr ')'  {$$ = std::move($2);}%prec COND
 
 //note that you should not name this terminal symbol "if"
-ifstmt: IF cond expr   {$$ = ast::If{{@$,"if"},std::move($2),std::move($3),std::nullopt};}%prec IF_EXPR
-   |IF cond expr ELSE expr {$$ = ast::If{{@$,"if"},std::move($2),std::move($3),std::move($5)};} %prec ELSE_EXPR
+ifstmt: IF cond expr           {$$ = ast::If{std::move($2),std::move($3),std::nullopt ,{@$,"if"}};}%prec IF_EXPR
+       |IF cond expr ELSE expr {$$ = ast::If{std::move($2),std::move($3),std::move($5),{@$,"if"}};} %prec ELSE_EXPR
 
 
-expr_non_fcall:op       {$$ = ast::makeExpr($1);}
-      |    array        {$$ = ast::makeExpr($1);}
-      | array_access    {$$ = ast::makeExpr($1);}
-      | structconstruct {$$ = ast::makeExpr($1);}
-      | structaccess    {$$ = ast::makeExpr($1);}
-      |     tuple       {$$ = ast::makeExpr($1);}%prec TUPLE
-      |    lambda       {$$ = ast::makeExpr($1);}
-      |    single       {$$ = std::move($1);}
-      |'(' expr ')'     {$$ = std::move($2);}
+expr_non_fcall:infix          {$$ = ast::expr{Box(std::move($1))};}
+            | array           {$$ = ast::expr{Box(std::move($1))};}
+            | array_access    {$$ = ast::expr{Box(std::move($1))};}
+            | structconstruct {$$ = ast::expr{Box(std::move($1))};}
+            | structaccess    {$$ = ast::expr{Box(std::move($1))};}
+            | tuple           {$$ = ast::expr{Box(std::move($1))};}%prec TUPLE
+            | lambda          {$$ = ast::expr{Box(std::move($1))};}
+            | self            {$$ = ast::expr{Box(std::move($1))};}
+            | now             {$$ = ast::expr{Box(std::move($1))};}
+            | symbol          {$$ = ast::expr{Box(std::move($1))};}
+            | string_t        {$$ = ast::expr{Box(std::move($1))};}
+            | num             {$$ = ast::expr{Box(std::move($1))};}      
+           
       // | term {$$ = std::move($1);}
 
-expr: expr_non_fcall {$$ = std::move($1);}
-      |fcall {$$ = ast::makeExpr($1);} %prec FCALL
-      |    ifstmt   {$$ = ast::makeExpr($1);} %prec ELSE_EXPR
-      |    block     {$$ = ast::makeExpr($1);}
+expr:  expr_non_fcall {$$ = std::move($1);}
+      |app            {$$ = ast::expr{Box(std::move($1))};} %prec FCALL
+      |ifstmt         {$$ = ast::expr{Box(std::move($1))};} %prec ELSE_EXPR
+      |block          {$$ = ast::expr{Box(std::move($1))};}
+       | '(' expr ')'    {$$ = std::move($2);}
 
 
 // Statements 
 
 // Assign statement 
 
-assign : lvar ASSIGN expr {$$ = ast::Assign{{@$,"assign"},std::move($1),std::move($3)};}
+assign   : identifier     ASSIGN expr {$$ = ast::Assignment{std::move($1),std::move($3),{@$,"assign"}};}
 
+lettuple : identifierlist ASSIGN expr {$$= ast::LetTuple{std::move($1),std::move($3),{@$,"assign"}};}
+// arrayassign : array_access ASSIGN expr {$$= ast::LetTuple{std::move($1),std::move($3),{@$,"assign"}};}
 
 // function definition (syntax sugar to assignment of lambda function to variable)
 
-arguments_top: '(' arguments ')' {$$=ast::LambdaArgs{{@$,"largs"},std::move($2)};}
 
-arguments: declvar ',' arguments {$3.push_front(std::move($1));
-                               $$ = std::move($3); }
-         | declvar  {$$ = std::deque<ast::DeclVar>{std::move($1)};}
-         | %empty {$$ = {};}
-
-fdef: FUNC declvar arguments_top block {
-      auto lambda = ast::Lambda{{@$,"lambda"} ,std::move($3),std::move($4),std::nullopt};
-      $$ = ast::Fdef{{@$,"fdef"},std::move($2),lambda};}
-      |FUNC declvar arguments_top ARROW types block {
-      auto lambda = ast::Lambda{{@$,"lambda"} ,std::move($3),std::move($6),std::move($5)};
-      $$ = ast::Fdef{{@$,"fdef"},std::move($2),lambda};}
+fdef: FUNC identifier '(' identifierlist ')'             block {
+      auto&& lambda = ast::Lambda{std::move($4),ast::expr{std::move($6)},std::nullopt,{@$,"lambda"}};
+      $$ = ast::DefFn{std::move($2),lambda,{@$,"fdef"}};}
+    | FUNC identifier '(' identifierlist ')' ARROW types block {
+      auto&& lambda = ast::Lambda{std::move($4),ast::expr{std::move($8)},std::move($7),{@$,"lambda"}};
+      $$ = ast::DefFn{std::move($2),lambda,{@$,"fdef"}};}
 
 
-top:  statements opt_nl ENDFILE {driver.setTopAst(std::make_shared<ast::Statements>(std::move($1)));}
+top:  topstatements opt_nl ENDFILE {driver.setTopLevel(std::move($1));}
 
-statements: opt_nl statement{  $$ = std::deque<std::shared_ptr<ast::Statement>>{std::move($2)};}
-            |statements newlines statement {$1.push_back(std::move($3));
-                                          $$= std::move($1);  }
+topstatement: statement  { $$ = TopLevel::Statement{std::move($1)};}
+            | typedecl    { $$ = TopLevel::Statement{std::move($1)}; }
+
+topstatements : topstatements newlines topstatement { $1.emplace_back(std::move($3));
+                                                      $$= std::move($1); }
+            | opt_nl topstatement {  $$ = TopLevel::Expression{std::move($2)}; }
+
+statements: opt_nl statement{  auto res = ast::Statements{};
+                              res.v.emplace_back(std::move($2));
+                              $$ = std::move(res);}
+          |statements newlines statement {$1.v.emplace_back(std::move($3));
+                                            $$= std::move($1);  }
             
-statement: assign       {$$=ast::makeStatement(std::move($1));} 
-          |typedecl     {$$=ast::makeStatement(std::move($1));} 
-          |fdef         {$$=ast::makeStatement(std::move($1));}
-          |forloop      {$$=ast::makeStatement(std::move($1));}
-          |RETURN expr  {$$=ast::makeStatement(ast::Return{{@$,"ret"},std::move($2)});}
-          |fcalltime    {$$=ast::makeStatement(std::move($1));}
-          |fcall        {$$=ast::makeStatement(std::move($1));}
-          |ifstmt       {$$=ast::makeStatement(std::move($1));}
+statement: assign      {$$=ast::Statement{std::move($1)};} 
+          |lettuple    {$$=ast::Statement{std::move($1)};} 
+          |fdef        {$$=ast::Statement{std::move($1)};}
+          |schedule    {$$=ast::Statement{std::move($1)};}
+          |app         {$$=ast::Statement{std::move($1)};}
+          |ifstmt      {$$=ast::Statement{std::move($1)};}
 
 
-block: LBRACE   statements newlines expr_non_fcall opt_nl RBRACE {$$ = ast::Block{{@$,"block"},std::move($2),std::optional(std::move($4))};}
-      | LBRACE  opt_nl expr_non_fcall opt_nl RBRACE {$$ = ast::Block{{@$,"block"},{},std::move($3)};}
-      | LBRACE   statements opt_nl RBRACE {
-            auto& lastline = $2.back();
-            std::optional<ast::ExprPtr> optexpr =std::nullopt;
-            if(std::holds_alternative<ast::Fcall>(*lastline)){
-                  optexpr = ast::makeExpr(std::get<ast::Fcall>(*lastline));
-                  $2.pop_back();
-            }else if(rv::holds_alternative<ast::If>(*lastline)){
-                  optexpr = ast::makeExpr(rv::get<ast::If>(*lastline));
-                  $2.pop_back();
-            }
-            $$ = ast::Block{{@$,"block"},std::move($2),std::move(optexpr)};}
+block:  LBRACE statements newlines expr_non_fcall_opt_ret opt_nl RBRACE 
+                  {$$ = ast::Block{std::move($2).v,std::optional(std::move($4)),{@$,"block"}};}
+      | LBRACE  opt_nl expr_non_fcall_opt_ret opt_nl RBRACE {$$ = ast::Block{List<ast::Statement>{},std::optional(std::move($3)),{@$,"block"}};}
+
+      | LBRACE statements opt_nl RBRACE { $$ = ast::processReturn($2,@$);}
+      | LBRACE opt_nl RETURN statement opt_nl RBRACE { 
+            auto stmts = ast::Statements{List<ast::Statement>{$4}};
+            $$ = ast::processReturn(stmts,@$);}
+      | LBRACE statements opt_nl RETURN statement opt_nl RBRACE { 
+            $2.v.emplace_back(std::move($5));
+            $$ = ast::processReturn($2,@$);}
+
 
 newlines: newlines NEWLINE
        | NEWLINE
@@ -505,19 +436,14 @@ newlines: newlines NEWLINE
 opt_nl:%empty
       | newlines {}
 
+expr_non_fcall_opt_ret: RETURN expr_non_fcall {$$=std::move($2);}
+                        | expr_non_fcall{$$=std::move($1);}
 
-
-forloop: FOR '(' declvar IN expr ')' block {$$ = ast::For{{@$,"for"},std::move($3),std::move($5),std::move($7)};};
+// forloop: FOR '(' declvar IN expr ')' block {$$ = ast::For{{@$,"for"},std::move($3),std::move($5),std::move($7)};};
 
 
 // declaration : include {$$=std::move($1);} 
 // include : INCLUDE '(' fcallargs ')' {$$ = driver.add_declaration("include",std::move($3)); }
-
-
-
-
-
-
 
 %%
 

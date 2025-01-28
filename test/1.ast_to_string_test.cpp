@@ -1,6 +1,5 @@
-#include "basic/ast_to_string.hpp"
 
-#include "basic/ast.hpp"
+#include "basic/ast_new.hpp"
 #include "compiler/ast_loader.hpp"
 
 #include "gtest/gtest.h"
@@ -8,15 +7,13 @@
 namespace mimium {
 
 TEST(asttostring, basic) {//NOLINT
-  ast::DebugInfo dbg;
-  auto statement = ast::makeStatement(ast::Assign{
-      {{dbg}},
-      ast::DeclVar{{{dbg}}, ast::Symbol{{{dbg}}, "hoge"}, std::optional(types::Float{})},
-      ast::makeExpr(ast::Number{{{dbg}}, 1})});
+DebugInfo dbg;
+
+  auto opast = Hast::expr{Hast::Infix{"+", Hast::expr{Hast::FloatLit{1.0, dbg}},
+                           Hast::expr{Hast::StringLit{"test", dbg}}, dbg}};
   std::ostringstream ss;
-  ss << *statement;
-  std::string target("(assign (lvar hoge float) 1)");
-  EXPECT_STREQ(ss.str().c_str(), target.c_str());
+  std::string target("(infix + 1.0 test)");
+  EXPECT_STREQ(toString<Hast>(opast).c_str(), target.c_str());
 }
 
 // TEST(asttostring_parser, basic) {

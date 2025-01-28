@@ -4,9 +4,11 @@
 
 #include "compiler/ffi.hpp"
 #include <cmath>
+#include <iostream>
 #include "sndfile.h"
 
-extern "C"{
+extern "C" {
+
 MIMIUM_DLL_PUBLIC void dumpaddress(void* a) { std::cerr << a << "\n"; }
 
 MIMIUM_DLL_PUBLIC void printdouble(double d) { std::cout << d; }
@@ -18,11 +20,19 @@ MIMIUM_DLL_PUBLIC double mimiumrand() { return ((double)rand() / RAND_MAX) * 2 -
 
 MIMIUM_DLL_PUBLIC bool mimium_dtob(double d) { return d > 0; }
 MIMIUM_DLL_PUBLIC int64_t mimium_dtoi(double d) { return static_cast<int64_t>(d); }
+
+
+MIMIUM_DLL_PUBLIC double mimium_add(double d1, double d2) { return d1 + d2; }
+MIMIUM_DLL_PUBLIC double mimium_sub(double d1, double d2) { return d1 - d2; }
+MIMIUM_DLL_PUBLIC double mimium_mul(double d1, double d2) { return d1 * d2; }
+MIMIUM_DLL_PUBLIC double mimium_div(double d1, double d2) { return d1 / d2; }
 MIMIUM_DLL_PUBLIC double mimium_gt(double d1, double d2) { return static_cast<double>(d1 > d2); }
 MIMIUM_DLL_PUBLIC double mimium_lt(double d1, double d2) { return static_cast<double>(d1 < d2); }
 MIMIUM_DLL_PUBLIC double mimium_ge(double d1, double d2) { return static_cast<double>(d1 >= d2); }
 MIMIUM_DLL_PUBLIC double mimium_eq(double d1, double d2) { return static_cast<double>(d1 == d2); }
-MIMIUM_DLL_PUBLIC double mimium_noteq(double d1, double d2) { return static_cast<double>(d1 != d2); }
+MIMIUM_DLL_PUBLIC double mimium_noteq(double d1, double d2) {
+  return static_cast<double>(d1 != d2);
+}
 MIMIUM_DLL_PUBLIC double mimium_le(double d1, double d2) { return static_cast<double>(d1 <= d2); }
 MIMIUM_DLL_PUBLIC double mimium_and(double d1, double d2) {
   return static_cast<double>(mimium_dtob(d1) && mimium_dtob(d2));
@@ -49,11 +59,11 @@ struct MmmRingBuf {
   // int64_t size=5000;
   int64_t readi = 0;
   int64_t writei = 0;
-  double buf[mimium::types::fixed_delaysize]{};
+  double buf[mimium::Intrinsic::fixed_delaysize]{};
 };
 
-MIMIUM_DLL_PUBLIC double mimium_memprim(double in, double* valptr){
-  auto res= *valptr;
+MIMIUM_DLL_PUBLIC double mimium_memprim(double in, double* valptr) {
+  auto res = *valptr;
   *valptr = in;
   return res;
 }
@@ -90,67 +100,101 @@ MIMIUM_DLL_PUBLIC double* libsndfile_loadwav(char* filename) {
 }
 
 namespace mimium {
-using namespace types;//NOLINT
 using FI = BuiltinFnInfo;
-const std::unordered_map<std::string, BuiltinFnInfo> LLVMBuiltin::ftable = {
-    {"print", initBI(Function{Void{}, {Float{}}}, "printdouble")},
-    {"println", initBI(Function{Void{}, {Float{}}}, "printlndouble")},
-    {"printlnstr", initBI(Function{Void{}, {String{}}}, "printlnstr")},
+using Function = IType::Function;
 
-    {"sin", initBI(Function{Float{}, {Float{}}}, "sin")},
-    {"cos", initBI(Function{Float{}, {Float{}}}, "cos")},
-    {"tan", initBI(Function{Float{}, {Float{}}}, "tan")},
+namespace {
+const auto init_bi = [](IType::Function&& f, std::string_view&& n) {
+  return BuiltinFnInfo{IType::Value{std::move(f)}, n};
+};
+const auto unit_t = []() { return IType::Value{IType::Unit{}}; };
+const auto float_t = []() { return IType::Value{IType::Float{}}; };
+const auto string_t = []() { return IType::Value{IType::String{}}; };
 
-    {"asin", initBI(Function{Float{}, {Float{}}}, "asin")},
-    {"acos", initBI(Function{Float{}, {Float{}}}, "acos")},
-    {"atan", initBI(Function{Float{}, {Float{}}}, "atan")},
-    {"atan2", initBI(Function{Float{}, {Float{}, Float{}}}, "atan2")},
+const auto array_t = [](IType::Value&& t, int size) {
+  return IType::Value{IType::Array{std::move(t), size}};
+};
 
-    {"sinh", initBI(Function{Float{}, {Float{}}}, "sinh")},
-    {"cosh", initBI(Function{Float{}, {Float{}}}, "cosh")},
-    {"tanh", initBI(Function{Float{}, {Float{}}}, "tanh")},
-    {"exp", initBI(Function{Float{}, {Float{}}}, "exp")},
-    {"pow", initBI(Function{Float{}, {Float{}, Float{}}}, "pow")},
+const auto make_fun = [](IType::Value&& r, List<Box<IType::Value>>&& as) {
+  return IType::Function{std::pair(std::move(as), std::move(r))};
+};
+}  // namespace
 
-    {"log", initBI(Function{Float{}, {Float{}}}, "log")},
-    {"log10", initBI(Function{Float{}, {Float{}}}, "log10")},
-    {"random", initBI(Function{Float{}, {}}, "mimiumrand")},
+const std::unordered_map<std::string_view, BuiltinFnInfo> Intrinsic::ftable = {
 
-    {"sqrt", initBI(Function{Float{}, {Float{}}}, "sqrt")},
-    {"abs", initBI(Function{Float{}, {Float{}}}, "fabs")},
+    {"print", init_bi(make_fun(unit_t(), {float_t()}), "printdouble")},
+    {"println", init_bi(make_fun(unit_t(), {float_t()}), "printlndouble")},
+    {"printlnstr", init_bi(make_fun(unit_t(), {string_t()}), "printlnstr")},
 
-    {"ceil", initBI(Function{Float{}, {Float{}}}, "ceil")},
-    {"floor", initBI(Function{Float{}, {Float{}}}, "floor")},
-    {"trunc", initBI(Function{Float{}, {Float{}}}, "trunc")},
-    {"round", initBI(Function{Float{}, {Float{}}}, "round")},
+    {"sin", init_bi(make_fun(float_t(), {float_t()}), "sin")},
+    {"cos", init_bi(make_fun(float_t(), {float_t()}), "cos")},
+    {"tan", init_bi(make_fun(float_t(), {float_t()}), "tan")},
 
-    {"fmod", initBI(Function{Float{}, {Float{}, Float{}}}, "fmod")},
-    {"remainder", initBI(Function{Float{}, {Float{}, Float{}}}, "remainder")},
+    {"asin", init_bi(make_fun(float_t(), {float_t()}), "asin")},
+    {"acos", init_bi(make_fun(float_t(), {float_t()}), "acos")},
+    {"atan", init_bi(make_fun(float_t(), {float_t()}), "atan")},
+    {"atan2", init_bi(make_fun(float_t(), {float_t(), float_t()}), "atan2")},
 
-    {"min", initBI(Function{Float{}, {Float{}, Float{}}}, "fmin")},
-    {"max", initBI(Function{Float{}, {Float{}, Float{}}}, "fmax")},
+    {"sinh", init_bi(make_fun(float_t(), {float_t()}), "sinh")},
+    {"cosh", init_bi(make_fun(float_t(), {float_t()}), "cosh")},
+    {"tanh", init_bi(make_fun(float_t(), {float_t()}), "tanh")},
+    {"exp", init_bi(make_fun(float_t(), {float_t()}), "exp")},
+    {"pow", init_bi(make_fun(float_t(), {float_t(), float_t()}), "pow")},
 
-    {"ge", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_ge")},
-    {"eq", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_eq")},
-    {"noteq", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_noteq")},
-    {"le", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_le")},
-    {"gt", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_gt")},
-    {"lt", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_lt")},
-    {"and", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_and")},
-    {"or", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_or")},
-    {"not", initBI(Function{Float{}, {Float{}}}, "mimium_not")},
+    {"log", init_bi(make_fun(float_t(), {float_t()}), "log")},
+    {"log10", init_bi(make_fun(float_t(), {float_t()}), "log10")},
+    {"random", init_bi(make_fun(float_t(), {}), "mimiumrand")},
 
-    {"lshift", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_lshift")},
-    {"rshift", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_rshift")},
+    {"sqrt", init_bi(make_fun(float_t(), {float_t()}), "sqrt")},
+    {"abs", init_bi(make_fun(float_t(), {float_t()}), "fabs")},
 
-    {"mem", initBI(Function{Float{}, {Float{}}}, "mimium_memprim")},
-    {"delay", initBI(Function{Float{}, {Float{}, Float{}}}, "mimium_delayprim")},
+    {"ceil", init_bi(make_fun(float_t(), {float_t()}), "ceil")},
+    {"floor", init_bi(make_fun(float_t(), {float_t()}), "floor")},
+    {"trunc", init_bi(make_fun(float_t(), {float_t()}), "trunc")},
+    {"round", init_bi(make_fun(float_t(), {float_t()}), "round")},
 
-    {"loadwavsize", initBI(Function{Float{}, {String{}}}, "libsndfile_loadwavsize")},
-    {"loadwav", initBI(Function{Array{Float{}, 0}, {String{}}}, "libsndfile_loadwav")},
+    {"fmod", init_bi(make_fun(float_t(), {float_t(), float_t()}), "fmod")},
+    {"remainder", init_bi(make_fun(float_t(), {float_t(), float_t()}), "remainder")},
+
+    {"min", init_bi(make_fun(float_t(), {float_t(), float_t()}), "fmin")},
+    {"max", init_bi(make_fun(float_t(), {float_t(), float_t()}), "fmax")},
+
+    // These primitive operations are called from C library difined above if no intrinsic are find in code generator for each backends.
+    // If they can, they will be replaced with primitive operations.
+
+    {"store_intrinsic",init_bi(make_fun(unit_t(), {float_t(),float_t()}), "mimium_store_intrinsic") },
+
+
+    {"+",init_bi(make_fun(float_t(), {float_t(),float_t()}), "mimium_add") },
+    {"-",init_bi(make_fun(float_t(), {float_t(),float_t()}), "mimium_sub") },
+    {"*",init_bi(make_fun(float_t(), {float_t(),float_t()}), "mimium_mul") },
+    {"/",init_bi(make_fun(float_t(), {float_t(),float_t()}), "mimium_div") },
+
+    {">=", init_bi(make_fun(float_t(), {float_t(), float_t()}), "mimium_ge")},
+    {"==", init_bi(make_fun(float_t(), {float_t(), float_t()}), "mimium_eq")},
+    {"!=", init_bi(make_fun(float_t(), {float_t(), float_t()}), "mimium_noteq")},
+    {"<=", init_bi(make_fun(float_t(), {float_t(), float_t()}), "mimium_le")},
+    {">", init_bi(make_fun(float_t(), {float_t(), float_t()}), "mimium_gt")},
+    {"<", init_bi(make_fun(float_t(), {float_t(), float_t()}), "mimium_lt")},
+    {"&&", init_bi(make_fun(float_t(), {float_t(), float_t()}), "mimium_and")},
+    {"&", init_bi(make_fun(float_t(), {float_t(), float_t()}), "mimium_and")},
+    {"||", init_bi(make_fun(float_t(), {float_t(), float_t()}), "mimium_or")},
+    {"|", init_bi(make_fun(float_t(), {float_t(), float_t()}), "mimium_or")},
+    {"!", init_bi(make_fun(float_t(), {float_t()}), "mimium_not")},
+
+    {"<<", init_bi(make_fun(float_t(), {float_t(), float_t()}), "mimium_lshift")},
+    {">>", init_bi(make_fun(float_t(), {float_t(), float_t()}), "mimium_rshift")},
+
+    {"%",init_bi(make_fun(float_t(), {float_t(),float_t()}), "fmod") },
+
+    {"mem", init_bi(make_fun(float_t(), {float_t()}), "mimium_memprim")},
+    {"delay", init_bi(make_fun(float_t(), {float_t(), float_t()}), "mimium_delayprim")},
+
+    {"loadwavsize", init_bi(make_fun(float_t(), {string_t()}), "libsndfile_loadwavsize")},
+    {"loadwav", init_bi(make_fun(array_t(float_t(), 0), {string_t()}), "libsndfile_loadwav")},
 
     {"access_array_lin_interp",
-     initBI(Function{Float{}, {Float{}, Float{}}}, "access_array_lin_interp")}
+     init_bi(make_fun(float_t(), {float_t(), float_t()}), "access_array_lin_interp")}
 
 };
 

@@ -8,7 +8,7 @@ namespace mimium {
 // new alphaconverter
 SymbolRenamer::SymbolRenamer() : SymbolRenamer(std::make_shared<RenameEnvironment>()) {}
 SymbolRenamer::SymbolRenamer(std::shared_ptr<RenameEnvironment> env) : env(std::move(env)) {
-  this->env->rename_map.emplace("dsp", "dsp");
+  this->env->addToMap("dsp", "dsp");
 }
 
 AstPtr SymbolRenamer::rename(ast::Statements& ast) {
@@ -23,11 +23,11 @@ std::string SymbolRenamer::generateNewName(std::string const& name) {
 }
 
 std::string SymbolRenamer::getNewName(std::string const& name) {
-  auto res = env->search(std::optional(name));
+  auto res = env->search(name);
   return res.value_or(generateNewName(name));
 }
 std::string SymbolRenamer::searchFromEnv(std::string const& name) {
-  auto res = env->search(std::optional(name));
+  auto res = env->search(name);
   if (res == std::nullopt) {
     // the variable not found, assumed to be external symbol at this stage.
     return name;
@@ -53,7 +53,7 @@ ast::Block SymbolRenamer::renameBlock(ast::Block& ast) {
   env = env->expand();
   auto newstmts = rename(ast.stmts);
   auto newexpr = ast.expr.has_value() ? std::optional(renameExpr(ast.expr.value())) : std::nullopt;
-  env = env->parent_env;
+  env = env->parent_env.value();
   return ast::Block{{{ast.debuginfo}}, *std::move(newstmts), std::move(newexpr)};
 }
 
@@ -61,7 +61,7 @@ ast::ExprPtr ExprRenameVisitor::operator()(ast::Block& ast) {
   return ast::makeExpr(renamer.renameBlock(ast));
 }
 ast::LambdaArgs ExprRenameVisitor::renameLambdaArgs(ast::LambdaArgs& ast) {
-  auto newargs = ast::transformArgs(
+  auto newargs = fmap(
       ast.args, [&](ast::DeclVar a) { return renamer.lvar_renamevisitor.renameLambdaArgVar(a); });
   return ast::LambdaArgs{{{ast.debuginfo}}, std::move(newargs)};
 }
@@ -69,7 +69,7 @@ ast::Lambda ExprRenameVisitor::renameLambda(ast::Lambda& ast) {
   renamer.env = renamer.env->expand();
   auto newargsast = renameLambdaArgs(ast.args);
   auto newbody = renamer.renameBlock(ast.body);
-  renamer.env = renamer.env->parent_env;
+  renamer.env = renamer.env->parent_env.value();
   return ast::Lambda{{{ast.debuginfo}}, std::move(newargsast), std::move(newbody), ast.ret_type};
 }
 
@@ -78,7 +78,7 @@ ast::ExprPtr ExprRenameVisitor::operator()(ast::Lambda& ast) {
 }
 
 ast::FcallArgs SymbolRenamer::renameFcallArgs(ast::FcallArgs& ast) {
-  auto newargs = ast::transformArgs(ast.args, [&](ast::ExprPtr e) { return renameExpr(e); });
+  auto newargs = fmap(ast.args, [&](ast::ExprPtr e) { return renameExpr(e); });
   return ast::FcallArgs{{{ast.debuginfo}}, std::move(newargs)};
 }
 
@@ -100,24 +100,21 @@ ast::ExprPtr ExprRenameVisitor::operator()(ast::Fcall& ast) {
 }
 
 ast::ExprPtr ExprRenameVisitor::operator()(ast::Struct& ast) {
-  auto newargs =
-      ast::transformArgs(ast.args, [&](ast::ExprPtr e) { return renamer.renameExpr(e); });
+  auto newargs = fmap(ast.args, [&](ast::ExprPtr e) { return renamer.renameExpr(e); });
   return ast::makeExpr(ast::Struct{{{ast.debuginfo}}, ast.typesymbol, std::move(newargs)});
 }
 ast::ExprPtr ExprRenameVisitor::operator()(ast::StructAccess& ast) {
   return ast::makeExpr(ast::StructAccess{{{ast.debuginfo}}, rename(ast.stru), ast.field});
 }
 ast::ExprPtr ExprRenameVisitor::operator()(ast::ArrayInit& ast) {
-  auto newargs =
-      ast::transformArgs(ast.args, [&](ast::ExprPtr e) { return renamer.renameExpr(e); });
+  auto newargs = fmap(ast.args, [&](ast::ExprPtr e) { return renamer.renameExpr(e); });
   return ast::makeExpr(ast::ArrayInit{{{ast.debuginfo}}, std::move(newargs)});
 }
 ast::ExprPtr ExprRenameVisitor::operator()(ast::ArrayAccess& ast) {
   return ast::makeExpr(ast::ArrayAccess{{{ast.debuginfo}}, rename(ast.array), rename(ast.index)});
 }
 ast::ExprPtr ExprRenameVisitor::operator()(ast::Tuple& ast) {
-  auto newargs =
-      ast::transformArgs(ast.args, [&](ast::ExprPtr e) { return renamer.renameExpr(e); });
+  auto newargs = fmap(ast.args, [&](ast::ExprPtr e) { return renamer.renameExpr(e); });
   return ast::makeExpr(ast::Tuple{{{ast.debuginfo}}, std::move(newargs)});
 }
 
@@ -144,8 +141,8 @@ ast::Lvar LvarRenameVisitor::operator()(ast::ArrayLvar& ast) {
       {{ast.debuginfo}}, renamer.renameExpr(ast.array), renamer.renameExpr(ast.index)};
 }
 ast::Lvar LvarRenameVisitor::operator()(ast::TupleLvar& ast) {
-  auto newargs = ast::transformArgs(
-      ast.args, [&](ast::DeclVar a) { return renamer.lvar_renamevisitor.renameDeclVar(a); });
+  auto newargs =
+      fmap(ast.args, [&](ast::DeclVar a) { return renamer.lvar_renamevisitor.renameDeclVar(a); });
   return ast::TupleLvar{{{ast.debuginfo}}, newargs};
 }
 ast::Lvar LvarRenameVisitor::operator()(ast::StructLvar& ast) {
@@ -188,7 +185,7 @@ StatementPtr StatementRenameVisitor::operator()(ast::For& ast) {
   renamer.env = renamer.env->expand();
   auto newindex = renamer.lvar_renamevisitor.renameDeclVar(ast.index);
   auto newstmts = renamer.renameBlock(ast.statements);
-  renamer.env = renamer.env->parent_env;
+  renamer.env = renamer.env->parent_env.value();
   return ast::makeStatement(
       ast::For{{{ast.debuginfo}}, std::move(newindex), std::move(newiter), std::move(newstmts)});
 }

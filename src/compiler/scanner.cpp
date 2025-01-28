@@ -14,4 +14,7 @@ MimiumScanner::MimiumScanner(std::istream& in)
   yy_flex_debug = 1;
 #endif
 };
+
+MimiumScanner::~MimiumScanner()=default;
+
 }  // namespace mimium

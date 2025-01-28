@@ -5,6 +5,8 @@
 #pragma once
 
 #include "type.hpp"
+#include "debuginfo.hpp"
+
 using mmmfloat = double;
 
 namespace mimium::ast {
@@ -84,24 +86,7 @@ enum class OpId {
 };
 
 std::string_view getOpString(OpId id);
-struct Pos {
-  int line = 1;
-  int col;
-};
-struct SourceLoc {
-  Pos begin;
-  Pos end;
-};
 
-inline std::ostream& operator<<(std::ostream& os, const SourceLoc& loc) {
-  os << loc.begin.line << ":" << loc.begin.col << " ~ " << loc.end.line << ":" << loc.end.col;
-  return os;
-}
-
-struct DebugInfo {
-  SourceLoc source_loc;
-  std::string symbol;
-};
 
 // Base definition of ast. all ast must be derived from this class
 

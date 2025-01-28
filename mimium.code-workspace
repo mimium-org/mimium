@@ -30,7 +30,7 @@
 					"type": "lldb",
 					"request": "launch",
 					"program": "${command:cmake.launchTargetPath}",
-					"args": [ "${workspaceFolder}/test/mmm/test_stereopan.mmm"], 
+					"args": [ "${workspaceFolder}/test/mmm/test_if.mmm"], 
 					"cwd": "${workspaceFolder}/build", 
 				},
 			]
@@ -52,12 +52,14 @@
 		  ],
 		"cmake.configureArgs": [
 			"-DBUILD_TEST=ON",
-			"-DENABLE_COVERAGE=ON",
+			"-DENABLE_COVERAGE=OFF",
 			// "-DENABLE_LLD=ON"
 		],
 		"coverage-gutters.coverageBaseDir": "build",
 		"coverage-gutters.showRulerCoverage": true,
 		"coverage-gutters.customizable.status-bar-toggler-watchCoverageAndVisibleEditors-enabled": false,
+		"C_Cpp.configurationWarnings": "Disabled",
+		"C_Cpp.autocomplete": "Disabled",
 		
 	},
 }

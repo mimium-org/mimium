@@ -25,7 +25,7 @@ mimium_utils )
 
 
 add_subdirectory(codegen)
-add_library(mimium_parser OBJECT
+add_library(mimium_parser
 ${FLEX_CPP} 
 ${BISON_CPP} 
 ast_loader.cpp
@@ -46,12 +46,17 @@ $<BUILD_INTERFACE:${PARSER_HEADER_DIR}>
 )
 
 add_library(mimium_compiler
-symbolrenamer.cpp 
+
 mirgenerator.cpp 
+ast_lowering.cpp
+type_lowering.cpp
+ast_loader.cpp
 type_infer_visitor.cpp 
 closure_convert.cpp 
 collect_memoryobjs.cpp 
-compiler.cpp)
+compiler.cpp
+
+)
 
 target_include_directories(mimium_compiler
 PRIVATE

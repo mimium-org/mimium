@@ -4,27 +4,25 @@
 
 #pragma once
 #define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
-#include "export.hpp"
 #include <initializer_list>
 #include <unordered_map>
+#include "export.hpp"
 
 // #include "compiler/runtime/mididriver.hpp"
-#include "basic/type.hpp"
+#include "basic/type_new.hpp"
 
 namespace mimium {
 
 struct BuiltinFnInfo {
-  types::Value mmmtype;
-  std::string target_fnname;
+  constexpr BuiltinFnInfo() = default;
+  IType::Value mmmtype;
+  std::string_view target_fnname;
 };
 
-inline BuiltinFnInfo initBI(types::Function&& f, std::string&& s) {
-  return BuiltinFnInfo{std::move(f), std::move(s)};
-}
-
-struct MIMIUM_DLL_PUBLIC LLVMBuiltin {
-  const static std::unordered_map<std::string, BuiltinFnInfo> ftable;
-  static bool isBuiltin(std::string fname) { return LLVMBuiltin::ftable.count(fname) > 0; }
+struct MIMIUM_DLL_PUBLIC Intrinsic {
+  const static std::unordered_map<std::string_view, BuiltinFnInfo> ftable;
+  static bool isBuiltin(std::string fname) { return Intrinsic::ftable.count(fname) > 0; }
+  constexpr static int fixed_delaysize = 48000;
 };
 
 }  // namespace mimium

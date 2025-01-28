@@ -3,24 +3,19 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #pragma once
-#include <algorithm>
 #include <condition_variable>
 #include <deque>
-#include <functional>
 #include <iostream>
 #include <map>
 #include <memory>
 #include <mutex>
-#include <numeric>
 #include <sstream>
 #include <stack>
-#include <string>
-#include <unordered_map>
 #include <utility>  //pair
-#include <variant>
 #include <vector>
+#include <functional>
+#include "abstractions.hpp"
 #include "export.hpp"
-#include "variant_visitor_helper.hpp"
 
 #ifdef _WIN32
 // SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), ENABLE_VIRTUAL_TERMINAL_PROCESSING);
@@ -51,35 +46,6 @@ auto getEnumByStr(const std::unordered_map<std::string_view, ENUMTYPE>& map, std
   return ENUMTYPE::Invalid;
 }
 
-// meta function to check if it is smart pointer or not(used in ast_to_string);
-template <typename T, typename Enable = void>
-struct is_smart_pointer {
-  enum { value = false };
-};
-
-template <typename T>
-struct is_smart_pointer<
-    T,
-    typename std::enable_if<std::is_same<typename std::remove_cv<T>::type,
-                                         std::shared_ptr<typename T::element_type>>::value>::type> {
-  enum { value = true };
-};
-
-template <typename T>
-struct is_smart_pointer<
-    T,
-    typename std::enable_if<std::is_same<typename std::remove_cv<T>::type,
-                                         std::unique_ptr<typename T::element_type>>::value>::type> {
-  enum { value = true };
-};
-
-template <typename T>
-struct is_smart_pointer<
-    T,
-    typename std::enable_if<std::is_same<typename std::remove_cv<T>::type,
-                                         std::weak_ptr<typename T::element_type>>::value>::type> {
-  enum { value = true };
-};
 
 struct WaitController {
   std::mutex mtx;
@@ -87,77 +53,18 @@ struct WaitController {
   bool isready = false;
 };
 
+
 // for ast
 template <class ElementType>
-static std::string join(std::deque<ElementType>& vec, std::string delim) {
-  return std::accumulate(std::next(vec.begin()), vec.end(), vec.begin()->toString(),
-                         [&](std::string a, std::shared_ptr<ElementType>& b) {
-                           return std::move(a) + delim + b.toString();
-                         });
+std::string join(std::deque<ElementType> const& vec, std::string delim) {
+    return join(fmap(vec, [](auto const& a) { return a->toString(); }), delim);
 }
 
 template <class T>
-bool has(std::vector<T> t, T s) {
-  return std::find(t.begin(), t.end(), s) != t.end();
-}
-inline bool has(std::vector<std::string> t, char* s) {
-  return std::find(t.begin(), t.end(), std::string(s)) != t.end();
+static std::string join(std::deque<std::shared_ptr<T>>& vec, std::string const& delim) {
+  return join(fmap(vec, [](auto const& a) { return a->toString(); }), delim);
 }
 
-// helper metafunction which maps container elements with lambda.
-// Template-template parameter are input container and output container.
-// Other parameters will be inferred from context.
-// auto hoge = fmap<std::deque,std::vector>(ast.args,[](ExprPtr a){return a.name;});
-// if container between input and output are the same, you can omit template parameter.
-// auto hoge = fmap(ast.args,[](ExprPtr a){return a.name;});
-
-template <template <class...> class CONTAINERIN,
-          template <class...> class CONTAINEROUT = CONTAINERIN, typename ELEMENTIN, typename LAMBDA>
-CONTAINEROUT<std::invoke_result_t<LAMBDA, ELEMENTIN>> fmap(CONTAINERIN<ELEMENTIN> const& args,
-                                                           LAMBDA&& lambda) {
-  static_assert(std::is_invocable_v<LAMBDA, ELEMENTIN>, "the function for fmap is not invocable");
-  CONTAINEROUT<std::invoke_result_t<LAMBDA, ELEMENTIN>> res;
-  std::transform(args.cbegin(), args.cend(), std::back_inserter(res),
-                 std::forward<decltype(lambda)>(lambda));
-  return std::move(res);
-}
-
-namespace ast {
-template <typename T, typename L>
-T transformArgs(T& args, L&& lambda) {
-  return fmap(args, std::forward<decltype(lambda)>(lambda));
-}
-}  // namespace ast
-
-[[maybe_unused]] static std::string join(std::deque<std::string>& vec, std::string delim) {
-  std::string res;
-  if (!vec.empty()) {
-    res = std::accumulate(std::next(vec.begin()), vec.end(), *(vec.begin()),
-                          [&](std::string a, std::string b) { return std::move(a) + delim + b; });
-  }
-  return res;
-}
-template <class T>
-static std::string join(std::deque<std::shared_ptr<T>>& vec, std::string delim) {
-  std::string res;
-  if (!vec.empty()) {
-    res = std::accumulate(
-        std::next(vec.begin()), vec.end(), (*(vec.begin()))->toString(),
-        [&](std::string a, std::shared_ptr<T>& b) { return std::move(a) + delim + b->toString(); });
-  }
-  return res;
-}
-
-// static std::string join(const std::vector<TypedVal>& vec, std::string delim)
-// {
-//   std::string s;
-//   for (auto& elem : vec) {
-//     s += elem.name;
-//     auto endstr = vec.back();
-//     if (elem.name != endstr.name) s += delim;
-//   }
-//   return s;
-// };
 
 template <typename T, typename... U>
 size_t getAddressfromFun(std::function<T(U...)> f) {

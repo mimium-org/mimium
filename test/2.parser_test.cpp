@@ -1,7 +1,4 @@
-#include "basic/ast.hpp"
-#include "basic/ast_to_string.hpp"
 #include "compiler/ast_loader.hpp"
-#include "mimium_parser.hpp"
 #include "compiler/scanner.hpp"
 #include "gtest/gtest.h"
 #include "gtest/internal/gtest-port.h"
@@ -10,7 +7,7 @@ namespace mimium {
 #define PARSER_TEST(FILENAME)                                     \
   TEST(parser, FILENAME) { /*NOLINT*/                             \
     Driver driver{};                                              \
-    *driver.parseFile(TEST_ROOT_DIR "/parser/" #FILENAME ".mmm"); \
+    driver.parseFile(TEST_ROOT_DIR "/parser/" #FILENAME ".mmm"); \
   }
 
 PARSER_TEST(operators)

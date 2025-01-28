@@ -34,6 +34,9 @@ WSPACE   [[:blank:]]+
 STRING  "\""[[:alnum:][:graph:][:blank:]]+"\""
 BREAK  "\r\n"|"\n"|"\r"
 NEWLINE {BREAK}* | ";"
+
+OPERATOR [\<\>\!\?\+\-\*\|\&\^#~]*
+
 /*END {BREAK}{WSPACE}*"end"*/
 /*{END} return token::END;*/
 %%
@@ -136,6 +139,11 @@ NEWLINE {BREAK}* | ";"
 "@" return token::AT;
 
 "=" return token::ASSIGN;
+
+{OPERATOR} {
+  yylval->emplace<std::string>(yytext);
+  return token::OPERATORS;
+};
 
 "{" return token::LBRACE;
 "}" return token::RBRACE;

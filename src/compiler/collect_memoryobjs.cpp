@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #include "collect_memoryobjs.hpp"
+#include <iostream>
 namespace mimium {
 
 std::unordered_set<mir::valueptr> MemoryObjsCollector::collectToplevelFuns(mir::blockptr toplevel) {
@@ -32,15 +33,15 @@ std::shared_ptr<FunObjTree> MemoryObjsCollector::traverseFunTree(mir::valueptr f
   CollectMemVisitor visitor(*this);
   auto res = visitor.visitInsts(f.body);
   if (res.hasself) {
-    const auto& rettype = rv::get<types::Function>(f.type).ret_type;
+    const auto& rettype = LType::getCanonicalType<LType::Function>(f.type).v.second;
     auto& resulttype = CollectMemVisitor::getTupleFromAlias(res.objtype);
-    resulttype.arg_types.emplace_back(rettype);
+    resulttype.v.emplace_back(rettype);
   }
   auto objptr = std::make_shared<FunObjTree>(FunObjTree{fun, res.hasself, res.objs, res.objtype});
   if (res.hasself || !res.objs.empty()) {
     result_map.emplace(fun, objptr);
-    auto& ftype = rv::get<types::Function>(f.type);
-    ftype.arg_types.emplace_back(types::Ref{objptr->objtype});
+    auto& ftype = LType::getCanonicalType<LType::Function>(f.type);
+    ftype.v.first.emplace_back(LType::Value{LType::Pointer{objptr->objtype}});
   }
   return objptr;
 }
@@ -55,8 +56,8 @@ funobjmap MemoryObjsCollector::process(mir::blockptr toplevel) {
         res = traverseFunTree(inst);
         auto memtype = res->objtype;
         if (!res->memobjs.empty() || res->hasself) {
-          alloca_container.emplace(std::make_shared<mir::Value>(
-              minst::Allocate{{mir::getName(*inst) + ".mem", types::Pointer{memtype}}}));
+          alloca_container.emplace(std::make_shared<mir::Value>(minst::Allocate{
+              {mir::getName(*inst) + ".mem", LType::Value{LType::Pointer{memtype}}}}));
         }
       }
     }
@@ -101,11 +102,9 @@ void MemoryObjsCollector::dump() const {
 // visitor
 using ResultT = MemoryObjsCollector::CollectMemVisitor::ResultT;
 
-types::Tuple& MemoryObjsCollector::CollectMemVisitor::getTupleFromAlias(types::Value& t) {
-  assert(std::holds_alternative<types::rAlias>(t));
-  auto& atype = rv::get<types::Alias>(t);
-  assert(std::holds_alternative<types::rTuple>(atype.target));
-  return rv::get<types::Tuple>(atype.target);
+LType::Tuple& MemoryObjsCollector::CollectMemVisitor::getTupleFromAlias(LType::Value& t) {
+  assert(LType::canonicalCheck<LType::Tuple>(t));
+  return LType::getCanonicalType<LType::Tuple>(t);
 }
 
 ResultT MemoryObjsCollector::CollectMemVisitor::makeResfromHasSelf(bool hasself) {
@@ -120,13 +119,13 @@ void MemoryObjsCollector::CollectMemVisitor::mergeResultTs(ResultT& dest, Result
   dest.objs.splice(dest.objs.end(), std::move(src.objs));
   auto& t1 = getTupleFromAlias(dest.objtype);
   auto& t2 = getTupleFromAlias(src.objtype);
-  std::copy(t2.arg_types.begin(), t2.arg_types.end(), std::back_inserter(t1.arg_types));
+  std::copy(t2.v.begin(), t2.v.end(), std::back_inserter(t1.v));
 }
 
 ResultT MemoryObjsCollector::CollectMemVisitor::visitInsts(mir::blockptr block) {
   const auto& insts = block->instructions;
   const auto& name = block->label;
-  auto res = ResultT{{}, types::Alias{name, types::Tuple{}}, false};
+  auto res = ResultT{{}, LType::Value{LType::Alias{name, LType::Value{LType::Tuple{}}}}, false};
 
   return std::accumulate(insts.begin(), insts.end(), res, [&](ResultT acc, mir::valueptr i) {
     auto r = this->visit(i);
@@ -145,11 +144,11 @@ ResultT MemoryObjsCollector::CollectMemVisitor::operator()(minst::Store& i) {
   return makeResfromHasSelf(isSelf(i.target) && isSelf(i.value));
 }
 
-ResultT MemoryObjsCollector::CollectMemVisitor::operator()(minst::Op& i) {
-  bool hasself = isSelf(i.rhs);
-  if (i.lhs.has_value()) { hasself |= isSelf(i.lhs.value()); }
-  return makeResfromHasSelf(hasself);
-}
+// ResultT MemoryObjsCollector::CollectMemVisitor::operator()(minst::Op& i) {
+//   bool hasself = isSelf(i.rhs);
+//   if (i.lhs.has_value()) { hasself |= isSelf(i.lhs.value()); }
+//   return makeResfromHasSelf(hasself);
+// }
 
 ResultT MemoryObjsCollector::CollectMemVisitor::operator()(minst::Fcall& i) {
   using opt_objtreeptr = std::optional<std::shared_ptr<FunObjTree>>;
@@ -171,13 +170,13 @@ ResultT MemoryObjsCollector::CollectMemVisitor::operator()(minst::Fcall& i) {
                             [&](const mir::ExternalSymbol& e) -> opt_objtreeptr {
                               if (e.name == "delay") {
                                 auto res = std::make_shared<FunObjTree>(
-                                    FunObjTree{i.fname, false, {}, types::getDelayStruct()});
+                                    FunObjTree{i.fname, false, {}, mimium::getDelayStruct()});
                                 M.result_map.emplace(i.fname, res);
                                 return res;
                               }
-                              if(e.name == "mem"){
+                              if (e.name == "mem") {
                                 auto res = std::make_shared<FunObjTree>(
-                                    FunObjTree{i.fname, false, {}, types::Float{}});
+                                    FunObjTree{i.fname, false, {}, LType::Value{LType::Float{}}});
                                 M.result_map.emplace(i.fname, res);
                                 return res;
                               }
@@ -200,7 +199,7 @@ ResultT MemoryObjsCollector::CollectMemVisitor::operator()(minst::Fcall& i) {
   if (opt_tree.has_value()) {
     auto& tree = opt_tree.value();
     res.objs.emplace_back(tree);
-    res.objtype = types::Alias{"", types::Tuple{{tree->objtype}}};
+    res.objtype = LType::Value{LType::Alias{"", LType::Value{LType::Tuple{{tree->objtype}}}}};
   }
   return res;
 }
